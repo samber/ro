@@ -45,9 +45,9 @@ Both libraries have `Map()`, `Filter()`... helpers. How are they different?
 | **Size**           | finite sequence             | infinite stream                                          |
 | **Flow control**   | pull-based (iterators)      | push-based                                               |
 
-`lo` is a bunch of helpers for looping across maps, slices...
+`lo` is a bunch of helpers for looping across finite sequences (maps, slices...)
 
-`ro` is focused on data processing of event-driven applications.
+`ro` is focused on processing of infinite data streams in event-driven applications.
 
 **Why this name?**
 

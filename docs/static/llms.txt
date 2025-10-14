@@ -347,7 +347,7 @@ obs.Subscribe(ro.OnNext(func(msg string) {
 
 ## Comparison with other libraries
 
-`ro` vs `samber/lo`:
+`samber/ro` vs `samber/lo`:
 
 | Feature | `samber/lo` | `samber/ro` |
 |---------|-------------|-------------|
@@ -357,4 +357,6 @@ obs.Subscribe(ro.OnNext(func(msg string) {
 | Size | Finite sequences | Infinite streams |
 | Flow control | Pull-based (iterators) | Push-based |
 
-Use `lo` for in-memory data manipulation and `ro` for reactive, event-driven applications.
+`samber/lo` is a bunch of helpers for looping across finite sequences (maps, slices...)
+
+`samber/ro` is focused on processing of infinite data streams in event-driven applications.

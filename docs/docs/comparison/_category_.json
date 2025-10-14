@@ -1,0 +1,8 @@
+{
+  "label": "📊 Comparison",
+  "position": 60,
+  "link": {
+    "type": "generated-index",
+    "description": "Compare samber/ro with other libraries"
+  }
+}
