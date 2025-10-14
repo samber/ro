@@ -1,5 +1,5 @@
 ---
-title: ⚖️ samber/lo vs samber/ro
+title: samber/lo vs samber/ro
 description: Compare samber/lo (functional utils) vs samber/ro (reactive streams)
 sidebar_position: 5
 ---

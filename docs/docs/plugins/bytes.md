@@ -1,7 +1,7 @@
 ---
 title: Bytes
 description: Byte manipulation and conversion utilities for observable streams.
-sidebar_position: 0
+sidebar_position: 1
 hide_table_of_contents: true
 ---
 

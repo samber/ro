@@ -1,5 +1,5 @@
 ---
-title: 📡 channels vs ro
+title: channels vs ro
 description: Compare Go channels vs samber/ro reactive streams
 sidebar_position: 3
 ---

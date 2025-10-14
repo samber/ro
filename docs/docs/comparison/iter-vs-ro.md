@@ -1,5 +1,5 @@
 ---
-title: 🔁 iter vs ro
+title: iter vs ro
 description: Compare Go's iter package vs samber/ro reactive streams
 sidebar_position: 4
 ---

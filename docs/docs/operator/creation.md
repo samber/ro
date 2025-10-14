@@ -1,7 +1,7 @@
 ---
 title: Creation operators
 description: Create observables from values, iterables, timers, channels, and events.
-sidebar_position: 0
+sidebar_position: 1
 hide_table_of_contents: true
 ---
 
