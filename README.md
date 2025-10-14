@@ -6,7 +6,7 @@
 [![GoDoc](https://godoc.org/github.com/samber/ro?status.svg)](https://pkg.go.dev/github.com/samber/ro)
 ![Build Status](https://github.com/samber/ro/actions/workflows/test.yml/badge.svg)
 [![Go report](https://goreportcard.com/badge/github.com/samber/ro)](https://goreportcard.com/report/github.com/samber/ro)
-[![Coverage](https://img.shields.io/codecov/c/github/samber/ro)](https://codecov.io/gh/samber/ro)
+[![Coverage](https://img.shields.io/codecov/c/github/samber/ro)](https://app.codecov.io/gh/samber/ro)
 [![Contributors](https://img.shields.io/github/contributors/samber/ro)](https://github.com/samber/ro/graphs/contributors)
 
 > A *Go* implementation of the [ReactiveX](https://reactivex.io/) spec.
