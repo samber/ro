@@ -473,6 +473,6 @@ This fundamental difference affects how you design concurrent systems:
 - **Go channels**: Producer continues immediately, consumer processes asynchronously
 - **Observables**: Producer waits for consumer to finish, providing synchronous semantics
 
-See [Channels vs ro](../channels-vs-ro) for a detailed comparison.
+See [Channels vs ro](../comparison/channels-vs-ro) for a detailed comparison.
 
 Observers are the essential consumer interface in reactive programming, providing a clean, thread-safe way to handle streams of values with proper error handling and lifecycle management.

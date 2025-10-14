@@ -444,7 +444,7 @@ Now that you understand the basics, explore:
 
 - **[Operators Reference](./operator/creation.md)**: Learn about all available operators
 - **[Examples]**: Check out practical examples in the examples directory
-- **[Comparison Guides](./lo-vs-ro)**: See how `samber/ro` compares to `channel`, `iter`, and `samber/lo`
+- **[Comparison Guides](./comparison/lo-vs-ro)**: See how `samber/ro` compares to `channel`, `iter`, and `samber/lo`
 - **[Advanced Patterns](./core/subject)**: `Subjects`, backpressure, and custom operators
 
 :::

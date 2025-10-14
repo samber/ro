@@ -150,6 +150,6 @@ Designed for high-throughput scenarios:
 - **Data processing** with transformation, aggregation and enrichment
 - **Event-driven** patterns
 
-See [comparisons](./lo-vs-ro) with other Go libraries for more context.
+See [comparisons](./comparison/lo-vs-ro) with other Go libraries for more context.
 
 `ro` brings the elegance and power of reactive programming to Go while maintaining the language's core strengths of simplicity and performance.

@@ -594,7 +594,7 @@ The key performance difference is in backpressure handling:
 - **Channels**: Producer continues immediately after send, blocks only if buffer is full
 - **ro**: Producer waits until consumer completes processing before continuing
 
-Learn more about [backpressure](./glossary#Backpressure) in the glossary.
+Learn more about [backpressure](../glossary#Backpressure) in the glossary.
 
 :::
 

@@ -286,8 +286,8 @@ Both libraries excel in their respective domains. Choose `lo` for traditional fu
 
 :::tip Learn More
 
-- Explore [samber/ro basics](./core/observable) for reactive concepts
-- See [Operators guide](./core/operators) for stream transformations
-- Learn about [backpressure](./glossary#Backpressure) in reactive systems
+- Explore [samber/ro basics](../core/observable) for reactive concepts
+- See [Operators guide](../core/operators) for stream transformations
+- Learn about [backpressure](../glossary#Backpressure) in reactive systems
 
 :::
