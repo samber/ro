@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"context"
 	"sync"
 
 	"github.com/samber/lo"
@@ -26,11 +27,13 @@ import (
 // It is part of a Subscription, and is returned by the Observable creation.
 // It will be called only once, when the Subscription is canceled.
 type Teardown func()
+type TeardownWithContext func(ctx context.Context)
 
 // Unsubscribable represents any type that can be unsubscribed from.
 // It provides a common interface for cancellation operations.
 type Unsubscribable interface {
 	Unsubscribe()
+	UnsubscribeWithContext(ctx context.Context)
 }
 
 // Subscription represents an ongoing execution of an `Observable`, and has
@@ -42,6 +45,7 @@ type Subscription interface {
 	AddUnsubscribable(unsubscribable Unsubscribable)
 	IsClosed() bool
 	Wait() // Note: using .Wait() is not recommended.
+	UnsubscribeWithContext(ctx context.Context)
 }
 
 var _ Subscription = (*subscriptionImpl)(nil)
@@ -84,11 +88,13 @@ func (s *subscriptionImpl) Add(teardown Teardown) {
 	defer s.mu.Unlock()
 
 	if s.done {
-		teardown() // not protected against panics
-	} else {
-		s.finalizers = append(s.finalizers, teardown)
-	}
+		teardown()
+		return
+	} 
+
+	s.finalizers = append(s.finalizers, teardown)
 }
+
 
 // AddUnsubscribable merges multiple subscriptions into one. The method does nothing
 // if `unsubscribable` is nil.
@@ -149,6 +155,34 @@ func (s *subscriptionImpl) Unsubscribe() {
 	}
 }
 
+func (s *subscriptionImpl) UnsubscribeWithContext(ctx context.Context) {
+	s.mu.Lock()
+
+	if s.done {
+		s.mu.Unlock()
+		return
+	}
+
+	s.done = true
+
+	finalizers := s.finalizers
+	s.finalizers = make([]func(), 0)
+	s.mu.Unlock()
+
+	var errs []error
+	for _, finalizer := range finalizers {
+		err := execFinalizerWithContext(finalizer, ctx)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		panic(xerrors.Join(errs...))
+	}
+}
+
+
 // IsClosed returns true if the subscription has been disposed
 // or if unsubscription is in progress.
 //
@@ -199,6 +233,26 @@ func execFinalizer(finalizer func()) (err error) {
 
 	return err
 }
+
+func execFinalizerWithContext(finalizer any, ctx context.Context) (err error) {
+	switch f := finalizer.(type) {
+	case func():
+		return execFinalizer(f)
+	case func(context.Context):
+		lo.TryCatchWithErrorValue(
+			func() error {
+				f(ctx)
+				err = nil
+				return nil
+			},
+			func(e any) {
+				err = newUnsubscriptionError(recoverValueToError(e))
+			},
+		)
+	}
+	return err
+}
+
 
 // @TODO: Add methods Remove + RemoveSubscription.
 // Currently, Go does not support function address comparison, so we cannot
