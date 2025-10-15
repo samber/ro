@@ -69,7 +69,7 @@ Now you discovered the paradigm, follow the documentation and turn reactive: [ðŸ
 
 ## Core package
 
-Full documentation [here](https://ro.samber.dev/docs/operator).
+[Full documentation here](https://ro.samber.dev/docs/operator).
 
 The `ro` library provides all basic operators:
 - **Creation operators**: The data source, usually the first argument of `ro.Pipe`
@@ -88,7 +88,7 @@ The `ro` library provides all basic operators:
 
 The `ro` library provides a rich ecosystem of plugins for various use cases:
 
-Full documentation [here](https://ro.samber.dev/docs/plugins).
+[Full documentation here](https://ro.samber.dev/docs/plugins).
 
 ### Data Manipulation
 - **Bytes** (`plugins/bytes`) - String and byte slice manipulation operators

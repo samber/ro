@@ -16,6 +16,7 @@ package ro
 
 import (
 	"context"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -676,4 +677,190 @@ func TestObservable_contextPropagation(t *testing.T) {
 	is.Equal("abcd", ctx.Value(ctxKey42))
 	is.Equal(-42, ctx.Value(ctxKey42Int)) // because MapWithContext does not change context of Complete notification
 	is.NoError(err)
+}
+
+func TestNewConnectableObservable(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	a := []int{}
+	b := []string{}
+
+	source := func(destination Observer[int]) Teardown {
+		destination.Next(1)
+		destination.Next(2)
+		destination.Next(3)
+		destination.Complete()
+
+		return nil
+	}
+
+	connectable, ok := NewConnectableObservable(source).(*connectableObservableImpl[int])
+
+	is.True(ok)
+
+	is.True(connectable.config.ResetOnDisconnect)
+	is.NotNil(connectable.config.Connector)
+	is.NotNil(connectable.source)
+	is.Nil(connectable.subscription)
+
+	sub1 := connectable.Subscribe(OnNext(func(item int) {
+		a = append(a, item)
+	}))
+	sub2 := connectable.Subscribe(OnNext(func(item int) {
+		b = append(b, strconv.Itoa(item))
+	}))
+
+	is.Nil(connectable.subscription)
+	is.False(sub1.IsClosed())
+	is.False(sub2.IsClosed())
+
+	sub := connectable.Connect()
+	is.True(connectable.subscription.IsClosed())
+	is.True(sub.IsClosed())
+	is.True(sub1.IsClosed())
+	is.True(sub2.IsClosed())
+
+	is.Equal([]int{1, 2, 3}, a)
+	is.Equal([]string{"1", "2", "3"}, b)
+}
+
+func TestNewConnectableObservableWithConfig(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	a := []int{}
+	b := []string{}
+
+	source := func(destination Observer[int]) Teardown {
+		destination.Next(1)
+		destination.Next(2)
+		destination.Next(3)
+		destination.Complete()
+
+		return nil
+	}
+
+	config := ConnectableConfig[int]{
+		Connector:         NewSubject[int],
+		ResetOnDisconnect: true,
+	}
+	connectable, ok := NewConnectableObservableWithConfig(source, config).(*connectableObservableImpl[int])
+
+	is.True(ok)
+
+	is.True(connectable.config.ResetOnDisconnect)
+	is.NotNil(connectable.config.Connector)
+	is.NotNil(connectable.source)
+	is.Nil(connectable.subscription)
+
+	sub1 := connectable.Subscribe(OnNext(func(item int) {
+		a = append(a, item)
+	}))
+	sub2 := connectable.Subscribe(OnNext(func(item int) {
+		b = append(b, strconv.Itoa(item))
+	}))
+
+	is.Nil(connectable.subscription)
+	is.False(sub1.IsClosed())
+	is.False(sub2.IsClosed())
+
+	sub := connectable.Connect()
+	is.True(connectable.subscription.IsClosed())
+	is.True(sub.IsClosed())
+	is.True(sub1.IsClosed())
+	is.True(sub2.IsClosed())
+
+	is.Equal([]int{1, 2, 3}, a)
+	is.Equal([]string{"1", "2", "3"}, b)
+}
+
+func TestConnectable(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	a := []int{}
+	b := []int{}
+	c := []string{}
+
+	source := TapOnNext(func(value int) {
+		a = append(a, value*2)
+	})(Of(1, 2, 3))
+
+	connectable, ok := Connectable(source).(*connectableObservableImpl[int])
+
+	is.True(ok)
+
+	is.True(connectable.config.ResetOnDisconnect)
+	is.NotNil(connectable.config.Connector)
+	is.NotNil(connectable.source)
+	is.Nil(connectable.subscription)
+
+	sub1 := connectable.Subscribe(OnNext(func(item int) {
+		b = append(b, item)
+	}))
+	sub2 := connectable.Subscribe(OnNext(func(item int) {
+		c = append(c, strconv.Itoa(item))
+	}))
+
+	is.Nil(connectable.subscription)
+	is.False(sub1.IsClosed())
+	is.False(sub2.IsClosed())
+
+	sub := connectable.Connect()
+	is.True(connectable.subscription.IsClosed())
+	is.True(sub.IsClosed())
+	is.True(sub1.IsClosed())
+	is.True(sub2.IsClosed())
+
+	is.Equal([]int{2, 4, 6}, a)
+	is.Equal([]int{1, 2, 3}, b)
+	is.Equal([]string{"1", "2", "3"}, c)
+}
+
+func TestConnectableWithConfig(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	a := []int{}
+	b := []int{}
+	c := []string{}
+
+	source := TapOnNext(func(value int) {
+		a = append(a, value*2)
+	})(Of(1, 2, 3))
+
+	config := ConnectableConfig[int]{
+		Connector:         NewSubject[int],
+		ResetOnDisconnect: true,
+	}
+	connectable, ok := ConnectableWithConfig(source, config).(*connectableObservableImpl[int])
+
+	is.True(ok)
+
+	is.True(connectable.config.ResetOnDisconnect)
+	is.NotNil(connectable.config.Connector)
+	is.NotNil(connectable.source)
+	is.Nil(connectable.subscription)
+
+	sub1 := connectable.Subscribe(OnNext(func(item int) {
+		b = append(b, item)
+	}))
+	sub2 := connectable.Subscribe(OnNext(func(item int) {
+		c = append(c, strconv.Itoa(item))
+	}))
+
+	is.Nil(connectable.subscription)
+	is.False(sub1.IsClosed())
+	is.False(sub2.IsClosed())
+
+	sub := connectable.Connect()
+	is.True(connectable.subscription.IsClosed())
+	is.True(sub.IsClosed())
+	is.True(sub1.IsClosed())
+	is.True(sub2.IsClosed())
+
+	is.Equal([]int{2, 4, 6}, a)
+	is.Equal([]int{1, 2, 3}, b)
+	is.Equal([]string{"1", "2", "3"}, c)
 }
