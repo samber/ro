@@ -42,10 +42,18 @@ type Subscription interface {
 	Unsubscribable
 
 	Add(teardown Teardown)
+	AddWithContext(teardown TeardownWithContext)
 	AddUnsubscribable(unsubscribable Unsubscribable)
 	IsClosed() bool
 	Wait() // Note: using .Wait() is not recommended.
-	UnsubscribeWithContext(ctx context.Context)
+}
+
+type subscriptionImpl struct {
+    done          bool
+    mu            sync.Mutex
+    finalizers    []Teardown
+    ctxFinalizers []TeardownWithContext
+
 }
 
 var _ Subscription = (*subscriptionImpl)(nil)
@@ -54,22 +62,31 @@ var _ Subscription = (*subscriptionImpl)(nil)
 // is added. When the subscription is already disposed, the `teardown` callback
 // is triggered immediately.
 func NewSubscription(teardown Teardown) Subscription {
-	teardowns := []func(){}
+	s := &subscriptionImpl{
+		finalizers: []Teardown{},
+		ctxFinalizers: []TeardownWithContext{},
+	}
 	if teardown != nil {
-		teardowns = append(teardowns, teardown)
+		s.finalizers = append(s.finalizers, teardown)
 	}
 
-	return &subscriptionImpl{
-		done:       false,
-		mu:         sync.Mutex{},
-		finalizers: teardowns,
-	}
+	return s
 }
 
-type subscriptionImpl struct {
-	done       bool
-	mu         sync.Mutex // Should be a RWMutex because of the .IsClosed() method, but sync.RWMutex is 30% slower.
-	finalizers []func()
+func NewSubscriptionWithContext(teardown TeardownWithContext) Subscription {
+	s := &subscriptionImpl{
+		finalizers:    []Teardown{},
+		ctxFinalizers: []TeardownWithContext{},
+
+	}
+
+	if teardown != nil {
+		s.ctxFinalizers = append(s.ctxFinalizers, teardown)
+	}
+
+	
+
+	return s
 }
 
 // Add receives a finalizer to execute upon unsubscription. When `teardown`
@@ -88,13 +105,30 @@ func (s *subscriptionImpl) Add(teardown Teardown) {
 	defer s.mu.Unlock()
 
 	if s.done {
-		teardown()
+		_ = execFinalizer(teardown)
 		return
 	} 
 
 	s.finalizers = append(s.finalizers, teardown)
 }
 
+// AddWithContext registers a teardown function that receives a context when
+// the subscription is unsubscribed.
+func (s *subscriptionImpl) AddWithContext(teardown TeardownWithContext) {
+	if teardown == nil {
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.done {
+		_ = execFinalizerWithContext(teardown, context.Background())
+		return
+	}
+
+	s.ctxFinalizers = append(s.ctxFinalizers, teardown)
+}
 
 // AddUnsubscribable merges multiple subscriptions into one. The method does nothing
 // if `unsubscribable` is nil.
@@ -107,7 +141,9 @@ func (s *subscriptionImpl) AddUnsubscribable(unsubscribable Unsubscribable) {
 		return
 	}
 
-	s.Add(unsubscribable.Unsubscribe)
+	s.Add(func() {
+		unsubscribable.Unsubscribe()
+	})
 }
 
 // Unsubscribe disposes the resources held by the subscription. May, for
@@ -126,36 +162,39 @@ func (s *subscriptionImpl) Unsubscribe() {
 	}
 
 	s.done = true
-
-	if len(s.finalizers) == 0 {
-		s.mu.Unlock()
-		return
-	}
-
-	finalizers := s.finalizers
-	s.finalizers = make([]func(), 0)
+	finals := s.finalizers
+	ctxFinals := s.ctxFinalizers
+	s.finalizers = nil
+	s.ctxFinalizers = nil
 	s.mu.Unlock()
 
 	var errs []error
 
-	// Note: we prefer not running this in parallel.
-	for i := range finalizers {
-		err := execFinalizer(finalizers[i]) // protected against panics
-		if err != nil {
-			// OnUnhandledError(err)
+	// Execute simple teardowns
+	for _, f := range finals {
+		if err := execFinalizer(f); err != nil {
 			errs = append(errs, err)
 		}
 	}
 
-	// Error is triggered after the recursive call to finalizers
-	// because we want to execute all finalizers before panicking.
+	// Execute context teardowns with a background context
+	for _, f := range ctxFinals {
+		if err := execFinalizerWithContext(f, context.Background()); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
 	if len(errs) > 0 {
-		// errors.Join has been introduced in go 1.20
 		panic(xerrors.Join(errs...))
 	}
 }
 
+// UnsubscribeWithContext cancels the subscription and executes all registered
+// teardown functions with the provided context. This allows cancellation-aware
+// cleanup logic (e.g. context timeout or cancellation).
+
 func (s *subscriptionImpl) UnsubscribeWithContext(ctx context.Context) {
+
 	s.mu.Lock()
 
 	if s.done {
@@ -164,15 +203,23 @@ func (s *subscriptionImpl) UnsubscribeWithContext(ctx context.Context) {
 	}
 
 	s.done = true
-
-	finalizers := s.finalizers
-	s.finalizers = make([]func(), 0)
+	finals := s.finalizers
+	ctxFinals := s.ctxFinalizers
+	s.finalizers = nil
+	s.ctxFinalizers = nil
 	s.mu.Unlock()
 
 	var errs []error
-	for _, finalizer := range finalizers {
-		err := execFinalizerWithContext(finalizer, ctx)
-		if err != nil {
+	// Execute simple teardowns
+	for _, f := range finals {
+		if err := execFinalizer(f); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	// Execute context teardowns with provided context
+	for _, f := range ctxFinals {
+		if err := execFinalizerWithContext(f, ctx); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -221,9 +268,6 @@ func execFinalizer(finalizer func()) (err error) {
 	lo.TryCatchWithErrorValue(
 		func() error {
 			finalizer()
-
-			err = nil
-
 			return nil
 		},
 		func(e any) {
@@ -242,7 +286,16 @@ func execFinalizerWithContext(finalizer any, ctx context.Context) (err error) {
 		lo.TryCatchWithErrorValue(
 			func() error {
 				f(ctx)
-				err = nil
+				return nil
+			},
+			func(e any) {
+				err = newUnsubscriptionError(recoverValueToError(e))
+			},
+		)
+	case TeardownWithContext:
+		lo.TryCatchWithErrorValue(
+			func() error {
+				f(ctx)
 				return nil
 			},
 			func(e any) {
