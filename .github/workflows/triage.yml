@@ -7,23 +7,79 @@ name: Triage
 on:
   issues:
     types: [opened, reopened]
-
-permissions:
-  models: read
-  issues: write
+  pull_request:
+    types: [opened, reopened]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.issue.number }}
   cancel-in-progress: true
 
 jobs:
-  triage-dedup:
-    if: ${{ github.event.issue.user.type != 'Bot' }}
+  # triage:
+  #   if: ${{ github.event.issue.user.type != 'Bot' }}
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     models: read
+  #     issues: write
+  #   steps:
+  #     - uses: pelikhan/action-genai-issue-dedup@v0
+  #       with:
+  #         github_token: ${{ secrets.GITHUB_TOKEN }}
+  #         labels: "auto"
+  #         count: "50"
+  #         since: "180d"
+
+  triage:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    permissions:
+      issues: write
+      id-token: write
     steps:
-      - uses: pelikhan/action-genai-issue-dedup@v0
+      - name: Determine body and id
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "issues" ]; then
+            echo "NBR=${{ github.event.issue.number }}" >> $GITHUB_ENV
+            echo "TITLE=${{ github.event.issue.title }}" >> $GITHUB_ENV
+            echo "BODY=${{ github.event.issue.body }}" >> $GITHUB_ENV
+            echo "AUTHOR=${{ github.event.issue.user.login }}" >> $GITHUB_ENV
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "NBR=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+            echo "TITLE=${{ github.event.pull_request.title }}" >> $GITHUB_ENV
+            echo "BODY=${{ github.event.pull_request.body }}" >> $GITHUB_ENV
+            echo "AUTHOR=${{ github.event.pull_request.user.login }}" >> $GITHUB_ENV
+          fi
+
+      - uses: anthropics/claude-code-action@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          labels: "auto"
-          count: "50"
-          since: "180d"
+          anthropic_api_key: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            TITLE: ${{ vars.TITLE }}
+            BODY: ${{ vars.BODY }}
+            ISSUE/PR NUMBER: ${{ vars.NBR }}
+            AUTHOR: ${{ vars.AUTHOR }}
+
+            If you need more context on the project, read the LLMs documentation: ./docs/static/llms.txt
+
+            List labels for this repository: `gh label list`
+
+            Analyze this new issue and:
+            1. Determine if it's a bug report, feature request, or question
+            2. Suggest appropriate labels
+            3. Check if it duplicates existing issues
+
+            Based on your analysis, add the appropriate labels using:
+            `gh issue edit [number] --add-label "label1,label2"`
+
+            If it appears to be a duplicate, post a comment mentioning the original issue.
+
+          claude_args: |
+            --mcp-config '{"mcpServers": {"sequential-thinking": {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]}}}'
+            --allowedTools "mcp__sequential-thinking__sequentialthinking,Bash(gh issue:*),Bash(gh search:*),Bash(gh label list)"
