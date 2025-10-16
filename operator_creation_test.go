@@ -661,11 +661,92 @@ func TestOperatorCreationCombineLatestAny(t *testing.T) { //nolint:paralleltest
 }
 
 func TestOperatorCreationZip(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	t.Run("Zip with single observable", func(t *testing.T) {
+		obs := Zip(
+			Just[any](1, 2, 3),
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+
+		is.Equal([][]any{
+			{1},
+			{2},
+			{3},
+		}, values)
+	})
+
+	t.Run("Zip with two observables", func(t *testing.T) {
+		obs := Zip(
+			Just[any](1, 2, 3),
+			Just[any]("A", "B", "C"),
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+
+		is.Equal([][]any{
+			{1, "A"},
+			{2, "B"},
+			{3, "C"},
+		}, values)
+	})
+
+	t.Run("Zip with three observables", func(t *testing.T) {
+		obs := Zip(
+			Just[any](1, 2, 3),
+			Just[any]("A", "B", "C"),
+			Just[any](true, false, true),
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+
+		is.Equal([][]any{
+			{1, "A", true},
+			{2, "B", false},
+			{3, "C", true},
+		}, values)
+	})
 }
 
 func TestOperatorCreationZip2(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	t.Run("Zip2 with equal length observables", func(t *testing.T) {
+		obs := Zip2(
+			Just(1, 2, 3),
+			Just("A", "B", "C"),
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+
+		is.Equal([]lo.Tuple2[int, string]{
+			{A: 1, B: "A"},
+			{A: 2, B: "B"},
+			{A: 3, B: "C"},
+		}, values)
+	})
+
+	t.Run("Zip2 with unequal length observables", func(t *testing.T) {
+		obs := Zip2(
+			Just(1, 2, 3, 4, 5), 
+			Just("A", "B"),     
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+
+		is.Equal([]lo.Tuple2[int, string]{
+			{A: 1, B: "A"},
+			{A: 2, B: "B"},
+		}, values)
+	})
 }
 
 func TestOperatorCreationZip3(t *testing.T) { //nolint:paralleltest
