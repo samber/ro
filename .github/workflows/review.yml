@@ -48,6 +48,7 @@ jobs:
             Use `mcp__github_inline_comment__create_inline_comment` to highlight specific code issues.
             Only post GitHub comments - don't submit review text as messages.
             Be welcoming but thorough in your review. Use inline comments for code-specific feedback.
+            Write short and concise comments/reviews. Write comments only if there is a specific issue.
 
           claude_args: |
             --mcp-config '{"mcpServers": {"sequential-thinking": {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]}}}'
