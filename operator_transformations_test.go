@@ -90,19 +90,19 @@ func TestOperatorTransformationMapTo(t *testing.T) {
 	is := assert.New(t)
 
 	values, err := Collect(
-		MapTo[int, int](42)(Just(1, 2, 3)),
+		MapTo[int](42)(Just(1, 2, 3)),
 	)
 	is.Equal([]int{42, 42, 42}, values)
 	is.NoError(err)
 
 	values, err = Collect(
-		MapTo[int, int](42)(Empty[int]()),
+		MapTo[int](42)(Empty[int]()),
 	)
 	is.Equal([]int{}, values)
 	is.NoError(err)
 
 	values, err = Collect(
-		MapTo[int, int](42)(Throw[int](assert.AnError)),
+		MapTo[int](42)(Throw[int](assert.AnError)),
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
