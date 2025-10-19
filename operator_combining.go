@@ -587,7 +587,7 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 			var status int32
 
 			onUpdate := func(ctx context.Context, a *A, b *B, c *C, d *D, e *E) {
-				if atomic.LoadInt32(&status) < 4 {
+				if atomic.LoadInt32(&status) < 5 {
 					if a == nil {
 						a = valueA.Load()
 					}
