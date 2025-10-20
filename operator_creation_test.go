@@ -753,6 +753,7 @@ func TestOperatorCreationZip2(t *testing.T) { //nolint:paralleltest
 }
 
 func TestOperatorCreationZip3(t *testing.T) { //nolint:paralleltest
+	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
 	is := assert.New(t)
 
@@ -793,6 +794,7 @@ func TestOperatorCreationZip3(t *testing.T) { //nolint:paralleltest
 
 
 func TestOperatorCreationZip4(t *testing.T) { //nolint:paralleltest
+	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
 	is := assert.New(t)
 
