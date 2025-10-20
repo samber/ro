@@ -82,9 +82,9 @@ func TestOperatorCombiningMergeAll(t *testing.T) { //nolint:paralleltest
 	values, err = Collect(
 		MergeAll[int64]()(
 			Just(
-				RangeWithInterval(0, 3, 100*time.Millisecond),
-				Delay[int64](33*time.Millisecond)(RangeWithInterval(3, 6, 100*time.Millisecond)),
-				Delay[int64](66*time.Millisecond)(RangeWithInterval(6, 9, 100*time.Millisecond)),
+				RangeWithInterval(0, 3, 200*time.Millisecond),
+				Delay[int64](66*time.Millisecond)(RangeWithInterval(3, 6, 200*time.Millisecond)),
+				Delay[int64](132*time.Millisecond)(RangeWithInterval(6, 9, 200*time.Millisecond)),
 			),
 		),
 	)

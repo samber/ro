@@ -47,7 +47,7 @@ jobs:
             Use `gh pr comment` for top-level feedback.
             Use `mcp__github_inline_comment__create_inline_comment` to highlight specific code issues.
             Be welcoming but thorough in your review. Use inline comments for code-specific feedback.
-            Write short and concise comments/reviews. Write comments only if there is a specific issue.
+            Write short and concise comments/reviews. Write comments only if there is a specific issue (skip the "what's good" section).
             Instead of posting a new comment, replace the existing comment.
 
           # security: a prompt injection can be used to update comments in the current PR.
