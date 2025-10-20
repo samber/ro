@@ -5,7 +5,7 @@ go 1.23
 require (
 	github.com/samber/lo v1.52.0
 	github.com/samber/ro v0.0.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
