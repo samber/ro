@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/samber/ro v0.0.0
 	github.com/shirou/gopsutil/v4 v4.24.11
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
