@@ -816,12 +816,53 @@ func TestOperatorCreationZip4(t *testing.T) { //nolint:paralleltest
 	})
 }
 
-func TestOperatorCreationZip5(t *testing.T) { //nolint:paralleltest\
-	// @TODO: implement	
+func TestOperatorCreationZip5(t *testing.T) { //nolint:paralleltest
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	t.Run("Zip5 with equal length observables", func(t *testing.T) {
+		obs := Zip5(
+			Just(1, 2),
+			Just("A", "B"),
+			Just(true, false),
+			Just(1.1, 2.2),
+			Just([]int{10, 20}, []int{10, 20}),
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+
+		is.Equal([]lo.Tuple5[int, string, bool, float64, []int]{
+			lo.T5(1, "A", true, 1.1, []int{10, 20}),
+			lo.T5(2, "B", false, 2.2, []int{10, 20}),
+		}, values)
+	})
 }
 
 func TestOperatorCreationZip6(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	t.Run("Zip6 with equal length observables", func(t *testing.T) {
+		obs := Zip6(
+			Just(1, 2),
+			Just("A", "B"),
+			Just(true, false),
+			Just(1.1, 2.2),
+			Just([]int{10, 20}, []int{10, 20}),
+			Just("x", "y"),
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+
+		is.Equal([]lo.Tuple6[int, string, bool, float64, []int, string]{
+			lo.T6(1, "A", true, 1.1, []int{10, 20}, "x"),
+			lo.T6(2, "B", false, 2.2, []int{10, 20}, "y"),
+		}, values)
+	})
 }
 
 func TestOperatorCreationConcat(t *testing.T) {
