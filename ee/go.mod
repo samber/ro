@@ -6,7 +6,7 @@ require (
 	github.com/samber/lo v1.51.0
 	github.com/samber/ro v0.0.0
 	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
