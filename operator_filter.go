@@ -229,7 +229,7 @@ func SkipWhileIWithContext[T any](predicate func(ctx context.Context, item T, in
 					func(ctx context.Context, value T) {
 						if !skipping {
 							destination.NextWithContext(ctx, value)
-						} else if newCtx, ok := predicate(ctx, value, i); ok {
+						} else if newCtx, ok := predicate(ctx, value, i); !ok {
 							skipping = false
 
 							destination.NextWithContext(newCtx, value)

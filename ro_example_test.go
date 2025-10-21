@@ -2491,7 +2491,7 @@ func ExampleSkipWhile_ok() {
 	observable := Pipe1(
 		Just(1, 2, 3, 4, 5),
 		SkipWhile(func(v int) bool {
-			return v > 2
+			return v <= 2
 		}),
 	)
 
@@ -2517,7 +2517,7 @@ func ExampleSkipWhile_error() {
 			return nil
 		}),
 		SkipWhile(func(v int) bool {
-			return v > 2
+			return v <= 2
 		}),
 	)
 

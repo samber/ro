@@ -249,7 +249,7 @@ func TestOperatorFilterSkipWhile(t *testing.T) {
 	is := assert.New(t)
 
 	predicate := func(v int64) bool {
-		return v > 5
+		return v <= 5
 	}
 
 	values, err := Collect(
@@ -288,7 +288,7 @@ func TestOperatorFilterSkipWhileI(t *testing.T) {
 	is := assert.New(t)
 
 	predicate := func(v, i int64) bool {
-		return v > 5
+		return v <= 5
 	}
 
 	values, err := Collect(
@@ -300,7 +300,7 @@ func TestOperatorFilterSkipWhileI(t *testing.T) {
 	values, err = Collect(
 		SkipWhileI(func(v, i int64) bool {
 			is.Equal(v, i)
-			return v > 5
+			return v <= 5
 		})(Range(0, 10)),
 	)
 	is.Equal([]int64{6, 7, 8, 9}, values)
