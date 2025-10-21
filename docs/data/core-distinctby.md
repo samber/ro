@@ -11,7 +11,7 @@ variantHelpers:
   - core#filtering#distinctby
 similarHelpers:
   - core#filtering#distinct
-position: 60
+position: 62
 ---
 
 Suppresses duplicate items in an Observable based on a key selector function.
