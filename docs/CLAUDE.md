@@ -230,7 +230,7 @@ Real method signature will have the following form: `func All[T any](predicate f
 
 Available categories for core methods: `combining`, `conditional`, `connectable`, `context`, `creation`, `error-handling`, `filtering`, `math`, `sink`, `transformation`, `utility`...
 
-For plugins, categories are actually the name of the plugin
+For plugins, categories are actually the name of the plugin. Each category or plugin must have its dedicated markdown file in `/docs/docs/operator/` or `/docs/docs/plugins/` directories.
 
 ### Helper Names
 - Follow Go naming conventions (PascalCase for exported)
