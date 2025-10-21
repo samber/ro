@@ -2414,6 +2414,7 @@ func ExampleDistinctBy_error() {
 	// Next: {2 Jane}
 	// Error: assert.AnError general error for testing
 }
+
 func ExampleIgnoreElements_ok() {
 	observable := Pipe1(
 		Just(1, 2, 3, 4, 5),
