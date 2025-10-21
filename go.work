@@ -75,6 +75,8 @@ use (
 	// Commented out because requires go>=1.23
 	// ./examples/ee-otel-tracing
 	./examples/ee-prometheus
+	// Commented out because requires go>=1.20
+	// ./examples/ics-to-csv
 	./examples/parallel-api-requests
 	./examples/sql-to-csv
 	./examples/stock-price-enrichment
