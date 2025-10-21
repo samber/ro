@@ -104,6 +104,7 @@ The `ro` library provides a rich ecosystem of plugins for various use cases:
 
 ### Scheduling & Timing
 - **Cron** (`plugins/cron`) - Schedule jobs using cron expressions or duration intervals
+- **ICS** (`plugins/ics`) - Read and parse ICS/iCal calendars
 
 ### Network & I/O
 - **HTTP** (`plugins/http`) - HTTP request operators

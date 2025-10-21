@@ -19,6 +19,8 @@ use (
 	// Commented out because requires go>=1.25
 	// ./plugins/encoding/json/v2
 	./plugins/fsnotify
+	// Commented out because requires go>=1.20
+	// ./plugins/ics
 	./plugins/http/client
 	// Commented out because requires go>=1.23
 	// ./plugins/hyperloglog

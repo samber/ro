@@ -209,6 +209,7 @@ observable.Subscribe(ro.OnNext(func(s string) {
 
 ### Scheduling & Timing
 - **cron** - Schedule jobs using cron expressions or intervals
+- **ICS** - Read and parse ICS/iCal calendars
 
 ### Network & I/O
 - **http/client** - HTTP request operators
