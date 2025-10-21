@@ -97,6 +97,14 @@ func Distinct[T comparable]() func(Observable[T]) Observable[T] {
 
 // DistinctBy suppresses duplicate items in an Observable based on a key selector.
 func DistinctBy[T any, K comparable](keySelector func(item T) K) func(Observable[T]) Observable[T] {
+	return DistinctByWithContext(func(ctx context.Context, item T) (context.Context, K) {
+		return ctx, keySelector(item)
+	})
+}
+
+// DistinctByWithContext suppresses duplicate items in an Observable based on a key selector.
+// The context is passed to the key selector function.
+func DistinctByWithContext[T any, K comparable](keySelector func(ctx context.Context, item T) (context.Context, K)) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			seen := map[K]struct{}{}
@@ -105,7 +113,7 @@ func DistinctBy[T any, K comparable](keySelector func(item T) K) func(Observable
 				subscriberCtx,
 				NewObserverWithContext(
 					func(ctx context.Context, value T) {
-						key := keySelector(value)
+						ctx, key := keySelector(ctx, value)
 						if _, ok := seen[key]; !ok {
 							destination.NextWithContext(ctx, value)
 
