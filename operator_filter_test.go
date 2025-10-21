@@ -164,7 +164,7 @@ func TestOperatorFilterDistinctBy(t *testing.T) {
 		}),
 	)
 	values, err := Collect(obs)
-	is.Equal([]user{{id: 1, name: "John"}, {id: 2, name: "Jane"}}, values)
+	is.Equal([]user{{id: 1, name: "John"}, {id: 2, name: "Jane"}, {id: 3, name: "Jim"}}, values)
 	is.NoError(err)
 
 	// empty
