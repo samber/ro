@@ -2358,6 +2358,62 @@ func ExampleDistinct_error() {
 	// Error: assert.AnError general error for testing
 }
 
+func ExampleDistinctBy_ok() {
+	type user struct {
+		id   int
+		name string
+	}
+
+	observable := Pipe1(
+		Just(
+			user{id: 1, name: "John"},
+			user{id: 2, name: "Jane"},
+			user{id: 1, name: "John"},
+			user{id: 3, name: "Jim"},
+		),
+		DistinctBy(func(item user) int {
+			return item.id
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[user]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: {1 John}
+	// Next: {2 Jane}
+	// Next: {3 Jim}
+	// Completed
+}
+
+func ExampleDistinctBy_error() {
+	type user struct {
+		id   int
+		name string
+	}
+
+	observable := Pipe1(
+		NewObservable(func(observer Observer[user]) Teardown {
+			observer.Next(user{id: 1, name: "John"})
+			observer.Next(user{id: 2, name: "Jane"})
+			observer.Next(user{id: 1, name: "John"})
+			observer.Error(assert.AnError)
+			observer.Next(user{id: 3, name: "Jim"})
+
+			return nil
+		}),
+		DistinctBy(func(item user) int {
+			return item.id
+		}),
+	)
+	subscription := observable.Subscribe(PrintObserver[user]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: {1 John}
+	// Next: {2 Jane}
+	// Error: assert.AnError general error for testing
+}
 func ExampleIgnoreElements_ok() {
 	observable := Pipe1(
 		Just(1, 2, 3, 4, 5),

@@ -87,6 +87,7 @@ observable.Subscribe(ro.OnNext(func(s string) {
 ### Filtering Operators
 - `Filter` - Emit items passing predicate test
 - `Distinct` - Suppress duplicate items
+- `DistinctBy` - Suppress duplicate items, based on key selector
 - `IgnoreElements` - Ignores all items, only termination notifications
 - `Take` - Emit only first n items
 - `Skip` - Skip first n items

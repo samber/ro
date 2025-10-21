@@ -143,6 +143,49 @@ func TestOperatorFilterDistinct(t *testing.T) {
 	is.EqualError(err, assert.AnError.Error())
 }
 
+func TestOperatorFilterDistinctBy(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	type user struct {
+		id   int
+		name string
+	}
+
+	obs := Pipe1(
+		Just(
+			user{id: 1, name: "John"},
+			user{id: 2, name: "Jane"},
+			user{id: 1, name: "John"},
+			user{id: 3, name: "Jim"},
+		),
+		DistinctBy(func(item user) int {
+			return item.id
+		}),
+	)
+	values, err := Collect(obs)
+	is.Equal([]user{{id: 1, name: "John"}, {id: 2, name: "Jane"}}, values)
+	is.NoError(err)
+
+	// empty
+	values, err = Collect(
+		DistinctBy(func(item user) int {
+			return item.id
+		})(Empty[user]()),
+	)
+	is.Equal([]user{}, values)
+	is.NoError(err)
+
+	// error
+	values, err = Collect(
+		DistinctBy(func(item user) int {
+			return item.id
+		})(Throw[user](assert.AnError)),
+	)
+	is.Equal([]user{}, values)
+	is.EqualError(err, assert.AnError.Error())
+}
+
 func TestOperatorFilterIgnoreElements(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)

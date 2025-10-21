@@ -9,7 +9,8 @@ signatures:
 playUrl:
 variantHelpers:
   - core#filtering#distinct
-similarHelpers: []
+similarHelpers:
+  - core#filtering#distinctby
 position: 60
 ---
 

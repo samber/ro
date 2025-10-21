@@ -95,6 +95,33 @@ func Distinct[T comparable]() func(Observable[T]) Observable[T] {
 	}
 }
 
+// DistinctBy suppresses duplicate items in an Observable based on a key selector.
+func DistinctBy[T any, K comparable](keySelector func(item T) K) func(Observable[T]) Observable[T] {
+	return func(source Observable[T]) Observable[T] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+			seen := map[K]struct{}{}
+
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value T) {
+						key := keySelector(value)
+						if _, ok := seen[key]; !ok {
+							destination.NextWithContext(ctx, value)
+
+							seen[key] = struct{}{}
+						}
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
 // IgnoreElements does not emit any items from an Observable but mirrors its
 // termination notification. It is useful for ignoring all the items from an
 // Observable but you want to be notified when it completes or when it throws an error.
