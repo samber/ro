@@ -713,6 +713,29 @@ func TestOperatorCreationZip(t *testing.T) {
 			{3, "C", true},
 		},values)
 	})
+
+	t.Run("Zip with one observable throwing an error", func(t *testing.T) {
+		expectedErr := errors.New("test error")
+
+		obs := Zip(
+			Throw[float64](errors.New("test error")),
+		)
+
+		values, err := Collect(obs)
+		is.Error(err)
+		is.EqualError(err, expectedErr.Error())
+		is.Empty(values) 
+	})
+
+	t.Run("Zip with one empty observable", func(t *testing.T) {
+		obs := Zip(
+			Empty[string](), 
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+		is.Empty(values) 
+	})
 }
 
 func TestOperatorCreationZip2(t *testing.T) {
@@ -749,6 +772,31 @@ func TestOperatorCreationZip2(t *testing.T) {
 			lo.T2(1, "A"),
 			lo.T2(2, "B"),
 		}, values)
+	})
+
+	t.Run("Zip2 with one observable throwing an error", func(t *testing.T) {
+		expectedErr := errors.New("test error")
+
+		obs := Zip2(
+			Just(1, 2),
+			Throw[float64](errors.New("test error")),
+		)
+
+		values, err := Collect(obs)
+		is.Error(err)
+		is.EqualError(err, expectedErr.Error())
+		is.Empty(values) 
+	})
+
+	t.Run("Zip2 with one empty observable", func(t *testing.T) {
+		obs := Zip2(
+			Just(1, 2),
+			Empty[string](), 
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+		is.Empty(values) 
 	})
 
 }
@@ -791,6 +839,33 @@ func TestOperatorCreationZip3(t *testing.T) {
 			lo.T3(2, "B", false),
 		}, values)
 	})
+
+	t.Run("Zip3 with one observable throwing an error", func(t *testing.T) {
+		expectedErr := errors.New("test error")
+
+		obs := Zip3(
+			Just(1, 2),
+			Just("A", "B"),
+			Throw[float64](errors.New("test error")), 
+		)
+
+		values, err := Collect(obs)
+		is.Error(err)
+		is.EqualError(err, expectedErr.Error())
+		is.Empty(values) 
+	})
+
+	t.Run("Zip3 with one empty observable", func(t *testing.T) {
+		obs := Zip3(
+			Just(1, 2),
+			Empty[string](), 
+			Just(true, false),
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+		is.Empty(values) 
+	})
 }
 
 
@@ -815,6 +890,35 @@ func TestOperatorCreationZip4(t *testing.T) {
 			lo.T4(2, "B", false, 2.2),
 		}, values)
 	})
+
+	t.Run("Zip4 with one observable throwing an error", func(t *testing.T) {
+		expectedErr := errors.New("test error")
+
+		obs := Zip4(
+			Just(1, 2),
+			Just("A", "B"),
+			Just(true, false),
+			Throw[float64](errors.New("test error")), 
+		)
+
+		values, err := Collect(obs)
+		is.Error(err)
+		is.EqualError(err, expectedErr.Error())
+		is.Empty(values) 
+	})
+
+	t.Run("Zip4 with one empty observable", func(t *testing.T) {
+		obs := Zip4(
+			Just(1, 2),
+			Empty[string](), 
+			Just(true, false),
+			Just(1.1, 2.2),
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+		is.Empty(values) 
+	})
 }
 
 func TestOperatorCreationZip5(t *testing.T) {
@@ -838,6 +942,37 @@ func TestOperatorCreationZip5(t *testing.T) {
 			lo.T5(1, "A", true, 1.1, []int{10, 20}),
 			lo.T5(2, "B", false, 2.2, []int{10, 20}),
 		}, values)
+	})
+
+	t.Run("Zip5 with one observable throwing an error", func(t *testing.T) {
+		expectedErr := errors.New("test error")
+
+		obs := Zip5(
+			Just(1, 2),
+			Just("A", "B"),
+			Just(true, false),
+			Throw[float64](errors.New("test error")), 
+			Just([]int{10, 20}, []int{10, 20}),
+		)
+
+		values, err := Collect(obs)
+		is.Error(err)
+		is.EqualError(err, expectedErr.Error())
+		is.Empty(values) 
+	})
+
+	t.Run("Zip5 with one empty observable", func(t *testing.T) {
+		obs := Zip5(
+			Just(1, 2),
+			Empty[string](), 
+			Just(true, false),
+			Just(1.1, 2.2),
+			Just([]int{10, 20}, []int{10, 20}),
+		)
+
+		values, err := Collect(obs)
+		is.NoError(err)
+		is.Empty(values) 
 	})
 }
 
