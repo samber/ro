@@ -22,7 +22,7 @@ position: 20
 Finds the first element in an observable sequence that satisfies a condition.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Find(func(i int) bool {
         return i%2 == 0
@@ -39,7 +39,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.FindWithContext(func(ctx context.Context, n int) bool {
         return n > 3
@@ -56,7 +56,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("a", "b", "c", "d", "e"),
     ro.FindI(func(item string, index int64) bool {
         return index >= 2 // Find item at position 2
@@ -73,7 +73,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(10, 20, 30, 40, 50),
     ro.FindIWithContext(func(ctx context.Context, n int, index int64) bool {
         return n > 25 && index > 1

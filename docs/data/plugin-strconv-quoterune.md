@@ -25,7 +25,7 @@ import (
     rostrconv "github.com/samber/ro/plugins/strconv"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[rune, string](
     ro.Just('a', 'b', '\n', '\t', '"'),
     rostrconv.QuoteRune(),
 )

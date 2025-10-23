@@ -19,7 +19,7 @@ position: 40
 Buffers the source Observable values into non-overlapping buffers of a specific size, and emits these buffers as arrays.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, []int](
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
     ro.BufferWithCount[int](3),
 )
@@ -37,7 +37,7 @@ defer sub.Unsubscribe()
 ### Practical example: Batch processing
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
     ro.BufferWithCount[int](4),
     ro.Map(func(batch []int) int {
@@ -62,7 +62,7 @@ defer sub.Unsubscribe()
 ### Edge case: Single item buffer
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, []int](
     ro.Just(1, 2, 3, 4, 5),
     ro.BufferWithCount[int](1),
 )
@@ -81,7 +81,7 @@ defer sub.Unsubscribe()
 ### Edge case: Buffer larger than source
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, []int](
     ro.Just(1, 2, 3),
     ro.BufferWithCount[int](10),
 )

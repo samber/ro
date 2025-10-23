@@ -27,7 +27,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`hello`)
-obs := ro.Pipe(
+obs := ro.Pipe[string, bool](
     ro.Just("hello world", "goodbye world", "hello again"),
     roregexp.MatchString[string](pattern),
 )

@@ -22,17 +22,17 @@ Creates an Observable that mirrors the first source Observable to emit a next, e
 The Observable cancels subscriptions to all other Observables once one emits. It completes when the winning source Observable completes.
 
 ```go
-obs1 := ro.Pipe(
+obs1 := ro.Pipe[string, string](
     ro.Just("fast"),
     ro.Delay(100*time.Millisecond),
 )
 
-obs2 := ro.Pipe(
+obs2 := ro.Pipe[string, string](
     ro.Just("slow"),
     ro.Delay(200*time.Millisecond),
 )
 
-obs3 := ro.Pipe(
+obs3 := ro.Pipe[string, string](
     ro.Just("slowest"),
     ro.Delay(300*time.Millisecond),
 )
@@ -51,7 +51,7 @@ sub.Unsubscribe()
 
 ```go
 instant := ro.Just("immediate")
-delayed := ro.Pipe(
+delayed := ro.Pipe[string, string](
     ro.Just("delayed"),
     ro.Delay(100*time.Millisecond),
 )
@@ -69,14 +69,12 @@ sub.Unsubscribe()
 ### With error propagation
 
 ```go
-obs1 := ro.Pipe(
+obs1 := ro.Pipe[string, string](
     ro.Just("success"),
     ro.Delay(100*time.Millisecond),
 )
 
-obs2 := ro.Pipe(
-    ro.Throw[string](errors.New("failed")),
-)
+obs2 := ro.Throw[string](errors.New("failed"))
 
 ambObs := ro.Amb(obs1, obs2)
 

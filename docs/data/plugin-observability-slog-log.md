@@ -27,7 +27,7 @@ import (
 
 logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("operation 1", "operation 2"),
     roslog.Log[string](logger, slog.LevelInfo),
 )

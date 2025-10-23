@@ -22,7 +22,7 @@ import (
     rostrings "github.com/samber/ro/plugins/strings"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("HelloWorldWorld"),
     rostrings.SnakeCase[string](),
 )

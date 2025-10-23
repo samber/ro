@@ -27,7 +27,7 @@ type User struct {
     Age  int
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[User, string](
     ro.Just(User{Name: "Alice", Age: 30}),
     rotemplate.TextTemplate[User]("Hello {{.Name}}, you are {{.Age}} years old"),
 )

@@ -27,7 +27,7 @@ import (
 func TestMyObservable(t *testing.T) {
     is := assert.New(t)
 
-    obs := ro.Pipe(
+    obs := ro.Pipe[int, int](
         ro.Just(1, 2, 3),
         ro.Map(func(x int) int { return x * 2 }),
     )

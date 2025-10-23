@@ -31,7 +31,7 @@ Creates an Observable that combines values from the source Observable with other
 ### ZipWith
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, lo.Tuple2[int, string]](
     ro.Just(1, 2, 3),
     ro.ZipWith(ro.Just("A", "B", "C")),
 )
@@ -48,7 +48,7 @@ defer sub.Unsubscribe()
 ### ZipWith2 (three sources)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, lo.Tuple3[int, string, bool]](
     ro.Just(1, 2, 3),
     ro.ZipWith2(
         ro.Just("A", "B", "C"),
@@ -68,7 +68,7 @@ defer sub.Unsubscribe()
 ### ZipWith3 (four sources)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, lo.Tuple4[int, string, bool, float64]](
     ro.Just(1, 2),
     ro.ZipWith3(
         ro.Just("A", "B"),
@@ -88,7 +88,7 @@ defer sub.Unsubscribe()
 ### ZipWith4 (five sources)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, lo.Tuple5[int, string, bool, float64, []int]](
     ro.Just(1, 2),
     ro.ZipWith4(
         ro.Just("A", "B"),
@@ -109,7 +109,7 @@ defer sub.Unsubscribe()
 ### ZipWith5 (six sources)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, lo.Tuple6[int, string, bool, float64, []int, string]](
     ro.Just(1, 2),
     ro.ZipWith5(
         ro.Just("A", "B"),
@@ -131,10 +131,10 @@ defer sub.Unsubscribe()
 ### With different emission rates
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, lo.Tuple2[int, string]](
     ro.Just(1, 2, 3),
     ro.ZipWith(
-        ro.Pipe(ro.Interval(100*time.Millisecond), ro.Take[string](3)), // "A", "B", "C"
+        ro.Pipe[string, string](ro.Interval(100*time.Millisecond), ro.Take[string](3)), // "A", "B", "C"
     ),
 )
 
@@ -152,7 +152,7 @@ sub.Unsubscribe()
 ### Edge case: Different length observables
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, lo.Tuple3[int, string, bool]](
     ro.Just(1, 2, 3, 4, 5), // 5 items
     ro.ZipWith2(
         ro.Just("A", "B"),     // 2 items

@@ -22,7 +22,7 @@ position: 0
 Determines whether all elements of an observable sequence satisfy a condition.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, bool](
     ro.Just(1, 2, 3, 4, 5),
     ro.All(func(i int) bool {
         return i > 0
@@ -39,7 +39,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, bool](
     ro.Just(1, 2, 3, 4, 5),
     ro.AllWithContext(func(ctx context.Context, n int) bool {
         return n > 0
@@ -56,7 +56,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, bool](
     ro.Just(1, 2, 3, 4, 5),
     ro.AllI(func(n int, index int64) bool {
         return index < 3 // Only check first 3 elements
@@ -73,7 +73,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, bool](
     ro.Just(1, 2, 3, 4, 5),
     ro.AllIWithContext(func(ctx context.Context, n int, index int64) bool {
         return n > 0 && index < 4

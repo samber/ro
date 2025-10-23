@@ -23,7 +23,7 @@ import (
     rogob "github.com/samber/ro/plugins/encoding/gob"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, []byte](
     ro.Just(42),
     rogob.Encode[int](),
 )

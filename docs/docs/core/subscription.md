@@ -166,14 +166,13 @@ Group related subscriptions together for coordinated cleanup. This pattern is us
 
 ```go
 // Create multiple observables
-obs1 := ro.Interval(1 * time.Second).Pipe(ro.Take(3))
-obs2 := ro.Interval(2 * time.Second).Pipe(ro.Take(2))
+obs1 := ro.Pipe1(ro.Interval(1 * time.Second), ro.Take[int64](3))
+obs2 := ro.Pipe1(ro.Interval(2 * time.Second), ro.Take[int64](2))
 
 // Subscribe to observables and add to main subscription
 sub1 := obs1.Subscribe(ro.OnNext(func(n int64) {
     fmt.Println("Stream 1:", n)
 }))
-
 sub2 := obs2.Subscribe(ro.OnNext(func(n int64) {
     fmt.Println("Stream 2:", n)
 }))

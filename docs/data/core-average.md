@@ -16,7 +16,7 @@ position: 0
 Calculates the average of the values emitted by the source Observable. It emits the average when the source completes. If the source is empty, it emits NaN.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, float64](
     ro.Just(1, 2, 3, 4, 5),
     ro.Average[int](),
 )

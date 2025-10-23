@@ -38,7 +38,7 @@ func (u User) ValidateWithContext(ctx context.Context) error {
     )
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[User, Result[User]](
     ro.Just(User{Name: "Alice", Age: 30}),
     roozzo.ValidateStructWithContext[User](),
 )

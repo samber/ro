@@ -16,7 +16,7 @@ position: 96
 Schedule the downstream flow to a different goroutine. Converts a push-based Observable into a pullable stream with backpressure capabilities.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("fast", "emissions"),
     ro.ObserveOn(2), // Small buffer size
 )
@@ -43,7 +43,7 @@ defer sub.Unsubscribe()
 ### With backpressure control
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(10*time.Millisecond), // Fast producer
     ro.ObserveOn(5), // Small buffer for backpressure
 )
@@ -64,7 +64,7 @@ sub.Unsubscribe()
 ### With large buffer
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
     ro.ObserveOn(100), // Large buffer
 )
@@ -79,8 +79,8 @@ defer sub.Unsubscribe()
 ### With error propagation
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[string, string](
+    ro.Pipe[string, string](
         ro.Just("will error"),
         ro.Throw[string](errors.New("propagated error")),
     ),
@@ -96,7 +96,7 @@ defer sub.Unsubscribe()
 ### Combined with SubscribeOn
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("background", "processing"),
     ro.SubscribeOn(10), // Upstream in background
     ro.Map(strings.ToUpper),

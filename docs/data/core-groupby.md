@@ -22,7 +22,7 @@ position: 200
 Groups the items emitted by an observable sequence according to a specified key selector function.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, ro.Observable[string]](
     ro.Just("apple", "banana", "avocado", "blueberry", "cherry"),
     ro.GroupBy(func(fruit string) string {
         return string(fruit[0]) // Group by first letter
@@ -39,7 +39,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, ro.Observable[int]](
     ro.Just(1, 2, 3, 4, 5, 6),
     ro.GroupByWithContext(func(ctx context.Context, n int) string {
         if n%2 == 0 {
@@ -56,7 +56,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, ro.Observable[string]](
     ro.Just("a", "b", "c", "d", "e", "f"),
     ro.GroupByI(func(item string, index int64) int {
         return int(index / 2) // Group by pairs
@@ -70,7 +70,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, ro.Observable[string]](
     ro.Just("file1.txt", "image1.jpg", "file2.txt", "image2.jpg"),
     ro.GroupByIWithContext(func(ctx context.Context, filename string, index int64) string {
         if strings.HasSuffix(filename, ".jpg") {
@@ -91,7 +91,7 @@ defer sub.Unsubscribe()
 source := ro.Just("apple", "apricot", "banana", "blueberry", "cherry")
 
 // Group by first letter
-groupedObs := ro.Pipe(
+groupedObs := ro.Pipe[string, ro.Observable[string]](
     source,
     ro.GroupBy(func(fruit string) string {
         return string(fruit[0])

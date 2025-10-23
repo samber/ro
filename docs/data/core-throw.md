@@ -90,7 +90,7 @@ func TestMyPipeline(t *testing.T) {
 ### With Retry
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Throw[int](errors.New("network error")),
     ro.Retry(3),
 )
@@ -106,7 +106,7 @@ sub.Unsubscribe()
 ### With error handling
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Throw[int](errors.New("original error")),
     ro.Catch(func(err error) ro.Observable[int] {
         return ro.Just(42) // fallback value

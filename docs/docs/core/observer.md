@@ -234,7 +234,7 @@ fmt.Println("HasThrown:", observer.HasThrown()) // true
 
 ```go
 // Observer that does nothing
-noop := ro.NoopObserver[int]()
+noop := ro.NoopObserver[string]()
 ro.Just("hello", "world").Subscribe(noop) // Values are silently consumed
 // Output:
 ```
@@ -385,94 +385,5 @@ This blocking behavior ensures that:
 - The pipeline naturally regulates flow rate
 - The stream is consumed in a sequential fashion
 - The message order is preserved
-
-## Observer vs Go Channels
-When producing a message into a Go channel, the producer is released as soon as the channel buffer is partially filled or the consumer read on it.
-
-### Go Channels
-```go
-func producer(ch chan int) {
-    for i := 1; i <= 3; i++ {
-        fmt.Printf("Produced %d\n", i)
-        ch <- i  // Producer doesn't wait for consumer to finish
-        fmt.Printf("Producer continued for %d\n", i)
-    }
-    close(ch)
-}
-
-func consumer(ch chan int) {
-    for value := range ch {
-        fmt.Printf("Consuming %d\n", value)
-        time.Sleep(100 * time.Millisecond)  // Simulate slow processing
-        fmt.Printf("Finished processing %d\n", value)
-    }
-}
-
-ch := make(chan int, 42)
-go producer(ch)
-consumer(ch)
-// Output:
-// Produced 1
-// Produced 2
-// Produced 3
-// Producer continued for 1
-// Producer continued for 2
-// Producer continued for 3
-// Consuming 1
-// Finished processing 1
-// Consuming 2
-// Finished processing 2
-// Consuming 3
-// Finished processing 3
-```
-
-### Observer Pattern
-```go
-func observableProducer() ro.Observable[int] {
-    return ro.NewObservable(func(observer ro.Observer[int]) ro.Teardown {
-        for i := 1; i <= 3; i++ {
-            fmt.Printf("Produced %d\n", i)
-            observer.Next(i)  // Producer waits for consumer to finish
-            fmt.Printf("Producer continued for %d\n", i)
-        }
-        observer.Complete()
-        return nil
-    })
-}
-
-observableProducer().Subscribe(ro.NewObserver(
-    func(value int) {
-        fmt.Printf("Consuming %d\n", value)
-        time.Sleep(100 * time.Millisecond)  // Simulate slow processing
-        fmt.Printf("Finished processing %d\n", value)
-    },
-    func(err error) {
-        fmt.Println("Error:", err)
-    },
-    func() {
-        fmt.Println("Completed")
-    },
-))
-// Output:
-// Produced 1
-// Consuming 1
-// Finished processing 1
-// Producer continued for 1
-// Produced 2
-// Consuming 2
-// Finished processing 2
-// Producer continued for 2
-// Produced 3
-// Consuming 3
-// Finished processing 3
-// Producer continued for 3
-// Completed
-```
-
-This fundamental difference affects how you design concurrent systems:
-- **Go channels**: Producer continues immediately, consumer processes asynchronously
-- **Observables**: Producer waits for consumer to finish, providing synchronous semantics
-
-See [Channels vs ro](../comparison/channels-vs-ro) for a detailed comparison.
 
 Observers are the essential consumer interface in reactive programming, providing a clean, thread-safe way to handle streams of values with proper error handling and lifecycle management.

@@ -16,7 +16,7 @@ position: 80
 Bypasses a specified number of elements in an observable sequence and then returns the remaining elements.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Skip(2),
 )
@@ -33,7 +33,7 @@ defer sub.Unsubscribe()
 ### Skip more than available
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.Skip(5),
 )
@@ -47,7 +47,7 @@ defer sub.Unsubscribe()
 ### Skip zero
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Skip(0),
 )
@@ -66,8 +66,8 @@ defer sub.Unsubscribe()
 ### With infinite sequence
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[int64, int64](
+    ro.Pipe[time.Time, int64](
         ro.Interval(100*time.Millisecond),
         ro.Take[int64](10),
     ),

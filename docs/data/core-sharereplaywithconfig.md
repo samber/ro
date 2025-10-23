@@ -22,7 +22,7 @@ config := ShareReplayConfig{
     ResetOnRefCountZero: true, // Reset when no subscribers left
 }
 
-source := ro.Pipe(
+source := ro.Pipe[string, string](
     ro.Just("first", "second", "third"),
     ro.ShareReplayWithConfig[string](2, config), // Cache last 2 values
 )
@@ -48,7 +48,7 @@ config := ShareReplayConfig{
     ResetOnRefCountZero: false, // Keep cache even when no subscribers
 }
 
-source := ro.Pipe(
+source := ro.Pipe[int, int](
     ro.Defer(func() ro.Observable[int] {
         fmt.Println("🔄 Creating new source...")
         return ro.Just(1, 2, 3, 4, 5)
@@ -84,7 +84,7 @@ config := ShareReplayConfig{
     ResetOnRefCountZero: true, // Reset cache when no subscribers
 }
 
-source := ro.Pipe(
+source := ro.Pipe[string, string](
     ro.Defer(func() ro.Observable[string] {
         fmt.Println("🔄 New source execution...")
         return ro.Just("hello", "world", "again")
@@ -119,7 +119,7 @@ config := ShareReplayConfig{
     ResetOnRefCountZero: false, // Keep cache forever
 }
 
-source := ro.Pipe(
+source := ro.Pipe[string, string](
     ro.Just("data1", "data2", "data3", "data4", "data5"),
     ro.ShareReplayWithConfig[string](10, config), // Large buffer
 )
@@ -155,7 +155,7 @@ expensiveOperation := func() ro.Observable[string] {
 }
 
 // Cache the expensive operation results
-cachedUsers := ro.Pipe(
+cachedUsers := ro.Pipe[string, string](
     expensiveOperation(),
     ro.ShareReplayWithConfig[string](5, config),
 )
@@ -184,7 +184,7 @@ config := ShareReplayConfig{
 }
 
 // Simulate real-time price updates
-priceStream := ro.Pipe(
+priceStream := ro.Pipe[int64, float64](
     ro.Interval(1 * time.Second),
     ro.Map(func(_ int64) float64 {
         return 100 + rand.Float64()*10 // Price between 100-110
@@ -217,7 +217,7 @@ config := ShareReplayConfig{
     ResetOnRefCountZero: false, // Keep error state too
 }
 
-source := ro.Pipe(
+source := ro.Pipe[int, int](
     ro.Defer(func() ro.Observable[int] {
         fmt.Println("🔄 Attempting operation...")
         if rand.Intn(3) == 0 {
@@ -259,7 +259,7 @@ config := ShareReplayConfig{
 }
 
 // Stream with varying data rates
-dataStream := ro.Pipe(
+dataStream := ro.Pipe[int64, int64](
     ro.Interval(100 * time.Millisecond),
     ro.Take[int64](20),
     ro.ShareReplayWithConfig[int64](5, config), // Keep last 5 values

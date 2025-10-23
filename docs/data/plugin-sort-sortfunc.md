@@ -25,7 +25,7 @@ import (
     rosort "github.com/samber/ro/plugins/sort"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("banana", "apple", "cherry"),
     rosort.SortFunc[string](func(a, b string) int {
         return strings.Compare(a, b)

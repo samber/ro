@@ -19,11 +19,11 @@ Retries the source observable sequence when it encounters an error. Retry uses i
 
 ```go
 attempt := 0
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Defer(func() Observable[string] {
         attempt++
         if attempt < 3 {
-            return ro.Pipe(
+            return ro.Pipe[string, string](
                 ro.Just("data"),
                 ro.Throw[string](errors.New("temporary failure")),
             )
@@ -45,7 +45,7 @@ sub.Unsubscribe()
 
 ```go
 attempt := 0
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Defer(func() Observable[int] {
         attempt++
         if attempt == 1 {
@@ -71,9 +71,9 @@ sub.Unsubscribe()
 ### With exponential backoff
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Defer(func() Observable[string] {
-        return ro.Pipe(
+        return ro.Pipe[string, string](
             ro.Just("api_data"),
             ro.Throw[string](errors.New("rate limited")),
         )
@@ -97,7 +97,7 @@ sub.Unsubscribe()
 
 ```go
 successCount := 0
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Defer(func() Observable[int] {
         successCount++
         if successCount <= 2 {
@@ -140,7 +140,7 @@ simulateAPICall := func() Observable[Response] {
     })
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Response, string](
     simulateAPICall(),
     ro.RetryWithConfig[Response](RetryConfig{
         MaxRetries:     10,

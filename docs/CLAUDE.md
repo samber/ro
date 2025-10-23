@@ -59,7 +59,7 @@ After the frontmatter, include:
 Brief description of what this helper does.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4),
     ro.MethodName(example),
 )
@@ -208,7 +208,7 @@ import (
   rostrings "github.com/samber/ro/plugin/strings"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("hello world"),
     rostrings.Capitalize[string](),
 )
@@ -308,7 +308,7 @@ position: 0
 Determines whether all elements of an observable sequence satisfy a condition.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.All(func(i int) bool {
         return i > 0
@@ -325,7 +325,7 @@ defer sub.Unsubscribe()
 ## With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.AllIWithContext(func(ctx context.Context, n int, index int64) bool {
         return n > 0

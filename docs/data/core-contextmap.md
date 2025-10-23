@@ -20,7 +20,7 @@ position: 40
 Transforms the context using a project function for each item in the observable sequence.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("item1", "item2"),
     ro.ContextMap[string](func(ctx context.Context) context.Context {
         return context.WithValue(ctx, "processed", true)
@@ -52,7 +52,7 @@ defer sub.Unsubscribe()
 ### ContextMapI with index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("a", "b", "c"),
     ro.ContextMapI[string](func(ctx context.Context, index int64) context.Context {
         return context.WithValue(ctx, "itemIndex", index)
@@ -85,7 +85,7 @@ defer sub.Unsubscribe()
 ### With context transformation chain
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("data"),
     ro.ContextWithValue[string]("userID", 123),
     ro.ContextMap[string](func(ctx context.Context) context.Context {
@@ -127,9 +127,9 @@ defer sub.Unsubscribe()
 ### With context-based routing
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("request1", "request2", "request3"),
-    ro.ContextMapI[string](func(index int64) context.Context {
+    ro.ContextMapI[string](func(ctx context.Context, index int64) context.Context {
         // Route even and odd items to different contexts
         if index%2 == 0 {
             return context.WithValue(ctx, "route", "primary")
@@ -164,7 +164,7 @@ defer sub.Unsubscribe()
 ### With context modification based on item content
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("urgent", "normal", "critical", "low"),
     ro.ContextMap[string](func(ctx context.Context) context.Context {
         // This would typically need access to the item value
@@ -207,7 +207,7 @@ defer sub.Unsubscribe()
 baseCtx := context.WithValue(context.Background(), "sessionID", "session-abc")
 baseCtx = context.WithValue(baseCtx, "userID", 456)
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("operation1", "operation2"),
     ro.ContextReset[string](baseCtx),
     ro.ContextMap[string](func(ctx context.Context) context.Context {
@@ -249,7 +249,7 @@ defer sub.Unsubscribe()
 ### With conditional context transformation
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("debug", "info", "error", "warning"),
     ro.ContextMapI[string](func(ctx context.Context, index int64) context.Context {
         // Transform context based on index

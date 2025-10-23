@@ -20,7 +20,7 @@ position: 30
 Converts the source Observable to a channel, emitting all values from the Observable through the channel.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.ToChannel[int](0), // Unbuffered channel
 )
@@ -41,7 +41,7 @@ defer sub.Unsubscribe()
 ### With buffered channel
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("hello", "world", "reactive"),
     ro.ToChannel[string](5), // Buffered channel with capacity 5
 )
@@ -68,7 +68,7 @@ defer sub.Unsubscribe()
 ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 defer cancel()
 
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(500*time.Millisecond),
     ro.ToChannelWithContext[int64](ctx, 3),
 )
@@ -96,7 +96,8 @@ sub.Unsubscribe()
 ```go
 // Create a shared channel from a hot observable
 source := ro.Interval(200 * time.Millisecond)
-channelObs := ro.Pipe(
+
+channelObs := ro.Pipe[int64, int64](
     source,
     ro.Take[int64](10),
     ro.ToChannel[int64](5),
@@ -150,8 +151,8 @@ if resultChan != nil {
 ### With error handling
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[int, int](
+    ro.Pipe[int, int](
         ro.Just(1, 2, 3),
         ro.MapErr(func(i int) (int, error) {
             if i == 3 {
@@ -187,7 +188,7 @@ defer sub.Unsubscribe()
 ### With finite stream and timeout
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("data1", "data2", "data3", "data4", "data5"),
     ro.ToChannel[string](2),
 )
@@ -223,7 +224,7 @@ type Event struct {
     Time    time.Time
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Event, Event](
     ro.Just(
         Event{ID: "1", Type: "click", Payload: "button", Time: time.Now()},
         Event{ID: "2", Type: "scroll", Payload: 100, Time: time.Now()},
@@ -247,7 +248,7 @@ defer sub.Unsubscribe()
 ```go
 // Fast producer with slow consumer through buffered channel
 fastProducer := ro.Interval(10 * time.Millisecond)  // 100 values/second
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     fastProducer,
     ro.Take[int64](50),
     ro.ToChannel[int64](10), // Buffer of 10 provides backpressure
@@ -275,7 +276,7 @@ sub.Unsubscribe()
 ```go
 ctx, cancel := context.WithCancel(context.Background())
 
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(100 * time.Millisecond),
     ro.ToChannelWithContext[int64](ctx, 5),
 )
@@ -311,27 +312,19 @@ sub.Unsubscribe()
 ### With real-time data streaming
 
 ```go
-// Simulate real-time sensor data streaming
-sensorData := func() Observable[struct {
+type Event struct {
     SensorID    string
     Temperature float64
     Humidity    float64
     Timestamp   time.Time
-}] {
-    return ro.Pipe(
+}
+
+// Simulate real-time sensor data streaming
+sensorData := func() Observable[Event] {
+    return ro.Pipe[int64, Event](
         ro.Interval(1 * time.Second),
-        ro.Map(func(_ int64) struct {
-            SensorID    string
-            Temperature float64
-            Humidity    float64
-            Timestamp   time.Time
-        } {
-            return struct {
-                SensorID    string
-                Temperature float64
-                Humidity    float64
-                Timestamp   time.Time
-            }{
+        ro.Map(func(_ int64) Event {
+            return Event{
                 SensorID:    "sensor-01",
                 Temperature: 20.0 + rand.Float64()*10,
                 Humidity:    40.0 + rand.Float64()*20,
@@ -341,29 +334,14 @@ sensorData := func() Observable[struct {
     )
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Event, Event](
     sensorData(),
-    ro.Take[struct {
-        SensorID    string
-        Temperature float64
-        Humidity    float64
-        Timestamp   time.Time
-    }](5),
-    ro.ToChannel[struct {
-        SensorID    string
-        Temperature float64
-        Humidity    float64
-        Timestamp   time.Time
-    }](1),
+    ro.Take[Event](5),
+    ro.ToChannel[Event](1),
 )
 
 sub := obs.Subscribe(ro.OnNext(
-    func(ch <-chan struct {
-        SensorID    string
-        Temperature float64
-        Humidity    float64
-        Timestamp   time.Time
-    }) {
+    func(ch <-chan Event) {
         fmt.Println("Real-time sensor data streaming:")
         for reading := range ch {
             fmt.Printf("  [%s] %s: %.1f°C, %.1f%%\n",

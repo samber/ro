@@ -34,7 +34,7 @@ sub.Unsubscribe()
 
 ```go
 source := ro.Just(1, 2, 3)
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     RepeatWithInterval(source, 500*time.Millisecond),
     ro.Take[int](10),
 )
@@ -53,7 +53,7 @@ sub.Unsubscribe()
 ### With complex sequences
 
 ```go
-source := ro.Pipe(
+source := ro.Pipe[string, string](
     ro.Just("A", "B", "C"),
 )
 obs := ro.RepeatWithInterval(source, 800*time.Millisecond)

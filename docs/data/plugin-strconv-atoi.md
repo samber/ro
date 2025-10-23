@@ -25,7 +25,7 @@ import (
     rostrconv "github.com/samber/ro/plugins/strconv"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, int](
     ro.Just("123", "456", "789", "invalid"),
     rostrconv.Atoi[string](),
 )

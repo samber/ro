@@ -20,12 +20,12 @@ Buffers the source Observable values until a boundary Observable emits an item, 
 
 ```go
 // Create boundary observable that emits every 3 items
-boundary := ro.Pipe(
+boundary := ro.Pipe[int64, int64](
     ro.Interval(200*time.Millisecond),
     ro.Take[int64](3),
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[int64, []int64](
     ro.Interval(100*time.Millisecond),
     ro.BufferWhen[int64, int64](boundary),
 )
@@ -44,12 +44,12 @@ sub.Unsubscribe()
 
 ```go
 // Create boundary based on clicks or events
-clickBoundary := ro.Pipe(
+clickBoundary := ro.Pipe[int64, int64](
     ro.Interval(500*time.Millisecond),
     ro.Take[int64](2),
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, []int](
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8),
     ro.BufferWhen[int, int64](clickBoundary),
 )
@@ -66,7 +66,7 @@ defer sub.Unsubscribe()
 
 ```go
 boundary := ro.Just("trigger")
-obs := ro.Pipe(
+obs := ro.Pipe[int, []int](
     ro.Empty[int](),
     ro.BufferWhen[int, string](boundary),
 )

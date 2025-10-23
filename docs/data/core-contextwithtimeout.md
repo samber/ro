@@ -20,7 +20,7 @@ position: 10
 Adds a timeout to the context of each item in the observable sequence. Should be chained with ThrowOnContextCancel to handle timeout errors.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("slow_operation"),
     ro.ContextWithTimeout[string](100 * time.Millisecond),
     ro.ThrowOnContextCancel[string](),
@@ -39,7 +39,7 @@ defer sub.Unsubscribe()
 ### With successful completion within timeout
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("fast_operation"),
     ro.ContextWithTimeout[string](200 * time.Millisecond),
     ro.ThrowOnContextCancel[string](),
@@ -60,7 +60,7 @@ defer sub.Unsubscribe()
 
 ```go
 timeoutError := errors.New("operation timed out")
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("data_processing"),
     ro.ContextWithTimeoutCause[string](50 * time.Millisecond, timeoutError),
     ro.ThrowOnContextCancel[string](),
@@ -79,7 +79,7 @@ defer sub.Unsubscribe()
 ### With multiple operations and timeout
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("op1", "op2", "op3"),
     ro.ContextWithTimeout[string](150 * time.Millisecond),
     ro.ThrowOnContextCancel[string](),
@@ -101,9 +101,9 @@ defer sub.Unsubscribe()
 ### With retry mechanism after timeout
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Defer(func() Observable[string] {
-        return ro.Pipe(
+        return ro.Pipe[string, string](
             ro.Just("retry_operation"),
             ro.ContextWithTimeout[string](100 * time.Millisecond),
             ro.ThrowOnContextCancel[string](),
@@ -137,7 +137,7 @@ processItem := func(item string) Observable[string] {
     })
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("item1", "item2"),
     ro.ContextWithTimeout[string](60 * time.Millisecond),
     ro.ThrowOnContextCancel[string](),
@@ -165,7 +165,7 @@ tasks := []Task{
     {"slow", 200 * time.Millisecond},
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Task, string](
     ro.FromSlice(tasks),
     ro.ContextWithTimeout[Task](150 * time.Millisecond),
     ro.ThrowOnContextCancel[Task](),
@@ -187,7 +187,7 @@ sub.Unsubscribe()
 ### With context timeout handling
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("timed_operation"),
     ro.ContextWithTimeout[string](100 * time.Millisecond),
     ro.ThrowOnContextCancel[string](),

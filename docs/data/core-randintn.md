@@ -29,7 +29,7 @@ defer sub.Unsubscribe()
 ### Multiple random numbers
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.RandIntN(1000),
     ro.RepeatWithInterval(ro.RandIntN(1000), 100*time.Millisecond),
     ro.Take[int64](5),
@@ -51,7 +51,7 @@ sub.Unsubscribe()
 
 ```go
 // D6 dice roll
-diceObs := ro.Pipe(
+diceObs := ro.Pipe[int64, int64](
     ro.RandIntN(6), // 0-5, so add 1 for 1-6
     ro.Map(func(n int64) int64 { return n + 1 }),
 )
@@ -67,7 +67,7 @@ defer sub.Unsubscribe()
 
 ```go
 // Simulate random delays
-delays := ro.Pipe(
+delays := ro.Pipe[int64, time.Duration](
     ro.RandIntN(5000), // 0-4999ms
     ro.Map(func(ms int64) time.Duration {
         return time.Duration(ms) * time.Millisecond
@@ -84,7 +84,7 @@ defer sub.Unsubscribe()
 ### With error probability
 
 ```go
-shouldError := ro.Pipe(
+shouldError := ro.Pipe[int64, bool](
     ro.RandIntN(10), // 0-9
     ro.Map(func(n int64) bool {
         return n == 0 // 10% chance of error

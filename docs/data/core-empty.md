@@ -30,7 +30,7 @@ defer sub.Unsubscribe()
 ### As a source for other operators
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Empty[int](),
     ro.DefaultIfEmpty(-1),
 )

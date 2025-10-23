@@ -23,7 +23,7 @@ import (
     rostrconv "github.com/samber/ro/plugins/strconv"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, int64](
     ro.Just("42", "-10", "ff"),
     rostrconv.ParseInt[string](10, 64),
 )

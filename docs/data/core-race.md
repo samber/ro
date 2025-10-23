@@ -20,11 +20,11 @@ position: 43
 Creates an Observable that mirrors the first source Observable to emit an item or send a notification. Amb is an alias for Race.
 
 ```go
-fast := ro.Pipe(
+fast := ro.Pipe[int64, string](
     ro.Timer(100*time.Millisecond),
     ro.Map(func(_ int64) string { return "fast" }),
 )
-slow := ro.Pipe(
+slow := ro.Pipe[int64, string](
     ro.Timer(200*time.Millisecond),
     ro.Map(func(_ int64) string { return "slow" }),
 )
@@ -43,9 +43,9 @@ sub.Unsubscribe()
 
 ```go
 sources := []Observable[int]{
-    ro.Pipe(ro.Timer(300*time.Millisecond), ro.Map(func(_ int64) int { return 1 })),
-    ro.Pipe(ro.Timer(100*time.Millisecond), ro.Map(func(_ int64) int { return 2 })),
-    ro.Pipe(ro.Timer(200*time.Millisecond), ro.Map(func(_ int64) int { return 3 })),
+    ro.Pipe[int64, int](ro.Timer(300*time.Millisecond), ro.Map(func(_ int64) int { return 1 })),
+    ro.Pipe[int64, int](ro.Timer(100*time.Millisecond), ro.Map(func(_ int64) int { return 2 })),
+    ro.Pipe[int64, int](ro.Timer(200*time.Millisecond), ro.Map(func(_ int64) int { return 3 })),
 }
 
 obs := ro.Race(sources...)
@@ -61,8 +61,8 @@ sub.Unsubscribe()
 ### With error handling
 
 ```go
-success := ro.Pipe(ro.Timer(200*time.Millisecond), ro.Map(func(_ int64) int { return 42 }))
-failure := ro.Pipe(ro.Timer(100*time.Millisecond), ro.Throw[int](errors.New("failed")))
+success := ro.Pipe[int64, int](ro.Timer(200*time.Millisecond), ro.Map(func(_ int64) int { return 42 }))
+failure := ro.Pipe[int64, int](ro.Timer(100*time.Millisecond), ro.Throw[int](errors.New("failed")))
 
 obs := Race(success, failure)
 

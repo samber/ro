@@ -22,7 +22,7 @@ import (
     rostrings "github.com/samber/ro/plugins/strings"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("hello_world_world"),
     rostrings.CamelCase[string](),
 )

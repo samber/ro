@@ -24,7 +24,7 @@ Emits values from the source observable, then repeats the sequence as long as th
 
 ```go
 counter := 0
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.DoWhile(func() bool {
         counter++
@@ -44,7 +44,7 @@ defer sub.Unsubscribe()
 ### DoWhileI with index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("a", "b"),
     ro.DoWhileI(func(index int64) bool {
         return index < 2 // Repeat twice (index 0 and 1)
@@ -64,7 +64,7 @@ defer sub.Unsubscribe()
 ```go
 ctx, cancel := context.WithCancel(context.Background())
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2),
     ro.DoWhileWithContext(func(ctx context.Context) (context.Context, bool) {
         select {
@@ -87,7 +87,7 @@ defer sub.Unsubscribe()
 
 ```go
 ctx := context.Background()
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("x"),
     ro.DoWhileIWithContext(func(ctx context.Context, index int64) (context.Context, bool) {
         fmt.Printf("Iteration %d\n", index)
@@ -115,7 +115,7 @@ shouldRetry := func() bool {
     return attempt <= maxAttempts
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Defer(func() ro.Observable[int] {
         if attempt < maxAttempts {
             return ro.Throw[int](errors.New("temporary failure"))
@@ -138,7 +138,7 @@ defer sub.Unsubscribe()
 ticker := time.NewTicker(100 * time.Millisecond)
 defer ticker.Stop()
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Defer(func() ro.Observable[int] {
         // Simulate checking for new data
         if rand.Intn(10) == 0 {
@@ -174,7 +174,7 @@ type GameState struct {
 }
 
 game := &GameState{Lives: 3}
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Defer(func() ro.Observable[string] {
         if game.Lives <= 0 {
             game.GameOver = true

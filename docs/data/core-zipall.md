@@ -18,6 +18,8 @@ position: 22
 
 Creates an Observable that zips items from multiple Observable sources provided as a higher-order Observable, emitting arrays of zipped values.
 
+```go
+obs := ro.Pipe[Observable[any], []any](
     ro.Just(
         ro.Just(1, 2, 3),
         ro.Just("A", "B", "C"),
@@ -45,7 +47,7 @@ observables := []Observable[int]{
     ro.Just(5, 6),
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int], []int](
     ro.Just(observables...),
     ro.ZipAll[int](),
 )
@@ -61,7 +63,7 @@ defer sub.Unsubscribe()
 ### With different types
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[any], []any](
     ro.Just(
         ro.Just(1, 2),
         ro.Just("A", "B"),
@@ -82,7 +84,7 @@ defer sub.Unsubscribe()
 ### Edge case: Empty observable of observables
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int], []int](
     ro.Empty[Observable[int]](),
     ro.ZipAll[int](),
 )
@@ -97,7 +99,7 @@ defer sub.Unsubscribe()
 ### Edge case: Single observable in collection
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int], []int](
     ro.Just(ro.Just(1, 2, 3)),
     ro.ZipAll[int](),
 )
@@ -114,7 +116,7 @@ defer sub.Unsubscribe()
 ### Edge case: Different length observables
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[any], []any](
     ro.Just(
         ro.Just(1, 2, 3, 4, 5), // 5 items
         ro.Just("A", "B"),       // 2 items

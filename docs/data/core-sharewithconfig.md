@@ -25,7 +25,7 @@ config := ShareConfig[string]{
     ResetOnRefCountZero: true,
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("hello", "world"),
     ro.ShareWithConfig(config),
 )
@@ -63,7 +63,7 @@ config := ShareConfig[string]{
     ResetOnError: true,
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("data1", "data2"),
     ro.ShareWithConfig(config),
 )
@@ -82,10 +82,10 @@ config := ShareConfig[int]{
     ResetOnComplete: false,
 }
 
-source := ro.Pipe(
+source := ro.Pipe[int, int](
     ro.Defer(func() Observable[int] {
         fmt.Println("Starting new source execution...")
-        return ro.Pipe(
+        return ro.Pipe[int, int](
             ro.Just(1, 2, 3),
             ro.MapErr(func(i int) (int, error) {
                 if i == 3 {
@@ -150,7 +150,7 @@ config := ShareConfig[string]{
     ResetOnComplete: true, // Reset on completion
 }
 
-source := ro.Pipe(
+source := ro.Pipe[string, string](
     ro.Defer(func() Observable[string] {
         fmt.Println("New source execution...")
         return ro.Just("once", "twice")
@@ -184,8 +184,8 @@ config := ShareConfig[int]{
     ResetOnRefCountZero: true, // Reset when no subscribers left
 }
 
-source := ro.Pipe(
-    ro.Defer(func() Observable[int] {
+source := ro.Pipe[int64, int64](
+    ro.Defer(func() Observable[int64] {
         fmt.Println("Source created...")
         return ro.Interval(100 * time.Millisecond).ro.Take[int64](5)
     }),
@@ -235,7 +235,7 @@ config := ShareConfig[int]{
     ResetOnComplete: false,
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.ShareWithConfig(config),
 )
@@ -274,7 +274,7 @@ config := ShareConfig[string]{
     ResetOnComplete: false,
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("first", "second", "third"),
     ro.ShareWithConfig(config),
 )

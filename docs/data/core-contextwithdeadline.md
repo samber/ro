@@ -21,7 +21,7 @@ Adds a deadline to the context of each item in the observable sequence. Should b
 
 ```go
 deadline := time.Now().Add(100 * time.Millisecond)
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("deadline_operation"),
     ro.ContextWithDeadline[string](deadline),
     ro.ThrowOnContextCancel[string](),
@@ -41,7 +41,7 @@ defer sub.Unsubscribe()
 
 ```go
 deadline := time.Now().Add(200 * time.Millisecond)
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("fast_operation"),
     ro.ContextWithDeadline[string](deadline),
     ro.ThrowOnContextCancel[string](),
@@ -63,7 +63,7 @@ defer sub.Unsubscribe()
 ```go
 deadline := time.Now().Add(50 * time.Millisecond)
 deadlineError := errors.New("processing deadline exceeded")
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("data_processing"),
     ro.ContextWithDeadlineCause[string](deadline, deadlineError),
     ro.ThrowOnContextCancel[string](),
@@ -84,7 +84,7 @@ defer sub.Unsubscribe()
 ```go
 // Set deadline for 5 seconds from now
 deadline := time.Now().Add(5 * time.Second)
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("long_operation"),
     ro.ContextWithDeadline[string](deadline),
     ro.ThrowOnContextCancel[string](),
@@ -106,7 +106,7 @@ sub.Unsubscribe()
 
 ```go
 deadline := time.Now().Add(200 * time.Millisecond)
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("op1", "op2", "op3"),
     ro.ContextWithDeadline[string](deadline),
     ro.ThrowOnContextCancel[string](),
@@ -130,7 +130,7 @@ defer sub.Unsubscribe()
 ```go
 // Set deadline to past time (immediate timeout)
 deadline := time.Now().Add(-1 * time.Hour)
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("immediate_timeout"),
     ro.ContextWithDeadline[string](deadline),
     ro.ThrowOnContextCancel[string](),
@@ -160,7 +160,7 @@ jobs := []BatchJob{
 }
 
 deadline := time.Now().Add(180 * time.Millisecond)
-obs := ro.Pipe(
+obs := ro.Pipe[BatchJob, string](
     ro.FromSlice(jobs),
     ro.ContextWithDeadline[BatchJob](deadline),
     ro.ThrowOnContextCancel[BatchJob](),
@@ -182,11 +182,11 @@ sub.Unsubscribe()
 
 ```go
 attempt := 0
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Defer(func() Observable[string] {
         attempt++
         deadline := time.Now().Add(100 * time.Millisecond)
-        return ro.Pipe(
+        return ro.Pipe[string, string](
             ro.Just(fmt.Sprintf("attempt_%d", attempt)),
             ro.ContextWithDeadline[string](deadline),
             ro.ThrowOnContextCancel[string](),
@@ -214,7 +214,7 @@ sub.Unsubscribe()
 
 ```go
 deadline := time.Now().Add(100 * time.Millisecond)
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("graceful_operation"),
     ro.ContextWithDeadline[string](deadline),
     ro.ThrowOnContextCancel[string](),

@@ -23,7 +23,7 @@ import (
 )
 
 logger, _ := zap.NewDevelopment()
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Throw[string](errors.New("critical error")),
     rozap.FatalOnError[string](logger),
 )

@@ -23,7 +23,7 @@ position: 10
 Emits only the first n items emitted by an Observable. If the count is greater than the number of items emitted by the source Observable, Take will emit all items. If the count is zero, Take will not emit any items.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Take[int](3),
 )
@@ -40,7 +40,7 @@ defer sub.Unsubscribe()
 ### Edge case: Taking more items than available
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.Take[int](5),
 )
@@ -57,7 +57,7 @@ defer sub.Unsubscribe()
 ### Edge case: Taking zero items
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Take[int](0),
 )

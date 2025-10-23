@@ -33,7 +33,7 @@ cache.Set("key1", "value1")
 cache.Set("key2", "value2")
 cache.Set("key4", "value4")
 
-obs := ro.Pipe(
+obs := ro.Pipe[[]string, map[string]string](
     ro.Just(
         []string{"key1", "key2", "key3"},
         []string{"key2", "key4", "key5"},

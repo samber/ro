@@ -19,7 +19,7 @@ Determines whether two observable sequences emit the same sequence of values.
 source := ro.Just(1, 2, 3)
 compareTo := ro.Just(1, 2, 3)
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, bool](
     source,
     ro.SequenceEqual(compareTo),
 )
@@ -37,7 +37,7 @@ defer sub.Unsubscribe()
 source := ro.Just(1, 2, 3)
 compareTo := ro.Just(1, 2, 4)
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, bool](
     source,
     ro.SequenceEqual(compareTo),
 )
@@ -55,7 +55,7 @@ defer sub.Unsubscribe()
 source := ro.Just(1, 2, 3)
 compareTo := ro.Just(1, 2)
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, bool](
     source,
     ro.SequenceEqual(compareTo),
 )
@@ -73,7 +73,7 @@ defer sub.Unsubscribe()
 source := ro.Just("hello", "world")
 compareTo := ro.Just("hello", "world")
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, bool](
     source,
     ro.SequenceEqual(compareTo),
 )

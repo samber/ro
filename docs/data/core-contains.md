@@ -22,7 +22,7 @@ position: 10
 Determines whether any element of an observable sequence satisfies a condition.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, bool](
     ro.Just(1, 2, 3, 4, 5),
     ro.Contains(func(i int) bool {
         return i == 3
@@ -39,7 +39,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, bool](
     ro.Just(1, 2, 3, 4, 5),
     ro.ContainsWithContext(func(ctx context.Context, n int) bool {
         return n == 3
@@ -56,7 +56,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, bool](
     ro.Just("apple", "banana", "cherry"),
     ro.ContainsI(func(item string, index int64) bool {
         return index == 1 && item == "banana"
@@ -73,7 +73,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, bool](
     ro.Just(1, 2, 3, 4, 5),
     ro.ContainsIWithContext(func(ctx context.Context, n int, index int64) bool {
         return n > 3 && index >= 3

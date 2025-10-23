@@ -17,7 +17,7 @@ position: 460
 Converts an observable sequence into an observable of notifications representing the original sequence's events.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, ro.Notification[int]](
     ro.Just(1, 2, 3),
     ro.Materialize[int](),
 )
@@ -35,7 +35,7 @@ defer sub.Unsubscribe()
 ### With errors
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, ro.Notification[int]](
     ro.Concat(
         ro.Just(1, 2),
         ro.Throw[int](errors.New("test error")),
@@ -55,7 +55,7 @@ defer sub.Unsubscribe()
 ### Processing notifications
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, ro.Notification[string]](
     ro.Just("hello", "world"),
     ro.Materialize[string](),
 )

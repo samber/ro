@@ -20,7 +20,7 @@ position: 70
 Emits only the nth item emitted by an Observable. If the source Observable emits fewer than n items, ElementAt will emit an error.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("apple", "banana", "cherry", "date"),
     ro.ElementAt(2),
 )
@@ -35,7 +35,7 @@ defer sub.Unsubscribe()
 ### With zero-based indexing
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("first", "second", "third"),
     ro.ElementAt(0),
 )
@@ -50,7 +50,7 @@ defer sub.Unsubscribe()
 ### With out of bounds index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("a", "b", "c"),
     ro.ElementAt(5),
 )
@@ -64,7 +64,7 @@ defer sub.Unsubscribe()
 ### With numbers
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(10, 20, 30, 40, 50),
     ro.ElementAt(3),
 )
@@ -79,7 +79,7 @@ defer sub.Unsubscribe()
 ### With time-based observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(100*time.Millisecond),
     ro.ElementAt(5),
 )

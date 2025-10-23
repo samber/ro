@@ -19,7 +19,7 @@ position: 75
 Emits the given values before emitting the values from the source Observable.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("a", "b", "c"),
     ro.StartWith("x", "y"),
 )
@@ -38,7 +38,7 @@ defer sub.Unsubscribe()
 ### With single prefix value
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(2, 3, 4),
     ro.StartWith(1),
 )
@@ -56,7 +56,7 @@ defer sub.Unsubscribe()
 ### With multiple prefix values
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("c"),
     ro.StartWith("a", "b"),
 )
@@ -73,7 +73,7 @@ defer sub.Unsubscribe()
 ### With empty source observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Empty[string](),
     ro.StartWith("prefix1", "prefix2"),
 )
@@ -89,7 +89,7 @@ defer sub.Unsubscribe()
 ### With no prefix values
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("a", "b"),
     ro.StartWith[string](),
 )
@@ -105,7 +105,7 @@ defer sub.Unsubscribe()
 ### With time-based observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(100*time.Millisecond),
     ro.StartWith(int64(-1)),
     ro.Take(3),

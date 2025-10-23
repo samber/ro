@@ -18,7 +18,7 @@ position: 0
 Adds a key-value pair to the context of each item in the observable sequence.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("request1", "request2"),
     ro.ContextWithValue[string]("requestID", "req-123"),
     ro.Map(func(s string) string {
@@ -38,7 +38,7 @@ defer sub.Unsubscribe()
 ### With context extraction in downstream operators
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("data1", "data2"),
     ro.ContextWithValue[string]("userID", 42),
     ro.Map(func(s string) string {
@@ -69,7 +69,7 @@ defer sub.Unsubscribe()
 ### With multiple context values
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("task1", "task2"),
     ro.ContextWithValue[string]("traceID", "trace-abc"),
     ro.ContextWithValue[string]("sessionID", "session-xyz"),
@@ -113,7 +113,7 @@ metadata := RequestMetadata{
     UserID:    789,
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("api_call1", "api_call2"),
     ro.ContextWithValue[string]("metadata", metadata),
     ro.Map(func(s string) string {
@@ -145,7 +145,7 @@ defer sub.Unsubscribe()
 ### With context-aware error handling
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("critical_op1", "critical_op2"),
     ro.ContextWithValue[string]("operationType", "high_priority"),
     ro.MapErr(func(s string) (string, error) {
@@ -189,7 +189,7 @@ processAsync := func(ctx context.Context, item string) ro.Observable[string] {
     })
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("item1", "item2"),
     ro.ContextWithValue[string]("traceID", "async-trace-789"),
     ro.MergeMap(func(item string) ro.Observable[string] {

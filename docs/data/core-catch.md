@@ -18,7 +18,7 @@ position: 0
 Catches errors on the observable to be handled by returning a new observable.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MapErr(func(i int) (int, error) {
         if i == 3 {
@@ -46,11 +46,11 @@ defer sub.Unsubscribe()
 
 ```go
 attempt := 0
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Defer(func() ro.Observable[int] {
         attempt++
         if attempt <= 2 {
-            return ro.Pipe(
+            return ro.Pipe[int, int](
                 ro.Just(1),
                 ro.Throw[int](errors.New("network error")),
             )
@@ -78,7 +78,7 @@ defer sub.Unsubscribe()
 ### With different error types
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("data1", "data2", "invalid"),
     ro.MapErr(func(s string) (string, error) {
         if s == "invalid" {
@@ -106,7 +106,7 @@ defer sub.Unsubscribe()
 ### With logging and fallback sequence
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4),
     ro.MapErr(func(i int) (int, error) {
         if i%2 == 0 {

@@ -24,7 +24,7 @@ position: 20
 Collects all emissions from the source Observable into a map. Items are keyed by the result of the key selector function.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, map[string]string](
     ro.Just("apple", "banana", "cherry"),
     ro.ToMap(func(s string) (string, string) {
         return s[:1], s // Use first letter as key, whole string as value
@@ -46,7 +46,7 @@ type User struct {
     name string
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[User, map[int]string](
     ro.Just(
         User{id: 1, name: "Alice"},
         User{id: 2, name: "Bob"},
@@ -68,7 +68,7 @@ defer sub.Unsubscribe()
 ### With key collisions (last value wins)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, map[string]string](
     ro.Just("apple", "avocado", "banana"),
     ro.ToMap(func(s string) string {
         return s[:1] // 'a' appears twice
@@ -85,7 +85,7 @@ defer sub.Unsubscribe()
 ### With empty observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, map[int]string](
     ro.Empty[string](),
     ro.ToMap(func(s string) int {
         return len(s)
@@ -102,8 +102,8 @@ defer sub.Unsubscribe()
 ### With error handling
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[int, map[int]int](
+    ro.Pipe[int, int](
         ro.Just(1, 2, 3),
         ro.MapErr(func(i int) (int, error) {
             if i == 3 {
@@ -138,7 +138,7 @@ defer sub.Unsubscribe()
 
 ```go
 // Example showing how to handle collisions by creating composite values
-obs := ro.Pipe(
+obs := ro.Pipe[string, map[string][]string](
     ro.Just(
         "file1.txt",
         "file2.txt",
@@ -178,7 +178,7 @@ type FileGroup struct {
     Files     []string
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, map[string][]string](
     ro.Just("file1.txt", "file2.txt", "image1.jpg", "image2.jpg"),
     ro.ToSlice[string](),
     ro.Map(func(files []string) map[string][]string {
@@ -209,7 +209,7 @@ type Product struct {
     Price float64
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Product, map[string]Product](
     ro.Just(
         Product{SKU: "P001", Name: "Laptop", Price: 999.99},
         Product{SKU: "P002", Name: "Mouse", Price: 29.99},
@@ -232,7 +232,7 @@ defer sub.Unsubscribe()
 
 ```go
 source := ro.Interval(100 * time.Millisecond)
-obs := ro.Pipe(
+obs := ro.Pipe[int64, map[int]string](
     source,
     ro.Take[int64](5),
     ro.ToMapWithValue(
@@ -252,7 +252,7 @@ sub.Unsubscribe()
 ### With filtered data
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, map[int]string](
     ro.Range(1, 20),
     ro.Filter(func(i int) bool {
         return i%3 == 0 // Only multiples of 3
@@ -273,8 +273,14 @@ defer sub.Unsubscribe()
 ### With async operations
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[struct {
+    ID   string
+    Data string
+}, map[string]string](
+    ro.Pipe[string, struct {
+        ID   string
+        Data string
+    }](
         ro.Just("user1", "user2", "user3"),
         MapAsync(func(userID string) Observable[struct {
             ID   string
@@ -320,7 +326,11 @@ defer sub.Unsubscribe()
 ```go
 // Simulate sensor data collection by sensor ID
 sensorReadings := ro.Interval(500 * time.Millisecond)
-obs := ro.Pipe(
+obs := ro.Pipe[struct {
+    SensorID string
+    Value    float64
+    Time     int64
+}, map[string]float64](
     sensorReadings,
     ro.Take[int64](10),
     ro.Map(func(timestamp int64) struct {

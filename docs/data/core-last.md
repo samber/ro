@@ -25,7 +25,7 @@ position: 40
 Emits only the last item (or the last item that satisfies a predicate) from an Observable sequence.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Last[int](func(i int) bool {
         return true // Match all items, returns last
@@ -42,7 +42,7 @@ defer sub.Unsubscribe()
 ### Last with predicate
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Last[int](func(i int) bool {
         return i < 4 // Find last item less than 4
@@ -59,7 +59,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.LastWithContext(func(ctx context.Context, i int) (context.Context, bool) {
         return ctx, i < 4
@@ -76,7 +76,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.LastI(func(i int, index int64) bool {
         return index < 3 // Find last item with index < 3
@@ -93,7 +93,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.LastIWithContext(func(ctx context.Context, i int, index int64) (context.Context, bool) {
         return ctx, i < 4 && index < 3
@@ -110,7 +110,7 @@ defer sub.Unsubscribe()
 ### Edge case: No matching items
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Last[int](func(i int) bool {
         return i > 10 // No items match
@@ -127,7 +127,7 @@ defer sub.Unsubscribe()
 ### Edge case: Single item
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(42),
     ro.Last[int](func(i int) bool {
         return i > 0

@@ -26,7 +26,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`\d+`)
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, []byte](
     ro.Just([]byte("abc123def"), []byte("no numbers here")),
     roregexp.Find[[]byte](pattern),
 )

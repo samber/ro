@@ -16,7 +16,7 @@ position: 130
 Finds the minimum value in an observable sequence.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(5, 3, 8, 1, 4),
     ro.Min[int](),
 )
@@ -31,7 +31,7 @@ defer sub.Unsubscribe()
 ### With floats
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.Just(3.14, 2.71, 1.61, 0.99),
     ro.Min[float64](),
 )
@@ -46,7 +46,7 @@ defer sub.Unsubscribe()
 ### With strings
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("zebra", "apple", "banana", "cherry"),
     ro.Min[string](),
 )
@@ -61,7 +61,7 @@ defer sub.Unsubscribe()
 ### Empty sequence handling
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Empty[int](),
     ro.Min[int](),
 )

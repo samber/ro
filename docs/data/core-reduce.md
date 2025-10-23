@@ -25,7 +25,7 @@ position: 30
 Applies an accumulator function over an Observable sequence, and returns the final accumulated result when the source completes.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Reduce(func(acc int, item int) int {
         return acc + item
@@ -42,7 +42,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.ReduceWithContext(func(ctx context.Context, acc int, item int) (context.Context, int) {
         return ctx, acc + item
@@ -59,7 +59,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.ReduceI(func(acc int, item int, index int64) int {
         return acc + (item * int(index+1)) // Multiply by position
@@ -76,7 +76,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.ReduceIWithContext(func(ctx context.Context, acc int, item int, index int64) (context.Context, int) {
         return ctx, acc + (item * int(index+1))
@@ -93,7 +93,7 @@ defer sub.Unsubscribe()
 ### Reduce to different type
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, string](
     ro.Just(1, 2, 3, 4, 5),
     ro.Reduce(func(acc string, item int) string {
         return fmt.Sprintf("%s%d", acc, item)
@@ -110,7 +110,7 @@ defer sub.Unsubscribe()
 ### Practical example: Building a map
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, map[string]int](
     ro.Just("apple", "banana", "cherry"),
     ro.Reduce(func(acc map[string]int, item string) map[string]int {
         acc[item] = len(item)
@@ -128,7 +128,7 @@ defer sub.Unsubscribe()
 ### Reduce with no seed (first item as seed)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Reduce(func(acc int, item int) int {
         return acc * item

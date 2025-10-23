@@ -36,7 +36,7 @@ defer sub.Unsubscribe()
 ```go
 obs := ro.Defer(func() ro.Observable[int] {
     counter := 0
-    return ro.Pipe(
+    return ro.Pipe[int64, int](
         ro.Interval(100*time.Millisecond),
         ro.Take[int64](3),
         ro.Map(func(i int64) int {
@@ -88,7 +88,7 @@ obs := ro.Defer(func() ro.Observable[string] {
     }
 
     // Return observable that cleans up when done
-    return ro.Pipe(
+    return ro.Pipe[string, string](
         ro.FromSlice([]string{"line1", "line2", "line3"}),
         ro.Finally(func() {
             file.Close()

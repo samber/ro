@@ -25,7 +25,7 @@ import (
     rostrconv "github.com/samber/ro/plugins/strconv"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, uint64](
     ro.Just("123", "FF", "1010", "invalid"),
     rostrconv.ParseUint64[string](16, 64), // Parse as hex, 64-bit unsigned
 )

@@ -25,7 +25,7 @@ import (
     rostrconv "github.com/samber/ro/plugins/strconv"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("hello", "world\n", "test\t\"quote\"", "path\\to\\file"),
     rostrconv.Quote(),
 )

@@ -118,6 +118,7 @@ func main() {
     input := make(chan int)
     output1 := make(chan int)
     output2 := make(chan int)
+    done := make(chan struct{})
 
     // Start fan-out goroutine
     go fanOut(input, []chan<- int{output1, output2})
@@ -125,7 +126,7 @@ func main() {
     // Producer
     go func() {
         defer close(input)
-        for i := 1; i <= 5; i++ {
+        for i := 0; i <= 1_000_000; i++ {
             input <- i
         }
     }()
@@ -135,16 +136,23 @@ func main() {
         for v := range output1 {
             fmt.Println("Consumer 1:", v)
         }
+        done <- struct{}{}
     }()
 
     go func() {
         for v := range output2 {
             fmt.Println("Consumer 2:", v)
         }
+        done <- struct{}{}
     }()
 
     // Wait for completion
-    time.Sleep(100 * time.Millisecond)
+    <-done
+    <-done
+
+    close(output1)
+    close(output2)
+    close(done)
 }
 ```
 
@@ -315,8 +323,8 @@ Backpressure requires manual implementation with buffered channels and timeout l
 func main() {
     observable := ro.Pipe2(
         ro.Interval(50 * time.Millisecond),  // Fast producer
-        ro.Take(20),
-        ro.Map(func(i int) int {
+        ro.Take[int64](20),
+        ro.Map(func(i int64) int {
             // Simulate slow processing
             time.Sleep(100 * time.Millisecond)
             return i * 2
@@ -393,17 +401,17 @@ Complex pipelines require manual stage management and multiple goroutines.
 ```go
 func main() {
     // Declarative pipeline
-    observable := ro.Pipe3(
+    observable := ro.Pipe2(
         ro.Range(0, 10),
-        ro.Map(func(x int) int {
+        ro.Map(func(x int64) int64 {
             return x * 2
         }),
-        ro.Filter(func(x int) bool {
+        ro.Filter(func(x int64) bool {
             return x%4 == 0
         }),
     )
 
-    observable.Subscribe(ro.OnNext(func(result int) {
+    observable.Subscribe(ro.OnNext(func(result int64) {
         fmt.Println("Result:", result)
     }))
 }
@@ -461,7 +469,7 @@ var pipeline = ro.PipeOp2(
     ro.Map(func(tick int) string {
         return fmt.Sprintf("tick-%d", tick)
     }),
-    ro.TakeUntil(ro.Timer(5 * time.Second)),
+    ro.TakeUntil[string](ro.Timer(5 * time.Second)),
 )
 
 func main() {
@@ -528,7 +536,7 @@ var pipeline = ro.PipeOp2(
         }
         return x * 2, nil
     }),
-    ro.Retry(3),
+    ro.Retry[int](3),
 )
 
 func main() {

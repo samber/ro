@@ -22,7 +22,7 @@ import (
     robytes "github.com/samber/ro/plugins/bytes"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, []byte](
     ro.Just([]byte("This is a very long string")),
     robytes.Ellipsis[[]byte](10),
 )

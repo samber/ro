@@ -19,7 +19,7 @@ position: 90
 Raises an error if the source Observable does not emit any item within the specified duration. The timeout resets after each emission.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(200*time.Millisecond),
     ro.Timeout(100*time.Millisecond),
 )
@@ -34,7 +34,7 @@ sub.Unsubscribe()
 ### With fast emissions (no timeout)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(50*time.Millisecond),
     ro.Timeout(200*time.Millisecond),
     ro.Take(3),
@@ -53,7 +53,7 @@ sub.Unsubscribe()
 ### With slow emissions (timeout occurs)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(500*time.Millisecond),
     ro.Timeout(200*time.Millisecond),
 )
@@ -68,8 +68,8 @@ sub.Unsubscribe()
 ### With delayed first emission
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[string, string](
+    ro.Pipe[string, string](
         ro.Just("delayed"),
         ro.Delay(300*time.Millisecond),
     ),
@@ -86,8 +86,8 @@ sub.Unsubscribe()
 ### With error in source (propagates immediately)
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[string, string](
+    ro.Pipe[string, string](
         ro.Just("will error"),
         ro.Throw[string](errors.New("source error")),
     ),
@@ -103,12 +103,12 @@ defer sub.Unsubscribe()
 ### With multiple emissions and varying intervals
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[string, string](
+    ro.Pipe[string, string](
         ro.Just("fast"),
         ro.Delay(50*time.Millisecond),
     ),
-    ro.Pipe(
+    ro.Pipe[string, string](
         ro.Just("slow"),
         ro.Delay(300*time.Millisecond),
     ),

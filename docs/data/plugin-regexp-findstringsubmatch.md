@@ -27,7 +27,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`(\w+)\s+(\w+)`)
-obs := ro.Pipe(
+obs := ro.Pipe[string, []string](
     ro.Just("hello world", "foo bar", "test"),
     roregexp.FindStringSubmatch[string](pattern),
 )

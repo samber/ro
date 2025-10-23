@@ -26,7 +26,7 @@ position: 30
 Transforms each item from the source Observable into an Observable, then merges the resulting Observables, emitting all items as they are emitted from any transformed Observable.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, string](
     ro.Just(1, 2, 3),
     ro.MergeMap(func(n int) Observable[string] {
         return ro.Just(fmt.Sprintf("item-%d", n))
@@ -46,7 +46,7 @@ defer sub.Unsubscribe()
 ### With index parameter
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("A", "B", "C"),
     ro.MergeMapI(func(letter string, index int64) Observable[string] {
         return ro.Just(fmt.Sprintf("%s-%d", letter, index))
@@ -65,7 +65,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MergeMapWithContext(func(ctx context.Context, n int) (context.Context, Observable[int]) {
         // Can use context for cancellation or values
@@ -85,7 +85,7 @@ defer sub.Unsubscribe()
 ### With both context and index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, int](
     ro.Just("hello", "world"),
     ro.MergeMapIWithContext(func(ctx context.Context, word string, index int64) (context.Context, Observable[int]) {
         return ctx, ro.Just(len(word))
@@ -103,10 +103,10 @@ defer sub.Unsubscribe()
 ### With async operations
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MergeMap(func(n int) Observable[int] {
-        return ro.Pipe(
+        return ro.Pipe[int64, int](
             ro.Interval(100*time.Millisecond),
             ro.Take[int64](2),
             ro.Map(func(_ int64) int { return n }),
@@ -125,7 +125,7 @@ sub.Unsubscribe()
 ### With error handling
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MergeMap(func(n int) Observable[int] {
         if n == 2 {
@@ -147,7 +147,7 @@ defer sub.Unsubscribe()
 ### Edge case: Empty source
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, string](
     ro.Empty[int](),
     ro.MergeMap(func(n int) Observable[string] {
         return ro.Just(fmt.Sprintf("item-%d", n))

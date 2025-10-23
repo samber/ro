@@ -28,7 +28,7 @@ import (
 logger := logrus.New()
 logger.SetLevel(logrus.InfoLevel)
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("user login", "data processing", "task completed"),
     rologrus.LogWithNotification[string](logger, logrus.InfoLevel),
 )

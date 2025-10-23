@@ -36,7 +36,7 @@ func (u User) Validate() error {
     )
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[User, User](
     ro.Just(
         User{Name: "Alice", Age: 30}, // valid
         User{Name: "", Age: 15},      // invalid

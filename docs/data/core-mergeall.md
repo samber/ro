@@ -19,7 +19,7 @@ position: 10
 Creates an Observable that merges items from multiple Observable sources provided as a higher-order Observable, emitting items as they are emitted from any source.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int], int](
     ro.Just(
         ro.Just(1, 2, 3),
         ro.Just(4, 5, 6),
@@ -47,11 +47,11 @@ defer sub.Unsubscribe()
 ### With different emission rates
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int64], int64](
     ro.Just(
-        ro.Pipe(ro.Interval(100*time.Millisecond), ro.Take[int64](3)),   // Fast: 0,1,2
-        ro.Pipe(ro.Interval(200*time.Millisecond), ro.Take[int64](2)),   // Medium: 0,1
-        ro.Pipe(ro.Interval(300*time.Millisecond), ro.Take[int64](1)),   // Slow: 0
+        ro.Pipe[int64, int64](ro.Interval(100*time.Millisecond), ro.Take[int64](3)),   // Fast: 0,1,2
+        ro.Pipe[int64, int64](ro.Interval(200*time.Millisecond), ro.Take[int64](2)),   // Medium: 0,1
+        ro.Pipe[int64, int64](ro.Interval(300*time.Millisecond), ro.Take[int64](1)),   // Slow: 0
     ),
     ro.MergeAll[int64](),
 )
@@ -74,7 +74,7 @@ observables := []ro.Observable[int]{
     ro.Just(5, 6),
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int], int](
     ro.Just(observables...),
     ro.MergeAll[int](),
 )
@@ -88,7 +88,7 @@ defer sub.Unsubscribe()
 ### Edge case: Empty observable of observables
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int], int](
     ro.Empty[ro.Observable[int]](),
     ro.MergeAll[int](),
 )
@@ -103,7 +103,7 @@ defer sub.Unsubscribe()
 ### Edge case: Single observable in collection
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int], int](
     ro.Just(ro.Just(1, 2, 3)),
     ro.MergeAll[int](),
 )

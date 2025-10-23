@@ -27,7 +27,7 @@ type Item struct {
     Price float64
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Item, string](
     ro.Just(Item{Name: "Apple", Price: 1.99}),
     rotemplate.HTMLTemplate[Item]("<h1>{{.Name}}</h1><p>Price: ${{.Price}}</p>"),
 )

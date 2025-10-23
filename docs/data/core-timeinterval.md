@@ -17,7 +17,7 @@ position: 200
 Records the interval of time between emissions from the source Observable and emits this information as ro.IntervalValue objects.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, ro.IntervalValue[string]](
     ro.Just("A", "B", "C"),
     ro.TimeInterval[string](),
 )
@@ -35,7 +35,7 @@ defer sub.Unsubscribe()
 ### With hot observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, ro.IntervalValue[int64]](
     ro.Interval(100 * time.Millisecond),
     ro.Take[int64](5),
     ro.TimeInterval[int64](),
@@ -58,8 +58,8 @@ sub.Unsubscribe()
 ### With async operations
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[string, ro.IntervalValue[string]](
+    ro.Pipe[string, string](
         ro.Just("task1", "task2", "task3"),
         ro.MapAsync(func(task string) Observable[string] {
             return ro.Defer(func() Observable[string] {
@@ -84,8 +84,8 @@ defer sub.Unsubscribe()
 ### With error handling
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[int, ro.IntervalValue[int]](
+    ro.Pipe[int, int](
         ro.Just(1, 2, 3),
         ro.MapErr(func(i int) (int, error) {
             if i == 3 {
@@ -121,7 +121,7 @@ defer sub.Unsubscribe()
 
 ```go
 // Monitor processing time for expensive operations
-obs := ro.Pipe(
+obs := ro.Pipe[string, ro.IntervalValue[string]](
     ro.Just("data1", "data2", "data3"),
     ro.Map(func(data string) string {
         // Simulate expensive processing
@@ -147,7 +147,7 @@ defer sub.Unsubscribe()
 ```go
 // Monitor intervals in real-time data stream
 source := ro.Interval(200 * time.Millisecond)
-obs := ro.Pipe(
+obs := ro.Pipe[float64, ro.IntervalValue[float64]](
     source,
     ro.Take[int64](10),
     ro.Map(func(ts int64) float64 {
@@ -171,7 +171,7 @@ sub.Unsubscribe()
 
 ```go
 // Analyze batch processing times
-obs := ro.Pipe(
+obs := ro.Pipe[[]int, ro.IntervalValue[[]int]](
     ro.Range(1, 6),
     ro.BufferWithCount[int](2),
     ro.TimeInterval[[]int](),
@@ -192,7 +192,7 @@ defer sub.Unsubscribe()
 
 ```go
 // Measure intervals only for certain values
-obs := ro.Pipe(
+obs := ro.Pipe[int, ro.IntervalValue[int]](
     ro.Range(1, 10),
     ro.Filter(func(i int) bool {
         return i%3 == 0 // Only multiples of 3

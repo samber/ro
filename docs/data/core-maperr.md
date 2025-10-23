@@ -23,7 +23,7 @@ position: 100
 Transforms items emitted by an observable sequence with a function that can return errors.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, int](
     ro.Just("1", "2", "three", "4"),
     ro.MapErr(func(s string) (int, error) {
         return strconv.Atoi(s)
@@ -41,7 +41,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("file1.txt", "file2.txt", "invalid.txt"),
     ro.MapErrWithContext(func(ctx context.Context, filename string) (string, error) {
         if !strings.HasSuffix(filename, ".txt") {
@@ -62,7 +62,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("apple", "banana", "cherry"),
     ro.MapErrI(func(fruit string, index int64) (string, error) {
         if index == 1 {
@@ -82,7 +82,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, int](
     ro.Just("test1", "test2", "test3"),
     ro.MapErrIWithContext(func(ctx context.Context, item string, index int64) (int, error) {
         if index > 1 {

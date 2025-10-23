@@ -33,7 +33,7 @@ Replace complex callback chains with clean, declarative stream operations:
 
 ```go
 // Instead of nested callbacks
-observable := ro.Pipe(
+observable := ro.Pipe[int, string](
     ro.Just(0, 1, 2, 3, 4, 5),
     ro.Filter(func(x int) bool {
         return x%2 == 0
@@ -61,15 +61,21 @@ subscription := observable.Subscribe(
 combined := ro.Merge(stream1, stream2)
 
 // Handle errors gracefully
-observable := ro.Pipe(
+observable := ro.Pipe[string, string](
     combined,
-    ro.CatchError(func(err error) ro.Observable[string] {
+    ro.Catch(func(err error) ro.Observable[string] {
         return ro.Just("fallback-value")
     }),
     ro.DelayEach(100 * time.Millisecond),
 )
 
-subscription := observable.Subscribe( ... )
+subscription := observable.Subscribe(
+    ro.NewObserver(
+        func(v string) { ... },  // on value
+        func(err error) { ... }, // on error
+        func() { ... },          // on completion
+    ),
+)
 ```
 
 ### 3. **Resource Management**
@@ -82,12 +88,18 @@ Automatic cleanup and backpressure handling prevent resource leaks. See [Subscri
 
 ```go
 // Automatically cancel when stream is completed
-observable := ro.Pipe(
+observable := ro.Pipe[int64, int64](
     ro.Interval(1 * time.Second),
     ro.Take(10),
 )
 
-subscription := observable.Subscribe( ... )
+subscription := observable.Subscribe(
+    ro.NewObserver(
+        func(v int64) { ... },  // on value
+        func(err error) { ... }, // on error
+        func() { ... },          // on completion
+    ),
+)
 ```
 
 ## Design Principles
@@ -118,13 +130,13 @@ subscription := ro.Map(mapper)(obs) // mapper must be func(int) T
 ```go
 obs := ro.Pipe3(
     ro.Range(0, 42),
-    ro.Filter(func(x int) int {
+    ro.Filter(func(x int64) bool {
         return x%2 == 0
     }),
-    ro.Map(func(x int) string {
-        return strconv.Itoa(x)
+    ro.Map(func(x int64) string {
+        return fmt.Sprintf("even-%d", x)
     }),
-    ro.Take(10),
+    ro.Take[string](10),
 )
 ```
 

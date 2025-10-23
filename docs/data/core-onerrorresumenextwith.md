@@ -18,7 +18,7 @@ position: 30
 Begins emitting a second observable sequence if it encounters an error with the first observable.
 
 ```go
-primary := ro.Pipe(
+primary := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MapErr(func(i int) (int, error) {
         if i == 3 {
@@ -30,7 +30,7 @@ primary := ro.Pipe(
 
 fallback := ro.Just(99, 100, 101)
 
-obs := ro.Pipe(primary, ro.OnErrorResumeNextWith(fallback))
+obs := ro.Pipe[int, int](primary, ro.OnErrorResumeNextWith(fallback))
 
 sub := obs.Subscribe(ro.PrintObserver[int]())
 defer sub.Unsubscribe()
@@ -46,7 +46,7 @@ defer sub.Unsubscribe()
 ### With multiple fallback sequences
 
 ```go
-primary := ro.Pipe(
+primary := ro.Pipe[string, string](
     ro.Just("data1", "data2"),
     ro.Throw[string](errors.New("primary failed")),
 )
@@ -54,7 +54,7 @@ primary := ro.Pipe(
 fallback1 := ro.Just("fallback1", "fallback2")
 fallback2 := ro.Just("final1", "final2")
 
-obs := ro.Pipe(primary, ro.OnErrorResumeNextWith(fallback1, fallback2))
+obs := ro.Pipe[string, string](primary, ro.OnErrorResumeNextWith(fallback1, fallback2))
 
 sub := obs.Subscribe(ro.PrintObserver[string]())
 defer sub.Unsubscribe()
@@ -72,7 +72,7 @@ defer sub.Unsubscribe()
 primary := ro.Throw[int](errors.New("always fails"))
 fallback := ro.Empty[int]()
 
-obs := ro.Pipe(primary, ro.OnErrorResumeNextWith(fallback))
+obs := ro.Pipe[int, int](primary, ro.OnErrorResumeNextWith(fallback))
 
 sub := obs.Subscribe(ro.PrintObserver[int]())
 defer sub.Unsubscribe()
@@ -84,7 +84,7 @@ defer sub.Unsubscribe()
 
 ```go
 primaryAPI := func() Observable[string] {
-    return ro.Pipe(
+    return ro.Pipe[string, string](
         ro.Just("user_data"),
         ro.Throw[string](errors.New("API timeout")),
     )
@@ -94,7 +94,7 @@ cacheAPI := func() Observable[string] {
     return ro.Just("cached_data")
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     primaryAPI(),
     ro.OnErrorResumeNextWith(cacheAPI()),
 )
@@ -119,7 +119,7 @@ connectSecondary := func() Observable[string] {
     return ro.Just("connected to secondary database")
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     connectPrimary(),
     ro.OnErrorResumeNextWith(connectSecondary()),
 )
@@ -135,7 +135,7 @@ defer sub.Unsubscribe()
 
 ```go
 shouldUseFallback := true
-primary := ro.Pipe(
+primary := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MapErr(func(i int) (int, error) {
         if i == 3 && shouldUseFallback {
@@ -145,14 +145,14 @@ primary := ro.Pipe(
     }),
 )
 
-fallback := ro.Pipe(
+fallback := ro.Pipe[int, int](
     ro.Just(4, 5, 6),
     ro.Map(func(i int) int {
         return i * 10
     }),
 )
 
-obs := ro.Pipe(primary, ro.OnErrorResumeNextWith(fallback))
+obs := ro.Pipe[int, int](primary, ro.OnErrorResumeNextWith(fallback))
 
 sub := obs.Subscribe(ro.PrintObserver[int]())
 defer sub.Unsubscribe()

@@ -160,6 +160,7 @@ See the [examples](./examples) directory for complete working examples:
 - [Distributed WebSocket Gateway](./examples/distributed-websocket-gateway) - Shows how to build a distributed WebSocket gateway
 - [Parallel API Requests](./examples/parallel-api-requests) - Demonstrates concurrent HTTP requests
 - [SQL to CSV](./examples/sql-to-csv) - Shows how to process database results to CSV
+- [ICS to CSV](./examples/ics-to-csv) - Shows how to process ICS calendar files to CSV format
 - [Enterprise Edition Examples](./examples/ee-*) - Examples using enterprise features
 
 ## 🤝 Contributing

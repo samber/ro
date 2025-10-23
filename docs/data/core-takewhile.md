@@ -26,7 +26,7 @@ position: 20
 Emits items emitted by an Observable so long as a specified condition is true, then completes.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
     ro.TakeWhile(func(i int) bool {
         return i < 5
@@ -46,7 +46,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
     ro.TakeWhileWithContext(func(ctx context.Context, i int) (context.Context, bool) {
         return ctx, i < 5
@@ -66,7 +66,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
     ro.TakeWhileI(func(i int, index int64) bool {
         return index < 3 // Take first 4 elements (index 0, 1, 2, 3)
@@ -86,7 +86,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
     ro.TakeWhileIWithContext(func(ctx context.Context, i int, index int64) (context.Context, bool) {
         return ctx, i < 5 && index < 3
@@ -107,7 +107,7 @@ defer sub.Unsubscribe()
 
 ```go
 // In practice, this would complete when the source completes
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.TakeWhile(func(i int) bool {
         return true // Always true
@@ -128,7 +128,7 @@ defer sub.Unsubscribe()
 ### Edge case: Completes immediately if condition always false
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.TakeWhile(func(i int) bool {
         return false // Always false

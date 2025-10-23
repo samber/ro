@@ -28,7 +28,7 @@ import (
 logger := logrus.New()
 logger.SetLevel(logrus.InfoLevel)
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("message 1", "message 2"),
     rologrus.Log[string](logger, logrus.InfoLevel),
 )

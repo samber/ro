@@ -9,15 +9,15 @@ signatures:
   - "func MapWithContext[T any, R any](project func(ctx context.Context, item T) (context.Context, R))"
   - "func MapI[T any, R any](project func(item T, index int64) R)"
   - "func MapIWithContext[T any, R any](project func(ctx context.Context, item T, index int64) (context.Context, R))"
-playUrl:
+playUrl: https://go.dev/play/p/JhTBEQFQGYr
 variantHelpers:
   - core#transformation#map
   - core#transformation#mapwithcontext
   - core#transformation#mapi
   - core#transformation#mapiwithcontext
 similarHelpers:
-  - core#transformation#mapto, 
-  - core#transformation#maperr, 
+  - core#transformation#mapto,
+  - core#transformation#maperr,
   - core#transformation#flatmap
 position: 0
 ---
@@ -25,7 +25,7 @@ position: 0
 Applies a given project function to each item emitted by the source Observable, and emits the results of these function applications as an Observable sequence.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, string](
     ro.Just(1, 2, 3, 4, 5),
     ro.Map(func(i int) string {
         return fmt.Sprintf("Item-%d", i)
@@ -46,7 +46,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, string](
     ro.Just(1, 2, 3, 4, 5),
     ro.MapWithContext(func(ctx context.Context, i int) (context.Context, string) {
         return ctx, fmt.Sprintf("Item-%d", i)
@@ -67,7 +67,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, string](
     ro.Just(1, 2, 3, 4, 5),
     ro.MapI(func(i int, index int64) string {
         return fmt.Sprintf("Item-%d-Index-%d", i, index)
@@ -88,7 +88,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, string](
     ro.Just(1, 2, 3, 4, 5),
     ro.MapIWithContext(func(ctx context.Context, i int, index int64) (context.Context, string) {
         return ctx, fmt.Sprintf("Item-%d-Index-%d", i, index)

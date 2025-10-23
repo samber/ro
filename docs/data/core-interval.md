@@ -50,7 +50,7 @@ sub.Unsubscribe()
 
 ```go
 ticker := ro.Interval(500 * time.Millisecond)
-heartbeat := ro.Pipe(ticker, ro.Map(func(i int64) string {
+heartbeat := ro.Pipe[int64, string](ticker, ro.Map(func(i int64) string {
     return "❤️"
 }))
 
@@ -67,7 +67,7 @@ sub.Unsubscribe()
 ### With Take for limited emissions
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(100*time.Millisecond),
     ro.Take[int64](5),
 )

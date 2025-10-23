@@ -26,7 +26,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`(\d+)-([a-z]+)`)
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, [][][]byte](
     ro.Just([]byte("123-abc 456-def"), []byte("789-ghi")),
     roregexp.FindAllSubmatch[[]byte](pattern, -1), // -1 for unlimited matches
 )

@@ -18,7 +18,7 @@ position: 220
 Shifts the emissions from the source Observable forward in time by a specified amount.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("A", "B", "C"),
     ro.Delay(100 * time.Millisecond),
 )
@@ -38,7 +38,7 @@ defer sub.Unsubscribe()
 
 ```go
 start := time.Now()
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(50 * time.Millisecond),
     ro.Take[int64](3),
     ro.Delay(200 * time.Millisecond),
@@ -67,7 +67,7 @@ sub.Unsubscribe()
 ### With error propagation
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MapErr(func(i int) (int, error) {
         if i == 3 {
@@ -100,7 +100,7 @@ defer sub.Unsubscribe()
 ### With multiple delays in pipeline
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("start", "middle", "end"),
     ro.Delay(50 * time.Millisecond),
     ro.Map(func(s string) string {
@@ -132,7 +132,7 @@ defer sub.Unsubscribe()
 ### With async operations
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("task1", "task2", "task3"),
     ro.MapAsync(func(task string) ro.Observable[string] {
         return ro.Defer(func() ro.Observable[string] {
@@ -166,7 +166,7 @@ defer sub.Unsubscribe()
 ctx, cancel := context.WithTimeout(context.Background(), 200 * time.Millisecond)
 defer cancel()
 
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(50 * time.Millisecond),
     ro.Delay(150 * time.Millisecond),
 )
@@ -201,7 +201,7 @@ type PriceUpdate struct {
     Time   time.Time
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[int64, PriceUpdate](
     ro.Interval(100 * time.Millisecond),
     ro.Take[int64](5),
     ro.Map(func(ts int64) PriceUpdate {
@@ -234,7 +234,7 @@ sub.Unsubscribe()
 
 ```go
 // Apply delay only to certain items
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just(
         "immediate", // No delay
         "delayed",   // Apply delay
@@ -242,7 +242,7 @@ obs := ro.Pipe(
     ),
     ro.Map(func(item string) ro.Observable[string] {
         if item == "delayed" {
-            return ro.Pipe(
+            return ro.Pipe[string, string](
                 ro.Just(item),
                 ro.Delay(100 * time.Millisecond),
             )

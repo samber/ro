@@ -26,7 +26,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`\d+`)
-obs := ro.Pipe(
+obs := ro.Pipe[string, []string](
     ro.Just("abc123def456", "789ghi012"),
     roregexp.FindAllString[string](pattern, -1), // -1 for unlimited matches
 )

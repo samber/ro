@@ -24,7 +24,7 @@ position: 10
 Applies a given project function to each item emitted by the source Observable, where the project function returns an Observable, and then flattens the resulting Observables into a single Observable.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.FlatMap(func(i int) Observable[int] {
         return ro.Just(i*10, i*10+1, i*10+2)
@@ -50,7 +50,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.FlatMapWithContext(func(ctx context.Context, i int) Observable[int] {
         return ro.Just(i*10, i*10+1, i*10+2)
@@ -76,7 +76,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.FlatMapI(func(i int, index int64) Observable[int] {
         return ro.Just(i*10+int(index))
@@ -99,7 +99,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.FlatMapIWithContext(func(ctx context.Context, i int, index int64) Observable[int] {
         return ro.Just(i*10+int(index))
@@ -122,7 +122,7 @@ defer sub.Unsubscribe()
 ### Practical example: Converting single items to multiple
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, rune](
     ro.Just("hello", "world"),
     ro.FlatMap(func(s string) Observable[rune] {
         runes := []rune(s)

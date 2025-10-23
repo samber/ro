@@ -16,7 +16,7 @@ position: 260
 Returns a specified number of contiguous elements from the end of an observable sequence.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.TakeLast(2),
 )
@@ -32,7 +32,7 @@ defer sub.Unsubscribe()
 ### Take all elements
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.TakeLast(5),
 )
@@ -49,7 +49,7 @@ defer sub.Unsubscribe()
 ### TakeLast with zero
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.TakeLast(0),
 )
@@ -63,7 +63,7 @@ defer sub.Unsubscribe()
 ### With strings
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("apple", "banana", "cherry", "date", "elderberry"),
     ro.TakeLast(3),
 )
@@ -82,8 +82,8 @@ defer sub.Unsubscribe()
 ```go
 // TakeLast must buffer all elements to determine the last N
 // Use with caution on very long or infinite sequences
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[int64, int64](
+    ro.Pipe[int64, int64](
         ro.Interval(100*time.Millisecond),
         ro.Take[int64](10),
     ),

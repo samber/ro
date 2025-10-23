@@ -48,8 +48,8 @@ defer sub.Unsubscribe()
 
 ```go
 obs := ro.Merge(
-    ro.Pipe(ro.Interval(100*time.Millisecond), ro.Take[int64](3)),   // 0,1,2
-    ro.Pipe(ro.Interval(200*time.Millisecond), ro.Take[int64](2)),   // 0,1
+    ro.Pipe[time.Time, int64](ro.Interval(100*time.Millisecond), ro.Take[int64](3)),   // 0,1,2
+    ro.Pipe[time.Time, int64](ro.Interval(200*time.Millisecond), ro.Take[int64](2)),   // 0,1
 )
 
 sub := obs.Subscribe(ro.PrintObserver[int64]())
@@ -66,8 +66,8 @@ sub.Unsubscribe()
 source1 := ro.Interval(100 * time.Millisecond)
 source2 := ro.Interval(150 * time.Millisecond)
 obs := ro.Merge(
-    ro.Pipe(source1, ro.Take[int64](5)),
-    ro.Pipe(source2, ro.Take[int64](3)),
+    ro.Pipe[time.Time, int64](source1, ro.Take[int64](5)),
+    ro.Pipe[time.Time, int64](source2, ro.Take[int64](3)),
 )
 
 sub := obs.Subscribe(ro.PrintObserver[int64]())
@@ -82,7 +82,7 @@ sub.Unsubscribe()
 ```go
 obs := ro.Merge(
     ro.Just(1, 2, 3),
-    ro.Pipe(
+    ro.Pipe[int, int](
         ro.Just(4, 5, 6),
         ro.MapErr(func(i int) (int, error) {
             if i == 5 {

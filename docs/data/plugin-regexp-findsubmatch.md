@@ -27,7 +27,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`(\w+)\s+(\w+)`)
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, [][]byte](
     ro.Just(
         []byte("hello world"),
         []byte("foo bar"),

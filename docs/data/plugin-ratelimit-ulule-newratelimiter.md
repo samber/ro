@@ -36,7 +36,7 @@ type Request struct {
     Timestamp time.Time
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Request, Request](
     ro.Just(
         Request{UserID: "user1", Action: "login"},
         Request{UserID: "user2", Action: "login"},

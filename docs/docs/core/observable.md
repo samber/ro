@@ -179,6 +179,7 @@ ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 defer cancel()
 
 observable := ro.Interval(1 * time.Second)
+
 subscription := observable.SubscribeWithContext(ctx, ro.NewObserverWithContext(
     func(ctx context.Context, value int64) {
         fmt.Println("Received:", value)
@@ -502,6 +503,7 @@ func handleEvents() {
 ## Best Practices
 
 ### 1. Always Handle Cleanup
+
 ```go
 // Good: Clean up resources
 subscription := intervalObservable.Subscribe(observer)
@@ -512,6 +514,7 @@ intervalObservable.Subscribe(observer) // No cleanup
 ```
 
 ### 2. Use Context for Cancellation
+
 ```go
 // Good: Use context for timeout/cancellation
 ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -521,6 +524,7 @@ subscription := observable.SubscribeWithContext(ctx, observer)
 ```
 
 ### 3. Handle Errors Gracefully
+
 ```go
 // Good: Handle errors in observer
 observable.Subscribe(ro.NewObserver(
@@ -534,6 +538,7 @@ observable.Subscribe(ro.OnNext(func(value int) { /* only handle values */ }))
 ```
 
 ### 4. Avoid Blocking Operations
+
 ```go
 // Good: Non-blocking subscription
 subscription := observable.Subscribe(observer)

@@ -24,7 +24,7 @@ position: 20
 Applies an accumulator function over an Observable sequence, and returns each intermediate result, with an optional seed value.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Scan(func(acc int, item int) int {
         return acc + item
@@ -45,7 +45,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.ScanWithContext(func(ctx context.Context, acc int, item int) (context.Context, int) {
         return ctx, acc + item
@@ -66,7 +66,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.ScanI(func(acc int, item int, index int64) int {
         return acc + (item * int(index+1)) // Multiply by position
@@ -87,7 +87,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.ScanIWithContext(func(ctx context.Context, acc int, item int, index int64) (context.Context, int) {
         return ctx, acc + (item * int(index+1))
@@ -108,7 +108,7 @@ defer sub.Unsubscribe()
 ### Practical example: Building a string
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("hello", "world", "rx"),
     Scan(func(acc string, item string) string {
         if acc == "" {

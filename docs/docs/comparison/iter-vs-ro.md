@@ -104,8 +104,8 @@ Values are pushed to subscribers automatically, creating a reactive flow.
 With `iter`, you must implement transformation functions manually.
 ```go
 // Map function for iter
-func Map[V, W any](seq iter.Seq[V], f func(V) W) iter.Seq[W] {
-    return func(yield func(W) bool) {
+func Map[I, O any](seq iter.Seq[I], f func(I) O) iter.Seq[O] {
+    return func(yield func(O) bool) {
         for v := range seq {
             if !yield(f(v)) {
                 break
@@ -115,8 +115,8 @@ func Map[V, W any](seq iter.Seq[V], f func(V) W) iter.Seq[W] {
 }
 
 // Filter function for iter
-func Filter[V any](seq iter.Seq[V], f func(V) bool) iter.Seq[V] {
-    return func(yield func(V) bool) {
+func Filter[T any](seq iter.Seq[T], f func(T) bool) iter.Seq[T] {
+    return func(yield func(T) bool) {
         for v := range seq {
             if f(v) && !yield(v) {
                 break
@@ -150,10 +150,10 @@ for result := range evens {
 // Built-in operators
 observable := ro.Pipe2(
     ro.Range(0, 10),
-    ro.Filter(func(n int) bool {
+    ro.Filter(func(n int64) bool {
         return n%2 == 0
     }),
-    ro.Map(func(n int) string {
+    ro.Map(func(n int64) string {
         return fmt.Sprintf("even-%d", n)
     }),
 )
@@ -307,10 +307,10 @@ func riskyOperation() iter.Seq[int] {
 
 **samber/ro**:
 ```go
-func createRiskyStream() ro.Observable[int] {
+func createRiskyStream() ro.Observable[int64] {
     return ro.Pipe2(
         ro.Range(1, 6),
-        ro.MapErr(func(i int) (int, error) {
+        ro.MapErr(func(i int64) (int64, error) {
             if i == 3 {
                 return 0, fmt.Errorf("error at %d", i)
             }
@@ -320,7 +320,7 @@ func createRiskyStream() ro.Observable[int] {
 }
 
 // Built-in error handling
-createRiskyStream().Subscribe(ro.Observer[int]{
+createRiskyStream().Subscribe(ro.Observer[int64]{
     OnNext: func(n int) {
         fmt.Println("Received:", n)
     },
@@ -373,8 +373,8 @@ Built-in time operators make it easy to work with temporal data streams.
 // Built-in time operations
 observable := ro.Pipe3(
     ro.Interval(time.Second),
-    ro.Take(42),
-    ro.Map(func(tick int) string {
+    ro.Take[int64](42),
+    ro.Map(func(tick int64) string {
         return fmt.Sprintf("tick-%d", tick)
     }),
 )

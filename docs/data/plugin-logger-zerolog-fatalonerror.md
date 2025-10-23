@@ -23,7 +23,7 @@ import (
 )
 
 logger := zerolog.New(os.Stdout).With().Logger()
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Throw[string](errors.New("critical error")),
     rozerolog.FatalOnError[string](&logger),
 )

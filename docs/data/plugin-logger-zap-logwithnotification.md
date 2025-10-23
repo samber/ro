@@ -24,7 +24,7 @@ import (
 )
 
 logger, _ := zap.NewDevelopment()
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("hello", "world", "golang"),
     rozap.LogWithNotification[string](logger, zapcore.DebugLevel),
 )

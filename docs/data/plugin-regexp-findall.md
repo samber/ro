@@ -26,7 +26,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`\d+`)
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, [][]byte](
     ro.Just([]byte("abc123def456"), []byte("789ghi012")),
     roregexp.FindAll[[]byte](pattern, -1), // -1 for unlimited matches
 )

@@ -23,7 +23,7 @@ import (
     rosort "github.com/samber/ro/plugins/sort"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
     rosort.Sort[int](func(a, b int) int { return a - b }),
 )

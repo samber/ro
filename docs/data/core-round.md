@@ -19,7 +19,7 @@ position: 30
 Emits the rounded values from the source Observable using standard mathematical rounding rules.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.Just(1.1, 1.5, 1.9, 2.5, -1.5),
     ro.Round(),
 )
@@ -34,7 +34,7 @@ defer sub.Unsubscribe()
 ### With decimal precision
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.Just(3.14159, 2.71828, 1.41421),
     ro.Round(),
 )
@@ -49,7 +49,7 @@ defer sub.Unsubscribe()
 ### With negative numbers
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.Just(-2.3, -2.7, -3.5),
     ro.Round(),
 )
@@ -64,7 +64,7 @@ defer sub.Unsubscribe()
 ### With integer-like values
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.Just(5.0, 6.0001, 4.9999),
     ro.Round(),
 )
@@ -79,7 +79,7 @@ defer sub.Unsubscribe()
 ### In data processing pipeline
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, float64](
     ro.Interval(100 * time.Millisecond),
     ro.Take[int64](5),
     ro.Map(func(_ int64) float64 {
@@ -99,7 +99,7 @@ sub.Unsubscribe()
 ### With financial calculations
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.Just(12.345, 67.890, 123.456),
     ro.Round(),
 )

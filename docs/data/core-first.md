@@ -25,7 +25,7 @@ position: 30
 Emits only the first item (or the first item that satisfies a predicate) from an Observable sequence.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.First[int](func(i int) bool {
         return true // Match all items, returns first
@@ -42,7 +42,7 @@ defer sub.Unsubscribe()
 ### First with predicate
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.First[int](func(i int) bool {
         return i > 3 // Find first item greater than 3
@@ -59,7 +59,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.FirstWithContext(func(ctx context.Context, i int) (context.Context, bool) {
         return ctx, i > 3
@@ -76,7 +76,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.FirstI(func(i int, index int64) bool {
         return index > 2 // Find first item with index > 2
@@ -93,7 +93,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.FirstIWithContext(func(ctx context.Context, i int, index int64) (context.Context, bool) {
         return ctx, i > 3 && index > 2
@@ -110,7 +110,7 @@ defer sub.Unsubscribe()
 ### Edge case: No matching items
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.First[int](func(i int) bool {
         return i > 10 // No items match

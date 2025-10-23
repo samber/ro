@@ -25,7 +25,7 @@ notifications := []ro.Notification[int]{
     {Error: nil, HasValue: false}, // Completion
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[ro.Notification[int], int](
     ro.FromSlice(notifications),
     ro.Dematerialize[int](),
 )
@@ -49,7 +49,7 @@ notifications := []ro.Notification[string]{
     {Error: errors.New("test error"), HasValue: false},
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[ro.Notification[string], string](
     ro.FromSlice(notifications),
     ro.Dematerialize[string](),
 )
@@ -68,7 +68,7 @@ defer sub.Unsubscribe()
 original := ro.Just(1, 2, 3)
 
 // Materialize then dematerialize
-roundTrip := ro.Pipe(
+roundTrip := ro.Pipe[int, int](
     original,
     ro.Materialize[int](),
     ro.Dematerialize[int](),
@@ -93,7 +93,7 @@ notifications := []ro.Notification[float64]{
     {Error: nil, HasValue: false},
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[ro.Notification[float64], float64](
     ro.FromSlice(notifications),
     ro.Dematerialize[float64](),
 )

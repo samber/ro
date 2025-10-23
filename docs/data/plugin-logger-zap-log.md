@@ -24,7 +24,7 @@ import (
 )
 
 logger, _ := zap.NewDevelopment()
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     rozap.Log[int](logger, zapcore.InfoLevel),
 )

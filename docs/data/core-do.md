@@ -39,7 +39,7 @@ Performs side effects for each emission from an Observable, without modifying th
 ```go
 var nextCount, errorCount, completeCount int
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.Do(
         func(value int) {
@@ -72,7 +72,7 @@ fmt.Printf("Counts: next=%d, error=%d, complete=%d\n", nextCount, errorCount, co
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.DoWithContext(
         func(ctx context.Context, value int) {
@@ -96,7 +96,7 @@ defer sub.Unsubscribe()
 ```go
 var nextValues []int
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.DoOnNext(func(value int) {
         nextValues = append(nextValues, value)
@@ -120,7 +120,7 @@ fmt.Printf("Collected values: %v\n", nextValues)
 ```go
 var lastError error
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Throw[int](fmt.Errorf("test error")),
     ro.DoOnError(func(err error) {
         lastError = err
@@ -140,7 +140,7 @@ defer sub.Unsubscribe()
 ```go
 var completed bool
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.DoOnComplete(func() {
         completed = true
@@ -159,7 +159,7 @@ defer sub.Unsubscribe()
 ```go
 var subscribed bool
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.DoOnSubscribe(func() {
         subscribed = true
@@ -178,7 +178,7 @@ defer sub.Unsubscribe()
 ```go
 var finalized bool
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.DoOnFinalize(func() {
         finalized = true

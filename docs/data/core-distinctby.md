@@ -24,7 +24,7 @@ type user struct {
     name string
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[user, user](
     ro.Just(
         user{id: 1, name: "John"},
         user{id: 2, name: "Jane"},
@@ -48,7 +48,7 @@ defer sub.Unsubscribe()
 ## With string key selector
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("apple", "banana", "apple", "cherry", "banana"),
     ro.DistinctBy(func(item string) string {
         return item
@@ -73,7 +73,7 @@ type product struct {
     price    float64
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[product, product](
     ro.Just(
         product{category: "electronics", name: "laptop", price: 999.99},
         product{category: "clothing", name: "shirt", price: 29.99},
@@ -109,7 +109,7 @@ type event struct {
     data      string
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[event, event](
     ro.Just(
         event{id: 1, timestamp: time.Now(), data: "event1"},
         event{id: 2, timestamp: time.Now().Add(time.Hour), data: "event2"},
@@ -153,7 +153,7 @@ type task struct {
 // Create a context with a user ID
 ctx := context.WithValue(context.Background(), "userId", "user123")
 
-obs := ro.Pipe(
+obs := ro.Pipe[task, task](
     ro.Just(
         task{id: "task1", status: "pending", user: "user123"},
         task{id: "task2", status: "completed", user: "user456"},

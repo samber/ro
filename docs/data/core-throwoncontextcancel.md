@@ -18,7 +18,7 @@ position: 50
 Throws an error if the context is canceled. Should be chained after timeout/deadline operators to handle context cancellation.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("timed_operation"),
     ro.ContextWithTimeout[string](100 * time.Millisecond),
     ro.ThrowOnContextCancel[string](),
@@ -37,7 +37,7 @@ defer sub.Unsubscribe()
 ### With successful completion
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("fast_operation"),
     ro.ContextWithTimeout[string](200 * time.Millisecond),
     ro.ThrowOnContextCancel[string](),
@@ -59,7 +59,7 @@ defer sub.Unsubscribe()
 ```go
 ctx, cancel := context.WithCancel(context.Background())
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("cancelable_operation"),
     ro.ContextReset[string](ctx),
     ro.ThrowOnContextCancel[string](),
@@ -87,7 +87,7 @@ sub.Unsubscribe()
 
 ```go
 deadline := time.Now().Add(100 * time.Millisecond)
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("deadline_operation"),
     ro.ContextWithDeadline[string](deadline),
     ro.ThrowOnContextCancel[string](),
@@ -106,7 +106,7 @@ defer sub.Unsubscribe()
 ### With retry on cancellation
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Defer(func() Observable[string] {
         ctx, cancel := context.WithCancel(context.Background())
 
@@ -116,7 +116,7 @@ obs := ro.Pipe(
             cancel()
         }()
 
-        return ro.Pipe(
+        return ro.Pipe[string, string](
             ro.Just("retryable_operation"),
             ro.ContextReset[string](ctx),
             ro.ThrowOnContextCancel[string](),
@@ -143,7 +143,7 @@ sub.Unsubscribe()
 ### With graceful error handling
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("graceful_operation"),
     ro.ContextWithTimeout[string](100 * time.Millisecond),
     ro.ThrowOnContextCancel[string](),
@@ -175,7 +175,7 @@ processAsync := func(item string) Observable[string] {
     })
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("item1", "item2"),
     ro.ContextWithTimeout[string](100 * time.Millisecond),
     ro.ThrowOnContextCancel[string](),
@@ -192,7 +192,7 @@ sub.Unsubscribe()
 ### With complex pipeline and multiple cancellation points
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("complex_pipeline"),
     ro.ContextWithValue[string]("requestID", "req-123"),
     ro.ContextWithTimeout[string](80 * time.Millisecond),
@@ -221,7 +221,7 @@ defer sub.Unsubscribe()
 ```go
 parentCtx, parentCancel := context.WithCancel(context.Background())
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("child_operation"),
     ro.ContextReset[string](parentCtx),
     ro.ThrowOnContextCancel[string](),

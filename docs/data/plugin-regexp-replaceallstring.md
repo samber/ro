@@ -27,7 +27,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`\bworld\b`)
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("hello world", "world peace", "new world order"),
     roregexp.ReplaceAllString[string](pattern, "universe"),
 )

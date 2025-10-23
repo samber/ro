@@ -24,7 +24,7 @@ import (
     robase64 "github.com/samber/ro/plugins/encoding/base64"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, string](
     ro.Just([]byte("hello world")),
     robase64.Encode[[]byte](base64.StdEncoding),
 )

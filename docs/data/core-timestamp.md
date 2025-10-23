@@ -17,7 +17,7 @@ position: 210
 Attaches a timestamp to each emission from the source Observable, indicating when it was emitted.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, TimestampValue[string]](
     ro.Just("A", "B", "C"),
     ro.Timestamp[string](),
 )
@@ -34,7 +34,7 @@ defer sub.Unsubscribe()
 ### With hot observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, TimestampValue[int64]](
     ro.Interval(100 * time.Millisecond),
     ro.Take[int64](3),
     ro.Timestamp[int64](),
@@ -56,8 +56,8 @@ sub.Unsubscribe()
 ### With async operations
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[string, TimestampValue[string]](
+    ro.Pipe[string, TimestampValue[string]](
         ro.Just("task1", "task2", "task3"),
         ro.MapAsync(func(task string) Observable[string] {
             return ro.Defer(func() Observable[string] {
@@ -85,7 +85,7 @@ type LogEntry struct {
     Timestamp time.Time
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[LogEntry, TimestampValue[LogEntry]](
     ro.Just(
         LogEntry{Message: "Server started", Level: "INFO"},
         LogEntry{Message: "User connected", Level: "INFO"},
@@ -117,7 +117,7 @@ type SensorReading struct {
     Timestamp time.Time
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[int64, TimestampValue[SensorReading]](
     ro.Interval(1 * time.Second),
     ro.Take[int64](5),
     ro.Map(func(ts int64) SensorReading {
@@ -154,7 +154,7 @@ type Event struct {
     Payload interface{}
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Event, TimestampValue[Event]](
     ro.Just(
         Event{ID: "1", Action: "click", Payload: "button"},
         Event{ID: "2", Action: "scroll", Payload: 100},
@@ -180,7 +180,7 @@ defer sub.Unsubscribe()
 
 ```go
 // Timestamp batch completion times
-obs := ro.Pipe(
+obs := ro.Pipe[int64, TimestampValue[[]int]](
     ro.Range(1, 10),
     ro.BufferWithCount[int](3),
     ro.Timestamp[[]int](),
@@ -201,8 +201,8 @@ defer sub.Unsubscribe()
 ### With error tracking
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[int, TimestampValue[int]](
+    ro.Pipe[int, int](
         ro.Just(1, 2, 3),
         ro.MapErr(func(i int) (int, error) {
             if i == 3 {

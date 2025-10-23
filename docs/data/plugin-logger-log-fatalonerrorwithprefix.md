@@ -25,7 +25,7 @@ import (
     rolog "github.com/samber/ro/plugins/observability/log"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2),
     ro.Throw[int](errors.New("fatal error")),
     rolog.FatalOnErrorWithPrefix[int]("Critical"),

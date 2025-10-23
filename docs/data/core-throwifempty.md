@@ -18,9 +18,9 @@ position: 20
 Throws an error if the source observable is empty, otherwise emits all items normally.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Empty[int](),
-    ThrowIfro.Empty[int](func() error {
+    ro.ThrowIfEmpty[int](func() error {
         return errors.New("no data available")
     }),
 )
@@ -34,9 +34,9 @@ defer sub.Unsubscribe()
 ### With data present
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
-    ThrowIfro.Empty[int](func() error {
+    ro.ThrowIfEmpty[int](func() error {
         return errors.New("this won't be thrown")
     }),
 )
@@ -53,12 +53,12 @@ defer sub.Unsubscribe()
 ### With filtered data
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Filter(func(i int) bool {
         return i > 10 // No items match
     }),
-    ThrowIfro.Empty[int](func() error {
+    ro.ThrowIfEmpty[int](func() error {
         return errors.New("no items found matching criteria")
     }),
 )
@@ -82,9 +82,9 @@ fetchUsers := func() Observable[User] {
     return ro.FromSlice([]User{})
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[User, User](
     fetchUsers(),
-    ThrowIfro.Empty[User](func() error {
+    ro.ThrowIfEmpty[User](func() error {
         return errors.New("no users found in database")
     }),
 )
@@ -99,9 +99,9 @@ defer sub.Unsubscribe()
 
 ```go
 shouldThrowError := true
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Empty[string](),
-    ThrowIfro.Empty[string](func() error {
+    ro.ThrowIfEmpty[string](func() error {
         if shouldThrowError {
             return fmt.Errorf("empty sequence not allowed at %v", time.Now())
         }
@@ -127,9 +127,9 @@ getData := func() Observable[int] {
     return ro.Just(42) // Success on third attempt
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Defer(getData),
-    ThrowIfro.Empty[int](func() error {
+    ro.ThrowIfEmpty[int](func() error {
         return fmt.Errorf("attempt %d: no data available", attempt)
     }),
     ro.RetryWithConfig[int](RetryConfig{

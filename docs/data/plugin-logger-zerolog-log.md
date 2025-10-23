@@ -23,7 +23,7 @@ import (
 )
 
 logger := zerolog.New(os.Stdout).With().Logger()
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     rozerolog.Log[int](&logger, zerolog.InfoLevel),
 )

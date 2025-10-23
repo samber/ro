@@ -25,7 +25,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`world`)
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, []byte](
     ro.Just([]byte("hello world, goodbye world")),
     roregexp.ReplaceAll[[]byte](pattern, []byte("universe")),
 )

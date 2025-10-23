@@ -22,7 +22,7 @@ position: 90
 Bypasses elements in an observable sequence as long as a specified condition is true, and then returns the remaining elements.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.SkipWhile(func(i int) bool {
         return i < 3
@@ -41,7 +41,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("apple", "banana", "cherry", "date"),
     ro.SkipWhileWithContext(func(ctx context.Context, fruit string) bool {
         return strings.HasPrefix(fruit, "a") || strings.HasPrefix(fruit, "b")
@@ -59,7 +59,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(10, 20, 30, 40, 50),
     ro.SkipWhileI(func(item int, index int64) bool {
         return index < 2 // Skip first 2 items regardless of value
@@ -78,7 +78,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("a", "b", "c", "d", "e"),
     ro.SkipWhileIWithContext(func(ctx context.Context, item string, index int64) bool {
         return index < 3 && item != "d"
@@ -96,7 +96,7 @@ defer sub.Unsubscribe()
 ### When condition never becomes false
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.SkipWhile(func(i int) bool {
         return i > 0 // Always true

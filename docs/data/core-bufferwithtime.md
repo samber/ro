@@ -19,7 +19,7 @@ position: 50
 Buffers the source Observable values for a specified time duration, then emits the buffered values as an array.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, []int64](
     ro.Interval(100*time.Millisecond),
     ro.BufferWithTime[int64](300*time.Millisecond),
 )
@@ -36,7 +36,7 @@ sub.Unsubscribe()
 ### With sparse emissions
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, []int64](
     ro.Interval(100*time.Millisecond),
     ro.Take[int64](10),
     // Add delay to make emissions sparse
@@ -61,7 +61,7 @@ sub.Unsubscribe()
 ### Practical example: Debounced batching
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, []string](
     ro.Just("A", "B", "C", "D", "E"),
     // Simulate rapid events
     ro.Map(func(s string) string {

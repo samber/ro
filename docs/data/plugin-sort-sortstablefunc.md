@@ -35,7 +35,7 @@ people := []Person{
     {"David", 30},
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Person, Person](
     ro.Just(people...),
     rosort.SortStableFunc(func(a, b Person) int {
         if a.Age != b.Age {

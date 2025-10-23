@@ -26,7 +26,7 @@ import (
     rostrconv "github.com/samber/ro/plugins/strconv"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, string](
     ro.Just(123, -456, 0, 789),
     rostrconv.Itoa(),
 )

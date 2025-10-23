@@ -44,19 +44,19 @@ func main() {
     // Create a simple stream
     observable := ro.Pipe2(
         ro.Interval(1 * time.Second),
-        ro.Take(5),
-        ro.Map(func(x int) string {
+        ro.Take[int64](5),
+        ro.Map(func(x int64) string {
             return fmt.Sprintf("Tick: %d", x)
         }),
     )
 
     // Subscribe and print values
-    observable.Subscribe(ro.OnNext(func(s string) {
+    subscription := observable.Subscribe(ro.OnNext(func(s string) {
         fmt.Println(s)
     }))
 
     // Wait for completion
-    time.Sleep(6 * time.Second)
+    subscription.Wait()
 }
 ```
 
@@ -97,10 +97,10 @@ letters := ro.FromSlice([]string{"a", "b", "c"})
 // Chain operators with ro.Pipe
 result := ro.Pipe2(
     ro.Range(0, 10),
-    ro.Filter(func(x int) bool {
+    ro.Filter(func(x int64) bool {
         return x%2 == 0  // Keep only even numbers
     }),
-    ro.Map(func(x int) string {
+    ro.Map(func(x int64) string {
         return fmt.Sprintf("even-%d", x)  // Transform to string
     }),
 )
@@ -179,7 +179,7 @@ Filter operators let you select which values to process:
 ```go
 obs := ro.Pipe1(
     ro.Range(0, 10),
-    ro.Filter(func(x int) bool {
+    ro.Filter(func(x int64) bool {
         return x > 5  // Keep values greater than 5
     }),
 )
@@ -233,7 +233,7 @@ riskyStream := ro.Pipe2(
         }
         return x * 2, nil
     }),
-    ro.CatchError(func(err error) ro.Observable[int] {
+    ro.Catch(func(err error) ro.Observable[int] {
         fmt.Println("Recovered from error:", err)
         return ro.Just(42)  // Fallback value
     }),
@@ -394,7 +394,7 @@ Always handle errors to prevent application crashes:
 ```go
 stream := ro.Pipe2(
     riskyOperation,
-    ro.CatchError(func(err error) ro.Observable[T] {
+    ro.Catch(func(err error) ro.Observable[string] {
         // Log error and provide fallback
         log.Println("Operation failed:", err)
         return fallbackStream
@@ -426,13 +426,13 @@ Always bound infinite streams to prevent memory exhaustion:
 // Use Take to limit infinite streams
 obs1 := ro.Pipe1(
     source,
-    ro.Take(10),  // Only 10 values
+    ro.Take[int](10),  // Only 10 values
 )
 
 // Use TakeUntil with timeout
 obs2 := ro.Pipe1(
     source,
-    stream.TakeUntil(ro.Timer(30*time.Second))
+    stream.TakeUntil[int](ro.Timer(30*time.Second))
 )
 ```
 

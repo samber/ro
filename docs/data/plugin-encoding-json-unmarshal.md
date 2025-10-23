@@ -25,7 +25,7 @@ import (
     rojson "github.com/samber/ro/plugins/encoding/json"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, User](
     ro.Just([]byte(`{"id":1,"name":"Alice","age":30}`)),
     rojson.Unmarshal[User](),
 )

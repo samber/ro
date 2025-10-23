@@ -37,9 +37,9 @@ defer sub.Unsubscribe()
 
 ```go
 obs := ro.Concat(
-    ro.Pipe(ro.Just(1), ro.Delay(100*time.Millisecond)),
-    ro.Pipe(ro.Just(2), ro.Delay(100*time.Millisecond)),
-    ro.Pipe(ro.Just(3), ro.Delay(100*time.Millisecond)),
+    ro.Pipe[int, int](ro.Just(1), ro.Delay(100*time.Millisecond)),
+    ro.Pipe[int, int](ro.Just(2), ro.Delay(100*time.Millisecond)),
+    ro.Pipe[int, int](ro.Just(3), ro.Delay(100*time.Millisecond)),
 )
 
 sub := obs.Subscribe(ro.PrintObserver[int]())
@@ -81,7 +81,7 @@ defer sub.Unsubscribe()
 ```go
 obs := ro.Concat(
     ro.Just(1, 2),
-    ro.Pipe(ro.Just(3), ro.Throw[int](errors.New("error"))),
+    ro.Pipe[int, int](ro.Just(3), ro.Throw[int](errors.New("error"))),
     ro.Just(4, 5),
 )
 

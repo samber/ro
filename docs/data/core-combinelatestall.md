@@ -21,7 +21,7 @@ position: 30
 Creates an Observable that combines the latest values from multiple Observable sources provided as a higher-order Observable, emitting arrays of the most recent values.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[any], []any](
     ro.Just(
         ro.Just(1, 2),
         ro.Just("A", "B"),
@@ -43,11 +43,11 @@ defer sub.Unsubscribe()
 ### With different emission rates
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int64], []int64](
     ro.Just(
-        ro.Pipe(ro.Interval(100*time.Millisecond), ro.Take[int64](3)),   // 0,1,2
-        ro.Pipe(ro.Interval(200*time.Millisecond), ro.Take[int64](2)),   // 0,1
-        ro.Pipe(ro.Interval(300*time.Millisecond), ro.Take[int64](1)),   // 0
+        ro.Pipe[int64, int64](ro.Interval(100*time.Millisecond), ro.Take[int64](3)),   // 0,1,2
+        ro.Pipe[int64, int64](ro.Interval(200*time.Millisecond), ro.Take[int64](2)),   // 0,1
+        ro.Pipe[int64, int64](ro.Interval(300*time.Millisecond), ro.Take[int64](1)),   // 0
     ),
     ro.CombineLatestAll[int64](),
 )
@@ -74,7 +74,7 @@ observables := []Observable[int]{
     ro.Just(100, 200),
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int], []int](
     ro.Just(observables...),
     ro.CombineLatestAll[int](),
 )
@@ -92,7 +92,7 @@ defer sub.Unsubscribe()
 ### CombineLatestAllAny for mixed types
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[any], []any](
     ro.Just(
         ro.Just(1, 2),           // int
         ro.Just("A", "B"),       // string
@@ -114,7 +114,7 @@ defer sub.Unsubscribe()
 ### Edge case: Empty observable of observables
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int], []int](
     ro.Empty[Observable[int]](),
     ro.CombineLatestAll[int](),
 )
@@ -129,7 +129,7 @@ defer sub.Unsubscribe()
 ### Edge case: Single observable in collection
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[Observable[int], []int](
     ro.Just(ro.Just(1, 2, 3)),
     ro.CombineLatestAll[int](),
 )

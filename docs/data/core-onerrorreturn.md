@@ -18,7 +18,7 @@ position: 40
 Emits a particular item when it encounters an error, then completes.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MapErr(func(i int) (int, error) {
         if i == 3 {
@@ -41,7 +41,7 @@ defer sub.Unsubscribe()
 ### With string fallback
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("apple", "banana", "invalid"),
     ro.MapErr(func(s string) (string, error) {
         if s == "invalid" {
@@ -73,7 +73,7 @@ fetchUser := func(id int) Observable[string] {
     })
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     fetchUser(999),
     ro.OnErrorReturn("Guest"),
 )
@@ -88,7 +88,7 @@ defer sub.Unsubscribe()
 ### With multiple error handling
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.MapErr(func(i int) (int, error) {
         if i == 3 {
@@ -118,7 +118,7 @@ loadConfig := func() Observable[string] {
     })
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     loadConfig(),
     ro.OnErrorReturn("default_config"),
 )
@@ -147,7 +147,7 @@ fetchUser := func(id int) Observable[User] {
     })
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[User, User](
     fetchUser(-1),
     ro.OnErrorReturn(User{ID: 0, Name: "Anonymous"}),
 )
@@ -163,7 +163,7 @@ defer sub.Unsubscribe()
 
 ```go
 processData := func(data []int) Observable[int] {
-    return ro.Pipe(
+    return ro.Pipe[int, int](
         ro.FromSlice(data),
         ro.MapErr(func(i int) (int, error) {
             if i < 0 {

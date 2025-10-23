@@ -29,7 +29,7 @@ type User struct {
     Age  int
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[User, roozzovalidation.Result[User]](
     ro.Just(User{Name: "Alice", Age: 30}),
     roozzo.Validate[User](
         validation.Rule{Name: "name", Required: true},

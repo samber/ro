@@ -16,7 +16,7 @@ position: 150
 Clamps values to be within a specified range.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(-5, 0, 5, 10, 15),
     ro.Clamp(0, 10),
 )
@@ -35,7 +35,7 @@ defer sub.Unsubscribe()
 ### With floats
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.Just(-1.5, 0.0, 0.5, 1.0, 1.5),
     ro.Clamp(0.0, 1.0),
 )
@@ -54,7 +54,7 @@ defer sub.Unsubscribe()
 ### With negative values
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(-20, -10, 0, 10, 20),
     ro.Clamp(-15, 15),
 )
@@ -73,7 +73,7 @@ defer sub.Unsubscribe()
 ### Edge case: min equals max
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Clamp(3, 3),
 )

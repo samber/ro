@@ -31,7 +31,7 @@ type User struct {
     Age  int
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[User, []byte](
     ro.Just(User{ID: 1, Name: "Alice", Age: 30}),
     rojson.Marshal[User](),
 )

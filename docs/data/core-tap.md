@@ -33,7 +33,7 @@ Allows you to perform side effects for notifications from the source Observable 
 ```go
 var nextCount, errorCount, completeCount int
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.Tap(
         func(value int) {
@@ -66,7 +66,7 @@ fmt.Printf("Counts: next=%d, error=%d, complete=%d\n", nextCount, errorCount, co
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.TapWithContext(
         func(ctx context.Context, value int) {
@@ -90,7 +90,7 @@ defer sub.Unsubscribe()
 ```go
 var nextValues []int
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.TapOnNext(func(value int) {
         nextValues = append(nextValues, value)
@@ -114,7 +114,7 @@ fmt.Printf("Collected values: %v\n", nextValues)
 ```go
 var lastError error
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Throw[int](fmt.Errorf("test error")),
     ro.TapOnError(func(err error) {
         lastError = err
@@ -134,7 +134,7 @@ defer sub.Unsubscribe()
 ```go
 var completed bool
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.TapOnComplete(func() {
         completed = true
@@ -151,7 +151,7 @@ defer sub.Unsubscribe()
 ### With context error handling
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.TapOnErrorWithContext(func(ctx context.Context, err error) {
         fmt.Printf("Error with context: %v\n", err)
@@ -168,7 +168,7 @@ defer sub.Unsubscribe()
 ### For debugging
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(100*time.Millisecond),
     ro.Take[int64](3),
     ro.TapOnNext(func(value int64) {
@@ -188,8 +188,8 @@ sub.Unsubscribe()
 ### With error scenarios
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[int, int](
+    ro.Pipe[int, int](
         ro.Just(1, 2, 3),
         ro.MapErr(func(i int) (int, error) {
             if i == 3 {
@@ -222,7 +222,7 @@ defer sub.Unsubscribe()
 ### With hot observables
 
 ```go
-source := ro.Pipe(
+source := ro.Pipe[int64, int64](
     ro.Interval(100*time.Millisecond),
     ro.TapOnNext(func(value int64) {
         fmt.Printf("Source value: %d\n", value)
@@ -247,7 +247,7 @@ cleanup := func() {
     fmt.Println("Cleaning up resources...")
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("data1", "data2"),
     ro.TapOnComplete(cleanup),
 )

@@ -33,7 +33,7 @@ cache := hot.NewHotCache[string, string](hot.HotCacheOptions[string, string]{
 
 cache.Set("key1", "value1")
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("key1", "key2", "key3"),
     rohot.GetOrFetchOrError[string, string](cache),
 )

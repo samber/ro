@@ -25,7 +25,7 @@ import (
     rostrconv "github.com/samber/ro/plugins/strconv"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[complex128, string](
     ro.Just(3+4i, 1+2i, 0.5+1.25i),
     rostrconv.FormatComplex('f', 2, 128), // Fixed-point, 2 decimal places
 )

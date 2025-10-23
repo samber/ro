@@ -18,7 +18,7 @@ position: 10
 Collects all emissions from the source Observable into a single slice and emits that slice when the source completes.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, []int](
     ro.Just(1, 2, 3, 4, 5),
     ro.ToSlice[int](),
 )
@@ -33,7 +33,7 @@ defer sub.Unsubscribe()
 ### With empty observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, []int](
     ro.Empty[int](),
     ro.ToSlice[int](),
 )
@@ -48,8 +48,8 @@ defer sub.Unsubscribe()
 ### With error handling
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[int, []int](
+    ro.Pipe[int, int](
         ro.Just(1, 2, 3),
         ro.MapErr(func(i int) (int, error) {
             if i == 3 {
@@ -82,7 +82,7 @@ defer sub.Unsubscribe()
 
 ```go
 source := ro.Interval(100 * time.Millisecond)
-obs := ro.Pipe(
+obs := ro.Pipe[int64, []int64](
     source,
     ro.Take[int64](5),
     ro.ToSlice[int64](),
@@ -99,7 +99,7 @@ sub.Unsubscribe()
 ### With large data sets
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, []int](
     ro.Range(1, 1000),
     ro.ToSlice[int](),
 )
@@ -117,7 +117,7 @@ defer sub.Unsubscribe()
 ### With conditional emission
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, []int](
     ro.Range(1, 10),
     ro.Filter(func(i int) bool {
         return i%2 == 0 // Only even numbers
@@ -135,7 +135,7 @@ defer sub.Unsubscribe()
 ### With transformation pipeline
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, []int](
     ro.Just("hello", "world", "reactive", "programming"),
     ro.Map(func(s string) int {
         return len(s)
@@ -156,8 +156,8 @@ defer sub.Unsubscribe()
 ### With async operations
 
 ```go
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[string, []string](
+    ro.Pipe[string, string](
         ro.Just("url1", "url2", "url3"),
         ro.MapAsync(func(url string) ro.Observable[string] {
             return ro.Defer(func() ro.Observable[string] {
@@ -182,7 +182,7 @@ defer sub.Unsubscribe()
 ```go
 // Simulate sensor readings
 sensorData := ro.Interval(1 * time.Second)
-obs := ro.Pipe(
+obs := ro.Pipe[int64, []float64](
     sensorData,
     ro.Take[int64](10),
     ro.Map(func(timestamp int64) float64 {
@@ -209,7 +209,7 @@ sub.Unsubscribe()
 
 ```go
 // Process items in batches but collect results
-obs := ro.Pipe(
+obs := ro.Pipe[int, []string](
     ro.Range(1, 25),
     ro.BufferWithCount[int](5),
     ro.Map(func(batch []int) string {

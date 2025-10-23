@@ -25,7 +25,7 @@ import (
     rojsonv2 "github.com/samber/ro/plugins/encoding/json/v2"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[User, []byte](
     ro.Just(User{ID: 1, Name: "Alice", Age: 30}),
     rojsonv2.Marshal[User](),
 )

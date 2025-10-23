@@ -29,7 +29,7 @@ position: 10
 Creates an Observable that merges emissions from the source Observable with additional source Observables, interleaved as they are emitted.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MergeWith(ro.Just(4, 5, 6)),
 )
@@ -50,7 +50,7 @@ defer sub.Unsubscribe()
 ### MergeWith1 (alias for MergeWith)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("A", "B", "C"),
     ro.MergeWith1(ro.Just("D", "E", "F")),
 )
@@ -65,7 +65,7 @@ defer sub.Unsubscribe()
 ### MergeWith2 (three sources)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MergeWith2(
         ro.Just(4, 5, 6),
@@ -84,7 +84,7 @@ defer sub.Unsubscribe()
 ### MergeWith3 (four sources)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2),
     ro.MergeWith3(
         ro.Just(3, 4),
@@ -103,7 +103,7 @@ defer sub.Unsubscribe()
 ### MergeWith4 (five sources)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2),
     ro.MergeWith4(
         ro.Just(3, 4),
@@ -122,7 +122,7 @@ defer sub.Unsubscribe()
 ### MergeWith5 (six sources)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2),
     ro.MergeWith5(
         ro.Just(3, 4),
@@ -143,12 +143,12 @@ defer sub.Unsubscribe()
 ### With hot observables
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(100 * time.Millisecond),
     ro.Take[int64](3),
     ro.MergeWith2(
-        ro.Pipe(ro.Interval(150 * time.Millisecond), ro.Take[int64](2)),
-        ro.Pipe(ro.Interval(200 * time.Millisecond), ro.Take[int64](2)),
+        ro.Pipe[int64, int64](ro.Interval(150 * time.Millisecond), ro.Take[int64](2)),
+        ro.Pipe[int64, int64](ro.Interval(200 * time.Millisecond), ro.Take[int64](2)),
     ),
 )
 
@@ -162,10 +162,10 @@ sub.Unsubscribe()
 ### With error propagation
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MergeWith(
-        ro.Pipe(
+        ro.Pipe[int, int](
             ro.Just(4, 5, 6),
             ro.MapErr(func(i int) (int, error) {
                 if i == 5 {
@@ -197,7 +197,7 @@ defer sub.Unsubscribe()
 ### With different data types
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[any, any](
     ro.Just("hello", "world"),
     ro.MergeWith2(
         ro.Just(1, 2, 3),
@@ -215,10 +215,10 @@ defer sub.Unsubscribe()
 ### With async operations
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("task1", "task2"),
     ro.MergeWith(
-        ro.Pipe(
+        ro.Pipe[string, string](
             ro.Just("async1", "async2"),
             ro.MapAsync(func(task string) ro.Observable[string] {
                 return ro.Defer(func() ro.Observable[string] {
@@ -247,7 +247,7 @@ if !shouldMerge {
     secondary = ro.Empty[int]()
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.MergeWith(secondary),
 )

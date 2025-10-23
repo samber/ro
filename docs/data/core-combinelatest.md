@@ -135,8 +135,8 @@ defer sub.Unsubscribe()
 
 ```go
 obs := ro.CombineLatest2(
-    ro.Pipe(ro.Interval(100*time.Millisecond), ro.Take[int64](5)),  // Fast: 0,1,2,3,4
-    ro.Pipe(ro.Interval(300*time.Millisecond), ro.Take[int64](2)),  // Slow: 0,1
+    ro.Pipe[int64, int64](ro.Interval(100*time.Millisecond), ro.Take[int64](5)),  // Fast: 0,1,2,3,4
+    ro.Pipe[int64, int64](ro.Interval(300*time.Millisecond), ro.Take[int64](2)),  // Slow: 0,1
 )
 
 sub := obs.Subscribe(ro.PrintObserver[lo.Tuple2[int64, int64]]())
@@ -157,7 +157,7 @@ sub.Unsubscribe()
 ```go
 obs := ro.CombineLatest2(
     ro.Just(1, 2, 3, 4, 5),
-    ro.Pipe(ro.Just("A", "B"), ro.Take[string](1)), // Only emits "A"
+    ro.Pipe[string, string](ro.Just("A", "B"), ro.Take[string](1)), // Only emits "A"
 )
 
 sub := obs.Subscribe(ro.PrintObserver[lo.Tuple2[int, string]]())

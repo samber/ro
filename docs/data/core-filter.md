@@ -22,7 +22,7 @@ position: 0
 Emits only those items from an Observable that pass a predicate test.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Filter(func(i int) bool {
         return i%2 == 0
@@ -40,7 +40,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.FilterWithContext(func(ctx context.Context, i int) (context.Context, bool) {
         return ctx, i%2 == 0
@@ -58,7 +58,7 @@ defer sub.Unsubscribe()
 ### With index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.FilterI(func(i int, index int64) bool {
         return index > 1 // Skip first two elements
@@ -77,7 +77,7 @@ defer sub.Unsubscribe()
 ### With index and context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.FilterIWithContext(func(ctx context.Context, i int, index int64) (context.Context, bool) {
         return ctx, index > 1 && i%2 == 0

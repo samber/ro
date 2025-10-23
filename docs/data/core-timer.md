@@ -44,7 +44,7 @@ sub.Unsubscribe()
 ### With other operators
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, string](
     ro.Timer(500*time.Millisecond),
     ro.Map(func(_ int64) string {
         return "Timer fired!"

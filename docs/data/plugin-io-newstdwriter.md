@@ -22,7 +22,7 @@ import (
     roio "github.com/samber/ro/plugins/io"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, int](
     ro.Just([]byte("Hello, World!")),
     roio.NewStdWriter(),
 )

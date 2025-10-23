@@ -25,7 +25,7 @@ import (
 )
 
 hub := sentry.NewHub(sentry.CurrentClient(), sentry.NewScope())
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("user login", "data processing", "error occurred"),
     rosentry.LogWithNotification[string](hub, sentry.LevelInfo),
 )

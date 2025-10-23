@@ -19,7 +19,7 @@ position: 80
 Emits the previous and current values as a pair (array of two values). The first value doesn't emit until the second value arrives.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, []string](
     ro.Just("a", "b", "c", "d"),
     ro.Pairwise(),
 )
@@ -36,7 +36,7 @@ defer sub.Unsubscribe()
 ### With numbers
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, []int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Pairwise(),
 )
@@ -54,7 +54,7 @@ defer sub.Unsubscribe()
 ### With single value
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, []string](
     ro.Just("only one"),
     ro.Pairwise(),
 )
@@ -68,7 +68,7 @@ defer sub.Unsubscribe()
 ### With empty observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, []string](
     ro.Empty[string](),
     ro.Pairwise(),
 )
@@ -82,7 +82,7 @@ defer sub.Unsubscribe()
 ### With time-based emissions
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, []int64](
     ro.Interval(100*time.Millisecond),
     ro.Pairwise(),
     ro.Take(4),
@@ -106,7 +106,7 @@ type Point struct {
     X, Y int
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Point, []Point](
     ro.Just(
         Point{1, 2},
         Point{3, 4},

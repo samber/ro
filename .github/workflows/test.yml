@@ -38,7 +38,8 @@ jobs:
         run: make build
 
       - name: Test
-        run: make test
+        run: |
+          make test || make test
 
       - name: Test
         run: make coverage

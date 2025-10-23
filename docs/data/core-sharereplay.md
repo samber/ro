@@ -19,7 +19,7 @@ Creates a shared Observable that replays a specified number of items to future s
 
 ```go
 // Create source that emits values over time
-source := ro.Pipe(
+source := ro.Pipe[int64, int64](
     ro.Interval(100 * time.Millisecond),
     ro.Take[int64](5),
     ro.ShareReplay[int64](2), // Cache last 2 values
@@ -56,7 +56,7 @@ sub2.Unsubscribe()
 ### With bufferSize 1 (latest value only)
 
 ```go
-source := ro.Pipe(
+source := ro.Pipe[string, string](
     ro.Just("first", "second", "third", "fourth"),
     ro.ShareReplay[string](1), // Cache only latest value
 )
@@ -78,7 +78,7 @@ sub2.Unsubscribe()
 ### With bufferSize 0 (no replay, just sharing)
 
 ```go
-source := ro.Pipe(
+source := ro.Pipe[int64, int64](
     ro.Interval(50 * time.Millisecond),
     ro.Take[int64](3),
     ro.ShareReplay[int64](0), // No replay, just sharing
@@ -118,7 +118,7 @@ expensiveAPI := func() Observable[string] {
 }
 
 // Cache the last 2 results
-cachedAPI := ro.Pipe(
+cachedAPI := ro.Pipe[string, string](
     expensiveAPI(),
     ro.ShareReplay[string](2),
 )
@@ -147,10 +147,10 @@ sub3.Unsubscribe()
 ### With error handling
 
 ```go
-source := ro.Pipe(
+source := ro.Pipe[int, int](
     Defer(func() Observable[int] {
         fmt.Println("Source execution...")
-        return ro.Pipe(
+        return ro.Pipe[int, int](
             ro.Just(1, 2, 3),
             ro.MapErr(func(i int) (int, error) {
                 if i == 3 {
@@ -208,7 +208,7 @@ sub2.Unsubscribe()
 
 ```go
 // Create a hot observable with replay
-hotSource := ro.Pipe(
+hotSource := ro.Pipe[int64, int64](
     ro.Interval(100 * time.Millisecond),
     ro.Take[int64](8),
     ro.ShareReplay[int64](3), // Cache last 3 values
@@ -250,7 +250,7 @@ time.Sleep(1200 * time.Millisecond)
 ### With large buffer for complete history
 
 ```go
-source := ro.Pipe(
+source := ro.Pipe[string, string](
     ro.Just("apple", "banana", "cherry", "date", "elderberry"),
     ro.ShareReplay[string](10), // Large enough for all values
 )

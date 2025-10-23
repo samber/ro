@@ -23,7 +23,7 @@ position: 20
 Creates an Observable that combines the latest values from the source Observable with other provided Observables, emitting tuples of the most recent values.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, lo.Tuple2[int, string]](
     ro.Just(1, 2, 3),
     ro.CombineLatestWith(ro.Just("A", "B", "C")),
 )
@@ -42,7 +42,7 @@ defer sub.Unsubscribe()
 ### CombineLatestWith2 (three observables)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, lo.Tuple3[int, string, bool]](
     ro.Just(1, 2, 3),
     ro.CombineLatestWith2(
         ro.Just("A", "B", "C"),
@@ -65,7 +65,7 @@ defer sub.Unsubscribe()
 ### Chain multiple CombineLatestWith
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, lo.Tuple3[int, string, bool]](
     ro.Just(1, 2, 3),
     ro.CombineLatestWith(ro.Just("A", "B")),
     ro.CombineLatestWith(ro.Just(true, false)),
@@ -86,7 +86,7 @@ defer sub.Unsubscribe()
 ### CombineLatestWith3 (four observables)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, lo.Tuple4[int, string, bool, float64]](
     ro.Just(1, 2),
     ro.CombineLatestWith3(
         ro.Just("A", "B"),
@@ -114,7 +114,7 @@ defer sub.Unsubscribe()
 userIDs := ro.Just(1, 2, 3)
 
 // User details stream (slower)
-userDetails := ro.Pipe(
+userDetails := ro.Pipe[User, int](
     ro.Just(
         User{1, "Alice"},
         User{2, "Bob"},
@@ -127,7 +127,7 @@ userDetails := ro.Pipe(
 permissions := ro.Just("admin", "user", "guest")
 
 // Combine user IDs with their details and permissions
-obs := ro.Pipe(
+obs := ro.Pipe[int, string](
     userIDs,
     ro.CombineLatestWith2(userDetails, permissions),
     ro.Map(func(t lo.Tuple3[int, int, string]) string {

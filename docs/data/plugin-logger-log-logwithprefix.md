@@ -23,7 +23,7 @@ import (
     rolog "github.com/samber/ro/plugins/observability/log"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     rolog.LogWithPrefix[int]("MyStream"),
 )

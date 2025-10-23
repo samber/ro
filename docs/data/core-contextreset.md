@@ -19,7 +19,7 @@ Replaces the context with a new one (or context.Background() if nil) for each it
 
 ```go
 // First add some context values
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("data1", "data2"),
     ro.ContextWithValue[string]("oldKey", "oldValue"),
     ro.ContextReset[string](context.Background()), // Reset to empty context
@@ -52,7 +52,7 @@ defer sub.Unsubscribe()
 ```go
 newCtx := context.WithValue(context.Background(), "newKey", "newValue")
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("item1", "item2"),
     ro.ContextWithValue[string]("originalKey", "originalValue"),
     ro.ContextReset[string](newCtx),
@@ -92,7 +92,7 @@ defer cancel()
 newTimeoutCtx, newCancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 defer newCancel()
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("slow_operation"),
     ro.ContextReset[string](newTimeoutCtx),
     ro.ThrowOnContextCancel[string](),
@@ -112,7 +112,7 @@ defer sub.Unsubscribe()
 ### With nil context (resets to Background)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("reset_test"),
     ro.ContextWithValue[string]("someKey", "someValue"),
     ro.ContextReset[string](nil), // Resets to context.Background()
@@ -149,7 +149,7 @@ processAsync := func(item string) ro.Observable[string] {
     })
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("item1", "item2"),
     ro.ContextWithValue[string]("sharedID", "shared-123"),
     // Each item gets fresh context for async processing
@@ -184,7 +184,7 @@ initialCtx := context.WithValue(context.Background(), "step1", "value1")
 step2Ctx := context.WithValue(context.Background(), "step2", "value2")
 step3Ctx := context.WithValue(context.Background(), "step3", "value3")
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("multi_context"),
     ro.ContextWithValue[string]("extra", "extra_value"),
     ro.ContextReset[string](initialCtx),
@@ -221,7 +221,7 @@ defer sub.Unsubscribe()
 ### With context reset for error isolation
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("operation1", "operation2"),
     ro.ContextWithValue[string]("requestID", "req-abc"),
     ro.MapErr(func(s string) (string, error) {
@@ -232,7 +232,7 @@ obs := ro.Pipe(
     }),
     ro.Catch(func(err error) Observable[string] {
         // Reset context for fallback to avoid leaking sensitive data
-        return ro.Pipe(
+        return ro.Pipe[string, string](
             ro.Just(fmt.Sprintf("Fallback: %v", err)),
             ro.ContextReset[string](context.Background()),
         )

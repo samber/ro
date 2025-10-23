@@ -18,7 +18,7 @@ position: 40
 Emits a default value if the source observable completes without emitting any items.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Empty[int](),
     ro.DefaultIfEmpty(42),
 )
@@ -33,7 +33,7 @@ defer sub.Unsubscribe()
 ### With non-empty source
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.DefaultIfEmpty(42),
 )
@@ -50,7 +50,7 @@ defer sub.Unsubscribe()
 ### With context
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Empty[string](),
     ro.DefaultIfEmptyWithContext("default value"),
 )
@@ -65,7 +65,7 @@ defer sub.Unsubscribe()
 ### With filtered empty result
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Filter(func(i int) bool {
         return i > 10 // No items match

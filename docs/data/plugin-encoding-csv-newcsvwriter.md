@@ -27,7 +27,7 @@ import (
 var buf bytes.Buffer
 writer := csv.NewWriter(&buf)
 
-obs := ro.Pipe(
+obs := ro.Pipe[[]string, int](
     ro.Just(
         []string{"name", "age", "city"},
         []string{"Alice", "30", "New York"},

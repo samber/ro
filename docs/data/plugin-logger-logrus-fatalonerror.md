@@ -28,7 +28,7 @@ import (
 logger := logrus.New()
 logger.SetLevel(logrus.ErrorLevel)
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("success", "error occurred"),
     ro.Map[string, string](func(s string) (string, error) {
         if s == "error occurred" {

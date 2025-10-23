@@ -19,7 +19,7 @@ position: 10
 Counts the number of items emitted by an Observable and emits the total count when the source completes.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int64](
     ro.Just(1, 2, 3, 4, 5),
     ro.Count[int](),
 )
@@ -34,7 +34,7 @@ defer sub.Unsubscribe()
 ### Count with empty observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int64](
     ro.Empty[int](),
     ro.Count[int](),
 )
@@ -49,7 +49,7 @@ defer sub.Unsubscribe()
 ### Count with single value
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, int64](
     ro.Just("hello"),
     ro.Count[string](),
 )
@@ -69,7 +69,7 @@ type Person struct {
     Age  int
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Person, int64](
     ro.Just(
         Person{"Alice", 25},
         Person{"Bob", 30},
@@ -88,7 +88,7 @@ defer sub.Unsubscribe()
 ### Count after filtering
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int64](
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
     ro.Filter(func(i int) bool {
         return i%2 == 0 // Count even numbers

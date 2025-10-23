@@ -18,7 +18,7 @@ Branches out the source Observable values as a nested Observable whenever the bo
 ```go
 boundary := ro.Interval(2000*time.Millisecond)
 
-obs := ro.Pipe(
+obs := ro.Pipe[int64, ro.Observable[int64]](
     ro.Interval(500*time.Millisecond),
     ro.WindowWhen(boundary),
     ro.Take(3),
@@ -56,7 +56,7 @@ sub.Unsubscribe()
 ```go
 boundary := ro.Timer(1000*time.Millisecond) // Window closes after 1 second
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, ro.Observable[string]](
     ro.Just("a", "b", "c", "d", "e", "f"),
     ro.WindowWhen(boundary),
 )
@@ -78,12 +78,12 @@ defer sub.Unsubscribe()
 ### With count-based boundary
 
 ```go
-boundary := ro.Pipe(
+boundary := ro.Pipe[int64, string](
     ro.Interval(500*time.Millisecond),
     ro.Map(func(_ int64) string { return "close" }),
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, ro.Observable[string]](
     ro.Just("x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8"),
     ro.WindowWhen(boundary),
 )
@@ -112,7 +112,7 @@ defer sub.Unsubscribe()
 ```go
 // Boundary emits every 3 source items
 counter := 0
-boundary := ro.Pipe(
+boundary := ro.Pipe[string, int](
     ro.Just("trigger"),
     ro.Map(func(_ string) int {
         counter++
@@ -121,7 +121,7 @@ boundary := ro.Pipe(
     ro.Filter(func(c int) bool { return c%3 == 0 }),
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, ro.Observable[string]](
     ro.Just("a", "b", "c", "d", "e", "f", "g", "h", "i"),
     ro.WindowWhen(boundary),
 )
@@ -149,8 +149,8 @@ defer sub.Unsubscribe()
 ```go
 boundary := ro.Timer(1000*time.Millisecond)
 
-obs := ro.Pipe(
-    ro.Pipe(
+obs := ro.Pipe[string, ro.Observable[string]](
+    ro.Pipe[string, string](
         ro.Just("will error"),
         ro.Throw[string](errors.New("source error")),
     ),

@@ -26,7 +26,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`\d+`)
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("abc123def", "no numbers here"),
     roregexp.FindString[string](pattern),
 )

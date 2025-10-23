@@ -26,7 +26,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`(\d+)-([a-z]+)`)
-obs := ro.Pipe(
+obs := ro.Pipe[string, [][]string](
     ro.Just("123-abc 456-def", "789-ghi"),
     roregexp.FindAllStringSubmatch[string](pattern, -1), // -1 for unlimited matches
 )

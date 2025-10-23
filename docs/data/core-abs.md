@@ -19,7 +19,7 @@ position: 0
 Emits the absolute value of each number emitted by the source Observable.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.Just(-3.5, 2.1, -7.8, 0.0, 5.3),
     ro.Abs(),
 )
@@ -38,7 +38,7 @@ defer sub.Unsubscribe()
 ### With time-based emissions
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, float64](
     ro.Interval(100*time.Millisecond),
     ro.Map(func(i int64) float64 {
         return float64(i-5) // Emit -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5...
@@ -62,7 +62,7 @@ sub.Unsubscribe()
 ### With negative infinity
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.Just(math.Inf(-1), -42.0, math.Inf(1)),
     ro.Abs(),
 )

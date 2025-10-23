@@ -24,7 +24,7 @@ Repeats the source observable as long as the condition returns true. Unlike DoWh
 
 ```go
 counter := 0
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.While(func() bool {
         counter++
@@ -44,7 +44,7 @@ defer sub.Unsubscribe()
 ### WhileI with index
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("a", "b"),
     ro.WhileI(func(index int64) bool {
         return index < 2 // Repeat twice (index 0 and 1)
@@ -64,7 +64,7 @@ defer sub.Unsubscribe()
 ```go
 ctx, cancel := context.WithCancel(context.Background())
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2),
     ro.WhileWithContext(func(ctx context.Context) (context.Context, bool) {
         select {
@@ -87,7 +87,7 @@ defer sub.Unsubscribe()
 
 ```go
 ctx := context.Background()
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("test"),
     ro.WhileIWithContext(func(ctx context.Context, index int64) (context.Context, bool) {
         fmt.Printf("Checking iteration %d\n", index)
@@ -111,7 +111,7 @@ defer sub.Unsubscribe()
 
 ```go
 dataAvailable := true
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Defer(func() Observable[int] {
         // Simulate data fetch
         if !dataAvailable {
@@ -138,7 +138,7 @@ defer sub.Unsubscribe()
 startTime := time.Now()
 timeout := 2 * time.Second
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Defer(func() Observable[string] {
         // Check if timeout reached
         if time.Since(startTime) > timeout {
@@ -168,7 +168,7 @@ sub.Unsubscribe()
 ```go
 processed := 0
 maxItems := 10
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Defer(func() Observable[int] {
         if processed >= maxItems {
             return ro.Empty[int]()
@@ -197,7 +197,7 @@ type ResourceMonitor struct {
 }
 
 monitor := &ResourceMonitor{isActive: true}
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Defer(func() Observable[string] {
         if !monitor.isActive || monitor.count >= 5 {
             return ro.Empty[string]()

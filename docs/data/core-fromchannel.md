@@ -117,9 +117,9 @@ go func() {
     close(ch)
 }()
 
-obs := ro.Pipe(
+obs := ro.Pipe[Result, string](
     ro.FromChannel(ch),
-    ro.Map(func(r Result) (string, error) {
+    ro.MapErr(func(r Result) (string, error) {
         if r.Err != nil {
             return "", r.Err
         }

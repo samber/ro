@@ -27,7 +27,7 @@ import (
     rostrconv "github.com/samber/ro/plugins/strconv"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, uint64](
     ro.Just("255", "FF", "11111111", "377"),
     rostrconv.ParseUint[string](16, 64), // Parse as hexadecimal, 64-bit unsigned
 )
@@ -43,7 +43,7 @@ defer sub.Unsubscribe()
 ```
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, uint64](
     ro.Just("123", "456", "789"),
     rostrconv.ParseUint[string](10, 64), // Parse as decimal, 64-bit unsigned
 )

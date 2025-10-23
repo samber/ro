@@ -22,7 +22,7 @@ import (
     robytes "github.com/samber/ro/plugins/bytes"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[int, []byte](
     ro.Just(1, 2, 3),
     robytes.Random[int](10, []rune("abcdefghijklmnopqrstuvwxyz")),
 )

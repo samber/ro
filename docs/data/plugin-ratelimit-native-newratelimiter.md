@@ -24,7 +24,7 @@ import (
     roratelimit "github.com/samber/ro/plugins/ratelimit/native"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("user1", "user1", "user2", "user1", "user2"),
     roratelimit.NewRateLimiter[string](2, time.Second, func(s string) string { return s }),
 )

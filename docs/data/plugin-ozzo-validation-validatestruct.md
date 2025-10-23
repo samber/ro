@@ -37,7 +37,7 @@ func (u User) Validate() error {
     )
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[User, Result[User]](
     ro.Just(User{Name: "Alice", Age: 30}),
     roozzo.ValidateStruct[User](),
 )

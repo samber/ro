@@ -32,7 +32,7 @@ sub.Unsubscribe()
 
 ```go
 source := ro.Just(1, 2, 3)
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Repeat(source),
     ro.Take[int](8),
 )
@@ -47,7 +47,7 @@ defer sub.Unsubscribe()
 ### Repeat with interval
 
 ```go
-source := ro.Pipe(
+source := ro.Pipe[string, string](
     ro.Just("tick"),
     ro.RepeatWithInterval(source, 1*time.Second),
 )
@@ -65,7 +65,7 @@ sub.Unsubscribe()
 ### Repeat complex sequence
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(100*time.Millisecond),
     ro.Take[int64](3), // 0, 1, 2
     ro.Repeat(source),
@@ -83,7 +83,7 @@ sub.Unsubscribe()
 
 ```go
 source := ro.Just(1, 2)
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Repeat(source),
     ro.Take[int](5),
     ro.Map(func(i int) int {

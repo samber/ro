@@ -111,7 +111,7 @@ evens := lo.Filter(numbers, func(x int, _ int) bool {
 
 **samber/ro**:
 ```go
-observable := ro.Pipe(
+observable := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Filter(func(x int) bool {
         return x%2 == 0

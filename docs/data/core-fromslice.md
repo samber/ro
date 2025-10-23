@@ -19,7 +19,7 @@ Creates an Observable that emits each item from a slice, then completes.
 
 ```go
 data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.FromSlice(data),
     ro.Filter(func(n int) bool { return n%2 == 0 }),
     ro.Map(func(n int) int { return n * n }),

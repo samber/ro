@@ -29,7 +29,7 @@ defer sub.Unsubscribe()
 ### Multiple random values
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.RandFloat64(),
     RepeatWithInterval(ro.RandFloat64(), 100*time.Millisecond),
     ro.Take[float64](5),
@@ -51,7 +51,7 @@ sub.Unsubscribe()
 
 ```go
 // 75% chance of success
-successChance := ro.Pipe(
+successChance := ro.Pipe[float64, bool](
     ro.RandFloat64(),
     ro.Map(func(f float64) bool {
         return f < 0.75
@@ -69,7 +69,7 @@ defer sub.Unsubscribe()
 
 ```go
 // Random temperature between 15.0 and 25.0 degrees
-temperature := ro.Pipe(
+temperature := ro.Pipe[float64, float64](
     ro.RandFloat64(),
     ro.Map(func(f float64) float64 {
         return 15.0 + (f * 10.0) // Map 0-1 to 15-25
@@ -90,7 +90,7 @@ defer sub.Unsubscribe()
 baseLatency := 100 * time.Millisecond
 jitterRange := 50 * time.Millisecond
 
-latency := ro.Pipe(
+latency := ro.Pipe[float64, time.Duration](
     ro.RandFloat64(),
     ro.Map(func(f float64) time.Duration {
         jitter := time.Duration(f * float64(jitterRange))

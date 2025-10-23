@@ -19,7 +19,7 @@ position: 50
 Emits only the first item emitted by an Observable. If the source Observable is empty, Head will emit an error.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("first", "second", "third"),
     ro.Head(),
 )
@@ -34,7 +34,7 @@ defer sub.Unsubscribe()
 ### With empty observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Empty[string](),
     ro.Head(),
 )
@@ -48,7 +48,7 @@ defer sub.Unsubscribe()
 ### With single item
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("only one"),
     ro.Head(),
 )
@@ -63,7 +63,7 @@ defer sub.Unsubscribe()
 ### With numbers
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(10, 20, 30, 40, 50),
     ro.Head(),
 )
@@ -78,7 +78,7 @@ defer sub.Unsubscribe()
 ### With time-based emissions
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.Interval(100*time.Millisecond),
     ro.Head(),
 )
@@ -94,7 +94,7 @@ sub.Unsubscribe()
 ### With error in source
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Throw[string](errors.New("source error")),
     ro.Head(),
 )

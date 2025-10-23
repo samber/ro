@@ -23,7 +23,7 @@ import (
     "github.com/cloudfoundry/gosigar"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, uint64](
     ro.Just(
         "apple", "banana", "apple", "orange", "banana",
         "grape", "apple", "kiwi", "orange", "mango",

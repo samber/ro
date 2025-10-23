@@ -17,7 +17,7 @@ position: 60
 Returns an observable sequence that contains only distinct elements.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 2, 3, 1, 4, 3, 5),
     ro.Distinct[int](),
 )
@@ -36,7 +36,7 @@ defer sub.Unsubscribe()
 ### With strings
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("apple", "banana", "apple", "cherry", "banana"),
     ro.Distinct[string](),
 )
@@ -58,7 +58,7 @@ type Person struct {
     Name string
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Person, Person](
     ro.Just(
         Person{1, "Alice"},
         Person{2, "Bob"},
@@ -80,7 +80,7 @@ defer sub.Unsubscribe()
 ### Empty sequence
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Empty[int](),
     ro.Distinct[int](),
 )

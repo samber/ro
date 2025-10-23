@@ -45,7 +45,7 @@ The Pipe function provides cleaner syntax and better type safety. The number suf
 
 ```go
 // Use Pipe for clean, readable composition
-obs := ro.Pipe(
+obs := ro.Pipe[int, string](
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
     ro.Filter(func(x int) bool {
         return x%2 == 0
@@ -161,7 +161,7 @@ var pipeline = ro.PipeOp4(
         MaxRetries: 3,
         Delay:      100 * time.Millisecond,
     }),
-    ro.CatchError(func(err error) ro.Observable[string] {
+    ro.Catch(func(err error) ro.Observable[string] {
         fmt.Println("Retries exhausted, using fallback")
         return ro.Just("FALLBACK")
     }),
@@ -202,9 +202,9 @@ func Square[T constraints.Integer]() func (ro.Observable[T]) ro.Observable[T] {
 }
 
 // Usage
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
-    Square(),
+    Square[int](),
 )
 obs.Subscribe(ro.OnNext(func(x int) {
     fmt.Println(x) // 1, 4, 9, 16, 25
@@ -231,11 +231,11 @@ obs := ro.Pipe3(
     source,
     ro.Filter(predicate),
     ro.Map(transformer),
-    ro.Take(10),
+    ro.Take[int](10),
 )
 
 // ⚠️ Valid, but bad syntax: Method chaining
-obs := Take(10, Map(transformer, Filter(predicate, source)))
+obs := Take[int](10, Map(transformer, Filter(predicate, source)))
 ```
 
 ### 2. Use Type-safe Pipe Variants
@@ -247,7 +247,7 @@ Use typed Pipe variants (Pipe2, Pipe3, etc.) for compile-time type checking. The
 obs := ro.Pipe2(source, filterOp, mapOp)
 
 // ⚠️ Works but less type safety
-obs := ro.Pipe(source, filterOp, mapOp)
+obs := ro.Pipe[int, int](source, filterOp, mapOp)
 ```
 
 ### 3. Handle Memory Leaks
@@ -262,7 +262,7 @@ Bound infinite streams with operators like `Take`, `TakeUntil`, or `TakeWhile` t
 // ✅ Good: Limit infinite streams with the `ro.TakeUntil` operator
 bounded := ro.Pipe1(
     ro.Interval(1 * time.Second),
-    ro.TakeUntil(ro.Timer(30 * time.Second)),
+    ro.TakeUntil[int64](ro.Timer(30 * time.Second)),
 )
 
 // ⚠️ Risky: Unbounded stream

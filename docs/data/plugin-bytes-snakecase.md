@@ -22,7 +22,7 @@ import (
     robytes "github.com/samber/ro/plugins/bytes"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, []byte](
     ro.Just([]byte("HelloWorldWorld")),
     robytes.SnakeCase[[]byte](),
 )

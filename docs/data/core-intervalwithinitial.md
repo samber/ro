@@ -82,7 +82,7 @@ sub.Unsubscribe()
 ### With Take for limited emissions
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int64](
     ro.IntervalWithInitial(200*time.Millisecond, 100*time.Millisecond),
     ro.Take[int64](5),
 )

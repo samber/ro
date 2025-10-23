@@ -25,7 +25,7 @@ import (
     rostrconv "github.com/samber/ro/plugins/strconv"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, float64](
     ro.Just("3.14", "2.718", "1.414", "invalid"),
     rostrconv.ParseFloat[string](64),
 )

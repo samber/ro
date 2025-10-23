@@ -19,7 +19,7 @@ position: 20
 Calculates the sum of all values emitted by an Observable sequence and emits the total sum when the source completes.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3, 4, 5),
     ro.Sum[int](),
 )
@@ -34,7 +34,7 @@ defer sub.Unsubscribe()
 ### Sum with floating point numbers
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.Just(1.5, 2.5, 3.5),
     ro.Sum[float64](),
 )
@@ -49,7 +49,7 @@ defer sub.Unsubscribe()
 ### Sum with negative numbers
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(10, -5, 3, -2),
     ro.Sum[int](),
 )
@@ -64,7 +64,7 @@ defer sub.Unsubscribe()
 ### Sum with single value
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(42),
     ro.Sum[int](),
 )
@@ -79,7 +79,7 @@ defer sub.Unsubscribe()
 ### Sum with empty observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Empty[int](),
     ro.Sum[int](),
 )

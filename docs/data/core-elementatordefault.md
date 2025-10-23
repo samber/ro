@@ -20,7 +20,7 @@ position: 71
 Emits only the nth item emitted by an Observable. If the source Observable emits fewer than n items, ElementAtOrDefault will emit a fallback value.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("a", "b", "c"),
     ro.ElementAtOrDefault(5, "fallback"),
 )
@@ -35,7 +35,7 @@ defer sub.Unsubscribe()
 ### Within bounds (emits the nth item)
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("first", "second", "third"),
     ro.ElementAtOrDefault(1, "fallback"),
 )
@@ -50,7 +50,7 @@ defer sub.Unsubscribe()
 ### With zero-based indexing and fallback
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("apple"),
     ro.ElementAtOrDefault(0, "no fruit"),
 )
@@ -65,7 +65,7 @@ defer sub.Unsubscribe()
 ### With numbers and fallback
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(1, 2, 3),
     ro.ElementAtOrDefault(10, 999),
 )
@@ -80,7 +80,7 @@ defer sub.Unsubscribe()
 ### With empty observable
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Empty[string](),
     ro.ElementAtOrDefault(0, "default value"),
 )
@@ -102,7 +102,7 @@ defer func() {
     }
 }()
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("a", "b"),
     ro.ElementAtOrDefault(-1, "fallback"), // This will panic
 )

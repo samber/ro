@@ -19,7 +19,7 @@ position: 60
 Buffers the source Observable values until either the buffer reaches the specified size or the specified time duration elapses, whichever occurs first.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, []int64](
     ro.Interval(100*time.Millisecond),
     ro.BufferWithTimeOrCount[int64](5, 300*time.Millisecond),
 )
@@ -37,7 +37,7 @@ sub.Unsubscribe()
 ### Time-limited scenario
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, []int64](
     ro.Interval(100*time.Millisecond),
     ro.BufferWithTimeOrCount[int64](10, 200*time.Millisecond),
 )
@@ -55,7 +55,7 @@ sub.Unsubscribe()
 ### Count-limited scenario
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, []int64](
     ro.Interval(50*time.Millisecond), // Fast emissions
     ro.BufferWithTimeOrCount[int64](3, 1000*time.Millisecond),
 )
@@ -73,7 +73,7 @@ sub.Unsubscribe()
 ### Practical example: Batching with safety limits
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int64, int](
     // Simulate user events
     ro.Interval(30*time.Millisecond),
     ro.Take[int64](20),

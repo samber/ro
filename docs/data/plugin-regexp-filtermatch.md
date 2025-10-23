@@ -25,7 +25,7 @@ import (
 )
 
 pattern := regexp.MustCompile(`hello`)
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, []byte](
     ro.Just(
         []byte("hello world"),
         []byte("goodbye world"),

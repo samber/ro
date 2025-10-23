@@ -16,7 +16,7 @@ position: 140
 Finds the maximum value in an observable sequence.
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[int, int](
     ro.Just(5, 3, 8, 1, 4),
     ro.Max[int](),
 )
@@ -31,7 +31,7 @@ defer sub.Unsubscribe()
 ### With floats
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[float64, float64](
     ro.Just(3.14, 2.71, 1.61, 0.99),
     ro.Max[float64](),
 )
@@ -46,7 +46,7 @@ defer sub.Unsubscribe()
 ### With strings
 
 ```go
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.Just("zebra", "apple", "banana", "cherry"),
     ro.Max[string](),
 )
@@ -66,7 +66,7 @@ type Person struct {
     Age  int
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[Person, int](
     ro.Just(
         Person{"Alice", 25},
         Person{"Bob", 30},

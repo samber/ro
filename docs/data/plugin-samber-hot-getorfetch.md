@@ -27,7 +27,7 @@ import (
 cache := hot.New[string, string]()
 cache.Set("key1", "value1")
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, lo.Tuple2[string, bool]](
     ro.Just("key1", "key2"),
     rohot.GetOrFetch[string, string](cache),
 )

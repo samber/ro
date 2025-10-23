@@ -48,7 +48,7 @@ sub2.Unsubscribe()
 
 ```go
 // With Share - subscribers share the same execution
-source := ro.Pipe(
+source := ro.Pipe[int64, int64](
     ro.Interval(100 * time.Millisecond),
     ro.Take[int64](5),
     ro.Share[int64](), // Share the observable
@@ -108,7 +108,7 @@ sub2.Unsubscribe()
 // Next: api_result_1, Next: api_result_2 (twice)
 
 // With Share - API call shared
-withShare := ro.Pipe(
+withShare := ro.Pipe[string, string](
     expensiveOperation(),
     Share[string](),
 )
@@ -128,10 +128,10 @@ sub4.Unsubscribe()
 ### With error handling
 
 ```go
-source := ro.Pipe(
+source := ro.Pipe[int, int](
     Defer(func() Observable[int] {
         fmt.Println("Source execution started...")
-        return ro.Pipe(
+        return ro.Pipe[int, int](
             ro.Just(1, 2, 3),
             ro.MapErr(func(i int) (int, error) {
                 if i == 3 {
@@ -186,7 +186,7 @@ sub2.Unsubscribe()
 
 ```go
 // Create a hot observable (starts immediately)
-hotSource := ro.Pipe(
+hotSource := ro.Pipe[int64, int64](
     ro.Interval(100 * time.Millisecond),
     Take[int64](10),
     ro.Share[int64](), // Make it hot and shareable
@@ -215,7 +215,7 @@ time.Sleep(1200 * time.Millisecond)
 ### With reference counting
 
 ```go
-source := ro.Pipe(
+source := ro.Pipe[int64, int64](
     ro.Interval(100 * time.Millisecond),
     ro.Share[int64](),
 )

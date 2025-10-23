@@ -27,7 +27,7 @@ import (
     rostrconv "github.com/samber/ro/plugins/strconv"
 )
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, bool](
     ro.Just("true", "false", "1", "0", "TRUE", "FALSE"),
     rostrconv.ParseBool[string](),
 )

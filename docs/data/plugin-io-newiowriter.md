@@ -25,7 +25,7 @@ import (
 )
 
 var buf bytes.Buffer
-obs := ro.Pipe(
+obs := ro.Pipe[[]byte, int](
     ro.Just([]byte("Hello, "), []byte("World!")),
     roio.NewIOWriter(&buf),
 )
