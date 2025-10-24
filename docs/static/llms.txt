@@ -165,6 +165,7 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - `Materialize` - Convert to Notification stream
 - `Dematerialize` - Convert from Notification stream
 - `RepeatWith` - Repeats source Observable n times
+- `Serialize` - Ensures thread-safe message passing by wrapping observable in SafeObservable
 
 ### Conditional Operators
 - `All` - Test if all items satisfy condition

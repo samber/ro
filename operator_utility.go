@@ -630,3 +630,13 @@ func detachOn[T any](bufferSize int, onUpstream, onDownstream bool) func(Observa
 		})
 	}
 }
+
+// Serialize ensures thread-safe message passing by wrapping any observable in a ro.SafeObservable implementation.
+func Serialize[T any]() func(Observable[T]) Observable[T] {
+	return func(source Observable[T]) Observable[T] {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+			sub := source.SubscribeWithContext(subscriberCtx, destination)
+			return sub.Unsubscribe
+		})
+	}
+}
