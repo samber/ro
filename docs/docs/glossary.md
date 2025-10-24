@@ -146,7 +146,7 @@ Mechanisms to manage errors that occur during the emission of data streams. Prop
 
 :::
 
-Learn about error handling patterns in the [troubleshooting guide](./troubleshooting/wip.md).
+Learn about error handling patterns in the [troubleshooting guide](./troubleshooting).
 
 ## Replay
 A technique where a stream retains past values and can replay them to new subscribers.

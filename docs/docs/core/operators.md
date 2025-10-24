@@ -97,7 +97,7 @@ Method chaining works but can become hard to read. Each operator takes the sourc
 source := ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
 
 obs1 := ro.Filter(func(x int) bool {
-    return x%2 == 0 
+    return x%2 == 0
 })(source)
 obs2 := ro.Map(func(x int) string {
     return fmt.Sprintf("even-%d", x)
@@ -143,7 +143,7 @@ obs.Subscribe(ro.OnNext(func(userID int) {
 
 :::warning Error Handling
 
-Create resilient pipelines that handle failures gracefully. This pattern uses fallible operators, retry logic, and fallback strategies. See [Error Handling](../troubleshooting/wip) for more details.
+Create resilient pipelines that handle failures gracefully. This pattern uses fallible operators, retry logic, and fallback strategies. See [Error Handling](../troubleshooting) for more details.
 
 :::
 
