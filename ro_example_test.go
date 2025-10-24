@@ -102,7 +102,10 @@ func ExampleNewObserver_empty() {
 func ExampleMergeWith_ok() {
 	observable := Pipe1(
 		Just(1, 2),
-		MergeWith(Delay[int](20*time.Millisecond)(Just(3, 4))),
+		MergeWith(
+			Delay[int](20*time.Millisecond)(Just(3, 4)),
+			Delay[int](40*time.Millisecond)(Just(5, 6)),
+		),
 	)
 
 	subscription := observable.Subscribe(PrintObserver[int]())
@@ -113,6 +116,8 @@ func ExampleMergeWith_ok() {
 	// Next: 2
 	// Next: 3
 	// Next: 4
+	// Next: 5
+	// Next: 6
 	// Completed
 }
 

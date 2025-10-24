@@ -30,8 +30,13 @@ import (
 // inner Observables are done.
 //
 // It is a curried function that takes the first Observable as an argument.
-func MergeWith[T any](obsB Observable[T]) func(Observable[T]) Observable[T] {
-	return MergeWith1(obsB)
+func MergeWith[T any](observables ...Observable[T]) func(Observable[T]) Observable[T] {
+	return func(obsA Observable[T]) Observable[T] {
+		list := make([]Observable[T], len(observables)+1)
+		list[0] = obsA
+		copy(list[1:], observables)
+		return MergeAll[T]()(Just(list...))
+	}
 }
 
 // MergeWith1 merges the values from all observables to a single observable result.
@@ -943,6 +948,7 @@ func EndWith[T any](suffixes ...T) func(Observable[T]) Observable[T] {
 }
 
 // Pairwise emits the previous and current values as a pair of two values.
+// Play: https://go.dev/play/p/0YujgFTL4e0
 func Pairwise[T any]() func(Observable[T]) Observable[[]T] {
 	return func(source Observable[T]) Observable[[]T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
