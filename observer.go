@@ -200,6 +200,7 @@ func (o *observerImpl[T]) IsCompleted() bool {
  *********************/
 
 // OnNext is a partial Observer with only the Next method implemented.
+// Warning: This observer will silent errors.
 func OnNext[T any](onNext func(value T)) Observer[T] {
 	onError := func(err error) {}
 	onComplete := func() {}
@@ -208,6 +209,7 @@ func OnNext[T any](onNext func(value T)) Observer[T] {
 }
 
 // OnNextWithContext is a partial Observer with only the Next method implemented.
+// Warning: This observer will silent errors.
 func OnNextWithContext[T any](onNext func(ctx context.Context, value T)) Observer[T] {
 	onError := func(ctx context.Context, err error) {}
 	onComplete := func(ctx context.Context) {}
@@ -232,6 +234,7 @@ func OnErrorWithContext[T any](onError func(ctx context.Context, err error)) Obs
 }
 
 // OnComplete is a partial Observer with only the Complete method implemented.
+// Warning: This observer will silent errors.
 func OnComplete[T any](onComplete func()) Observer[T] {
 	onNext := func(value T) {}
 	onError := func(err error) {}
@@ -240,6 +243,7 @@ func OnComplete[T any](onComplete func()) Observer[T] {
 }
 
 // OnCompleteWithContext is a partial Observer with only the Complete method implemented.
+// Warning: This observer will silent errors.
 func OnCompleteWithContext[T any](onComplete func(ctx context.Context)) Observer[T] {
 	onNext := func(ctx context.Context, value T) {}
 	onError := func(ctx context.Context, err error) {}
@@ -248,6 +252,7 @@ func OnCompleteWithContext[T any](onComplete func(ctx context.Context)) Observer
 }
 
 // NoopObserver is an Observer that does nothing.
+// Warning: This observer will silent errors.
 func NoopObserver[T any]() Observer[T] {
 	return NewObserverWithContext(
 		func(ctx context.Context, value T) {},

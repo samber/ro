@@ -106,7 +106,7 @@ result := ro.Pipe2(
 )
 
 result.Subscribe(ro.OnNext(func(s string) {
-    fmt.Println(s) 
+    fmt.Println(s)
 }))
 // "even-0", "even-2", "even-4", "even-6", "even-8"
 ```
@@ -238,6 +238,46 @@ riskyStream := ro.Pipe2(
         return ro.Just(42)  // Fallback value
     }),
 )
+```
+
+#### Panics recovery
+
+The ro framework automatically catches panics that occur in operators and converts them to errors passed through `destination.Error(...)`:
+
+```go
+// A stream with a potential panic in Map operator
+stream := ro.Pipe1(
+    ro.Just(1, 2, 3, 4, 5),
+    ro.Map(func(x int) string {
+        // This will panic when x == 3
+        if x == 3 {
+            panic("something went wrong!")
+        }
+        return fmt.Sprintf("processed-%d", x)
+    }),
+)
+
+// The framework automatically catches the panic and converts it to an error
+subscription := stream.Subscribe(ro.NewObserver(
+    func(value string) {
+        fmt.Println("Received:", value)
+    },
+    func(err error) {
+        fmt.Println("Error (automatically caught):", err)
+    },
+    func() {
+        fmt.Println("Stream completed!")
+    },
+))
+
+subscription.Wait()
+```
+
+**Output:**
+```
+Received: processed-1
+Received: processed-2
+Error (automatically caught): something went wrong!
 ```
 
 ## Real-world Example: API Rate Limiting
@@ -446,6 +486,7 @@ Now that you understand the basics, explore:
 - **[Examples]**: Check out practical examples in the examples directory
 - **[Comparison Guides](./comparison/lo-vs-ro)**: See how `samber/ro` compares to `channel`, `iter`, and `samber/lo`
 - **[Advanced Patterns](./core/subject)**: `Subjects`, backpressure, and custom operators
+- **[Troubleshooting Guide](./troubleshooting/)**: Debug and resolve common issues
 
 :::
 

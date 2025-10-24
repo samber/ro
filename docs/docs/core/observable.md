@@ -248,6 +248,26 @@ sub2 := hot.Subscribe(ro.OnNext(func(n int) {
 connection := hot.Connect()
 ```
 
+## High-Order Observables
+
+High-order observables are observables that emit other observables as values. They are useful for managing dynamic streams and nested asynchronous operations.
+
+```go
+// Create and flatten a high-order observable in one pipeline
+users := ro.Pipe2(
+    ro.FromSlice([]string{"user-1", "user-2", "user-3"}),
+    ro.Map(func(userID string) ro.Observable[User] {
+        // Each user ID becomes an Observable that fetches user data (at most once)
+        return fetchUserStream(userID)
+    }),
+    ro.MergeAll(), // Flatten the high-order observable
+)
+
+users.Subscribe(ro.OnNext(func(user User) {
+    fmt.Printf("Fetched user: %s\n", user.Name)
+}))
+```
+
 ## Resource Management
 
 ### Subscriptions

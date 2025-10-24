@@ -58,6 +58,10 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: '📦 Troubleshooting',
+      link: {
+        type: 'doc',
+        id: 'troubleshooting/index',
+      },
       collapsible: true,
       collapsed: true,
       items: [

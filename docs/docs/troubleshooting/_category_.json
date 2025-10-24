@@ -1,8 +1,8 @@
 {
-  "label": "🔍 Troubleshooting",
-  "position": 50,
-  "link": {
-    "type": "generated-index",
-    "description": "Learn to track bugs efficiently"
-  }
+    "label": "🔍 Troubleshooting",
+    "position": 300,
+    "link": {
+        "type": "generated-index",
+        "description": "Learn to track bugs efficiently"
+    }
 }
