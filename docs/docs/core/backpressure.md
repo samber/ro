@@ -416,11 +416,11 @@ func HighThroughputMap[T, R any](mapper func(T) R) func(ro.Observable[T]) ro.Obs
 
 ### Comparison Table
 
-| Observable Type | Thread Safety | Performance | Backpressure Strategy | Message Loss |
-|-----------------|---------------|-------------|----------------------|--------------|
-| **Unsafe** | No | Highest | Natural blocking | No |
-| **Safe** | Yes | High | Natural blocking + sync | No |
-| **Eventually Safe** | Yes | Medium | Drop concurrent messages | Yes |
+| Observable Type     | Thread Safety | Performance | Backpressure Strategy    | Message Loss |
+| ------------------- | ------------- | ----------- | ------------------------ | ------------ |
+| **Unsafe**          | No            | Highest     | Natural blocking         | No           |
+| **Safe**            | Yes           | High        | Natural blocking + sync  | No           |
+| **Eventually Safe** | Yes           | Medium      | Drop concurrent messages | Yes          |
 
 The choice of observable type directly impacts how backpressure is handled:
 
@@ -725,5 +725,5 @@ This design choice makes `samber/ro` particularly well-suited for applications w
 **Related Topics:**
 - [Observable](./observable) - Understanding data producers
 - [Observer](./observer) - Understanding data consumers
-- [Operators](../operators) - Data transformation operations
+- [Operators](../operator) - Data transformation operations
 - [Subject](./subject) - Hot observables and multicasting

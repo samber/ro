@@ -119,4 +119,4 @@ In Go, you often don't need the complex scheduling mechanisms required in other 
 **Related Topics:**
 - [Backpressure](./backpressure) - Understanding flow control
 - [Observable](./observable) - Understanding data producers
-- [Operators](../operators) - Data transformation operations
+- [Operators](../operator) - Data transformation operations
