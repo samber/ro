@@ -40,7 +40,7 @@ type ConcurrencyMode int8
 const (
 	ConcurrencyModeSafe ConcurrencyMode = iota
 	ConcurrencyModeUnsafe
-	ConcurrencyModeEventualySafe
+	ConcurrencyModeEventuallySafe
 )
 
 // Observable is the producer of values. It is the source of values that are
@@ -143,7 +143,7 @@ func NewUnsafeObservable[T any](subscribe func(destination Observer[T]) Teardown
 	)
 }
 
-// NewEventualySafeObservable creates a new Observable. The subscribe function is called when
+// NewEventuallySafeObservable creates a new Observable. The subscribe function is called when
 // the Observable is subscribed to. The subscribe function is given an Observer,
 // to which it may emit any number of items, then may either complete or error,
 // but not both. Upon completion or error, the Observable will not emit any more
@@ -157,12 +157,12 @@ func NewUnsafeObservable[T any](subscribe func(destination Observer[T]) Teardown
 // no cleanup is necessary. In this case, the Teardown function should return nil.
 //
 // This method is safe for concurrent use, but concurrent messages are dropped.
-func NewEventualySafeObservable[T any](subscribe func(destination Observer[T]) Teardown) Observable[T] {
+func NewEventuallySafeObservable[T any](subscribe func(destination Observer[T]) Teardown) Observable[T] {
 	return NewObservableWithConcurrencyMode(
 		func(ctx context.Context, destination Observer[T]) Teardown {
 			return subscribe(destination)
 		},
-		ConcurrencyModeEventualySafe,
+		ConcurrencyModeEventuallySafe,
 	)
 }
 
@@ -220,7 +220,7 @@ func NewUnsafeObservableWithContext[T any](subscribe func(ctx context.Context, d
 	return NewObservableWithConcurrencyMode(subscribe, ConcurrencyModeUnsafe)
 }
 
-// NewEventualySafeObservableWithContext creates a new Observable. The subscribe function is called when
+// NewEventuallySafeObservableWithContext creates a new Observable. The subscribe function is called when
 // the Observable is subscribed to. The subscribe function is given an Observer,
 // to which it may emit any number of items, then may either complete or error,
 // but not both. Upon completion or error, the Observable will not emit any more
@@ -234,8 +234,8 @@ func NewUnsafeObservableWithContext[T any](subscribe func(ctx context.Context, d
 // no cleanup is necessary. In this case, the Teardown function should return nil.
 //
 // This method is safe for concurrent use, but concurrent messages are dropped.
-func NewEventualySafeObservableWithContext[T any](subscribe func(ctx context.Context, destination Observer[T]) Teardown) Observable[T] {
-	return NewObservableWithConcurrencyMode(subscribe, ConcurrencyModeEventualySafe)
+func NewEventuallySafeObservableWithContext[T any](subscribe func(ctx context.Context, destination Observer[T]) Teardown) Observable[T] {
+	return NewObservableWithConcurrencyMode(subscribe, ConcurrencyModeEventuallySafe)
 }
 
 // NewObservableWithConcurrencyMode creates a new Observable with the given concurrency mode.

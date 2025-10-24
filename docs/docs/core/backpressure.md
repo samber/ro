@@ -392,7 +392,7 @@ Eventually safe observables handle concurrency by dropping concurrent messages i
 // Drop strategy for high-throughput scenarios
 func HighThroughputMap[T, R any](mapper func(T) R) func(ro.Observable[T]) ro.Observable[R] {
     return func(source ro.Observable[T]) ro.Observable[R] {
-        return ro.NewEventualySafeObservable(func(destination ro.Observer[R]) ro.Teardown {
+        return ro.NewEventuallySafeObservable(func(destination ro.Observer[R]) ro.Teardown {
             return source.Subscribe(ro.NewObserver(
                 func(value T) {
                     result := mapper(value)

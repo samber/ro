@@ -37,7 +37,7 @@ func TestSubscriberInternalOk(t *testing.T) {
 	subscriber1, ok1 := NewSubscriber(observer).(*subscriberImpl[int])
 	subscriber2, ok2 := NewSafeSubscriber(observer).(*subscriberImpl[int])
 	subscriber3, ok3 := NewUnsafeSubscriber(observer).(*subscriberImpl[int])
-	subscriber4, ok4 := NewEventualySafeSubscriber(observer).(*subscriberImpl[int])
+	subscriber4, ok4 := NewEventuallySafeSubscriber(observer).(*subscriberImpl[int])
 
 	is.True(ok1)
 	is.True(ok2)
@@ -94,7 +94,7 @@ func TestSubscriberInternalError(t *testing.T) {
 	subscriber1, ok1 := NewSubscriber(observer).(*subscriberImpl[int])
 	subscriber2, ok2 := NewSafeSubscriber(observer).(*subscriberImpl[int])
 	subscriber3, ok3 := NewUnsafeSubscriber(observer).(*subscriberImpl[int])
-	subscriber4, ok4 := NewEventualySafeSubscriber(observer).(*subscriberImpl[int])
+	subscriber4, ok4 := NewEventuallySafeSubscriber(observer).(*subscriberImpl[int])
 
 	is.True(ok1)
 	is.True(ok2)
@@ -172,7 +172,7 @@ func TestSubscriberNext(t *testing.T) {
 	subscriber1, ok1 := NewSubscriber(observer1).(*subscriberImpl[int])
 	subscriber2, ok2 := NewSafeSubscriber(observer2).(*subscriberImpl[int])
 	subscriber3, ok3 := NewUnsafeSubscriber(observer3).(*subscriberImpl[int])
-	subscriber4, ok4 := NewEventualySafeSubscriber(observer4).(*subscriberImpl[int])
+	subscriber4, ok4 := NewEventuallySafeSubscriber(observer4).(*subscriberImpl[int])
 
 	is.True(ok1)
 	is.True(ok2)
@@ -261,7 +261,7 @@ func TestSubscriberError(t *testing.T) {
 	subscriber1, ok1 := NewSubscriber(observer1).(*subscriberImpl[int])
 	subscriber2, ok2 := NewSafeSubscriber(observer2).(*subscriberImpl[int])
 	subscriber3, ok3 := NewUnsafeSubscriber(observer3).(*subscriberImpl[int])
-	subscriber4, ok4 := NewEventualySafeSubscriber(observer4).(*subscriberImpl[int])
+	subscriber4, ok4 := NewEventuallySafeSubscriber(observer4).(*subscriberImpl[int])
 
 	is.True(ok1)
 	is.True(ok2)
@@ -331,7 +331,7 @@ func TestSubscriberComplete(t *testing.T) {
 	subscriber1, ok1 := NewSubscriber(observer1).(*subscriberImpl[int])
 	subscriber2, ok2 := NewSafeSubscriber(observer2).(*subscriberImpl[int])
 	subscriber3, ok3 := NewUnsafeSubscriber(observer3).(*subscriberImpl[int])
-	subscriber4, ok4 := NewEventualySafeSubscriber(observer4).(*subscriberImpl[int])
+	subscriber4, ok4 := NewEventuallySafeSubscriber(observer4).(*subscriberImpl[int])
 
 	is.True(ok1)
 	is.True(ok2)
@@ -581,7 +581,7 @@ func TestSubscriberUnsubscribe(t *testing.T) {
 	is.False(teardownCalled) // Should not call teardown again
 }
 
-func TestSubscriberEventualySafeBackpressureDrop(t *testing.T) {
+func TestSubscriberEventuallySafeBackpressureDrop(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
 	is := assert.New(t)
@@ -594,7 +594,7 @@ func TestSubscriberEventualySafeBackpressureDrop(t *testing.T) {
 		func() {},
 	)
 
-	subscriber, ok := NewEventualySafeSubscriber(observer).(*subscriberImpl[int])
+	subscriber, ok := NewEventuallySafeSubscriber(observer).(*subscriberImpl[int])
 
 	is.True(ok)
 
@@ -607,7 +607,7 @@ func TestSubscriberEventualySafeBackpressureDrop(t *testing.T) {
 	is.EqualValues(42, atomic.LoadInt64(&counter))
 }
 
-func TestSubscriberEventualySafeBackpressureDropConcurrent(t *testing.T) { //nolint:paralleltest
+func TestSubscriberEventuallySafeBackpressureDropConcurrent(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
@@ -623,7 +623,7 @@ func TestSubscriberEventualySafeBackpressureDropConcurrent(t *testing.T) { //nol
 		func() {},
 	)
 
-	subscriber, ok := NewEventualySafeSubscriber(observer).(*subscriberImpl[int])
+	subscriber, ok := NewEventuallySafeSubscriber(observer).(*subscriberImpl[int])
 
 	is.True(ok)
 
@@ -665,7 +665,7 @@ func TestSubscriberWrappingExistingSubscriber(t *testing.T) {
 	// Test with different constructor functions
 	subscriber3 := NewSafeSubscriber[int](subscriber1)
 	subscriber4 := NewUnsafeSubscriber[int](subscriber1)
-	subscriber5 := NewEventualySafeSubscriber[int](subscriber1)
+	subscriber5 := NewEventuallySafeSubscriber[int](subscriber1)
 
 	is.Equal(subscriber1, subscriber3)
 	is.Equal(subscriber1, subscriber4)
@@ -742,7 +742,7 @@ func TestSubscriberConcurrentAccess(t *testing.T) { //nolint:paralleltest
 
 // This test should be executed with -race flag, because it tests concurrent access to the subscriber.
 // It is not a problem for the safe subscriber, but it is for the eventually safe subscriber.
-func TestSubscriberEventualySafeConcurrentAccess(t *testing.T) { //nolint:paralleltest
+func TestSubscriberEventuallySafeConcurrentAccess(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
 	is := assert.New(t)
@@ -760,7 +760,7 @@ func TestSubscriberEventualySafeConcurrentAccess(t *testing.T) { //nolint:parall
 		func() {},
 	)
 
-	subscriber, ok := NewEventualySafeSubscriber(observer).(*subscriberImpl[int])
+	subscriber, ok := NewEventuallySafeSubscriber(observer).(*subscriberImpl[int])
 
 	is.True(ok)
 
@@ -1171,7 +1171,7 @@ func TestSubscriberConcurrentSafeVsUnsafe(t *testing.T) { //nolint:paralleltest
 	is.Positive(atomic.LoadInt64(&unsafeCounter))
 }
 
-func TestSubscriberConcurrentEventualySafeDropBehavior(t *testing.T) { //nolint:paralleltest
+func TestSubscriberConcurrentEventuallySafeDropBehavior(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 300*time.Millisecond)
 	is := assert.New(t)
@@ -1188,7 +1188,7 @@ func TestSubscriberConcurrentEventualySafeDropBehavior(t *testing.T) { //nolint:
 		func() {},
 	)
 
-	subscriber, ok := NewEventualySafeSubscriber(observer).(*subscriberImpl[int])
+	subscriber, ok := NewEventuallySafeSubscriber(observer).(*subscriberImpl[int])
 
 	is.True(ok)
 

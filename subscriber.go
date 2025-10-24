@@ -75,7 +75,7 @@ func NewUnsafeSubscriber[T any](destination Observer[T]) Subscriber[T] {
 	return NewSubscriberWithConcurrencyMode(destination, ConcurrencyModeUnsafe)
 }
 
-// NewEventualySafeSubscriber creates a new Subscriber from an Observer. If the Observer
+// NewEventuallySafeSubscriber creates a new Subscriber from an Observer. If the Observer
 // is already a Subscriber, it is returned as is. Otherwise, a new Subscriber
 // is created that wraps the Observer.
 //
@@ -85,8 +85,8 @@ func NewUnsafeSubscriber[T any](destination Observer[T]) Subscriber[T] {
 // This method is safe for concurrent use, but concurrent messages are dropped.
 //
 // It is rarely used as a public API.
-func NewEventualySafeSubscriber[T any](destination Observer[T]) Subscriber[T] {
-	return NewSubscriberWithConcurrencyMode(destination, ConcurrencyModeEventualySafe)
+func NewEventuallySafeSubscriber[T any](destination Observer[T]) Subscriber[T] {
+	return NewSubscriberWithConcurrencyMode(destination, ConcurrencyModeEventuallySafe)
 }
 
 // NewSubscriberWithConcurrencyMode creates a new Subscriber from an Observer. If the Observer
@@ -105,7 +105,7 @@ func NewSubscriberWithConcurrencyMode[T any](destination Observer[T], mode Concu
 		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureBlock, destination)
 	case ConcurrencyModeUnsafe:
 		return newSubscriberImpl(mode, xsync.NewMutexWithoutLock(), BackpressureBlock, destination)
-	case ConcurrencyModeEventualySafe:
+	case ConcurrencyModeEventuallySafe:
 		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureDrop, destination)
 	default:
 		panic("invalid concurrency mode")
