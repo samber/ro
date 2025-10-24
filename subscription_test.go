@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"sync/atomic"
@@ -552,3 +553,10 @@ func (m *mockUnsubscribable) Unsubscribe() {
 		m.unsubscribe()
 	}
 }
+func (m *mockUnsubscribable) UnsubscribeWithContext(ctx context.Context) {
+	if m.unsubscribe != nil {
+		m.unsubscribe()
+	}
+}
+
+
