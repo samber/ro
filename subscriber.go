@@ -121,13 +121,14 @@ func newSubscriberImpl[T any](mode ConcurrencyMode, mu xsync.Mutex, backpressure
 	}
 
 	subscriber := &subscriberImpl[T]{
-		Subscription: NewSubscription(nil),
-		destination:  destination,
-
-		mode:         mode,
-		mu:           mu,
-		backpressure: backpressure,
 		status:       0, // KindNext
+		backpressure: backpressure,
+
+		mu:          mu,
+		destination: destination,
+
+		Subscription: NewSubscription(nil),
+		mode:         mode,
 	}
 
 	if subscription, ok := destination.(Subscription); ok {
@@ -138,8 +139,17 @@ func newSubscriberImpl[T any](mode ConcurrencyMode, mu xsync.Mutex, backpressure
 }
 
 type subscriberImpl[T any] struct {
-	Subscription
-	destination Observer[T]
+	// While mutex is used for synchronization of producer, status is used for storing state of
+	// the subscriber. Using the mutex for reading the status would have create a dead lock if
+	// an Observer calls Unsubscribe(), IsClosed(), HasThrown(), IsCompleted() synchronously.
+	//
+	// 0 - KindNext
+	// 1 - KindError
+	// 2 - KindComplete
+	status       int32
+	backpressure Backpressure
+
+	_ [59]byte // padding to prevent false sharing
 
 	// Mutex are much much faster than channels.
 	//
@@ -149,18 +159,12 @@ type subscriberImpl[T any] struct {
 	// It could be interesting to implement a lock-free version of this,
 	// with message drop instead of backpressure, and when SLO must be kept under
 	// control (real-time streams?).
-	mode         ConcurrencyMode
-	mu           xsync.Mutex
-	backpressure Backpressure
+	mu          xsync.Mutex
+	destination Observer[T]
 
-	// While mutex is used for synchronization of producer, status is used for storing state of
-	// the subscriber. Using the mutex for reading the status would have create a dead lock if
-	// an Observer calls Unsubscribe(), IsClosed(), HasThrown(), IsCompleted() synchronously.
-	//
-	// 0 - KindNext
-	// 1 - KindError
-	// 2 - KindComplete
-	status int32
+	Subscription
+
+	mode ConcurrencyMode
 }
 
 // Implements Observer.

@@ -50,7 +50,7 @@ var _ Subscription = (*subscriptionImpl)(nil)
 // is added. When the subscription is already disposed, the `teardown` callback
 // is triggered immediately.
 func NewSubscription(teardown Teardown) Subscription {
-	teardowns := []func(){}
+	teardowns := make([]func(), 0, 4) // Pre-allocate for common case
 	if teardown != nil {
 		teardowns = append(teardowns, teardown)
 	}
