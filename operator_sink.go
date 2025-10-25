@@ -23,6 +23,7 @@ import (
 // ToSlice collects all items from the observable into a slice. It is a sink
 // operator so it emit a single value. It emits the slice when the source
 // completes. If the source is empty, it emits an empty slice.
+// Play: https://go.dev/play/p/kxbU_PzpN6t
 func ToSlice[T any]() func(Observable[T]) Observable[[]T] {
 	return func(source Observable[T]) Observable[[]T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
@@ -50,6 +51,7 @@ func ToSlice[T any]() func(Observable[T]) Observable[[]T] {
 // ToMap collects all items from the observable into a map. It is a sink
 // operator so it emit a single value. It emits the map when the source
 // completes. If the source is empty, it emits an empty map.
+// Play: https://go.dev/play/p/FiF83XYB0ba
 func ToMap[T any, K comparable, V any](project func(item T) (K, V)) func(Observable[T]) Observable[map[K]V] {
 	return ToMapIWithContext(func(ctx context.Context, item T, _ int64) (K, V) {
 		return project(item)
@@ -59,6 +61,7 @@ func ToMap[T any, K comparable, V any](project func(item T) (K, V)) func(Observa
 // ToMapWithContext collects all items from the observable into a map. It is a sink
 // operator so it emit a single value. It emits the map when the source
 // completes. If the source is empty, it emits an empty map.
+// Play: https://go.dev/play/p/FiF83XYB0ba
 func ToMapWithContext[T any, K comparable, V any](project func(ctx context.Context, item T) (K, V)) func(Observable[T]) Observable[map[K]V] {
 	return ToMapIWithContext(func(ctx context.Context, item T, _ int64) (K, V) {
 		return project(ctx, item)
@@ -68,6 +71,7 @@ func ToMapWithContext[T any, K comparable, V any](project func(ctx context.Conte
 // ToMapI collects all items from the observable into a map. It is a sink
 // operator so it emit a single value. It emits the map when the source
 // completes. If the source is empty, it emits an empty map.
+// Play: https://go.dev/play/p/FiF83XYB0ba
 func ToMapI[T any, K comparable, V any](mapper func(item T, index int64) (K, V)) func(Observable[T]) Observable[map[K]V] {
 	return ToMapIWithContext(func(ctx context.Context, item T, index int64) (K, V) {
 		return mapper(item, index)
@@ -77,6 +81,7 @@ func ToMapI[T any, K comparable, V any](mapper func(item T, index int64) (K, V))
 // ToMapIWithContext collects all items from the observable into a map. It is a sink
 // operator so it emit a single value. It emits the map when the source
 // completes. If the source is empty, it emits an empty map.
+// Play: https://go.dev/play/p/FiF83XYB0ba
 func ToMapIWithContext[T any, K comparable, V any](mapper func(ctx context.Context, item T, index int64) (K, V)) func(Observable[T]) Observable[map[K]V] {
 	return func(source Observable[T]) Observable[map[K]V] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[map[K]V]) Teardown {
@@ -109,6 +114,7 @@ func ToMapIWithContext[T any, K comparable, V any](mapper func(ctx context.Conte
 // channel when the source completes. If the source is empty, it emits an
 // empty channel. The channel will be closed when the source completes or
 // emit an error.
+// Play: https://go.dev/play/p/WMKa26sirV0
 func ToChannel[T any](size int) func(Observable[T]) Observable[<-chan Notification[T]] {
 	if size < 0 {
 		panic(ErrToChannelWrongSize)

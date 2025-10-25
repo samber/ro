@@ -28,6 +28,7 @@ import (
 //
 //	ro.Pipe(ro.FromSlice([]string{"123", "456", "789"}), rostrconv.Atoi[string]()).
 //	  Subscribe(ro.NewObserver[int](...))
+// Play: https://go.dev/play/p/5hL9m8jK3nQ
 func Atoi[T ~string]() func(ro.Observable[T]) ro.Observable[int] {
 	return ro.MapErr(func(v T) (int, error) {
 		return strconv.Atoi(string(v))
@@ -43,6 +44,7 @@ func Atoi[T ~string]() func(ro.Observable[T]) ro.Observable[int] {
 //
 //	ro.Pipe(ro.FromSlice([]string{"123", "FF", "1010"}), rostrconv.ParseInt[string](16, 64)). // Parse as hex, 64-bit
 //	  Subscribe(ro.NewObserver[int64](...))
+// Play: https://go.dev/play/p/CqjCmQVAPXC
 func ParseInt[T ~string](base int, bitSize int) func(ro.Observable[T]) ro.Observable[int64] {
 	return ro.MapErr(func(v T) (int64, error) {
 		return strconv.ParseInt(string(v), base, bitSize)
@@ -57,6 +59,7 @@ func ParseInt[T ~string](base int, bitSize int) func(ro.Observable[T]) ro.Observ
 //
 //	ro.Pipe(ro.FromSlice([]string{"3.14", "2.718", "1.414"}), rostrconv.ParseFloat[string](64)). // Parse as 64-bit float
 //	  Subscribe(ro.NewObserver[float64](...))
+// Play: https://go.dev/play/p/g-YvtjXtX7V
 func ParseFloat[T ~string](bitSize int) func(ro.Observable[T]) ro.Observable[float64] {
 	return ro.MapErr(func(v T) (float64, error) {
 		return strconv.ParseFloat(string(v), bitSize)
@@ -72,6 +75,7 @@ func ParseFloat[T ~string](bitSize int) func(ro.Observable[T]) ro.Observable[flo
 //
 //	ro.Pipe(ro.FromSlice([]string{"true", "false", "1", "0"}), rostrconv.ParseBool[string]()).
 //	  Subscribe(ro.NewObserver[bool](...))
+// Play: https://go.dev/play/p/2C5fkrRLyW_g
 func ParseBool[T ~string]() func(ro.Observable[T]) ro.Observable[bool] {
 	return ro.MapErr(func(v T) (bool, error) {
 		return strconv.ParseBool(string(v))
@@ -113,6 +117,7 @@ func ParseUint64[T ~string](base int, bitSize int) func(ro.Observable[T]) ro.Obs
 //
 //	ro.Pipe(ro.FromSlice([]bool{true, false, true}), rostrconv.FormatBool()).
 //	  Subscribe(ro.NewObserver[string](...))
+// Play: https://go.dev/play/p/8vDdaQyzoi_b
 func FormatBool() func(ro.Observable[bool]) ro.Observable[string] {
 	return ro.Map(strconv.FormatBool)
 }
@@ -132,6 +137,7 @@ func FormatBool() func(ro.Observable[bool]) ro.Observable[string] {
 //
 //	ro.Pipe(ro.FromSlice([]float64{3.14159, 2.71828}), rostrconv.FormatFloat('f', 2, 64)). // Fixed-point, 2 decimal places
 //	  Subscribe(ro.NewObserver[string](...))
+// Play: https://go.dev/play/p/GWSPE4Mp-uy
 func FormatFloat(mt byte, prec, bitSize int) func(ro.Observable[float64]) ro.Observable[string] {
 	return ro.Map(func(v float64) string {
 		return strconv.FormatFloat(v, mt, prec, bitSize)
@@ -152,6 +158,7 @@ func FormatFloat(mt byte, prec, bitSize int) func(ro.Observable[float64]) ro.Obs
 //
 //	ro.Pipe(ro.FromSlice([]complex128{3+4i, 1+2i}), rostrconv.FormatComplex('f', 2, 128)). // Fixed-point, 2 decimal places
 //	  Subscribe(ro.NewObserver[string](...))
+// Play: https://go.dev/play/p/gbp_kl7XJWv
 func FormatComplex(mt byte, prec, bitSize int) func(ro.Observable[complex128]) ro.Observable[string] {
 	return ro.Map(func(v complex128) string {
 		return strconv.FormatComplex(v, mt, prec, bitSize)
@@ -165,6 +172,7 @@ func FormatComplex(mt byte, prec, bitSize int) func(ro.Observable[complex128]) r
 //
 //	ro.Pipe(ro.FromSlice([]int64{123, 456, 789}), rostrconv.FormatInt[string](16)). // Format as hexadecimal
 //	  Subscribe(ro.NewObserver[string](...))
+// Play: https://go.dev/play/p/hUpBVHRJgXY
 func FormatInt[T ~string](base int) func(ro.Observable[int64]) ro.Observable[string] {
 	return ro.Map(func(v int64) string {
 		return strconv.FormatInt(v, base)
@@ -178,6 +186,7 @@ func FormatInt[T ~string](base int) func(ro.Observable[int64]) ro.Observable[str
 //
 //	ro.Pipe(ro.FromSlice([]uint64{123, 456, 789}), rostrconv.FormatUint[string](16)). // Format as hexadecimal
 //	  Subscribe(ro.NewObserver[string](...))
+// Play: https://go.dev/play/p/h4TYG9sFPZw
 func FormatUint[T ~string](base int) func(ro.Observable[uint64]) ro.Observable[string] {
 	return ro.Map(func(v uint64) string {
 		return strconv.FormatUint(v, base)
@@ -191,6 +200,7 @@ func FormatUint[T ~string](base int) func(ro.Observable[uint64]) ro.Observable[s
 //
 //	ro.Pipe(ro.FromSlice([]int{123, 456, 789}), rostrconv.Itoa()).
 //	  Subscribe(ro.NewObserver[string](...))
+// Play: https://go.dev/play/p/6hN7k9jL4mR
 func Itoa() func(ro.Observable[int]) ro.Observable[string] {
 	return ro.Map(strconv.Itoa)
 }
@@ -202,6 +212,7 @@ func Itoa() func(ro.Observable[int]) ro.Observable[string] {
 //
 //	ro.Pipe(ro.FromSlice([]string{"hello", "world\n", "test"}), rostrconv.Quote()).
 //	  Subscribe(ro.NewObserver[string](...))
+// Play: https://go.dev/play/p/O72Y-oUwBxr
 func Quote() func(ro.Observable[string]) ro.Observable[string] {
 	return ro.Map(strconv.Quote)
 }
@@ -213,6 +224,7 @@ func Quote() func(ro.Observable[string]) ro.Observable[string] {
 //
 //	ro.Pipe(ro.FromSlice([]rune{'a', 'b', 'c'}), rostrconv.QuoteRune()).
 //	  Subscribe(ro.NewObserver[string](...))
+// Play: https://go.dev/play/p/tCnviYGuSMn
 func QuoteRune() func(ro.Observable[rune]) ro.Observable[string] {
 	return ro.Map(strconv.QuoteRune)
 }
@@ -225,6 +237,7 @@ func QuoteRune() func(ro.Observable[rune]) ro.Observable[string] {
 //
 //	ro.Pipe(ro.FromSlice([]string{`"hello"`, `"world\n"`, `"test"`}), rostrconv.Unquote()).
 //	  Subscribe(ro.NewObserver[string](...))
+// Play: https://go.dev/play/p/cMaHM-He8NT
 func Unquote() func(ro.Observable[string]) ro.Observable[string] {
 	return ro.MapErr(strconv.Unquote)
 }

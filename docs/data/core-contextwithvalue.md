@@ -6,7 +6,7 @@ type: core
 category: context
 signatures:
   - "func ContextWithValue[T any](k any, v any)"
-playUrl:
+playUrl: https://go.dev/play/p/l70D6fuiVhK
 variantHelpers:
   - core#context#contextwithvalue
 similarHelpers:

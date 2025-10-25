@@ -6,7 +6,7 @@ type: core
 category: math
 signatures:
   - "func Round()"
-playUrl:
+playUrl: https://go.dev/play/p/aXwxpsJq_BQ
 variantHelpers:
   - core#math#round
 similarHelpers:

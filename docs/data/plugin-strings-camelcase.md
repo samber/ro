@@ -6,7 +6,7 @@ type: plugin
 category: strings
 signatures:
   - "func CamelCase[T ~string]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/65rbW1kFxhF
 variantHelpers:
   - plugin#strings#camelcase
 similarHelpers:

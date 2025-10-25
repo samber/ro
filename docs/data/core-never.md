@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func Never[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/GHzcVYaEvN8
 variantHelpers:
   - core#creation#never
 similarHelpers:

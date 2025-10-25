@@ -7,7 +7,7 @@ category: error-handling
 signatures:
   - "func Retry[T any]()"
   - "func RetryWithConfig[T any](opts RetryConfig)"
-playUrl:
+playUrl: https://go.dev/play/p/Llj9dT9Y3Z2
 variantHelpers:
   - core#error-handling#retry
   - core#error-handling#retrywithconfig

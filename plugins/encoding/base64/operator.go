@@ -29,6 +29,7 @@ import (
 //		ro.Just([]byte("hello")),
 //		robase64.Encode(base64.StdEncoding),
 //	)
+// Play: https://go.dev/play/p/PZCXxLxn5AF
 func Encode[T ~[]byte](encoder *base64.Encoding) func(ro.Observable[T]) ro.Observable[string] {
 	return ro.Map(func(v T) string {
 		return encoder.EncodeToString([]byte(v))
@@ -43,6 +44,7 @@ func Encode[T ~[]byte](encoder *base64.Encoding) func(ro.Observable[T]) ro.Obser
 //		ro.Just("aGVsbG8="),
 //		robase64.Decode(base64.StdEncoding),
 //	)
+// Play: https://go.dev/play/p/dTPmEzSHgi7
 func Decode[T ~string](encoder *base64.Encoding) func(ro.Observable[T]) ro.Observable[[]byte] {
 	return ro.MapErr(func(v T) ([]byte, error) {
 		return encoder.DecodeString(string(v))

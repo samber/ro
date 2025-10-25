@@ -6,7 +6,7 @@ type: plugin
 category: io
 signatures:
   - "func NewStdReader()"
-playUrl: ""
+playUrl: https://go.dev/play/p/YDjiTqvKbcl
 variantHelpers:
   - plugin#io#newstdreader
 similarHelpers:

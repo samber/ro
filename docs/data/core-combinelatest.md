@@ -10,7 +10,7 @@ signatures:
   - "func CombineLatest4[A any, B any, C any, D any](obsA Observable[A], obsB Observable[B], obsC Observable[C], obsD Observable[D])"
   - "func CombineLatest5[A any, B any, C any, D any, E any](obsA Observable[A], obsB Observable[B], obsC Observable[C], obsD Observable[D], obsE Observable[E])"
   - "func CombineLatestAny(sources ...Observable[any])"
-playUrl:
+playUrl: https://go.dev/play/p/mzpJyg7plnm
 variantHelpers:
   - core#combining#combinelatestx
   - core#combining#combinelatest3

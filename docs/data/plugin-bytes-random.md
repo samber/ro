@@ -6,7 +6,7 @@ type: plugin
 category: bytes
 signatures:
   - "func Random[T any](size int, charset []rune)"
-playUrl: ""
+playUrl: https://go.dev/play/p/I6d3SbM6CGm
 variantHelpers:
   - plugin#bytes#random
 similarHelpers:

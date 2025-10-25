@@ -29,6 +29,7 @@ func pascalCase(str string) string {
 }
 
 // PascalCase converts the string to pascal case.
+// Play: https://go.dev/play/p/107SvPGvHAK
 func PascalCase[T ~string]() func(destination ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(
 		func(value T) T {

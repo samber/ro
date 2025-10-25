@@ -29,6 +29,7 @@ func pascalCase(str []byte) []byte {
 }
 
 // PascalCase converts the string to pascal case.
+// Play: https://go.dev/play/p/pBULs9BPMVD
 func PascalCase[T ~[]byte]() func(destination ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(
 		func(value T) T {

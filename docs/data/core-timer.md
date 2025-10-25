@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func Timer(d time.Duration)"
-playUrl: https://go.dev/play/p/G4HGY4DJ3Od
+playUrl: https://go.dev/play/p/hMkNLEqpcy3
 variantHelpers:
   - core#creation#timer
 similarHelpers:

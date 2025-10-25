@@ -7,7 +7,7 @@ category: conditional
 signatures:
   - "func DefaultIfEmpty[T any](defaultValue T)"
   - "func DefaultIfEmptyWithContext[T any](defaultValue T)"
-playUrl:
+playUrl: https://go.dev/play/p/WDh807OLPWv
 variantHelpers:
   - core#conditional#defaultifempty
   - core#conditional#defaultifemptywithcontext

@@ -22,6 +22,7 @@ import (
 )
 
 // Find finds the first match of the pattern in the byte slice.
+// Play: https://go.dev/play/p/9hM7n8kL5jU
 func Find[T ~[]byte](pattern *regexp.Regexp) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(func(v T) T {
 		return pattern.Find(v)
@@ -113,6 +114,7 @@ func FilterMatch[T ~[]byte](pattern *regexp.Regexp) func(ro.Observable[T]) ro.Ob
 }
 
 // FilterMatchString filters the string if it matches the pattern.
+// Play: https://go.dev/play/p/9hM7n8kL5jU
 func FilterMatchString[T ~string](pattern *regexp.Regexp) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.Filter(func(v T) bool {
 		return pattern.MatchString(string(v))

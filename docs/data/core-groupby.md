@@ -9,7 +9,7 @@ signatures:
   - "func GroupByWithContext[T any, K comparable](keySelector func(ctx context.Context, item T) K)"
   - "func GroupByI[T any, K comparable](keySelector func(item T, index int64) K)"
   - "func GroupByIWithContext[T any, K comparable](keySelector func(ctx context.Context, item T, index int64) K)"
-playUrl:
+playUrl: https://go.dev/play/p/GOL8imC0H5S
 variantHelpers:
   - core#transformation#groupby
   - core#transformation#groupbywithcontext

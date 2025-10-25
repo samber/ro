@@ -24,6 +24,7 @@ import (
 )
 
 // TextTemplate creates a text template operator that renders templates with input data.
+// Play: https://go.dev/play/p/06cCGj34vLo
 func TextTemplate[T any](template string) func(ro.Observable[T]) ro.Observable[string] {
 	tpl := texttemplate.Must(texttemplate.New(template).Parse(template))
 
@@ -35,6 +36,7 @@ func TextTemplate[T any](template string) func(ro.Observable[T]) ro.Observable[s
 }
 
 // HTMLTemplate creates an HTML template operator that renders templates with input data.
+// Play: https://go.dev/play/p/emlON8wyaXx
 func HTMLTemplate[T any](template string) func(ro.Observable[T]) ro.Observable[string] {
 	tpl := htmltemplate.Must(htmltemplate.New(template).Parse(template))
 

@@ -22,7 +22,7 @@ import (
 )
 
 // Filter emits only those items from an Observable that pass a predicate test.
-// Play: https://go.dev/play/p/3UsEzgLAp4s
+// Play: https://go.dev/play/p/gjk_wULxyEW
 func Filter[T any](predicate func(item T) bool) func(Observable[T]) Observable[T] {
 	return FilterIWithContext(func(ctx context.Context, v T, _ int64) (context.Context, bool) {
 		return ctx, predicate(v)
@@ -30,6 +30,7 @@ func Filter[T any](predicate func(item T) bool) func(Observable[T]) Observable[T
 }
 
 // FilterWithContext emits only those items from an Observable that pass a predicate test.
+// Play: https://go.dev/play/p/y4gstlmx4KR
 func FilterWithContext[T any](predicate func(ctx context.Context, item T) (context.Context, bool)) func(Observable[T]) Observable[T] {
 	return FilterIWithContext(func(ctx context.Context, v T, index int64) (context.Context, bool) {
 		return predicate(ctx, v)
@@ -37,6 +38,7 @@ func FilterWithContext[T any](predicate func(ctx context.Context, item T) (conte
 }
 
 // FilterI emits only those items from an Observable that pass a predicate test.
+// Play: https://go.dev/play/p/Y5a2-AicBWO
 func FilterI[T any](predicate func(item T, index int64) bool) func(Observable[T]) Observable[T] {
 	return FilterIWithContext(func(ctx context.Context, v T, i int64) (context.Context, bool) {
 		return ctx, predicate(v, i)
@@ -44,6 +46,7 @@ func FilterI[T any](predicate func(item T, index int64) bool) func(Observable[T]
 }
 
 // FilterIWithContext emits only those items from an Observable that pass a predicate test.
+// Play: https://go.dev/play/p/xjz-pViifdB
 func FilterIWithContext[T any](predicate func(ctx context.Context, item T, index int64) (context.Context, bool)) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -71,6 +74,7 @@ func FilterIWithContext[T any](predicate func(ctx context.Context, item T, index
 }
 
 // Distinct suppresses duplicate items in an Observable.
+// Play: https://go.dev/play/p/szxp8gO0_I7
 func Distinct[T comparable]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -134,6 +138,7 @@ func DistinctByWithContext[T any, K comparable](keySelector func(ctx context.Con
 // IgnoreElements does not emit any items from an Observable but mirrors its
 // termination notification. It is useful for ignoring all the items from an
 // Observable but you want to be notified when it completes or when it throws an error.
+// Play: https://go.dev/play/p/glDG6E-gZ1V
 func IgnoreElements[T any]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -155,6 +160,7 @@ func IgnoreElements[T any]() func(Observable[T]) Observable[T] {
 // Skip suppresses the first n items emitted by an Observable.
 // If the count is greater than the number of items emitted by the source Observable,
 // Skip will not emit any items. If the count is zero, Skip will emit all items.
+// Play: https://go.dev/play/p/AAEJaUZJuIj
 func Skip[T any](count int64) func(Observable[T]) Observable[T] {
 	if count < 0 {
 		panic(ErrSkipWrongCount)
@@ -218,6 +224,7 @@ func SkipWhileI[T any](predicate func(item T, index int64) bool) func(Observable
 // becomes false. It will then emit all the subsequent items. If the condition
 // is never false, SkipWhile will not emit any items. If the condition is false
 // on the first item, SkipWhile will emit all items.
+// Play: https://go.dev/play/p/oYUQuPWIytL
 func SkipWhileIWithContext[T any](predicate func(ctx context.Context, item T, index int64) (context.Context, bool)) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -251,6 +258,7 @@ func SkipWhileIWithContext[T any](predicate func(ctx context.Context, item T, in
 // SkipLast suppresses the last n items emitted by an Observable. If the count
 // is greater than the number of items emitted by the source Observable, SkipLast
 // will not emit any items. If the count is zero, SkipLast will emit all items.
+// Play: https://go.dev/play/p/gire30ONRBB
 func SkipLast[T any](count int) func(Observable[T]) Observable[T] {
 	if count < 1 {
 		panic(ErrSkipLastWrongCount)
@@ -332,6 +340,7 @@ func SkipUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T]
 // Take emits only the first n items emitted by an Observable. If the count is
 // greater than the number of items emitted by the source Observable, Take will
 // emit all items. If the count is zero, Take will not emit any items.
+// Play: https://go.dev/play/p/IC_hJMsg7yk
 func Take[T any](count int64) func(Observable[T]) Observable[T] {
 	if count < 0 {
 		panic(ErrTakeWrongCount)
@@ -372,6 +381,7 @@ func Take[T any](count int64) func(Observable[T]) Observable[T] {
 // not emit any items. If the condition is true on the first item, TakeWhile will
 // emit all items. If the condition is false on the first item, TakeWhile will not
 // emit any items.
+// Play: https://go.dev/play/p/lxV03GzOa2J
 func TakeWhile[T any](predicate func(item T) bool) func(Observable[T]) Observable[T] {
 	return TakeWhileIWithContext(func(ctx context.Context, v T, _ int64) (context.Context, bool) {
 		return ctx, predicate(v)
@@ -447,6 +457,7 @@ func TakeWhileIWithContext[T any](predicate func(ctx context.Context, item T, in
 // TakeLast emits only the last n items emitted by an Observable. If the count is
 // greater than the number of items emitted by the source Observable, TakeLast will
 // emit all items. If the count is zero, TakeLast will not emit any items.
+// Play: https://go.dev/play/p/J0mX3NpEHzy
 func TakeLast[T any](count int) func(Observable[T]) Observable[T] {
 	if count < 0 {
 		panic(ErrTakeLastWrongCount)
@@ -495,6 +506,7 @@ func TakeLast[T any](count int) func(Observable[T]) Observable[T] {
 // TakeUntil will emit all items. If the second Observable emits an item or completes,
 // TakeUntil will emit all items. If the second Observable emits an item or completes,
 // TakeUntil will complete.
+// Play: https://go.dev/play/p/nhgYGyREW1r
 func TakeUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -538,6 +550,7 @@ func TakeUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T]
 
 // Head emits only the first item emitted by an Observable. If the source Observable
 // is empty, Head will emit an error.
+// Play: https://go.dev/play/p/TmhTvpuKAp_U
 func Head[T any]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -595,6 +608,7 @@ func Tail[T any]() func(Observable[T]) Observable[T] {
 
 // First emits only the first item emitted by an Observable that satisfies a specified
 // condition. If the source Observable is empty, First will emit an error.
+// Play: https://go.dev/play/p/yneVKit6vh0
 func First[T any](predicate func(item T) bool) func(Observable[T]) Observable[T] {
 	return FirstI(func(v T, _ int64) bool {
 		return predicate(v)
@@ -649,6 +663,7 @@ func FirstIWithContext[T any](predicate func(ctx context.Context, item T, index 
 
 // Last emits only the last item emitted by an Observable that satisfies a specified
 // condition. If the source Observable is empty, Last will emit an error.
+// Play: https://go.dev/play/p/aMsvsTPbmHY
 func Last[T any](predicate func(item T) bool) func(Observable[T]) Observable[T] {
 	return LastI(func(v T, _ int64) bool {
 		return predicate(v)
@@ -711,6 +726,7 @@ func LastIWithContext[T any](predicate func(ctx context.Context, item T, index i
 
 // ElementAt emits only the nth item emitted by an Observable. If the source Observable
 // emits fewer than n items, ElementAt will emit an error.
+// Play: https://go.dev/play/p/0YE1tCbPaDg
 func ElementAt[T any](nth int) func(Observable[T]) Observable[T] {
 	if nth < 0 {
 		panic(ErrElementAtWrongNth)
@@ -746,6 +762,7 @@ func ElementAt[T any](nth int) func(Observable[T]) Observable[T] {
 
 // ElementAtOrDefault emits only the nth item emitted by an Observable. If the source
 // Observable emits fewer than n items, ElementAtOrDefault will emit a fallback value.
+// Play: https://go.dev/play/p/DWMWPXkc8x4
 func ElementAtOrDefault[T any](nth int64, fallback T) func(Observable[T]) Observable[T] {
 	if nth < 0 {
 		panic(ErrElementAtOrDefaultWrongNth)

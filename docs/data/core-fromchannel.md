@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func FromChannel[T any](ch <-chan T)"
-playUrl:
+playUrl: https://go.dev/play/p/IhQikKe1MPZ
 variantHelpers:
   - core#creation#fromchannel
 similarHelpers:

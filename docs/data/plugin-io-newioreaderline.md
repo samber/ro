@@ -6,7 +6,7 @@ type: plugin
 category: io
 signatures:
   - "func NewIOReaderLine(reader io.Reader)"
-playUrl: ""
+playUrl: https://go.dev/play/p/m9xsZX9z-dP
 variantHelpers:
   - plugin#io#newioreaderline
 similarHelpers:

@@ -6,7 +6,7 @@ type: core
 category: filtering
 signatures:
   - "func TakeLast(count int64)"
-playUrl:
+playUrl: https://go.dev/play/p/N6ckRLN9PRf
 variantHelpers:
   - core#filtering#takelast
 similarHelpers: []

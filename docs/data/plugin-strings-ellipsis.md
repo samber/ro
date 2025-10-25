@@ -6,7 +6,7 @@ type: plugin
 category: strings
 signatures:
   - "func Ellipsis[T ~string](length int)"
-playUrl: ""
+playUrl: https://go.dev/play/p/NPYWvnqQ6SE
 variantHelpers:
   - plugin#strings#ellipsis
 similarHelpers:

@@ -6,7 +6,7 @@ type: plugin
 category: strconv
 signatures:
   - "func ParseFloat[T ~string](bitSize int)"
-playUrl: ""
+playUrl: https://go.dev/play/p/hZnlXxqHwWX
 variantHelpers:
   - plugin#strconv#parsefloat
 similarHelpers:

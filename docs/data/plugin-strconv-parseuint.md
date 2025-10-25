@@ -6,7 +6,7 @@ type: plugin
 category: strconv
 signatures:
   - "func ParseUint[T ~string](base int, bitSize int)"
-playUrl: ""
+playUrl: https://go.dev/play/p/IS3cKM9fFFg
 variantHelpers:
   - plugin#strconv#parseuint
 similarHelpers:

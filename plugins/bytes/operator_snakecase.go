@@ -29,6 +29,7 @@ func snakeCase(str []byte) []byte {
 }
 
 // SnakeCase converts the string to snake case.
+// Play: https://go.dev/play/p/Cf5GQNC9KpW
 func SnakeCase[T ~[]byte]() func(destination ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(
 		func(value T) T {

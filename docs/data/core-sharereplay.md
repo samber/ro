@@ -6,7 +6,7 @@ type: core
 category: connectable
 signatures:
   - "func ShareReplay[T any](bufferSize int)"
-playUrl:
+playUrl: https://go.dev/play/p/QmsDbChzRgu
 variantHelpers:
   - core#connectable#sharereplay
 similarHelpers:

@@ -6,7 +6,7 @@ type: core
 category: connectable
 signatures:
   - "func ShareReplayWithConfig[T any](bufferSize int, config ShareReplayConfig)"
-playUrl:
+playUrl: https://go.dev/play/p/rztZ6B4XiQL
 variantHelpers:
   - core#connectable#sharereplaywithconfig
 similarHelpers:

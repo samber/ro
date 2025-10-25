@@ -11,7 +11,7 @@ signatures:
   - "func MergeWith3[T any](obsB ro.Observable[T], obsC ro.Observable[T], obsD ro.Observable[T])"
   - "func MergeWith4[T any](obsB ro.Observable[T], obsC ro.Observable[T], obsD ro.Observable[T], obsE ro.Observable[T])"
   - "func MergeWith5[T any](obsB ro.Observable[T], obsC ro.Observable[T], obsD ro.Observable[T], obsE ro.Observable[T], obsF ro.Observable[T])"
-playUrl:
+playUrl: https://go.dev/play/p/6QpUzcdRWJl
 variantHelpers:
   - core#combining#mergewith
   - core#combining#mergewith1

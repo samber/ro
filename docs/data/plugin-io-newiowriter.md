@@ -6,7 +6,7 @@ type: plugin
 category: io
 signatures:
   - "func NewIOWriter(writer io.Writer)"
-playUrl: ""
+playUrl: https://go.dev/play/p/LazCm43IDml
 variantHelpers:
   - plugin#io#newiowriter
 similarHelpers:

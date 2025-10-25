@@ -6,7 +6,7 @@ type: plugin
 category: ratelimit-native
 signatures:
   - "func NewRateLimiter[T any](count int64, interval time.Duration, keyGetter func(T) string)"
-playUrl: ""
+playUrl: https://go.dev/play/p/SxHgwuxdv0r
 variantHelpers:
   - plugin#ratelimit-native#newratelimiter
 similarHelpers:

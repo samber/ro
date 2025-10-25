@@ -7,7 +7,7 @@ category: combining
 signatures:
   - "func Amb[T any](sources ...Observable[T])"
   - "func Race[T any](sources ...Observable[T])"
-playUrl:
+playUrl: https://go.dev/play/p/-YvhnpQFVNS
 variantHelpers:
   - core#combining#amb
   - core#creation#race

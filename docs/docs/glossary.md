@@ -92,7 +92,7 @@ A strategy to handle situations where data is produced faster than it can be con
 
 :::
 
-See [backpressure](./core/backpressure) implementation details.
+See [Backpressure](./core/backpressure) for more details.
 
 ## Operator
 

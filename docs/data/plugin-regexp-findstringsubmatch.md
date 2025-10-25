@@ -6,7 +6,7 @@ type: plugin
 category: regexp
 signatures:
   - "func FindStringSubmatch[T ~string](pattern *regexp.Regexp)"
-playUrl: ""
+playUrl: https://go.dev/play/p/1YLeGzHmWJS
 variantHelpers:
   - plugin#regexp#findstringsubmatch
 similarHelpers:

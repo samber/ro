@@ -34,6 +34,7 @@ func ellipsis(str []byte, length int) []byte {
 }
 
 // Ellipsis truncates the string to the specified length and appends "..." if the string is longer than the specified length.
+// Play: https://go.dev/play/p/5HBKJcWTNrG
 func Ellipsis[T ~[]byte](length int) func(destination ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(
 		func(value T) T {

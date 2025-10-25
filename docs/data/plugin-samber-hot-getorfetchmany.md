@@ -6,7 +6,7 @@ type: plugin
 category: samber-hot
 signatures:
   - "func GetOrFetchMany[K comparable, V any](cache *hot.HotCache[K, V])"
-playUrl: ""
+playUrl: https://go.dev/play/p/M3U8Xxo9mBx
 variantHelpers:
   - plugin#samber-hot#getorfetchmany
 similarHelpers:

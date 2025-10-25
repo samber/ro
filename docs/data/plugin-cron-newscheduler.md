@@ -6,7 +6,7 @@ type: plugin
 category: cron
 signatures:
   - "func NewScheduler(job gocron.JobDefinition)"
-playUrl: ""
+playUrl: https://go.dev/play/p/oWIqF0o0dZ8
 variantHelpers:
   - plugin#cron#newscheduler
 similarHelpers: []

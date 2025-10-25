@@ -6,7 +6,7 @@ type: core
 category: utility
 signatures:
   - "func Delay[T any](duration time.Duration)"
-playUrl:
+playUrl: https://go.dev/play/p/BQBrPN7Fj6R
 variantHelpers:
   - core#utility#delay
 similarHelpers:

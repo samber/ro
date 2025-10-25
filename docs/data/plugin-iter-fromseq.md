@@ -6,7 +6,7 @@ type: plugin
 category: iter
 signatures:
   - "func FromSeq[T any](iterator iter.Seq[T])"
-playUrl: ""
+playUrl: https://go.dev/play/p/VwIX8SoYa9V
 variantHelpers:
   - plugin#iter#fromseq
 similarHelpers:

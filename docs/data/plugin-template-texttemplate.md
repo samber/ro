@@ -6,7 +6,7 @@ type: plugin
 category: template
 signatures:
   - "func TextTemplate[T any](template string)"
-playUrl: ""
+playUrl: https://go.dev/play/p/m4x0iTng5zQ
 variantHelpers:
   - plugin#template#texttemplate
 similarHelpers:

@@ -24,6 +24,7 @@ import (
 
 // Average calculates the average of the values emitted by the source Observable.
 // It emits the average when the source completes. If the source is empty, it emits NaN.
+// Play: https://go.dev/play/p/B0IhFEsQAin
 func Average[T constraints.Numeric]() func(Observable[T]) Observable[float64] {
 	return func(source Observable[T]) Observable[float64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
@@ -58,6 +59,7 @@ func Average[T constraints.Numeric]() func(Observable[T]) Observable[float64] {
 
 // Count counts the number of values emitted by the source Observable.
 // It emits the count when the source completes.
+// Play: https://go.dev/play/p/igtOxOLeHPp
 func Count[T any]() func(Observable[T]) Observable[int64] {
 	return func(source Observable[T]) Observable[int64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[int64]) Teardown {
@@ -84,6 +86,7 @@ func Count[T any]() func(Observable[T]) Observable[int64] {
 
 // Sum calculates the sum of the values emitted by the source Observable.
 // It emits the sum when the source completes.
+// Play: https://go.dev/play/p/b3rRlI80igo
 func Sum[T constraints.Numeric]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -109,6 +112,7 @@ func Sum[T constraints.Numeric]() func(Observable[T]) Observable[T] {
 }
 
 // Round emits the rounded values emitted by the source Observable.
+// Play: https://go.dev/play/p/aXwxpsJq_BQ
 func Round() func(Observable[float64]) Observable[float64] {
 	return func(source Observable[float64]) Observable[float64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
@@ -131,6 +135,7 @@ func Round() func(Observable[float64]) Observable[float64] {
 // Min emits the minimum value emitted by the source Observable.
 // It emits the minimum value when the source completes. If the source is empty,
 // it emits no value.
+// Play: https://go.dev/play/p/SPK3L-NvZ98
 func Min[T constraints.Numeric]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -165,6 +170,7 @@ func Min[T constraints.Numeric]() func(Observable[T]) Observable[T] {
 
 // Max emits the maximum value emitted by the source Observable. It emits the
 // maximum value when the source completes. If the source is empty, it emits no value.
+// Play: https://go.dev/play/p/wWljVN6i1Ip
 func Max[T constraints.Numeric]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -195,6 +201,7 @@ func Max[T constraints.Numeric]() func(Observable[T]) Observable[T] {
 }
 
 // Clamp emits the number within the inclusive lower and upper bounds.
+// Play: https://go.dev/play/p/fu8O-BixXPM
 func Clamp[T constraints.Numeric](lower, upper T) func(Observable[T]) Observable[T] {
 	if lower > upper {
 		panic(ErrClampLowerLessThanUpper)
@@ -226,6 +233,7 @@ func Clamp[T constraints.Numeric](lower, upper T) func(Observable[T]) Observable
 }
 
 // Abs emits the absolute values emitted by the source Observable.
+// Play: https://go.dev/play/p/WCzxrucg7BC
 func Abs() func(Observable[float64]) Observable[float64] {
 	return func(source Observable[float64]) Observable[float64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
@@ -246,6 +254,7 @@ func Abs() func(Observable[float64]) Observable[float64] {
 }
 
 // Floor emits the floor of the values emitted by the source Observable.
+// Play: https://go.dev/play/p/UulGlomv9K5
 func Floor() func(Observable[float64]) Observable[float64] {
 	return func(source Observable[float64]) Observable[float64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
@@ -266,6 +275,7 @@ func Floor() func(Observable[float64]) Observable[float64] {
 }
 
 // Ceil emits the ceiling of the values emitted by the source Observable.
+// Play: https://go.dev/play/p/BlpeIki-oMG
 func Ceil() func(Observable[float64]) Observable[float64] {
 	return func(source Observable[float64]) Observable[float64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
@@ -286,6 +296,7 @@ func Ceil() func(Observable[float64]) Observable[float64] {
 }
 
 // Trunc emits the truncated values emitted by the source Observable.
+// Play: https://go.dev/play/p/iYc9oGDgRZJ
 func Trunc() func(Observable[float64]) Observable[float64] {
 	return func(source Observable[float64]) Observable[float64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
@@ -308,6 +319,7 @@ func Trunc() func(Observable[float64]) Observable[float64] {
 // Reduce applies an accumulator function over the source Observable, and emits
 // the result when the source completes. It takes a seed value as the initial
 // accumulator value.
+// Play: https://go.dev/play/p/GpOF9eNpA5w
 func Reduce[T, R any](accumulator func(agg R, item T) R, seed R) func(Observable[T]) Observable[R] {
 	return ReduceIWithContext(func(ctx context.Context, agg R, item T, _ int64) (context.Context, R) {
 		return ctx, accumulator(agg, item)
@@ -335,6 +347,7 @@ func ReduceI[T, R any](accumulator func(agg R, item T, index int64) R, seed R) f
 // ReduceIWithContext applies an accumulator function over the source Observable,
 // and emits the result when the source completes. It takes a seed value as the
 // initial accumulator value.
+// Play: https://go.dev/play/p/WALnb341F4U
 func ReduceIWithContext[T, R any](accumulator func(ctx context.Context, agg R, item T, index int64) (context.Context, R), seed R) func(Observable[T]) Observable[R] {
 	return func(source Observable[T]) Observable[R] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[R]) Teardown {

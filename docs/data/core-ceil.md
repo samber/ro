@@ -6,7 +6,7 @@ type: core
 category: math
 signatures:
   - "func Ceil()"
-playUrl:
+playUrl: https://go.dev/play/p/BlpeIki-oMG
 variantHelpers:
   - core#math#ceil
 similarHelpers:

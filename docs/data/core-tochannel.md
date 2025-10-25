@@ -7,7 +7,7 @@ category: sink
 signatures:
   - "func ToChannel[T any](bufferSize int)"
   - "func ToChannelWithContext[T any](ctx context.Context, bufferSize int)"
-playUrl:
+playUrl: https://go.dev/play/p/WMKa26sirV0
 variantHelpers:
   - core#sink#tochannel
   - core#sink#tochannelwithcontext

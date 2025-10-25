@@ -9,7 +9,7 @@ signatures:
   - "func FlatMapWithContext[T any, R any](project func(ctx context.Context, item T) Observable[R])"
   - "func FlatMapI[T any, R any](project func(item T, index int64) Observable[R])"
   - "func FlatMapIWithContext[T any, R any](project func(ctx context.Context, item T, index int64) Observable[R])"
-playUrl:
+playUrl: https://go.dev/play/p/QBkDMwskibT
 variantHelpers:
   - core#transformation#flatmap
   - core#transformation#flatmapwithcontext

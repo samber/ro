@@ -6,7 +6,7 @@ type: core
 category: math
 signatures:
   - "func Floor()"
-playUrl:
+playUrl: https://go.dev/play/p/UulGlomv9K5
 variantHelpers:
   - core#math#floor
 similarHelpers:

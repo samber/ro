@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func RandIntN(n int64)"
-playUrl:
+playUrl: https://go.dev/play/p/4m7T5j-7i3a
 variantHelpers:
   - core#creation#randintn
 similarHelpers:

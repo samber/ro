@@ -6,7 +6,7 @@ type: plugin
 category: strconv
 signatures:
   - "func Atoi[T ~string]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/eaJ8rivjFzR
 variantHelpers:
   - plugin#strconv#atoi
 similarHelpers:

@@ -6,7 +6,7 @@ type: core
 category: math
 signatures:
   - "func Abs()"
-playUrl:
+playUrl: https://go.dev/play/p/WCzxrucg7BC
 variantHelpers:
   - core#math#abs
 similarHelpers:

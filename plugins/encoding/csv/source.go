@@ -23,6 +23,8 @@ import (
 	"github.com/samber/ro"
 )
 
+// NewCSVReader creates an observable that reads CSV records from a csv.Reader.
+// Play: https://go.dev/play/p/ZB3apy60Ujv
 func NewCSVReader(reader *csv.Reader) ro.Observable[[]string] {
 	return ro.NewUnsafeObservableWithContext(func(ctx context.Context, destination ro.Observer[[]string]) ro.Teardown {
 		for {

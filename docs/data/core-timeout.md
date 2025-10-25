@@ -6,7 +6,7 @@ type: core
 category: utility
 signatures:
   - "func Timeout[T any](duration time.Duration)"
-playUrl:
+playUrl: https://go.dev/play/p/t0xKoj-_AqZ
 variantHelpers:
   - core#utility#timeout
 similarHelpers:

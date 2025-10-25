@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func Defer[T any](factory func() Observable[T])"
-playUrl:
+playUrl: https://go.dev/play/p/wyVzordmkK0
 variantHelpers:
   - core#creation#defer
 similarHelpers:

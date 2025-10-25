@@ -6,7 +6,7 @@ type: plugin
 category: logger-log
 signatures:
   - "func Log[T any]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/WCSTdMUtOBh
 variantHelpers:
   - plugin#logger-log#log
   - plugin#logger-log#logwithprefix

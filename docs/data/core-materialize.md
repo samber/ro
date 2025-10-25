@@ -6,7 +6,7 @@ type: core
 category: utility
 signatures:
   - "func Materialize[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/ZHtPviPoqWK
 variantHelpers:
   - core#utility#materialize
 similarHelpers:

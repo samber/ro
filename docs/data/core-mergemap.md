@@ -9,7 +9,7 @@ signatures:
   - "func MergeMapI[T any, R any](project func(value T, index int64) Observable[R])"
   - "func MergeMapWithContext[T any, R any](project func(ctx context.Context, value T) (context.Context, Observable[R]))"
   - "func MergeMapIWithContext[T any, R any](project func(ctx context.Context, value T, index int64) (context.Context, Observable[R]))"
-playUrl:
+playUrl: https://go.dev/play/p/NwEyrLITshG
 variantHelpers:
   - core#combining#mergemap
   - core#combining#mergemapi

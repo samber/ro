@@ -6,7 +6,7 @@ type: core
 category: transformation
 signatures:
   - "func BufferWithTime[T any](duration time.Duration)"
-playUrl:
+playUrl: https://go.dev/play/p/TfOhP-f_O45
 variantHelpers:
   - core#transformation#bufferwithtime
 similarHelpers:

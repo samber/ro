@@ -6,7 +6,7 @@ type: plugin
 category: bytes
 signatures:
   - "func SnakeCase[T ~[]byte]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/JSlMzOne811
 variantHelpers:
   - plugin#bytes#snakecase
 similarHelpers:

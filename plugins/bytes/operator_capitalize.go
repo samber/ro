@@ -25,6 +25,7 @@ func capitalize(str []byte) []byte {
 }
 
 // Capitalize capitalizes the first letter of the string.
+// Play: https://go.dev/play/p/gAKIElJIUun
 func Capitalize[T ~[]byte]() func(destination ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(
 		func(value T) T {

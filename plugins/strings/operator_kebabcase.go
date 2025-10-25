@@ -29,6 +29,7 @@ func kebabCase(str string) string {
 }
 
 // KebabCase converts the string to kebab case.
+// Play: https://go.dev/play/p/Ndj3Gy2lztd
 func KebabCase[T ~string]() func(destination ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(
 		func(value T) T {

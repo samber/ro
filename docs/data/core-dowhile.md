@@ -9,7 +9,7 @@ signatures:
   - "func DoWhileI[T any](condition func(index int64) bool)"
   - "func DoWhileWithContext[T any](condition func(context.Context) (context.Context, bool))"
   - "func DoWhileIWithContext[T any](condition func(context.Context, index int64) (context.Context, bool))"
-playUrl:
+playUrl: https://go.dev/play/p/nEWabaItDpn
 variantHelpers:
   - core#error-handling#dowhile
   - core#error-handling#dowhilei

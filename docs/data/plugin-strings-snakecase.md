@@ -6,7 +6,7 @@ type: plugin
 category: strings
 signatures:
   - "func SnakeCase[T ~string]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/zHCGH586_X3
 variantHelpers:
   - plugin#strings#snakecase
 similarHelpers:

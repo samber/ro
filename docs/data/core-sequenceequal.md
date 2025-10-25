@@ -6,7 +6,7 @@ type: core
 category: conditional
 signatures:
   - "func SequenceEqual[T comparable](compareTo Observable[T])"
-playUrl:
+playUrl: https://go.dev/play/p/cBIQlH01byQ
 variantHelpers:
   - core#conditional#sequenceequal
 similarHelpers: []

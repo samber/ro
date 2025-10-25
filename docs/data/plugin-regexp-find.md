@@ -6,7 +6,7 @@ type: plugin
 category: regexp
 signatures:
   - "func Find[T ~[]byte](pattern *regexp.Regexp)"
-playUrl: ""
+playUrl: https://go.dev/play/p/1BdzQ45Mccw
 variantHelpers:
   - plugin#regexp#find
 similarHelpers:

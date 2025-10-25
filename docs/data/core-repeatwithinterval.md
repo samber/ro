@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func RepeatWithInterval[T any](source Observable[T], interval time.Duration)"
-playUrl:
+playUrl: https://go.dev/play/p/v9GdJJjAVDN
 variantHelpers:
   - core#creation#repeatwithinterval
 similarHelpers:

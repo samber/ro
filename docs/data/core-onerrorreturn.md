@@ -6,7 +6,7 @@ type: core
 category: error-handling
 signatures:
   - "func OnErrorReturn[T any](finally T)"
-playUrl:
+playUrl: https://go.dev/play/p/d_9xe1oedjU
 variantHelpers:
   - core#error-handling#onerrorreturn
 similarHelpers:

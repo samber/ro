@@ -6,7 +6,7 @@ type: plugin
 category: iter
 signatures:
   - "func ToSeq[T any](source ro.Observable[T]) iter.Seq[T]"
-playUrl: ""
+playUrl: https://go.dev/play/p/g8R8jb35LAs
 variantHelpers:
   - plugin#iter#toseq
 similarHelpers:

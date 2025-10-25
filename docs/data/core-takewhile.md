@@ -9,7 +9,7 @@ signatures:
   - "func TakeWhileWithContext[T any](predicate func(ctx context.Context, item T) (context.Context, bool))"
   - "func TakeWhileI[T any](predicate func(item T, index int64) bool)"
   - "func TakeWhileIWithContext[T any](predicate func(ctx context.Context, item T, index int64) (context.Context, bool))"
-playUrl:
+playUrl: https://go.dev/play/p/lxV03GzOa2J
 variantHelpers:
   - core#filtering#takewhile
   - core#filtering#takewhilewithcontext

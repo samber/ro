@@ -28,6 +28,7 @@ import (
 // Tap allows you to perform side effects for notifications from the source Observable
 // without modifying the emitted items. It mirrors the source Observable and forwards its emissions
 // to the provided observer.
+// Play: https://go.dev/play/p/oDI3d6553MI
 func Tap[T any](onNext func(value T), onError func(err error), onComplete func()) func(Observable[T]) Observable[T] {
 	return TapWithContext(
 		func(ctx context.Context, value T) {
@@ -45,6 +46,7 @@ func Tap[T any](onNext func(value T), onError func(err error), onComplete func()
 // TapWithContext allows you to perform side effects for notifications from the source Observable
 // without modifying the emitted items. It mirrors the source Observable and forwards its emissions
 // to the provided observer.
+// Play: https://go.dev/play/p/oDI3d6553MI
 func TapWithContext[T any](onNext func(ctx context.Context, value T), onError func(ctx context.Context, err error), onComplete func(ctx context.Context)) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -72,6 +74,7 @@ func TapWithContext[T any](onNext func(ctx context.Context, value T), onError fu
 }
 
 // Do is an alias to Tap.
+// Play: https://go.dev/play/p/s_BSHgxdjUR
 func Do[T any](onNext func(value T), onError func(err error), onComplete func()) func(Observable[T]) Observable[T] {
 	return Tap(onNext, onError, onComplete)
 }
@@ -84,11 +87,13 @@ func DoWithContext[T any](onNext func(ctx context.Context, value T), onError fun
 // TapOnNext allows you to perform side effects for Next notifications from the source Observable
 // without modifying the emitted items. It mirrors the source Observable and forwards its emissions
 // to the provided observer.
+// Play: https://go.dev/play/p/oDI3d6553MI
 func TapOnNext[T any](onNext func(value T)) func(Observable[T]) Observable[T] {
 	return Tap(onNext, func(err error) {}, func() {})
 }
 
 // TapOnNextWithContext allows you to perform side effects for Next notifications from the source Observable
+// Play: https://go.dev/play/p/oDI3d6553MI
 // without modifying the emitted items. It mirrors the source Observable and forwards its emissions
 // to the provided observer.
 func TapOnNextWithContext[T any](onNext func(ctx context.Context, value T)) func(Observable[T]) Observable[T] {
@@ -108,6 +113,7 @@ func DoOnNextWithContext[T any](onNext func(ctx context.Context, value T)) func(
 // TapOnError allows you to perform side effects for Error notifications from the source Observable
 // without modifying the emitted items. It mirrors the source Observable and forwards its emissions
 // to the provided observer.
+// Play: https://go.dev/play/p/oDI3d6553MI
 func TapOnError[T any](onError func(err error)) func(Observable[T]) Observable[T] {
 	return Tap(func(value T) {}, onError, func() {})
 }
@@ -132,6 +138,7 @@ func DoOnErrorWithContext[T any](onError func(ctx context.Context, err error)) f
 // TapOnComplete allows you to perform side effects for Complete notifications from the source Observable
 // without modifying the emitted items. It mirrors the source Observable and forwards its emissions
 // to the provided observer.
+// Play: https://go.dev/play/p/z1sntT6bplM
 func TapOnComplete[T any](onComplete func()) func(Observable[T]) Observable[T] {
 	return Tap(func(value T) {}, func(err error) {}, onComplete)
 }
@@ -139,6 +146,7 @@ func TapOnComplete[T any](onComplete func()) func(Observable[T]) Observable[T] {
 // TapOnCompleteWithContext allows you to perform side effects for Complete notifications from the source Observable
 // without modifying the emitted items. It mirrors the source Observable and forwards its emissions
 // to the provided observer.
+// Play: https://go.dev/play/p/3k25j_D1OTW
 func TapOnCompleteWithContext[T any](onComplete func(ctx context.Context)) func(Observable[T]) Observable[T] {
 	return TapWithContext(func(ctx context.Context, value T) {}, func(ctx context.Context, err error) {}, onComplete)
 }
@@ -156,6 +164,7 @@ func DoOnCompleteWithContext[T any](onComplete func(ctx context.Context)) func(O
 // TapOnSubscribe allows you to perform side effects when the source Observable is subscribed to
 // without modifying the emitted items. It mirrors the source Observable and forwards its emissions
 // to the provided observer.
+// Play: https://go.dev/play/p/0YzsxpRkO4T
 func TapOnSubscribe[T any](onSubscribe func()) func(Observable[T]) Observable[T] {
 	return TapOnSubscribeWithContext[T](func(ctx context.Context) {
 		onSubscribe()
@@ -189,6 +198,7 @@ func DoOnSubscribeWithContext[T any](onSubscribe func(ctx context.Context)) func
 // TapOnFinalize allows you to perform side effects when the source Observable is unsubscribed from
 // without modifying the emitted items. It mirrors the source Observable and forwards its emissions
 // to the provided observer.
+// Play: https://go.dev/play/p/VEACE_KhdvU
 func TapOnFinalize[T any](onFinalize func()) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -203,6 +213,7 @@ func TapOnFinalize[T any](onFinalize func()) func(Observable[T]) Observable[T] {
 }
 
 // DoOnFinalize is an alias to TapOnFinalize.
+// Play: https://go.dev/play/p/7en6T1q33WF
 func DoOnFinalize[T any](onFinalize func()) func(Observable[T]) Observable[T] {
 	return TapOnFinalize[T](onFinalize)
 }
@@ -214,6 +225,7 @@ type IntervalValue[T any] struct {
 }
 
 // TimeInterval emits the values emitted by the source Observable with the time elapsed between each emission.
+// Play: https://go.dev/play/p/VX73ZL74hPk
 func TimeInterval[T any]() func(Observable[T]) Observable[IntervalValue[T]] {
 	return func(source Observable[T]) Observable[IntervalValue[T]] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[IntervalValue[T]]) Teardown {
@@ -247,6 +259,7 @@ type TimestampValue[T any] struct {
 }
 
 // Timestamp emits the values emitted by the source Observable with the time elapsed since the source Observable was subscribed to.
+// Play: https://go.dev/play/p/cDiCr6qIE2P
 func Timestamp[T any]() func(Observable[T]) Observable[TimestampValue[T]] {
 	return func(source Observable[T]) Observable[TimestampValue[T]] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[TimestampValue[T]]) Teardown {
@@ -276,6 +289,7 @@ func Timestamp[T any]() func(Observable[T]) Observable[TimestampValue[T]] {
 // Error and Complete notifications are delayed as well.
 //
 // @TODO: set queue size ?
+// Play: https://go.dev/play/p/K3md7WPtZGI
 func Delay[T any](duration time.Duration) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -353,6 +367,7 @@ func Delay[T any](duration time.Duration) func(Observable[T]) Observable[T] {
 }
 
 // DelayEach delays the emissions of the source Observable by a given duration without modifying the emitted items.
+// Play: https://go.dev/play/p/dReP7-bffEU
 func DelayEach[T any](duration time.Duration) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -377,6 +392,7 @@ func DelayEach[T any](duration time.Duration) func(Observable[T]) Observable[T] 
 // This is a pipeable operator. The creation operator equivalent is `Repeat`.
 //
 // The destination is flatten.
+// Play: https://go.dev/play/p/fEKtAX9_nYe
 func RepeatWith[T any](count int64) func(Observable[T]) Observable[T] {
 	if count < 0 {
 		panic(ErrRepeatWithWrongCount)
@@ -417,6 +433,7 @@ func RepeatWith[T any](count int64) func(Observable[T]) Observable[T] {
 }
 
 // Timeout raises an error if the source Observable does not emit any item within the specified duration.
+// Play: https://go.dev/play/p/t0xKoj-_AqZ
 func Timeout[T any](duration time.Duration) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -460,6 +477,7 @@ func Timeout[T any](duration time.Duration) func(Observable[T]) Observable[T] {
 }
 
 // Materialize converts the source Observable into a stream of Notification instances.
+// Play: https://go.dev/play/p/ZHtPviPoqWK
 func Materialize[T any]() func(Observable[T]) Observable[Notification[T]] {
 	return func(source Observable[T]) Observable[Notification[T]] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[Notification[T]]) Teardown {
@@ -486,6 +504,7 @@ func Materialize[T any]() func(Observable[T]) Observable[Notification[T]] {
 }
 
 // Dematerialize converts the source Observable of Notification instances back into a stream of items.
+// Play: https://go.dev/play/p/oRymdDqkh25
 func Dematerialize[T any]() func(Observable[Notification[T]]) Observable[T] {
 	return func(source Observable[Notification[T]]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -523,6 +542,7 @@ func Dematerialize[T any]() func(Observable[Notification[T]]) Observable[T] {
 // available, effectively implementing backpressure control.
 //
 // @TODO: add a backpressure policy ? drop vs block.
+// Play: https://go.dev/play/p/WrsTUq6yxtO
 func SubscribeOn[T any](bufferSize int) func(Observable[T]) Observable[T] {
 	if bufferSize <= 0 {
 		panic(ErrSubscribeOnWrongBufferSize)
@@ -545,6 +565,7 @@ func SubscribeOn[T any](bufferSize int) func(Observable[T]) Observable[T] {
 // available, effectively implementing backpressure control.
 //
 // @TODO: add a backpressure policy ? drop vs block.
+// Play: https://go.dev/play/p/BpdKJ6Mya03
 func ObserveOn[T any](bufferSize int) func(Observable[T]) Observable[T] {
 	if bufferSize <= 0 {
 		panic(ErrObserveOnWrongBufferSize)

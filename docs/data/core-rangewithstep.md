@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func RangeWithStep(start float64, end float64, step float64)"
-playUrl:
+playUrl: https://go.dev/play/p/61lr9W1Mkf0
 variantHelpers:
   - core#creation#rangewithstep
 similarHelpers:

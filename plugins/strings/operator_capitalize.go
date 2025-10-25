@@ -25,6 +25,7 @@ func capitalize(str string) string {
 }
 
 // Capitalize capitalizes the first letter of the string.
+// Play: https://go.dev/play/p/7hK8m9jL3nS
 func Capitalize[T ~string]() func(destination ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(
 		func(value T) T {

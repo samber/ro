@@ -9,7 +9,7 @@ signatures:
   - "func ContainsWithContext[T any](predicate func(ctx context.Context, item T) bool)"
   - "func ContainsI[T any](predicate func(item T, index int64) bool)"
   - "func ContainsIWithContext[T any](predicate func(ctx context.Context, item T, index int64) bool)"
-playUrl:
+playUrl: https://go.dev/play/p/ldteqqGsMWM
 variantHelpers:
   - core#conditional#contains
   - core#conditional#containswithcontext

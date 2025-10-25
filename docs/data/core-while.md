@@ -9,7 +9,7 @@ signatures:
   - "func WhileI[T any](condition func(index int64) bool)"
   - "func WhileWithContext[T any](condition func(context.Context) (context.Context, bool))"
   - "func WhileIWithContext[T any](condition func(context.Context, index int64) (context.Context, bool))"
-playUrl:
+playUrl: https://go.dev/play/p/hMj3DBVtp73
 variantHelpers:
   - core#error-handling#while
   - core#error-handling#whilei

@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func Throw[T any](err error)"
-playUrl:
+playUrl: https://go.dev/play/p/YuaGv9G-YIf
 variantHelpers:
   - core#creation#throw
 similarHelpers:

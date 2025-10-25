@@ -259,7 +259,13 @@ Every helper must have a working Go Playground example:
 
 When creating the go playground example, please run it to be sure it compiles and returns the expected output. If invalid, loop until it works.
 
-Add these examples in the source code comments, on top of methods, with a syntax like `// Play: <url>`.
+Add these examples in the source code comments, on top of methods, with a syntax like `// Play: <url>`. Eg:
+
+```go
+// Map applies a given project function to each item emitted by an Observable and emits the result.
+// Play: https://go.dev/play/p/JhTBEQFQGYr
+func Map[T, R any](project func(item T) R) func(Observable[T]) Observable[R] {
+```
 
 If the documentation is created at the same time of the helper source code, then the Go playground execution might fail, since we need to merge+release the source code first to make this new helper available to Go playground compiler. In that case, skip the creation of the example and set no URL.
 

@@ -6,7 +6,7 @@ type: core
 category: context
 signatures:
   - "func ThrowOnContextCancel[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/K9oGdZFa-b1
 variantHelpers:
   - core#context#throwoncontextcancel
 similarHelpers:

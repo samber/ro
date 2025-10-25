@@ -6,7 +6,7 @@ type: plugin
 category: strconv
 signatures:
   - "func Unquote()"
-playUrl: ""
+playUrl: https://go.dev/play/p/ljSAvIMOzmh
 variantHelpers:
   - plugin#strconv#unquote
 similarHelpers:

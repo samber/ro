@@ -6,7 +6,7 @@ type: plugin
 category: bytes
 signatures:
   - "func CamelCase[T ~[]byte]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/RCL_Z45aIQC
 variantHelpers:
   - plugin#bytes#camelcase
 similarHelpers:

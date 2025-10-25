@@ -6,7 +6,7 @@ type: plugin
 category: regexp
 signatures:
   - "func FindSubmatch[T ~[]byte](pattern *regexp.Regexp)"
-playUrl: ""
+playUrl: https://go.dev/play/p/nCs2PqFa8kE
 variantHelpers:
   - plugin#regexp#findsubmatch
 similarHelpers:

@@ -26,6 +26,7 @@ import (
 )
 
 // Map applies a given project function to each item emitted by an Observable and emits the result.
+// Play: https://go.dev/play/p/JhTBEQFQGYr
 func Map[T, R any](project func(item T) R) func(Observable[T]) Observable[R] {
 	return MapIWithContext(func(ctx context.Context, v T, _ int64) (context.Context, R) {
 		return ctx, project(v)
@@ -33,6 +34,7 @@ func Map[T, R any](project func(item T) R) func(Observable[T]) Observable[R] {
 }
 
 // MapWithContext applies a given project function to each item emitted by an Observable and emits the result.
+// Play: https://go.dev/play/p/b6i0jQenObW
 func MapWithContext[T, R any](project func(ctx context.Context, item T) (context.Context, R)) func(Observable[T]) Observable[R] {
 	return MapIWithContext(func(ctx context.Context, v T, _ int64) (context.Context, R) {
 		return project(ctx, v)
@@ -40,6 +42,7 @@ func MapWithContext[T, R any](project func(ctx context.Context, item T) (context
 }
 
 // MapI applies a given project function to each item emitted by an Observable and emits the result.
+// Play: https://go.dev/play/p/F8IKEdyC4sl
 func MapI[T, R any](project func(item T, index int64) R) func(Observable[T]) Observable[R] {
 	return MapIWithContext(func(ctx context.Context, v T, i int64) (context.Context, R) {
 		return ctx, project(v, i)
@@ -47,6 +50,7 @@ func MapI[T, R any](project func(item T, index int64) R) func(Observable[T]) Obs
 }
 
 // MapIWithContext applies a given project function to each item emitted by an Observable and emits the result.
+// Play: https://go.dev/play/p/dDFC9SU3FF1
 func MapIWithContext[T, R any](project func(ctx context.Context, item T, index int64) (context.Context, R)) func(Observable[T]) Observable[R] {
 	return func(source Observable[T]) Observable[R] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[R]) Teardown {
@@ -72,6 +76,7 @@ func MapIWithContext[T, R any](project func(ctx context.Context, item T, index i
 }
 
 // MapTo emits a constant value for each item emitted by an Observable.
+// Play: https://go.dev/play/p/Ghc5ar7GJag
 func MapTo[T, R any](output R) func(Observable[T]) Observable[R] {
 	return func(source Observable[T]) Observable[R] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[R]) Teardown {
@@ -93,6 +98,7 @@ func MapTo[T, R any](output R) func(Observable[T]) Observable[R] {
 }
 
 // MapErr applies a given project function to each item emitted by an Observable and emits the result.
+// Play: https://go.dev/play/p/x7-KC-SDXr1
 func MapErr[T, R any](project func(item T) (R, error)) func(Observable[T]) Observable[R] {
 	return MapErrIWithContext(func(ctx context.Context, t T, _ int64) (R, context.Context, error) {
 		r, err := project(t)
@@ -101,6 +107,7 @@ func MapErr[T, R any](project func(item T) (R, error)) func(Observable[T]) Obser
 }
 
 // MapErrWithContext applies a given project function to each item emitted by an Observable and emits the result.
+// Play: https://go.dev/play/p/EIGtDpPq5y-
 func MapErrWithContext[T, R any](project func(ctx context.Context, item T) (R, context.Context, error)) func(Observable[T]) Observable[R] {
 	return MapErrIWithContext(func(ctx context.Context, t T, _ int64) (R, context.Context, error) {
 		return project(ctx, t)
@@ -108,6 +115,7 @@ func MapErrWithContext[T, R any](project func(ctx context.Context, item T) (R, c
 }
 
 // MapErrI applies a given project function to each item emitted by an Observable and emits the result.
+// Play: https://go.dev/play/p/IAZJ9eQhNqN
 func MapErrI[T, R any](project func(item T, index int64) (R, error)) func(Observable[T]) Observable[R] {
 	return MapErrIWithContext(func(ctx context.Context, v T, i int64) (R, context.Context, error) {
 		r, err := project(v, i)
@@ -116,6 +124,7 @@ func MapErrI[T, R any](project func(item T, index int64) (R, error)) func(Observ
 }
 
 // MapErrIWithContext applies a given project function to each item emitted by an Observable and emits the result.
+// Play: https://go.dev/play/p/OO8FayqJesp
 func MapErrIWithContext[T, R any](project func(ctx context.Context, item T, index int64) (R, context.Context, error)) func(Observable[T]) Observable[R] {
 	return func(source Observable[T]) Observable[R] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[R]) Teardown {
@@ -146,6 +155,7 @@ func MapErrIWithContext[T, R any](project func(ctx context.Context, item T, inde
 
 // FlatMap transforms the items emitted by an Observable into Observables,
 // then flatten the emissions from those into a single Observable.
+// Play: https://go.dev/play/p/QBkDMwskibT
 func FlatMap[T, R any](project func(item T) Observable[R]) func(Observable[T]) Observable[R] {
 	return FlatMapI(func(v T, _ int64) Observable[R] {
 		return project(v)
@@ -154,6 +164,7 @@ func FlatMap[T, R any](project func(item T) Observable[R]) func(Observable[T]) O
 
 // FlatMapWithContext transforms the items emitted by an Observable into Observables,
 // then flatten the emissions from those into a single Observable.
+// Play: https://go.dev/play/p/lE04v4_lJ7M
 func FlatMapWithContext[T, R any](project func(ctx context.Context, item T) Observable[R]) func(Observable[T]) Observable[R] {
 	return FlatMapIWithContext(func(ctx context.Context, v T, _ int64) Observable[R] {
 		return project(ctx, v)
@@ -162,6 +173,7 @@ func FlatMapWithContext[T, R any](project func(ctx context.Context, item T) Obse
 
 // FlatMapI transforms the items emitted by an Observable into Observables,
 // then flatten the emissions from those into a single Observable.
+// Play: https://go.dev/play/p/H04QF1dltPI
 func FlatMapI[T, R any](project func(item T, index int64) Observable[R]) func(Observable[T]) Observable[R] {
 	return FlatMapIWithContext(func(ctx context.Context, v T, i int64) Observable[R] {
 		return project(v, i)
@@ -170,6 +182,7 @@ func FlatMapI[T, R any](project func(item T, index int64) Observable[R]) func(Ob
 
 // FlatMapIWithContext transforms the items emitted by an Observable into Observables,
 // then flatten the emissions from those into a single Observable.
+// Play: https://go.dev/play/p/BCv4krqHEhI
 func FlatMapIWithContext[T, R any](project func(ctx context.Context, item T, index int64) Observable[R]) func(Observable[T]) Observable[R] {
 	return func(source Observable[T]) Observable[R] {
 		return ConcatAll[R]()(
@@ -196,6 +209,7 @@ func FlatMapIWithContext[T, R any](project func(ctx context.Context, item T, ind
 }
 
 // Flatten flattens an Observable of Observables into a single Observable.
+// Play: https://go.dev/play/p/vUyrQ4GO87S
 func Flatten[T any]() func(Observable[[]T]) Observable[T] {
 	return func(source Observable[[]T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -218,6 +232,7 @@ func Flatten[T any]() func(Observable[[]T]) Observable[T] {
 }
 
 // Cast converts each value emitted by an Observable into a specified type.
+// Play: https://go.dev/play/p/XUdqodfFyT6
 func Cast[T, U any]() func(Observable[T]) Observable[U] {
 	return func(source Observable[T]) Observable[U] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[U]) Teardown {
@@ -242,7 +257,7 @@ func Cast[T, U any]() func(Observable[T]) Observable[U] {
 }
 
 // Scan applies an accumulator function over an Observable and emits each intermediate result.
-// Play: https://go.dev/play/p/jZD5FyPN3P_D
+// Play: https://go.dev/play/p/gAzVq-a0Jiz
 func Scan[T, R any](reduce func(accumulator R, item T) R, seed R) func(Observable[T]) Observable[R] {
 	return ScanIWithContext(func(ctx context.Context, accumulator R, item T, _ int64) (context.Context, R) {
 		return ctx, reduce(accumulator, item)
@@ -264,6 +279,7 @@ func ScanI[T, R any](reduce func(accumulator R, item T, index int64) R, seed R) 
 }
 
 // ScanIWithContext applies an accumulator function over an Observable and emits each intermediate result.
+// Play: https://go.dev/play/p/BG6OmY35v4x
 func ScanIWithContext[T, R any](reduce func(ctx context.Context, accumulator R, item T, index int64) (context.Context, R), seed R) func(Observable[T]) Observable[R] {
 	return func(source Observable[T]) Observable[R] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[R]) Teardown {
@@ -291,6 +307,7 @@ func ScanIWithContext[T, R any](reduce func(ctx context.Context, accumulator R, 
 
 // GroupBy groups the items emitted by an Observable according to a specified criterion,
 // and emits these grouped items as Observables.
+// Play: https://go.dev/play/p/GOL8imC0H5S
 func GroupBy[T any, K comparable](iteratee func(item T) K) func(Observable[T]) Observable[Observable[T]] {
 	return GroupByIWithContext(func(ctx context.Context, item T, _ int64) (context.Context, K) {
 		return ctx, iteratee(item)
@@ -315,6 +332,7 @@ func GroupByI[T any, K comparable](iteratee func(item T, index int64) K) func(Ob
 
 // GroupByIWithContext groups the items emitted by an Observable according to a specified criterion,
 // and emits these grouped items as Observables.
+// Play: https://go.dev/play/p/h7vpeD0djre
 func GroupByIWithContext[T any, K comparable](iteratee func(ctx context.Context, item T, index int64) (context.Context, K)) func(Observable[T]) Observable[Observable[T]] {
 	return func(source Observable[T]) Observable[Observable[T]] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[Observable[T]]) Teardown {
@@ -374,6 +392,7 @@ func GroupByIWithContext[T any, K comparable](iteratee func(ctx context.Context,
 // Then it emits the buffer and starts a new buffer. It repeats this process until the source Observable completes.
 // If the boundary Observable completes, the buffer is emitted and the source Observable completes.
 // If the source Observable errors, the buffer is emitted and the error is propagated.
+// Play: https://go.dev/play/p/w8c_zuaLl9l
 func BufferWhen[T, B any](boundary Observable[B]) func(Observable[T]) Observable[[]T] {
 	return func(source Observable[T]) Observable[[]T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
@@ -447,6 +466,7 @@ func BufferWhen[T, B any](boundary Observable[B]) func(Observable[T]) Observable
 // If the source Observable errors, the buffer is emitted and the error is propagated. If the source Observable completes,
 // the buffer is emitted and the complete notification is propagated. If the specified time or count is reached,
 // the buffer is emitted and a new buffer is started.
+// Play: https://go.dev/play/p/NyiF19jUdQD
 func BufferWithTimeOrCount[T any](size int, duration time.Duration) func(Observable[T]) Observable[[]T] {
 	if size < 1 {
 		panic(ErrBufferWithTimeOrCountWrongSize)
@@ -541,7 +561,7 @@ func BufferWithCount[T any](size int) func(Observable[T]) Observable[[]T] {
 	}
 
 	return func(source Observable[T]) Observable[[]T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
 			buffer := make([]T, 0, size)
 
 			sub := source.SubscribeWithContext(
@@ -579,6 +599,7 @@ func BufferWithCount[T any](size int) func(Observable[T]) Observable[[]T] {
 // Observable completes. If the source Observable errors, the buffer is emitted and the error
 // is propagated. If the source Observable completes, the buffer is emitted and the complete
 // notification is propagated. If the specified time is reached, the buffer is emitted and a new buffer is started.
+// Play: https://go.dev/play/p/TfOhP-f_O45
 func BufferWithTime[T any](duration time.Duration) func(Observable[T]) Observable[[]T] {
 	if duration <= 0 {
 		panic(ErrBufferWithTimeWrongDuration)
@@ -592,6 +613,7 @@ func BufferWithTime[T any](duration time.Duration) func(Observable[T]) Observabl
 // and a new window opens when the boundary Observable emits an item. If the source Observable completes,
 // the window emits the complete notification and the complete notification is propagated. If the boundary
 // Observable completes, the window emits the complete notification and the complete notification is propagated.
+// Play: https://go.dev/play/p/vK0elE-rPbl
 func WindowWhen[T, B any](boundary Observable[B]) func(Observable[T]) Observable[Observable[T]] {
 	return func(source Observable[T]) Observable[Observable[T]] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[Observable[T]]) Teardown {
@@ -681,6 +703,7 @@ func WindowWhen[T, B any](boundary Observable[B]) func(Observable[T]) Observable
 // Note that if the source Observable has emitted no items since the last
 // time it was sampled, the Observable that results from this operator will
 // emit no item for that sampling period.
+// Play: https://go.dev/play/p/tr4FEd-CSce
 func SampleWhen[T, t any](tick Observable[t]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -744,6 +767,7 @@ func SampleWhen[T, t any](tick Observable[t]) func(Observable[T]) Observable[T] 
 // Note that if the source Observable has emitted no items since the last
 // time it was sampled, the Observable that results from this operator will
 // emit no item for that sampling period.
+// Play: https://go.dev/play/p/PcPo4lE9-_T
 func SampleTime[T any](interval time.Duration) func(Observable[T]) Observable[T] {
 	return SampleWhen[T](
 		Interval(interval),
@@ -752,6 +776,7 @@ func SampleTime[T any](interval time.Duration) func(Observable[T]) Observable[T]
 
 // ThrottleWhen emits a value from the source Observable, then ignores subsequent source
 // values for a duration determined by another Observable, then repeats this process.
+// Play: https://go.dev/play/p/q3ISV03EL3q
 func ThrottleWhen[T, t any](tick Observable[t]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -800,6 +825,7 @@ func ThrottleWhen[T, t any](tick Observable[t]) func(Observable[T]) Observable[T
 
 // ThrottleTime emits a value from the source Observable, then ignores subsequent source
 // values for duration milliseconds, then repeats this process.
+// Play: https://go.dev/play/p/ITogsevmh88
 func ThrottleTime[T any](interval time.Duration) func(Observable[T]) Observable[T] {
 	intervalNano := interval.Nanoseconds()
 

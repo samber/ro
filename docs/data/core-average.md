@@ -6,7 +6,7 @@ type: core
 category: math
 signatures:
   - "func Average[T Numeric]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/B0IhFEsQAin
 variantHelpers:
   - core#math#average
 similarHelpers: []

@@ -24,6 +24,7 @@ import (
 )
 
 // NewIOWriter creates a sink that writes byte slices to an io.Writer and emits the total bytes written.
+// Play: https://go.dev/play/p/XoLdEcsmKxU
 func NewIOWriter(writer io.Writer) func(ro.Observable[[]byte]) ro.Observable[int] {
 	return func(source ro.Observable[[]byte]) ro.Observable[int] {
 		return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[int]) ro.Teardown {
@@ -58,6 +59,7 @@ func NewIOWriter(writer io.Writer) func(ro.Observable[[]byte]) ro.Observable[int
 }
 
 // NewStdWriter creates a sink that writes byte slices to standard output and emits the total bytes written.
+// Play: https://go.dev/play/p/9GjhDJIAs7z
 func NewStdWriter() func(ro.Observable[[]byte]) ro.Observable[int] {
 	return func(source ro.Observable[[]byte]) ro.Observable[int] {
 		return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[int]) ro.Teardown {

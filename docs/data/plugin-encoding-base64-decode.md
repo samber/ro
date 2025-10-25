@@ -6,7 +6,7 @@ type: plugin
 category: encoding-base64
 signatures:
   - "func Decode[T ~string](encoder *base64.Encoding)"
-playUrl: ""
+playUrl: https://go.dev/play/p/pXJEnRjCQLB
 variantHelpers:
   - plugin#encoding-base64#decode
 similarHelpers:

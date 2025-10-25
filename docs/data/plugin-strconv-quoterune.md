@@ -6,7 +6,7 @@ type: plugin
 category: strconv
 signatures:
   - "func QuoteRune()"
-playUrl: ""
+playUrl: https://go.dev/play/p/8evZnIhw4k8
 variantHelpers:
   - plugin#strconv#quoterune
 similarHelpers:

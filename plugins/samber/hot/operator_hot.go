@@ -27,6 +27,7 @@ import (
 var NotFound = errors.New("rohot.GetOrFetchOrError: not found")
 
 // GetOrFetch creates an operator that retrieves values from cache or fetches them when missing.
+// Play: https://go.dev/play/p/7mKj3n8fH4b
 func GetOrFetch[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Observable[K]) ro.Observable[lo.Tuple2[V, bool]] {
 	return func(source ro.Observable[K]) ro.Observable[lo.Tuple2[V, bool]] {
 		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[lo.Tuple2[V, bool]]) ro.Teardown {
@@ -53,6 +54,7 @@ func GetOrFetch[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Observab
 }
 
 // GetOrFetchOrSkip creates an operator that retrieves cached values and skips missing ones.
+// Play: https://go.dev/play/p/2gN9k8fJ3bL
 func GetOrFetchOrSkip[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Observable[K]) ro.Observable[V] {
 	return func(source ro.Observable[K]) ro.Observable[V] {
 		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[V]) ro.Teardown {
@@ -81,6 +83,7 @@ func GetOrFetchOrSkip[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Ob
 }
 
 // GetOrFetchOrError creates an operator that retrieves cached values or emits an error for missing ones.
+// Play: https://go.dev/play/p/9hJ7k6fL2mN
 func GetOrFetchOrError[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Observable[K]) ro.Observable[V] {
 	return func(source ro.Observable[K]) ro.Observable[V] {
 		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[V]) ro.Teardown {
@@ -111,6 +114,7 @@ func GetOrFetchOrError[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.O
 }
 
 // GetOrFetchMany creates an operator that retrieves multiple cached values at once.
+// Play: https://go.dev/play/p/4hK8n7fJ3mP
 func GetOrFetchMany[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Observable[[]K]) ro.Observable[map[K]V] {
 	return func(source ro.Observable[[]K]) ro.Observable[map[K]V] {
 		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[map[K]V]) ro.Teardown {

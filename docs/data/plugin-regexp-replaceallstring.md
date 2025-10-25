@@ -6,7 +6,7 @@ type: plugin
 category: regexp
 signatures:
   - "func ReplaceAllString[T ~string](pattern *regexp.Regexp, repl T)"
-playUrl: ""
+playUrl: https://go.dev/play/p/H6S5Gu4VO0x
 variantHelpers:
   - plugin#regexp#replaceallstring
 similarHelpers:

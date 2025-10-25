@@ -7,7 +7,7 @@ category: context
 signatures:
   - "func ContextMap[T any](project func(ctx context.Context) context.Context)"
   - "func ContextMapI[T any](project func(ctx context.Context, index int64) context.Context)"
-playUrl:
+playUrl: https://go.dev/play/p/jbshjD3sb6M
 variantHelpers:
   - core#context#contextmap
   - core#context#contextmapi

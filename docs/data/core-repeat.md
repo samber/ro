@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func Repeat[T any](source Observable[T])"
-playUrl:
+playUrl: https://go.dev/play/p/CUvh_TYALNe
 variantHelpers:
   - core#creation#repeat
 similarHelpers:

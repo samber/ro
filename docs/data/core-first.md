@@ -9,7 +9,7 @@ signatures:
   - "func FirstWithContext[T any](predicate func(ctx context.Context, item T) (context.Context, bool))"
   - "func FirstI[T any](predicate func(item T, index int64) bool)"
   - "func FirstIWithContext[T any](predicate func(ctx context.Context, item T, index int64) (context.Context, bool))"
-playUrl:
+playUrl: https://go.dev/play/p/yneVKit6vh0
 variantHelpers:
   - core#filtering#first
   - core#filtering#firstwithcontext

@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func RandFloat64()"
-playUrl:
+playUrl: https://go.dev/play/p/MRuy8rUpTve
 variantHelpers:
   - core#creation#randfloat64
 similarHelpers:

@@ -33,6 +33,7 @@ func toCamelCase(str string) string {
 }
 
 // CamelCase converts the string to camel case.
+// Play: https://go.dev/play/p/MMmhpwApG1y
 func CamelCase[T ~string]() func(destination ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(
 		func(value T) T {

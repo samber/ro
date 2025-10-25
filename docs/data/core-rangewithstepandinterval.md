@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func RangeWithStepAndInterval(start float64, end float64, step float64, interval time.Duration)"
-playUrl:
+playUrl: https://go.dev/play/p/2FcaPDM5lF5
 variantHelpers:
   - core#creation#rangewithstepandinterval
 similarHelpers:

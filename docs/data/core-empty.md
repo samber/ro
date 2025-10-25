@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func Empty[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/D1JWkPG4NFK
 variantHelpers:
   - core#creation#empty
 similarHelpers:

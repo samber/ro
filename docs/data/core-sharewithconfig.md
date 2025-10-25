@@ -6,7 +6,7 @@ type: core
 category: connectable
 signatures:
   - "func ShareWithConfig[T any](config ShareConfig[T])"
-playUrl:
+playUrl: https://go.dev/play/p/oO0iuL5Tq2O
 variantHelpers:
   - core#connectable#sharewithconfig
 similarHelpers:

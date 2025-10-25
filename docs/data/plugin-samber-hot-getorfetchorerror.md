@@ -6,7 +6,7 @@ type: plugin
 category: samber-hot
 signatures:
   - "func GetOrFetchOrError[K comparable, V any](cache *hot.HotCache[K, V])"
-playUrl: ""
+playUrl: https://go.dev/play/p/hL4L1oZBjhz
 variantHelpers:
   - plugin#samber-hot#getorfetchorerror
 similarHelpers:

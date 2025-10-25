@@ -6,7 +6,7 @@ type: plugin
 category: encoding-json-v2
 signatures:
   - "func Unmarshal[T any]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/X8yk6QLdDw5
 variantHelpers:
   - plugin#encoding-json-v2#unmarshal
 similarHelpers:

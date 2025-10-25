@@ -47,6 +47,23 @@ func TestOperatorTransformationMap(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// values, ctx, err := CollectWithContext(
+	// 	context.WithValue(context.Background(), "foobar", 42),
+	// 	Pipe1(
+	// 		Just(1, 2, 3),
+	// 		MapWithContext(func(ctx context.Context, n int) (context.Context, int) {
+	// 			v := ctx.Value("foobar").(int)
+	// 			is.Equal(42, v)
+
+	// 			newCtx := context.WithValue(ctx, "foobar", v*2)
+	// 			return newCtx, n * 2
+	// 		}),
+	// 	),
+	// )
+	// is.Equal([]int{2, 4, 6}, values)
+	// is.Equal(42, ctx.Value("foobar").(int))
+	// is.NoError(err)
 }
 
 func TestOperatorTransformationMapI(t *testing.T) {

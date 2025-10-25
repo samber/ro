@@ -7,7 +7,7 @@ category: creation
 signatures:
   - "func Just[T any](values ...T)"
   - "func Of[T any](values ...T)"
-playUrl:
+playUrl: https://go.dev/play/p/2CTim8maLwZ
 variantHelpers:
   - core#creation#just
   - core#creation#of

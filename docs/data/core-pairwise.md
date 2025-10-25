@@ -6,7 +6,7 @@ type: core
 category: combining
 signatures:
   - "func Pairwise[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/0YujgFTL4e0
 variantHelpers:
   - core#combining#pairwise
 similarHelpers:

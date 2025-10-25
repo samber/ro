@@ -6,7 +6,7 @@ type: plugin
 category: strconv
 signatures:
   - "func ParseBool[T ~string]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/lcXbpr9UIVT
 variantHelpers:
   - plugin#strconv#parsebool
 similarHelpers:

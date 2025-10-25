@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func FromSlice[T any](slice []T)"
-playUrl:
+playUrl: https://go.dev/play/p/BNhnqoQn0tP
 variantHelpers:
   - core#creation#fromslice
 similarHelpers:

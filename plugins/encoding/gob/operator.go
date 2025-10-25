@@ -23,6 +23,7 @@ import (
 )
 
 // Encode encodes values to gob binary format.
+// Play: https://go.dev/play/p/HdU4DMTagoA
 func Encode[T any]() func(ro.Observable[T]) ro.Observable[[]byte] {
 	return ro.MapErr(func(v T) ([]byte, error) {
 		var writer bytes.Buffer
@@ -31,6 +32,8 @@ func Encode[T any]() func(ro.Observable[T]) ro.Observable[[]byte] {
 	})
 }
 
+// Decode decodes gob binary data to values.
+// Play: https://go.dev/play/p/cH3AiWEwFQe
 func Decode[T any]() func(ro.Observable[[]byte]) ro.Observable[T] {
 	return ro.MapErr(func(v []byte) (T, error) {
 		var output T

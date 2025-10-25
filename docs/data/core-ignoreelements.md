@@ -6,7 +6,7 @@ type: core
 category: filtering
 signatures:
   - "func IgnoreElements[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/glDG6E-gZ1V
 variantHelpers:
   - core#filtering#ignoreelements
 similarHelpers: []

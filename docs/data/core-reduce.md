@@ -9,7 +9,7 @@ signatures:
   - "func ReduceWithContext[T any, R any](accumulator func(ctx context.Context, agg R, item T) (context.Context, R), seed R)"
   - "func ReduceI[T any, R any](accumulator func(agg R, item T, index int64) R, seed R)"
   - "func ReduceIWithContext[T any, R any](accumulator func(ctx context.Context, agg R, item T, index int64) (context.Context, R), seed R)"
-playUrl:
+playUrl: https://go.dev/play/p/GpOF9eNpA5w
 variantHelpers:
   - core#math#reduce
   - core#math#reducewithcontext

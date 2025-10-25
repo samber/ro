@@ -6,7 +6,7 @@ type: plugin
 category: bytes
 signatures:
   - "func Ellipsis[T ~[]byte](length int)"
-playUrl: ""
+playUrl: https://go.dev/play/p/zrihQpx4RFE
 variantHelpers:
   - plugin#bytes#ellipsis
 similarHelpers:

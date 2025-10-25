@@ -6,7 +6,7 @@ type: core
 category: math
 signatures:
   - "func Min[T constraints.Ordered]()"
-playUrl:
+playUrl: https://go.dev/play/p/SPK3L-NvZ98
 variantHelpers:
   - core#math#min
 similarHelpers: []

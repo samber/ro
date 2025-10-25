@@ -7,7 +7,7 @@ category: combining
 signatures:
   - "func CombineLatestAll[T any]()"
   - "func CombineLatestAllAny()"
-playUrl:
+playUrl: https://go.dev/play/p/nT1qq9ipwZL
 variantHelpers:
   - core#combining#combinelatestall
   - core#combining#combinelatestallany

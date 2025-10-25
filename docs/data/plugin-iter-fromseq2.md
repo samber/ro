@@ -6,7 +6,7 @@ type: plugin
 category: iter
 signatures:
   - "func FromSeq2[K, V any](iterator iter.Seq2[K, V])"
-playUrl: ""
+playUrl: https://go.dev/play/p/hHcR9l5TE0Q
 variantHelpers:
   - plugin#iter#fromseq2
 similarHelpers:

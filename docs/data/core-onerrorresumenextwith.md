@@ -6,7 +6,7 @@ type: core
 category: error-handling
 signatures:
   - "func OnErrorResumeNextWith[T any](finally ...Observable[T])"
-playUrl:
+playUrl: https://go.dev/play/p/9XLTAOginbK
 variantHelpers:
   - core#error-handling#onerrorresumenextwith
 similarHelpers:

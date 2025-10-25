@@ -6,7 +6,7 @@ type: core
 category: filtering
 signatures:
   - "func Distinct[T comparable]()"
-playUrl:
+playUrl: https://go.dev/play/p/szxp8gO0_I7
 variantHelpers:
   - core#filtering#distinct
 similarHelpers:

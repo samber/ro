@@ -6,7 +6,7 @@ type: plugin
 category: strconv
 signatures:
   - "func Itoa()"
-playUrl: ""
+playUrl: https://go.dev/play/p/3wXyl5u2eVl
 variantHelpers:
   - plugin#strconv#itoa
 similarHelpers:

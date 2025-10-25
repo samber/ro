@@ -6,7 +6,7 @@ type: plugin
 category: encoding-csv
 signatures:
   - "func NewCSVReader(reader *csv.Reader)"
-playUrl: ""
+playUrl: https://go.dev/play/p/lmL054evzfS
 variantHelpers:
   - plugin#encoding-csv#newcsvreader
 similarHelpers: []

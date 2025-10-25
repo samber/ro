@@ -6,7 +6,7 @@ type: core
 category: combining
 signatures:
   - "func MergeAll[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/m3nHZZJbwMF
 variantHelpers:
   - core#combining#mergeall
 similarHelpers:

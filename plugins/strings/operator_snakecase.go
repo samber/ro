@@ -29,6 +29,7 @@ func snakeCase(str string) string {
 }
 
 // SnakeCase converts the string to snake case.
+// Play: https://go.dev/play/p/hlGVKI-dR4y
 func SnakeCase[T ~string]() func(destination ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(
 		func(value T) T {

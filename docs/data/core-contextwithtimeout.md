@@ -7,7 +7,7 @@ category: context
 signatures:
   - "func ContextWithTimeout[T any](timeout time.Duration)"
   - "func ContextWithTimeoutCause[T any](timeout time.Duration, cause error)"
-playUrl:
+playUrl: https://go.dev/play/p/1qijKGsyn0D
 variantHelpers:
   - core#context#contextwithtimeout
   - core#context#contextwithtimeoutcause

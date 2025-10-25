@@ -22,6 +22,7 @@ import (
 
 // Catch catches errors on the observable to be handled by returning a new observable
 // or throwing an error.
+// Play: https://go.dev/play/p/0pVlxwjhdMT
 func Catch[T any](finally func(err error) Observable[T]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -50,6 +51,7 @@ func Catch[T any](finally func(err error) Observable[T]) func(Observable[T]) Obs
 // OnErrorResumeNextWith instructs an Observable to begin emitting a second
 // Observable sequence if it encounters an error or completes. It immediately
 // subscribes to the next one that was passed.
+// Play: https://go.dev/play/p/9XLTAOginbK
 func OnErrorResumeNextWith[T any](finally ...Observable[T]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		if len(finally) == 0 {
@@ -105,6 +107,7 @@ func OnErrorResumeNextWith[T any](finally ...Observable[T]) func(Observable[T]) 
 
 // OnErrorReturn instructs an Observable to emit a particular item when it
 // encounters an error. It will then complete the sequence.
+// Play: https://go.dev/play/p/d_9xe1oedjU
 func OnErrorReturn[T any](finally T) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -128,6 +131,7 @@ func OnErrorReturn[T any](finally T) func(Observable[T]) Observable[T] {
 // Retry resubscribes to the source observable when it encounters an error.
 // It will retry infinitely. If you want to limit the number of retries, use
 // RetryWithConfig.
+// Play: https://go.dev/play/p/Llj9dT9Y3Z2
 func Retry[T any]() func(Observable[T]) Observable[T] {
 	return RetryWithConfig[T](RetryConfig{
 		MaxRetries:     0,     // unlimited
@@ -148,6 +152,7 @@ type RetryConfig struct {
 // number of retries is reached. If a delay is set, it will wait before retrying.
 // If resetOnSuccess is set, it will reset the number of retries when a value is
 // emitted.
+// Play: https://go.dev/play/p/GilWi5xG0lr
 func RetryWithConfig[T any](opts RetryConfig) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -218,6 +223,7 @@ func RetryWithConfig[T any](opts RetryConfig) func(Observable[T]) Observable[T] 
 // throw the error returned by the throw function. If the source observable
 // emits a value, it will complete. If the source observable emits an error,
 // it will propagate the error.
+// Play: https://go.dev/play/p/mLCaC7p_6p4
 func ThrowIfEmpty[T any](throw func() error) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -249,6 +255,7 @@ func ThrowIfEmpty[T any](throw func() error) func(Observable[T]) Observable[T] {
 // complete when the condition is false. It will not emit any values if the
 // source observable is empty. It will not emit any values if the source observable
 // emits an error.
+// Play: https://go.dev/play/p/nEWabaItDpn
 func DoWhile[T any](condition func() bool) func(Observable[T]) Observable[T] {
 	return DoWhileI[T](func(_ int64) bool {
 		return condition()
@@ -269,6 +276,7 @@ func DoWhileWithContext[T any](condition func(ctx context.Context) (context.Cont
 // complete when the condition is false. It will not emit any values if the
 // source observable is empty. It will not emit any values if the source observable
 // emits an error.
+// Play: https://go.dev/play/p/cxOA9gimkCq
 func DoWhileI[T any](condition func(index int64) bool) func(Observable[T]) Observable[T] {
 	return DoWhileIWithContext[T](func(ctx context.Context, index int64) (context.Context, bool) {
 		return ctx, condition(index)
@@ -279,6 +287,7 @@ func DoWhileI[T any](condition func(index int64) bool) func(Observable[T]) Obser
 // complete when the condition is false. It will not emit any values if the
 // source observable is empty. It will not emit any values if the source observable
 // emits an error.
+// Play: https://go.dev/play/p/yMoCCnnvRRH
 func DoWhileIWithContext[T any](condition func(ctx context.Context, index int64) (context.Context, bool)) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -338,6 +347,7 @@ func DoWhileIWithContext[T any](condition func(ctx context.Context, index int64)
 // complete when the condition is false. It will not emit any values if the
 // source observable is empty. It will not emit any values if the source observable
 // emits an error.
+// Play: https://go.dev/play/p/hMj3DBVtp73
 func While[T any](condition func() bool) func(Observable[T]) Observable[T] {
 	return WhileIWithContext[T](func(ctx context.Context, _ int64) (context.Context, bool) {
 		return ctx, condition()
@@ -358,6 +368,7 @@ func WhileWithContext[T any](condition func(ctx context.Context) (context.Contex
 // complete when the condition is false. It will not emit any values if the
 // source observable is empty. It will not emit any values if the source observable
 // emits an error.
+// Play: https://go.dev/play/p/9aAuzAspyMc
 func WhileI[T any](condition func(index int64) bool) func(Observable[T]) Observable[T] {
 	return WhileIWithContext[T](func(ctx context.Context, index int64) (context.Context, bool) {
 		return ctx, condition(index)
@@ -368,6 +379,7 @@ func WhileI[T any](condition func(index int64) bool) func(Observable[T]) Observa
 // complete when the condition is false. It will not emit any values if the
 // source observable is empty. It will not emit any values if the source observable
 // emits an error.
+// Play: https://go.dev/play/p/xTpqdGSxOxw
 func WhileIWithContext[T any](condition func(ctx context.Context, index int64) (context.Context, bool)) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {

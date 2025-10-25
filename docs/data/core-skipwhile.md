@@ -9,7 +9,7 @@ signatures:
   - "func SkipWhileWithContext[T any](predicate func(ctx context.Context, item T) bool)"
   - "func SkipWhileI[T any](predicate func(item T, index int64) bool)"
   - "func SkipWhileIWithContext[T any](predicate func(ctx context.Context, item T, index int64) bool)"
-playUrl:
+playUrl: https://go.dev/play/p/Mb1cyMSD0Sc
 variantHelpers:
   - core#filtering#skipwhile
   - core#filtering#skipwhilewithcontext

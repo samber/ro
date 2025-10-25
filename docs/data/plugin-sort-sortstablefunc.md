@@ -6,7 +6,7 @@ type: plugin
 category: sort
 signatures:
   - "func SortStableFunc[T comparable](cmp func(a, b T) int)"
-playUrl: ""
+playUrl: https://go.dev/play/p/DNXdPAF0TBh
 variantHelpers:
   - plugin#sort#sortstablefunc
 similarHelpers:

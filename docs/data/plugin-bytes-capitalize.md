@@ -6,7 +6,7 @@ type: plugin
 category: bytes
 signatures:
   - "func Capitalize[T ~[]byte]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/qc7UDCtJM0n
 variantHelpers:
   - plugin#bytes#capitalize
 similarHelpers:

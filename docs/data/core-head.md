@@ -6,7 +6,7 @@ type: core
 category: filtering
 signatures:
   - "func Head[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/TmhTvpuKAp_U
 variantHelpers:
   - core#filtering#head
 similarHelpers:

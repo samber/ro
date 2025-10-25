@@ -6,7 +6,7 @@ type: core
 category: combining
 signatures:
   - "func ZipAll[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/FcpgTItKX-Q
 variantHelpers:
   - core#combining#zipall
 similarHelpers:

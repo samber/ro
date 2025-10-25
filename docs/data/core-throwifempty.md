@@ -6,7 +6,7 @@ type: core
 category: error-handling
 signatures:
   - "func ThrowIfro.Empty[T any](throw func() error)"
-playUrl:
+playUrl: https://go.dev/play/p/mLCaC7p_6p4
 variantHelpers:
   - core#error-handling#throwifempty
 similarHelpers:

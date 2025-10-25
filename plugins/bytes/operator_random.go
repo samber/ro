@@ -85,6 +85,7 @@ func random(size int, charset []rune) []byte {
 }
 
 // Random generates a random string of the specified size using the specified charset.
+// Play: https://go.dev/play/p/hX7F8StRq6Q
 func Random[T any](size int, charset []rune) func(destination ro.Observable[T]) ro.Observable[[]byte] {
 	if size <= 0 {
 		panic("robytes.Random: Size parameter must be greater than 0")

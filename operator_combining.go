@@ -30,6 +30,7 @@ import (
 // inner Observables are done.
 //
 // It is a curried function that takes the first Observable as an argument.
+// Play: https://go.dev/play/p/6QpUzcdRWJl
 func MergeWith[T any](observables ...Observable[T]) func(Observable[T]) Observable[T] {
 	return func(obsA Observable[T]) Observable[T] {
 		list := make([]Observable[T], len(observables)+1)
@@ -45,6 +46,7 @@ func MergeWith[T any](observables ...Observable[T]) func(Observable[T]) Observab
 // inner Observables are done.
 //
 // It is a curried function that takes the first Observable as an argument.
+// Play: https://go.dev/play/p/P47lkUFpYq7
 func MergeWith1[T any](obsB Observable[T]) func(Observable[T]) Observable[T] {
 	return func(obsA Observable[T]) Observable[T] {
 		return MergeAll[T]()(Just(obsA, obsB))
@@ -57,6 +59,7 @@ func MergeWith1[T any](obsB Observable[T]) func(Observable[T]) Observable[T] {
 // inner Observables are done.
 //
 // It is a curried function that takes the first Observable as an argument.
+// Play: https://go.dev/play/p/LOQ3YbuDyC9
 func MergeWith2[T any](obsB, obsC Observable[T]) func(Observable[T]) Observable[T] {
 	return func(obsA Observable[T]) Observable[T] {
 		return MergeAll[T]()(Just(obsA, obsB, obsC))
@@ -69,6 +72,7 @@ func MergeWith2[T any](obsB, obsC Observable[T]) func(Observable[T]) Observable[
 // inner Observables are done.
 //
 // It is a curried function that takes the first Observable as an argument.
+// Play: https://go.dev/play/p/pMQ5bNOlWj9
 func MergeWith3[T any](obsB, obsC, obsD Observable[T]) func(Observable[T]) Observable[T] {
 	return func(obsA Observable[T]) Observable[T] {
 		return MergeAll[T]()(Just(obsA, obsB, obsC, obsD))
@@ -81,6 +85,7 @@ func MergeWith3[T any](obsB, obsC, obsD Observable[T]) func(Observable[T]) Obser
 // inner Observables are done.
 //
 // It is a curried function that takes the first Observable as an argument.
+// Play: https://go.dev/play/p/FvJTHVOe52s
 func MergeWith4[T any](obsB, obsC, obsD, obsE Observable[T]) func(Observable[T]) Observable[T] {
 	return func(obsA Observable[T]) Observable[T] {
 		return MergeAll[T]()(Just(obsA, obsB, obsC, obsD, obsE))
@@ -93,6 +98,7 @@ func MergeWith4[T any](obsB, obsC, obsD, obsE Observable[T]) func(Observable[T])
 // inner Observables are done.
 //
 // It is a curried function that takes the first Observable as an argument.
+// Play: https://go.dev/play/p/kR3rFF7Bw-i
 func MergeWith5[T any](obsB, obsC, obsD, obsE, obsF Observable[T]) func(Observable[T]) Observable[T] {
 	return func(obsA Observable[T]) Observable[T] {
 		return MergeAll[T]()(Just(obsA, obsB, obsC, obsD, obsE, obsF))
@@ -104,6 +110,7 @@ func MergeWith5[T any](obsB, obsC, obsD, obsE, obsF Observable[T]) func(Observab
 // It subscribes to each inner Observable as they arrive, and emits all values
 // from each inner Observable, maintaining their order. It completes when all
 // inner Observables are done.
+// Play: https://go.dev/play/p/m3nHZZJbwMF
 func MergeAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 	return func(sources Observable[Observable[T]]) Observable[T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -165,6 +172,7 @@ func MergeAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 
 // MergeMap applies a projection function to each item emitted by the source
 // Observable and then merges the results into a single Observable.
+// Play: https://go.dev/play/p/NwEyrLITshG
 func MergeMap[T, R any](projection func(item T) Observable[R]) func(Observable[T]) Observable[R] {
 	return MergeMapIWithContext(func(ctx context.Context, item T, index int64) (context.Context, Observable[R]) {
 		return ctx, projection(item)
@@ -173,6 +181,7 @@ func MergeMap[T, R any](projection func(item T) Observable[R]) func(Observable[T
 
 // MergeMapWithContext applies a projection function to each item emitted by the source
 // Observable and then merges the results into a single Observable.
+// Play: https://go.dev/play/p/i2Ru9sUdL-x
 func MergeMapWithContext[T, R any](projection func(ctx context.Context, item T) Observable[R]) func(Observable[T]) Observable[R] {
 	return MergeMapIWithContext(func(ctx context.Context, item T, _ int64) (context.Context, Observable[R]) {
 		return ctx, projection(ctx, item)
@@ -181,6 +190,7 @@ func MergeMapWithContext[T, R any](projection func(ctx context.Context, item T) 
 
 // MergeMapI applies a projection function to each item emitted by the source
 // Observable and then merges the results into a single Observable.
+// Play: https://go.dev/play/p/dPDI7ch4g0i
 func MergeMapI[T, R any](projection func(item T, index int64) Observable[R]) func(Observable[T]) Observable[R] {
 	return MergeMapIWithContext(func(ctx context.Context, item T, index int64) (context.Context, Observable[R]) {
 		return ctx, projection(item, index)
@@ -189,6 +199,7 @@ func MergeMapI[T, R any](projection func(item T, index int64) Observable[R]) fun
 
 // MergeMapIWithContext applies a projection function to each item emitted by the source
 // Observable and then merges the results into a single Observable.
+// Play: https://go.dev/play/p/8Ih5mCaDbB8
 func MergeMapIWithContext[T, R any](projection func(ctx context.Context, item T, index int64) (context.Context, Observable[R])) func(Observable[T]) Observable[R] {
 	return func(source Observable[T]) Observable[R] {
 		i := int64(0)
@@ -219,6 +230,7 @@ func MergeMapIWithContext[T, R any](projection func(ctx context.Context, item T,
 // emitted at least one value. It completes when the source Observable completes.
 //
 // It is a curried function that takes the other Observable as an argument.
+// Play: https://go.dev/play/p/yq7G8eItuzO
 func CombineLatestWith[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tuple2[A, B]] {
 	return CombineLatestWith1[A](obsB)
 }
@@ -228,6 +240,7 @@ func CombineLatestWith[A, B any](obsB Observable[B]) func(Observable[A]) Observa
 // emitted at least one value. It completes when the source Observable completes.
 //
 // It is a curried function that takes the other Observable as an argument.
+// Play: https://go.dev/play/p/KXb19PPjCb1
 func CombineLatestWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tuple2[A, B]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple2[A, B]] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple2[A, B]]) Teardown {
@@ -317,6 +330,7 @@ func CombineLatestWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observ
 // emitted at least one value. It completes when the source Observable completes.
 //
 // It is a curried function that takes the other Observable as an argument.
+// Play: https://go.dev/play/p/hPDCDwEOB84
 func CombineLatestWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observable[A]) Observable[lo.Tuple3[A, B, C]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple3[A, B, C]] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple3[A, B, C]]) Teardown {
@@ -432,6 +446,7 @@ func CombineLatestWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) fun
 // emitted at least one value. It completes when the source Observable completes.
 //
 // It is a curried function that takes the other Observable as an argument.
+// Play: https://go.dev/play/p/PcMxo8yakQq
 func CombineLatestWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Observable[D]) func(Observable[A]) Observable[lo.Tuple4[A, B, C, D]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple4[A, B, C, D]] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple4[A, B, C, D]]) Teardown {
@@ -738,6 +753,7 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 // CombineLatestAll combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/nT1qq9ipwZL
 func CombineLatestAll[T any]() func(Observable[Observable[T]]) Observable[[]T] {
 	return func(sources Observable[Observable[T]]) Observable[[]T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
@@ -849,6 +865,7 @@ func CombineLatestAll[T any]() func(Observable[Observable[T]]) Observable[[]T] {
 // CombineLatestAllAny combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/nKMychGg9KH
 func CombineLatestAllAny() func(Observable[Observable[any]]) Observable[[]any] {
 	return CombineLatestAll[any]()
 }
@@ -858,6 +875,7 @@ func CombineLatestAllAny() func(Observable[Observable[any]]) Observable[[]any] {
 // order. It completes when all inner Observables are done.
 //
 // It is a curried function that takes the other Observables as arguments.
+// Play: https://go.dev/play/p/nRHRSR2yNvd
 func ConcatWith[T any](obs ...Observable[T]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return ConcatAll[T]()(Just(append([]Observable[T]{source}, obs...)...))
@@ -867,6 +885,7 @@ func ConcatWith[T any](obs ...Observable[T]) func(Observable[T]) Observable[T] {
 // ConcatAll concatenates the source Observable with other Observables. It subscribes
 // to each inner Observable only after the previous one completes, maintaining their
 // order. It completes when all inner Observables are done.
+// Play: https://go.dev/play/p/zygV4Ld9tcv
 func ConcatAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 	return func(sources Observable[Observable[T]]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -909,6 +928,7 @@ func ConcatAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 }
 
 // StartWith emits the given values before emitting the values from the source Observable.
+// Play: https://go.dev/play/p/vS_gIw8Ce1C
 func StartWith[T any](prefixes ...T) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -924,6 +944,7 @@ func StartWith[T any](prefixes ...T) func(Observable[T]) Observable[T] {
 }
 
 // EndWith emits the given values after emitting the values from the source Observable.
+// Play: https://go.dev/play/p/9FPyf3bqJk_n
 func EndWith[T any](suffixes ...T) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -985,6 +1006,7 @@ func Pairwise[T any]() func(Observable[T]) Observable[[]T] {
 // the same error.
 //
 // It is a curried function that takes the other Observables as arguments.
+// Play: https://go.dev/play/p/5VzGFd62SMC
 func RaceWith[T any](sources ...Observable[T]) func(Observable[T]) Observable[T] {
 	if len(sources) == 0 {
 		return func(source Observable[T]) Observable[T] {
@@ -1124,6 +1146,7 @@ func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T
 // at least one value. It completes when the source Observable completes.
 //
 // It is a curried function that takes the other Observable as an argument.
+// Play: https://go.dev/play/p/RmErtE3pHjb
 func ZipWith[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tuple2[A, B]] {
 	return ZipWith1[A](obsB)
 }
@@ -1194,6 +1217,7 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 // at least one value. It completes when the source Observable completes.
 //
 // It is a curried function that takes the other Observable as an argument.
+// Play: https://go.dev/play/p/MMq82Rkb0oh
 func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observable[A]) Observable[lo.Tuple3[A, B, C]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple3[A, B, C]] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple3[A, B, C]]) Teardown {
@@ -1425,6 +1449,7 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 // at least one value. It completes when the source Observable completes.
 //
 // It is a curried function that takes the other Observable as an argument.
+// Play: https://go.dev/play/p/OJz-AVo0-hY
 func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD Observable[D], obsE Observable[E], obsF Observable[F]) func(Observable[A]) Observable[lo.Tuple6[A, B, C, D, E, F]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple6[A, B, C, D, E, F]] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple6[A, B, C, D, E, F]]) Teardown {
@@ -1578,6 +1603,7 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 // ZipAll combines the values from the source Observable with the latest values
 // from the other Observables. It emits only when all Observables have emitted
 // at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/FcpgTItKX-Q
 func ZipAll[T any]() func(Observable[Observable[T]]) Observable[[]T] {
 	return func(sources Observable[Observable[T]]) Observable[[]T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {

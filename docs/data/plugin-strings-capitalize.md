@@ -6,7 +6,7 @@ type: plugin
 category: strings
 signatures:
   - "func Capitalize[T ~string]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/Q9lZAav_ETm
 variantHelpers:
   - plugin#strings#capitalize
 similarHelpers:

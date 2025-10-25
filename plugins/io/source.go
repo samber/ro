@@ -26,6 +26,7 @@ import (
 const IOReaderBufferSize = 1024
 
 // NewIOReader creates an observable that reads bytes from an io.Reader.
+// Play: https://go.dev/play/p/b75Poy3EVYn
 func NewIOReader(reader io.Reader) ro.Observable[[]byte] {
 	return ro.NewUnsafeObservableWithContext(func(ctx context.Context, destination ro.Observer[[]byte]) ro.Teardown {
 		buf := make([]byte, IOReaderBufferSize)
@@ -52,6 +53,7 @@ func NewIOReader(reader io.Reader) ro.Observable[[]byte] {
 }
 
 // NewIOReaderLine creates an observable that reads lines from an io.Reader.
+// Play: https://go.dev/play/p/oMv2jYVSLqd
 func NewIOReaderLine(reader io.Reader) ro.Observable[[]byte] {
 	return ro.NewUnsafeObservableWithContext(func(ctx context.Context, destination ro.Observer[[]byte]) ro.Teardown {
 		r := bufio.NewReader(reader)

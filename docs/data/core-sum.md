@@ -6,7 +6,7 @@ type: core
 category: math
 signatures:
   - "func Sum[T Numeric]()"
-playUrl:
+playUrl: https://go.dev/play/p/b3rRlI80igo
 variantHelpers:
   - core#math#sum
 similarHelpers:

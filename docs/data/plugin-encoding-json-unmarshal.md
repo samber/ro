@@ -6,7 +6,7 @@ type: plugin
 category: encoding-json
 signatures:
   - "func Unmarshal[T any]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/aMiYMUUkjnt
 variantHelpers:
   - plugin#encoding-json#unmarshal
 similarHelpers: 
@@ -24,6 +24,12 @@ import (
     "github.com/samber/ro"
     rojson "github.com/samber/ro/plugins/encoding/json"
 )
+
+type User struct {
+    ID   int    `json:"id"`
+    Name string `json:"name"`
+    Age  int    `json:"age"`
+}
 
 obs := ro.Pipe[[]byte, User](
     ro.Just([]byte(`{"id":1,"name":"Alice","age":30}`)),

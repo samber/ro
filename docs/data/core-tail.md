@@ -6,7 +6,7 @@ type: core
 category: filtering
 signatures:
   - "func Tail[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/sBwRm8c5s3a
 variantHelpers:
   - core#filtering#tail
 similarHelpers: [core#filtering#last, core#filtering#head, core#filtering#takelast]

@@ -6,7 +6,7 @@ type: core
 category: conditional
 signatures:
   - "func Iif[T any](condition func() bool, trueSource Observable[T], falseSource Observable[T])"
-playUrl:
+playUrl: https://go.dev/play/p/t-sNgL5EZA-
 variantHelpers:
   - core#conditional#iif
 similarHelpers: []

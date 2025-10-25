@@ -6,7 +6,7 @@ type: core
 category: utility
 signatures:
   - "func ObserveOn[T any](bufferSize int)"
-playUrl:
+playUrl: https://go.dev/play/p/YJ__KPmGUJo
 variantHelpers:
   - core#utility#observeon
 similarHelpers: [core#utility#subscribeon]

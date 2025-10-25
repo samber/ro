@@ -6,7 +6,7 @@ type: core
 category: math
 signatures:
   - "func Clamp[T constraints.Ordered](min, max T)"
-playUrl:
+playUrl: https://go.dev/play/p/fu8O-BixXPM
 variantHelpers:
   - core#math#clamp
 similarHelpers: []

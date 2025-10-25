@@ -9,7 +9,7 @@ signatures:
   - "func ToMapWithContext[T any, K comparable, V any](project func(ctx context.Context, item T) (K, V))"
   - "func ToMapI[T any, K comparable, V any](mapper func(item T, index int64) (K, V))"
   - "func ToMapIWithContext[T any, K comparable, V any](mapper func(ctx context.Context, item T, index int64) (K, V))"
-playUrl:
+playUrl: https://go.dev/play/p/FiF83XYB0ba
 variantHelpers:
   - core#sink#tomap
   - core#sink#tomapwithcontext

@@ -21,6 +21,7 @@ import (
 )
 
 // All determines whether all elements of an observable sequence satisfy a condition.
+// Play: https://go.dev/play/p/t22F_crlA-l
 func All[T any](predicate func(T) bool) func(Observable[T]) Observable[bool] {
 	return AllIWithContext(func(ctx context.Context, v T, _ int64) bool {
 		return predicate(v)
@@ -28,6 +29,7 @@ func All[T any](predicate func(T) bool) func(Observable[T]) Observable[bool] {
 }
 
 // AllWithContext determines whether all elements of an observable sequence satisfy a condition.
+// Play: https://go.dev/play/p/NEA7Zi7yVNh
 func AllWithContext[T any](predicate func(ctx context.Context, item T) bool) func(Observable[T]) Observable[bool] {
 	return AllIWithContext(func(ctx context.Context, item T, _ int64) bool {
 		return predicate(ctx, item)
@@ -42,6 +44,7 @@ func AllI[T any](predicate func(item T, index int64) bool) func(Observable[T]) O
 }
 
 // AllIWithContext determines whether all elements of an observable sequence satisfy a condition.
+// Play: https://go.dev/play/p/UkOzE4wQXPG
 func AllIWithContext[T any](predicate func(ctx context.Context, item T, index int64) bool) func(Observable[T]) Observable[bool] {
 	return func(source Observable[T]) Observable[bool] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[bool]) Teardown {
@@ -71,6 +74,7 @@ func AllIWithContext[T any](predicate func(ctx context.Context, item T, index in
 }
 
 // Contains determines whether an observable sequence contains a specified element with an equality comparer.
+// Play: https://go.dev/play/p/ldteqqGsMWM
 func Contains[T any](predicate func(item T) bool) func(Observable[T]) Observable[bool] {
 	return ContainsI(func(v T, _ int64) bool {
 		return predicate(v)
@@ -78,6 +82,7 @@ func Contains[T any](predicate func(item T) bool) func(Observable[T]) Observable
 }
 
 // ContainsWithContext determines whether an observable sequence contains a specified element with an equality comparer.
+// Play: https://go.dev/play/p/RPHkyiLrFVW
 func ContainsWithContext[T any](predicate func(ctx context.Context, item T) bool) func(Observable[T]) Observable[bool] {
 	return ContainsIWithContext(func(ctx context.Context, v T, _ int64) bool {
 		return predicate(ctx, v)
@@ -92,6 +97,7 @@ func ContainsI[T any](predicate func(item T, index int64) bool) func(Observable[
 }
 
 // ContainsIWithContext determines whether an observable sequence contains a specified element with an equality comparer.
+// Play: https://go.dev/play/p/TkLfujMVNJb
 func ContainsIWithContext[T any](predicate func(ctx context.Context, item T, index int64) bool) func(Observable[T]) Observable[bool] {
 	return func(source Observable[T]) Observable[bool] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[bool]) Teardown {
@@ -123,6 +129,7 @@ func ContainsIWithContext[T any](predicate func(ctx context.Context, item T, ind
 }
 
 // Find returns the first element of an observable sequence that satisfies the condition.
+// Play: https://go.dev/play/p/2f5rn0HoKeq
 func Find[T any](predicate func(item T) bool) func(Observable[T]) Observable[T] {
 	return FindI(func(item T, _ int64) bool {
 		return predicate(item)
@@ -130,6 +137,7 @@ func Find[T any](predicate func(item T) bool) func(Observable[T]) Observable[T] 
 }
 
 // FindWithContext returns the first element of an observable sequence that satisfies the condition.
+// Play: https://go.dev/play/p/BVm-Grgv11w
 func FindWithContext[T any](predicate func(ctx context.Context, item T) bool) func(Observable[T]) Observable[T] {
 	return FindIWithContext(func(ctx context.Context, v T, _ int64) bool {
 		return predicate(ctx, v)
@@ -144,6 +152,7 @@ func FindI[T any](predicate func(item T, index int64) bool) func(Observable[T]) 
 }
 
 // FindIWithContext returns the first element of an observable sequence that satisfies the condition.
+// Play: https://go.dev/play/p/X8oT_CF9IKM
 func FindIWithContext[T any](predicate func(ctx context.Context, item T, index int64) bool) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -173,6 +182,7 @@ func FindIWithContext[T any](predicate func(ctx context.Context, item T, index i
 }
 
 // Iif determines which one of two observables to return based on a condition.
+// Play: https://go.dev/play/p/t-sNgL5EZA-
 func Iif[T any](predicate func() bool, source1, source2 Observable[T]) func() Observable[T] {
 	return func() Observable[T] {
 		if predicate() {
@@ -184,6 +194,7 @@ func Iif[T any](predicate func() bool, source1, source2 Observable[T]) func() Ob
 }
 
 // DefaultIfEmpty emits a default value if the source observable emits no items.
+// Play: https://go.dev/play/p/WDh807OLPWv
 func DefaultIfEmpty[T any](defaultValue T) func(Observable[T]) Observable[T] {
 	return DefaultIfEmptyWithContext(context.Background(), defaultValue)
 }
@@ -219,6 +230,7 @@ func DefaultIfEmptyWithContext[T any](defaultCtx context.Context, defaultValue T
 }
 
 // SequenceEqual determines whether two observable sequences are equal by comparing the elements pairwise.
+// Play: https://go.dev/play/p/cBIQlH01byQ
 func SequenceEqual[T comparable](obsB Observable[T]) func(Observable[T]) Observable[bool] {
 	return func(source Observable[T]) Observable[bool] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[bool]) Teardown {

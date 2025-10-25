@@ -6,7 +6,7 @@ type: core
 category: utility
 signatures:
   - "func Dematerialize[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/oRymdDqkh25
 variantHelpers:
   - core#utility#dematerialize
 similarHelpers:

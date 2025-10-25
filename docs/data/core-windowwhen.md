@@ -6,7 +6,7 @@ type: core
 category: transformation
 signatures:
   - "func WindowWhen[T any, B any](boundary Observable[B])"
-playUrl:
+playUrl: https://go.dev/play/p/-FU2r4-mEhz
 variantHelpers:
   - core#transformation#windowwhen
 similarHelpers: [core#transformation#bufferwhen, core#transformation#windowwithtime, core#transformation#windowwithcount]

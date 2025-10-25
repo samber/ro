@@ -6,7 +6,7 @@ type: core
 category: utility
 signatures:
   - "func Timestamp[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/cDiCr6qIE2P
 variantHelpers:
   - core#utility#timestamp
 similarHelpers:

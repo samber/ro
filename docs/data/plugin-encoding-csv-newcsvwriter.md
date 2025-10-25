@@ -6,7 +6,7 @@ type: plugin
 category: encoding-csv
 signatures:
   - "func NewCSVWriter(writer *csv.Writer)"
-playUrl: ""
+playUrl: https://go.dev/play/p/Mz_EgW5bBT7
 variantHelpers:
   - plugin#encoding-csv#newcsvwriter
 similarHelpers: []

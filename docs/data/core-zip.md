@@ -11,7 +11,7 @@ signatures:
   - "func Zip4[A any, B any, C any, D any](obsA Observable[A], obsB Observable[B], obsC Observable[C], obsD Observable[D])"
   - "func Zip5[A any, B any, C any, D any, E any](obsA Observable[A], obsB Observable[B], obsC Observable[C], obsD Observable[D], obsE Observable[E])"
   - "func Zip6[A any, B any, C any, D any, E any, F any](obsA Observable[A], obsB Observable[B], obsC Observable[C], obsD Observable[D], obsE Observable[E], obsF Observable[F])"
-playUrl:
+playUrl: https://go.dev/play/p/5YxbQ5jNzjQ
 variantHelpers:
   - core#combining#zipx
   - core#combining#zip

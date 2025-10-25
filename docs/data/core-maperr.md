@@ -9,7 +9,7 @@ signatures:
   - "func MapErrWithContext[T any, R any](project func(ctx context.Context, item T) (R, error))"
   - "func MapErrI[T any, R any](project func(item T, index int64) (R, error))"
   - "func MapErrIWithContext[T any, R any](project func(ctx context.Context, item T, index int64) (R, error))"
-playUrl:
+playUrl: https://go.dev/play/p/x7-KC-SDXr1
 variantHelpers:
   - core#transformation#maperr
   - core#transformation#maperrwithcontext

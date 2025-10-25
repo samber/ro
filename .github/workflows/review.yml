@@ -51,6 +51,7 @@ jobs:
             Be welcoming but thorough in your comments. Use inline comments for code-specific feedback.
             Don't write comments/reviews in the PR thread: write only inline comments.
             Write short and concise comments/reviews. Write comments only if there is a specific issue: don't show me the good stuff.
+            Before posting a new comment, make sure it doesn’t repeat a point that’s already been made.
 
           # security: a prompt injection can be used to update comments in the current PR.
           claude_args: |

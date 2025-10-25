@@ -6,7 +6,7 @@ type: core
 category: combining
 signatures:
   - "func Concat[T any](sources ...Observable[T]) Observable[T]"
-playUrl:
+playUrl: https://go.dev/play/p/DFokqIXIguM
 variantHelpers:
   - core#combining#concat
 similarHelpers:

@@ -6,7 +6,7 @@ type: plugin
 category: encoding-json-v2
 signatures:
   - "func Marshal[T any]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/eAqEdXmGJHs
 variantHelpers:
   - plugin#encoding-json-v2#marshal
 similarHelpers:

@@ -13,7 +13,7 @@ signatures:
   - "func TapOnErrorWithContext[T any](onError func(ctx context.Context, err error))"
   - "func TapOnComplete[T any](onComplete func())"
   - "func TapOnCompleteWithContext[T any](onComplete func(ctx context.Context))"
-playUrl:
+playUrl: https://go.dev/play/p/oDI3d6553MI
 variantHelpers:
   - core#utility#tap
   - core#utility#tapwithcontext

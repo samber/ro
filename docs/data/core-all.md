@@ -9,7 +9,7 @@ signatures:
   - "func AllWithContext[T any](predicate func(ctx context.Context, item T) bool)"
   - "func AllI[T any](predicate func(item T, index int64) bool)"
   - "func AllIWithContext[T any](predicate func(ctx context.Context, item T, index int64) bool)"
-playUrl:
+playUrl: https://go.dev/play/p/t22F_crlA-l
 variantHelpers:
   - core#conditional#all
   - core#conditional#allwithcontext

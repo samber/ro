@@ -6,7 +6,7 @@ type: core
 category: utility
 signatures:
   - "func TimeInterval[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/VX73ZL74hPk
 variantHelpers:
   - core#utility#timeinterval
 similarHelpers:

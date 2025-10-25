@@ -6,7 +6,7 @@ type: core
 category: connectable
 signatures:
   - "func Share[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/C34fv02jAIH
 variantHelpers:
   - core#connectable#share
 similarHelpers:

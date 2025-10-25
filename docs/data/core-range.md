@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func Range(start int64, end int64)"
-playUrl:
+playUrl: https://go.dev/play/p/5XAXfNrtJm2
 variantHelpers:
   - core#creation#range
 similarHelpers:

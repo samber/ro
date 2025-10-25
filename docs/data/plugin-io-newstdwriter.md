@@ -6,7 +6,7 @@ type: plugin
 category: io
 signatures:
   - "func NewStdWriter()"
-playUrl: ""
+playUrl: https://go.dev/play/p/tj1fyTjkCDn
 variantHelpers:
   - plugin#io#newstdwriter
 similarHelpers:

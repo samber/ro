@@ -35,6 +35,7 @@ type ShareConfig[T any] struct {
 // Observable will be unsubscribed.
 //
 // This is an alias for ShareWithConfig with default configuration.
+// Play: https://go.dev/play/p/C34fv02jAIH
 func Share[T any]() func(Observable[T]) Observable[T] {
 	return ShareWithConfig(ShareConfig[T]{
 		Connector:           defaultConnector[T],
@@ -61,6 +62,7 @@ func Share[T any]() func(Observable[T]) Observable[T] {
 //     when it completes.
 //   - `ResetOnRefCountZero` determines whether the shared Observable should be
 //     reset when the reference count reaches zero.
+// Play: https://go.dev/play/p/C34fv02jAIH
 func ShareWithConfig[T any](config ShareConfig[T]) func(Observable[T]) Observable[T] {
 	if config.Connector == nil {
 		panic(ErrConnectableObservableMissingConnectorFactory)
@@ -190,6 +192,7 @@ type ShareReplayConfig struct {
 // Observable will be unsubscribed.
 //
 // This is an alias for ShareReplayWithConfig with default configuration.
+// Play: https://go.dev/play/p/QmsDbChzRgu
 func ShareReplay[T any](bufferSize int) func(Observable[T]) Observable[T] {
 	return ShareWithConfig(
 		ShareConfig[T]{
@@ -215,6 +218,7 @@ func ShareReplay[T any](bufferSize int) func(Observable[T]) Observable[T] {
 //   - `bufferSize` is the number of items to replay to future subscribers.
 //   - `ResetOnRefCountZero` determines whether the shared Observable should be
 //     reset when the reference count reaches zero.
+// Play: https://go.dev/play/p/QmsDbChzRgu
 func ShareReplayWithConfig[T any](bufferSize int, config ShareReplayConfig) func(Observable[T]) Observable[T] {
 	return ShareWithConfig(
 		ShareConfig[T]{

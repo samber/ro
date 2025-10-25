@@ -6,7 +6,7 @@ type: core
 category: transformation
 signatures:
   - "func BufferWhen[T any, B any](boundary Observable[B])"
-playUrl:
+playUrl: https://go.dev/play/p/w8c_zuaLl9l
 variantHelpers:
   - core#transformation#bufferwhen
 similarHelpers:

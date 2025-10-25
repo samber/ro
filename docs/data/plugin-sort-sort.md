@@ -6,7 +6,7 @@ type: plugin
 category: sort
 signatures:
   - "func Sort[T cmp.Ordered](cmp func(a, b T) int)"
-playUrl: ""
+playUrl: https://go.dev/play/p/Jem9ufkfmNR
 variantHelpers:
   - plugin#sort#sort
 similarHelpers:

@@ -6,7 +6,7 @@ type: plugin
 category: encoding-gob
 signatures:
   - "func Encode[T any]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/GAKNUUJia_c
 variantHelpers:
   - plugin#encoding-gob#encode
 similarHelpers:

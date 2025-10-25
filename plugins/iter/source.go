@@ -24,6 +24,7 @@ import (
 )
 
 // FromSeq creates an observable from a Go sequence iterator.
+// Play: https://go.dev/play/p/Cq-cq_AR4Z6
 func FromSeq[T any](iterator iter.Seq[T]) ro.Observable[T] {
 	return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
 		for v := range iterator {
@@ -35,6 +36,7 @@ func FromSeq[T any](iterator iter.Seq[T]) ro.Observable[T] {
 }
 
 // FromSeq2 creates an observable from a Go sequence iterator with key-value pairs.
+// Play: https://go.dev/play/p/d-SZxjCKm9N
 func FromSeq2[K, V any](iterator iter.Seq2[K, V]) ro.Observable[lo.Tuple2[K, V]] {
 	return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[lo.Tuple2[K, V]]) ro.Teardown {
 		for k, v := range iterator {

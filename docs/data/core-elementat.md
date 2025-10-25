@@ -6,7 +6,7 @@ type: core
 category: filtering
 signatures:
   - "func ElementAt[T any](nth int)"
-playUrl:
+playUrl: https://go.dev/play/p/0YE1tCbPaDg
 variantHelpers:
   - core#filtering#elementat
 similarHelpers:

@@ -6,7 +6,7 @@ type: plugin
 category: strconv
 signatures:
   - "func FormatBool()"
-playUrl: ""
+playUrl: https://go.dev/play/p/BWwZ2oDThAK
 variantHelpers:
   - plugin#strconv#formatbool
 similarHelpers:

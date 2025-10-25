@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func Start[T any](action func() T)"
-playUrl:
+playUrl: https://go.dev/play/p/Jz7oyagu07u
 variantHelpers:
   - core#creation#start
 similarHelpers:

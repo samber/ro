@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func RangeWithInterval(start int64, end int64, interval time.Duration)"
-playUrl:
+playUrl: https://go.dev/play/p/ykwKPLNquL9
 variantHelpers:
   - core#creation#rangewithinterval
 similarHelpers:

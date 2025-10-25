@@ -6,7 +6,7 @@ type: plugin
 category: strconv
 signatures:
   - "func FormatComplex(mt byte, prec, bitSize int)"
-playUrl: ""
+playUrl: https://go.dev/play/p/qT817diKCxy
 variantHelpers:
   - plugin#strconv#formatcomplex
 similarHelpers:

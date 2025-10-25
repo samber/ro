@@ -6,7 +6,7 @@ type: core
 category: combining
 signatures:
   - "func StartWith[T any](prefixes ...T)"
-playUrl:
+playUrl: https://go.dev/play/p/SzIbpmqFx07
 variantHelpers:
   - core#combining#startwith
 similarHelpers:

@@ -6,7 +6,7 @@ type: plugin
 category: bytes
 signatures:
   - "func PascalCase[T ~[]byte]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/ToPLTi_lCXI
 variantHelpers:
   - plugin#bytes#pascalcase
 similarHelpers:

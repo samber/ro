@@ -6,7 +6,7 @@ type: core
 category: math
 signatures:
   - "func Count[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/igtOxOLeHPp
 variantHelpers:
   - core#math#count
 similarHelpers:

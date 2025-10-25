@@ -37,6 +37,7 @@ import (
 ////////////////////////////////////////////////////////////
 
 // Sort sorts the observable values using the provided comparison function.
+// Play: https://go.dev/play/p/3hL6m9jK5nV
 func Sort[T constraints.Ordered](cmp func(a, b T) int) func(ro.Observable[T]) ro.Observable[T] {
 	return func(source ro.Observable[T]) ro.Observable[T] {
 		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
@@ -61,6 +62,7 @@ func Sort[T constraints.Ordered](cmp func(a, b T) int) func(ro.Observable[T]) ro
 }
 
 // SortFunc sorts the observable values using the provided comparison function.
+// Play: https://go.dev/play/p/PzNTA9Vufy7
 func SortFunc[T comparable](cmp func(a, b T) int) func(ro.Observable[T]) ro.Observable[T] {
 	return func(source ro.Observable[T]) ro.Observable[T] {
 		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
@@ -85,6 +87,7 @@ func SortFunc[T comparable](cmp func(a, b T) int) func(ro.Observable[T]) ro.Obse
 }
 
 // SortStableFunc sorts the observable values using the provided stable comparison function.
+// Play: https://go.dev/play/p/6b1tIxX9gfO
 func SortStableFunc[T comparable](cmp func(a, b T) int) func(ro.Observable[T]) ro.Observable[T] {
 	return func(source ro.Observable[T]) ro.Observable[T] {
 		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {

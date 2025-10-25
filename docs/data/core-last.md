@@ -9,7 +9,7 @@ signatures:
   - "func LastWithContext[T any](predicate func(ctx context.Context, item T) (context.Context, bool))"
   - "func LastI[T any](predicate func(item T, index int64) bool)"
   - "func LastIWithContext[T any](predicate func(ctx context.Context, item T, index int64) (context.Context, bool))"
-playUrl:
+playUrl: https://go.dev/play/p/aMsvsTPbmHY
 variantHelpers:
   - core#filtering#last
   - core#filtering#lastwithcontext

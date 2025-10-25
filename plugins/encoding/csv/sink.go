@@ -22,6 +22,8 @@ import (
 	"github.com/samber/ro"
 )
 
+// NewCSVWriter writes string slices to a CSV writer.
+// Play: https://go.dev/play/p/J6gzkUHIMgj
 func NewCSVWriter(writer *csv.Writer) func(ro.Observable[[]string]) ro.Observable[int] {
 	return func(source ro.Observable[[]string]) ro.Observable[int] {
 		return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[int]) ro.Teardown {

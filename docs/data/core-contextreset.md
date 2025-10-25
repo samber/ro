@@ -6,7 +6,7 @@ type: core
 category: context
 signatures:
   - "func ContextReset[T any](newCtx context.Context)"
-playUrl:
+playUrl: https://go.dev/play/p/PgvV0SejJpH
 variantHelpers:
   - core#context#contextreset
 similarHelpers:

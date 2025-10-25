@@ -24,6 +24,7 @@ import (
 )
 
 // Of creates an Observable that emits some values you specify.
+// Play: https://go.dev/play/p/Zp5LgHgvJ59
 func Of[T any](values ...T) Observable[T] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[T]) Teardown {
 		for _, v := range values {
@@ -37,11 +38,13 @@ func Of[T any](values ...T) Observable[T] {
 }
 
 // Just is an alias for Of.
+// Play: https://go.dev/play/p/A5S2McqqfqE
 func Just[T any](values ...T) Observable[T] {
 	return Of(values...)
 }
 
 // Start creates an Observable that emits lazily a single value.
+// Play: https://go.dev/play/p/Jz7oyagu07u
 func Start[T any](cb func() T) Observable[T] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[T]) Teardown {
 		destination.NextWithContext(ctx, cb())
@@ -52,7 +55,7 @@ func Start[T any](cb func() T) Observable[T] {
 }
 
 // Timer creates an Observable that emits a value after a specified duration.
-// Play: https://go.dev/play/p/G4HGY4DJ3Od
+// Play: https://go.dev/play/p/hMkNLEqpcy3
 func Timer(duration time.Duration) Observable[time.Duration] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[time.Duration]) Teardown {
 		timer := time.NewTimer(duration)
@@ -115,6 +118,7 @@ func Interval(interval time.Duration) Observable[int64] {
 // integers, with a constant interval between them. The first value is not emitted immediately,
 // but after the initial interval has passed. The first interval is `initial`, and the subsequent
 // intervals are `interval`. The first value is emitted after `initial` time has passed.
+// Play: https://go.dev/play/p/Xhi6c336ldy
 func IntervalWithInitial(initial, interval time.Duration) Observable[int64] {
 	return NewObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
 		ticker := time.NewTicker(initial * 2)
@@ -172,6 +176,7 @@ func IntervalWithInitial(initial, interval time.Duration) Observable[int64] {
 // If `start` is equal to `end`, an empty Observable is returned.
 // If `start` is greater than `end`, the emitted values are in
 // descending order. The step is 1.
+// Play: https://go.dev/play/p/5XAXfNrtJm2
 func Range(start, end int64) Observable[int64] {
 	sign := int64(1)
 
@@ -201,6 +206,7 @@ func Range(start, end int64) Observable[int64] {
 // If `start` is greater than `end`, the emitted values are in
 // descending order.
 // The step must be greater than 0.
+// Play: https://go.dev/play/p/EOG0tIVjUKC
 func RangeWithStep(start, end, step float64) Observable[float64] {
 	sign := 1.0
 
@@ -235,6 +241,7 @@ func RangeWithStep(start, end, step float64) Observable[float64] {
 // descending order. The interval is the time between each value.
 // The first value is emitted after the first interval has passed.
 // The step is 1.
+// Play: https://go.dev/play/p/Y_1l6BDbMSi
 func RangeWithInterval(start, end int64, interval time.Duration) Observable[int64] {
 	sign := int64(1)
 
@@ -264,6 +271,7 @@ func RangeWithInterval(start, end int64, interval time.Duration) Observable[int6
 // descending order. The step must be greater than 0.
 // The interval is the time between each value.
 // The first value is emitted after the first interval has passed.
+// Play: https://go.dev/play/p/kdAEsGwfqw9
 func RangeWithStepAndInterval(start, end, step float64, interval time.Duration) Observable[float64] {
 	sign := 1.0
 
@@ -288,6 +296,7 @@ func RangeWithStepAndInterval(start, end, step float64, interval time.Duration) 
 
 // Repeat creates an Observable that emits a single value multiple times.
 // This is a creation operator. The pipeable equivalent is `RepeatWith`.
+// Play: https://go.dev/play/p/CUvh_TYALNe
 func Repeat[T any](item T, count int64) Observable[T] {
 	if count < 0 {
 		panic(ErrRepeatWrongCount)
@@ -309,6 +318,7 @@ func Repeat[T any](item T, count int64) Observable[T] {
 // RepeatWithInterval creates an Observable that emits a single value multiple times.
 // The interval is the time between each value. The first value is emitted
 // after the first interval has passed.
+// Play: https://go.dev/play/p/4PK5Zt2sGze
 func RepeatWithInterval[T any](item T, count int64, interval time.Duration) Observable[T] {
 	if count < 0 {
 		panic(ErrRepeatWithIntervalWrongCount)
@@ -326,6 +336,7 @@ func RepeatWithInterval[T any](item T, count int64, interval time.Duration) Obse
 
 // FromChannel creates an Observable from a channel. Closing the
 // channel will complete the Observable.
+// Play: https://go.dev/play/p/x0u4eaOzYln
 func FromChannel[T any](in <-chan T) Observable[T] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[T]) Teardown {
 		done := make(chan struct{})
@@ -354,6 +365,7 @@ func FromChannel[T any](in <-chan T) Observable[T] {
 
 // FromSlice creates an Observable from a slice. The values are emitted
 // in the order they are in the slice.
+// Play: https://go.dev/play/p/BNhnqoQn0tP
 func FromSlice[T any](collections ...[]T) Observable[T] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[T]) Teardown {
 		for _, collection := range collections {
@@ -369,6 +381,7 @@ func FromSlice[T any](collections ...[]T) Observable[T] {
 }
 
 // Empty creates an Observable that emits no values and completes immediately.
+// Play: https://go.dev/play/p/D1JWkPG4NFK
 func Empty[T any]() Observable[T] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[T]) Teardown {
 		destination.CompleteWithContext(ctx)
@@ -379,6 +392,7 @@ func Empty[T any]() Observable[T] {
 
 // Never creates an Observable that emits no values and never completes.
 // This is useful for testing or when combining with other Observables.
+// Play: https://go.dev/play/p/GHzcVYaEvN8
 func Never() Observable[struct{}] {
 	return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[struct{}]) Teardown {
 		done := make(chan struct{})
@@ -407,6 +421,7 @@ func Never() Observable[struct{}] {
 }
 
 // Throw creates an Observable that emits an error and completes immediately.
+// Play: https://go.dev/play/p/1TBK8LdDRJF
 func Throw[T any](err error) Observable[T] {
 	// `nil` is a valid value for `err`
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[T]) Teardown {
@@ -421,6 +436,7 @@ func Throw[T any](err error) Observable[T] {
 // creating Observables that depend on some external state that is not
 // available at the time of creation. The `cb` function is called for each
 // Observer that subscribes to the Observable.
+// Play: https://go.dev/play/p/wyVzordmkK0
 func Defer[T any](factory func() Observable[T]) Observable[T] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[T]) Teardown {
 		sub := factory().SubscribeWithContext(ctx, destination)
@@ -456,6 +472,7 @@ func Future[T any](factory func() (T, error)) Observable[T] {
 // It subscribes to each inner Observable, and emits all values
 // from each inner Observable, maintaining their order. It completes when all
 // inner Observables are done.
+// Play: https://go.dev/play/p/hX2xPyeO3M9
 func Merge[T any](sources ...Observable[T]) Observable[T] {
 	return MergeAll[T]()(Just(sources...))
 }
@@ -463,6 +480,7 @@ func Merge[T any](sources ...Observable[T]) Observable[T] {
 // CombineLatest2 combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/mzpJyg7plnm
 func CombineLatest2[A, B any](obsA Observable[A], obsB Observable[B]) Observable[lo.Tuple2[A, B]] {
 	return CombineLatestWith1[A](obsB)(obsA)
 }
@@ -477,6 +495,7 @@ func CombineLatest3[A, B, C any](obsA Observable[A], obsB Observable[B], obsC Ob
 // CombineLatest4 combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/mzpJyg7plnm
 func CombineLatest4[A, B, C, D any](obsA Observable[A], obsB Observable[B], obsC Observable[C], obsD Observable[D]) Observable[lo.Tuple4[A, B, C, D]] {
 	return CombineLatestWith3[A](obsB, obsC, obsD)(obsA)
 }
@@ -484,6 +503,7 @@ func CombineLatest4[A, B, C, D any](obsA Observable[A], obsB Observable[B], obsC
 // CombineLatest5 combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/mzpJyg7plnm
 func CombineLatest5[A, B, C, D, E any](obsA Observable[A], obsB Observable[B], obsC Observable[C], obsD Observable[D], obsE Observable[E]) Observable[lo.Tuple5[A, B, C, D, E]] {
 	return CombineLatestWith4[A](obsB, obsC, obsD, obsE)(obsA)
 }
@@ -491,6 +511,7 @@ func CombineLatest5[A, B, C, D, E any](obsA Observable[A], obsB Observable[B], o
 // CombineLatestAny combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/mzpJyg7plnm
 func CombineLatestAny(sources ...Observable[any]) Observable[[]any] {
 	return CombineLatestAllAny()(Just(sources...))
 }
@@ -498,6 +519,7 @@ func CombineLatestAny(sources ...Observable[any]) Observable[[]any] {
 // Zip combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/5YxbQ5jNzjQ
 func Zip[T any](sources ...Observable[T]) Observable[[]T] {
 	return ZipAll[T]()(Just(sources...))
 }
@@ -505,6 +527,7 @@ func Zip[T any](sources ...Observable[T]) Observable[[]T] {
 // Zip2 combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/5YxbQ5jNzjQ
 func Zip2[A, B any](obsA Observable[A], obsB Observable[B]) Observable[lo.Tuple2[A, B]] {
 	return ZipWith1[A](obsB)(obsA)
 }
@@ -512,6 +535,7 @@ func Zip2[A, B any](obsA Observable[A], obsB Observable[B]) Observable[lo.Tuple2
 // Zip3 combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/5YxbQ5jNzjQ
 func Zip3[A, B, C any](obsA Observable[A], obsB Observable[B], obsC Observable[C]) Observable[lo.Tuple3[A, B, C]] {
 	return ZipWith2[A](obsB, obsC)(obsA)
 }
@@ -519,6 +543,7 @@ func Zip3[A, B, C any](obsA Observable[A], obsB Observable[B], obsC Observable[C
 // Zip4 combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/5YxbQ5jNzjQ
 func Zip4[A, B, C, D any](obsA Observable[A], obsB Observable[B], obsC Observable[C], obsD Observable[D]) Observable[lo.Tuple4[A, B, C, D]] {
 	return ZipWith3[A](obsB, obsC, obsD)(obsA)
 }
@@ -526,6 +551,7 @@ func Zip4[A, B, C, D any](obsA Observable[A], obsB Observable[B], obsC Observabl
 // Zip5 combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/5YxbQ5jNzjQ
 func Zip5[A, B, C, D, E any](obsA Observable[A], obsB Observable[B], obsC Observable[C], obsD Observable[D], obsE Observable[E]) Observable[lo.Tuple5[A, B, C, D, E]] {
 	return ZipWith4[A](obsB, obsC, obsD, obsE)(obsA)
 }
@@ -533,6 +559,7 @@ func Zip5[A, B, C, D, E any](obsA Observable[A], obsB Observable[B], obsC Observ
 // Zip6 combines the values from the source Observable with the latest
 // values from the other Observables. It will only emit when all Observables have
 // emitted at least one value. It completes when the source Observable completes.
+// Play: https://go.dev/play/p/5YxbQ5jNzjQ
 func Zip6[A, B, C, D, E, F any](obsA Observable[A], obsB Observable[B], obsC Observable[C], obsD Observable[D], obsE Observable[E], obsF Observable[F]) Observable[lo.Tuple6[A, B, C, D, E, F]] {
 	return ZipWith5[A](obsB, obsC, obsD, obsE, obsF)(obsA)
 }
@@ -540,6 +567,7 @@ func Zip6[A, B, C, D, E, F any](obsA Observable[A], obsB Observable[B], obsC Obs
 // Concat concatenates the source Observable with other Observables. It subscribes
 // to each inner Observable only after the previous one completes, maintaining their
 // order. It completes when all inner Observables are done.
+// Play: https://go.dev/play/p/DFokqIXIguM
 func Concat[T any](obs ...Observable[T]) Observable[T] {
 	return ConcatAll[T]()(Just(obs...))
 }
@@ -549,6 +577,7 @@ func Concat[T any](obs ...Observable[T]) Observable[T] {
 // Observable sources. It cancels the subscriptions to all other Observables.
 // It completes when the source Observable completes. If the source Observable
 // emits an error, the error is emitted by the resulting Observable.
+// Play: https://go.dev/play/p/5VzGFd62SMC
 func Race[T any](sources ...Observable[T]) Observable[T] {
 	if len(sources) == 0 {
 		return Empty[T]()
@@ -558,12 +587,14 @@ func Race[T any](sources ...Observable[T]) Observable[T] {
 }
 
 // Amb is an alias for Race.
+// Play: https://go.dev/play/p/-YvhnpQFVNS
 func Amb[T any](sources ...Observable[T]) Observable[T] {
 	return Race(sources...)
 }
 
 // RandIntN creates an Observable that emits random int values in the range [0, n).
 // The count is the number of values to emit.
+// Play: https://go.dev/play/p/4m7T5j-7i3a
 func RandIntN(n, count int) Observable[int] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
 		for i := 0; i < count; i++ {
@@ -578,6 +609,7 @@ func RandIntN(n, count int) Observable[int] {
 
 // RandFloat64 creates an Observable that emits random float64 values in the range [0, 1).
 // The count is the number of values to emit.
+// Play: https://go.dev/play/p/MRuy8rUpTve
 func RandFloat64(count int) Observable[float64] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[float64]) Teardown {
 		for i := 0; i < count; i++ {

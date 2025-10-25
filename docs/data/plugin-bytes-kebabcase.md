@@ -6,7 +6,7 @@ type: plugin
 category: bytes
 signatures:
   - "func KebabCase[T ~[]byte]()"
-playUrl:
+playUrl: https://go.dev/play/p/86V3xKuLykG
 variantHelpers:
   - plugin#bytes#kebabcase
 similarHelpers: []

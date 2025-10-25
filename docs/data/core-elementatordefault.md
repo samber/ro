@@ -6,7 +6,7 @@ type: core
 category: filtering
 signatures:
   - "func ElementAtOrDefault[T any](nth int64, fallback T)"
-playUrl:
+playUrl: https://go.dev/play/p/etZFkGgOPDl
 variantHelpers:
   - core#filtering#elementatordefault
 similarHelpers:

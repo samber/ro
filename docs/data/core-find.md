@@ -9,7 +9,7 @@ signatures:
   - "func FindWithContext[T any](predicate func(ctx context.Context, item T) bool)"
   - "func FindI[T any](predicate func(item T, index int64) bool)"
   - "func FindIWithContext[T any](predicate func(ctx context.Context, item T, index int64) bool)"
-playUrl:
+playUrl: https://go.dev/play/p/2f5rn0HoKeq
 variantHelpers:
   - core#conditional#find
   - core#conditional#findwithcontext

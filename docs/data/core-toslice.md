@@ -6,7 +6,7 @@ type: core
 category: sink
 signatures:
   - "func ToSlice[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/kxbU_PzpN6t
 variantHelpers:
   - core#sink#toslice
 similarHelpers:

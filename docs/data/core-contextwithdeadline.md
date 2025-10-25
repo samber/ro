@@ -7,7 +7,7 @@ category: context
 signatures:
   - "func ContextWithDeadline[T any](deadline time.Time)"
   - "func ContextWithDeadlineCause[T any](deadline time.Time, cause error)"
-playUrl:
+playUrl: https://go.dev/play/p/NPYFzhI2YDK
 variantHelpers:
   - core#context#contextwithdeadline
   - core#context#contextwithdeadlinecause

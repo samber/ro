@@ -21,6 +21,8 @@ import (
 	"github.com/samber/ro"
 )
 
+// NewRateLimiter creates a rate limiter that allows count items per interval for each key.
+// Play: https://go.dev/play/p/YNhnGgrMWmj
 func NewRateLimiter[T any](count int64, interval time.Duration, keyGetter func(T) string) func(destination ro.Observable[T]) ro.Observable[T] {
 	return func(source ro.Observable[T]) ro.Observable[T] {
 		return ro.Pipe2(

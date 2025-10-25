@@ -6,7 +6,7 @@ type: plugin
 category: bytes
 signatures:
   - "func Words[T ~[]byte]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/N0ZymyU0Luo
 variantHelpers:
   - plugin#bytes#words
 similarHelpers:

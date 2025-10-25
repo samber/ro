@@ -6,7 +6,7 @@ type: core
 category: combining
 signatures:
   - "func Merge[T any](sources ...Observable[T])"
-playUrl: https://go.dev/play/p/Nerpzkth1lT
+playUrl: https://go.dev/play/p/hX2xPyeO3M9
 variantHelpers:
   - core#combining#merge
 similarHelpers:

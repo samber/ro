@@ -6,7 +6,7 @@ type: core
 category: filtering
 signatures:
   - "func Take[T any](count int64)"
-playUrl:
+playUrl: https://go.dev/play/p/IC_hJMsg7yk
 variantHelpers:
   - core#filtering#take
 similarHelpers:

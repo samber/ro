@@ -6,7 +6,7 @@ type: core
 category: math
 signatures:
   - "func Max[T constraints.Ordered]()"
-playUrl:
+playUrl: https://go.dev/play/p/wWljVN6i1Ip
 variantHelpers:
   - core#math#max
 similarHelpers: []

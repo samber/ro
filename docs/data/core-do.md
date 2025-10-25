@@ -16,7 +16,7 @@ signatures:
   - "func DoOnSubscribe[T any](onSubscribe func())"
   - "func DoOnSubscribeWithContext[T any](onSubscribe func(ctx context.Context))"
   - "func DoOnFinalize[T any](onFinalize func())"
-playUrl:
+playUrl: https://go.dev/play/p/s_BSHgxdjUR
 variantHelpers:
   - core#utility#do
   - core#utility#dowithcontext

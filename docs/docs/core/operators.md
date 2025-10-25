@@ -275,7 +275,7 @@ unbounded := ro.Interval(1 * time.Second) // May leak memory
 
 Handle fast producers with appropriate backpressure mechanisms. In `ro`, backpressure is handled naturally through blocking behavior, but you may need additional buffering for extreme cases.
 
-See [backpressure](../core/backpressure) for more details.
+See [Backpressure](./backpressure) for more details.
 
 :::
 

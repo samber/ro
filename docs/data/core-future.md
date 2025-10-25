@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func Future[T any](promise func(resolve func(T), reject func(error)))"
-playUrl:
+playUrl: https://go.dev/play/p/BYPTAIeLqFm
 variantHelpers:
   - core#creation#future
 similarHelpers:

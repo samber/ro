@@ -6,7 +6,7 @@ type: plugin
 category: hyperloglog
 signatures:
   - "func CountDistinctReduce[T comparable](precision uint8, sparse bool, hashFunc func(input T) uint64)"
-playUrl: ""
+playUrl: https://go.dev/play/p/GrfnG0rq4Rq
 variantHelpers:
   - plugin#hyperloglog#countdistinctreduce
 similarHelpers:

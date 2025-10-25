@@ -6,7 +6,7 @@ type: core
 category: error-handling
 signatures:
   - "func Catch[T any](finally func(err error) Observable[T])"
-playUrl:
+playUrl: https://go.dev/play/p/0pVlxwjhdMT
 variantHelpers:
   - core#error-handling#catch
 similarHelpers:

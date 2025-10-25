@@ -37,6 +37,7 @@ func words(str []byte) [][]byte {
 }
 
 // Words splits the string into words.
+// Play: https://go.dev/play/p/N6fiwqBry5e
 func Words[T ~[]byte]() func(destination ro.Observable[T]) ro.Observable[[]T] {
 	return ro.Map(
 		func(value T) []T {

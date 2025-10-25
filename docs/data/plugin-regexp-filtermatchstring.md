@@ -6,7 +6,7 @@ type: plugin
 category: regexp
 signatures:
   - "func FilterMatchString[T ~string](pattern *regexp.Regexp)"
-playUrl: ""
+playUrl: https://go.dev/play/p/RmQOBDSaQUq
 variantHelpers:
   - plugin#regexp#filtermatchstring
 similarHelpers:

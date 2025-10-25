@@ -6,7 +6,7 @@ type: core
 category: filtering
 signatures:
   - "func Skip(count int64)"
-playUrl:
+playUrl: https://go.dev/play/p/AAEJaUZJuIj
 variantHelpers:
   - core#filtering#skip
 similarHelpers: []

@@ -21,6 +21,7 @@ import (
 
 // ContextWithValue returns an Observable that emits the same items as the source
 // Observable, but adds a key-value pair to the context of each item.
+// Play: https://go.dev/play/p/l70D6fuiVhK
 func ContextWithValue[T any](k, v any) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -50,6 +51,7 @@ func ContextWithValue[T any](k, v any) func(Observable[T]) Observable[T] {
 // ContextWithTimeout returns an Observable that emits the same items as the source
 // Observable, but adds a cancel function to the context of each item.
 // This operator should be chained with ThrowOnContextCancel.
+// Play: https://go.dev/play/p/1qijKGsyn0D
 func ContextWithTimeout[T any](timeout time.Duration) func(Observable[T]) Observable[T] {
 	// return ContextWithTimeoutCause[T](timeout, nil)
 	return func(source Observable[T]) Observable[T] {
@@ -114,6 +116,7 @@ func ContextWithTimeout[T any](timeout time.Duration) func(Observable[T]) Observ
 // ContextWithDeadline returns an Observable that emits the same items as the source
 // Observable, but adds a deadline to the context of each item.
 // This operator should be chained with ThrowOnContextCancel.
+// Play: https://go.dev/play/p/NPYFzhI2YDK
 func ContextWithDeadline[T any](deadline time.Time) func(Observable[T]) Observable[T] {
 	// return ContextWithDeadlineCause[T](deadline, nil)
 	return func(source Observable[T]) Observable[T] {
@@ -178,6 +181,7 @@ func ContextWithDeadline[T any](deadline time.Time) func(Observable[T]) Observab
 // ContextReset returns an Observable that emits the same items as the source
 // Observable, but with a new context. If the new context is nil, it uses
 // context.Background().
+// Play: https://go.dev/play/p/PgvV0SejJpH
 func ContextReset[T any](newCtx context.Context) func(Observable[T]) Observable[T] {
 	if newCtx == nil {
 		newCtx = context.Background()
@@ -209,6 +213,7 @@ func ContextReset[T any](newCtx context.Context) func(Observable[T]) Observable[
 // Observable, but with a new context. The project function is called for each
 // item emitted by the source Observable, and the context is replaced with the
 // context returned by the project function.
+// Play: https://go.dev/play/p/jbshjD3sb6M
 func ContextMap[T any](project func(ctx context.Context) context.Context) func(Observable[T]) Observable[T] {
 	return ContextMapI[T](func(ctx context.Context, _ int64) context.Context {
 		return project(ctx)
@@ -219,6 +224,7 @@ func ContextMap[T any](project func(ctx context.Context) context.Context) func(O
 // Observable, but with a new context. The project function is called for each
 // item emitted by the source Observable, and the context is replaced with the
 // context returned by the project function.
+// Play: https://go.dev/play/p/jbshjD3sb6M
 func ContextMapI[T any](project func(ctx context.Context, index int64) context.Context) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -245,6 +251,7 @@ func ContextMapI[T any](project func(ctx context.Context, index int64) context.C
 // ThrowOnContextCancel returns an Observable that emits the same items as the source
 // Observable, but throws an error if the context is canceled. This operator should
 // be chained after an operator such as ContextWithTimeout or ContextWithDeadline.
+// Play: https://go.dev/play/p/K9oGdZFa-b1
 func ThrowOnContextCancel[T any]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
