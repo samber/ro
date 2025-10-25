@@ -242,6 +242,7 @@ func Cast[T, U any]() func(Observable[T]) Observable[U] {
 }
 
 // Scan applies an accumulator function over an Observable and emits each intermediate result.
+// Play: https://go.dev/play/p/jZD5FyPN3P_D
 func Scan[T, R any](reduce func(accumulator R, item T) R, seed R) func(Observable[T]) Observable[R] {
 	return ScanIWithContext(func(ctx context.Context, accumulator R, item T, _ int64) (context.Context, R) {
 		return ctx, reduce(accumulator, item)
@@ -533,6 +534,7 @@ func BufferWithTimeOrCount[T any](size int, duration time.Duration) func(Observa
 // and the error is propagated. If the source Observable completes, the buffer is emitted
 // and the complete notification is propagated. If the specified count is reached, the buffer
 // is emitted and a new buffer is started.
+// Play: https://go.dev/play/p/IXhDtSybE4R
 func BufferWithCount[T any](size int) func(Observable[T]) Observable[[]T] {
 	if size < 1 {
 		panic(ErrBufferWithCountWrongSize)

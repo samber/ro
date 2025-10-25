@@ -148,4 +148,3 @@ Ready to dive into specific issues? Choose a guide below:
 - [**Performance Issues**](./performance) - Optimization and profiling
 - [**Memory Leaks**](./memory-leaks) - Detection and prevention
 - [**Concurrency Issues**](./concurrency) - Race conditions and synchronization
-- 

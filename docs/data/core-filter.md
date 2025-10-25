@@ -9,7 +9,7 @@ signatures:
   - "func FilterWithContext[T any](predicate func(ctx context.Context, item T) (context.Context, bool))"
   - "func FilterI[T any](predicate func(item T, index int64) bool)"
   - "func FilterIWithContext[T any](predicate func(ctx context.Context, item T, index int64) (context.Context, bool))"
-playUrl:
+playUrl: https://go.dev/play/p/3UsEzgLAp4s
 variantHelpers:
   - core#filtering#filter
   - core#filtering#filterwithcontext

@@ -6,7 +6,7 @@ type: core
 category: creation
 signatures:
   - "func Interval(interval time.Duration)"
-playUrl:
+playUrl: https://go.dev/play/p/7yskMPPFHA7
 variantHelpers:
   - core#creation#interval
 similarHelpers:

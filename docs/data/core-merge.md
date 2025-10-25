@@ -1,12 +1,12 @@
 ---
 name: Merge
 slug: merge
-sourceRef: operator_creation.go#L431
+sourceRef: operator_combining.go#L27
 type: core
 category: combining
 signatures:
   - "func Merge[T any](sources ...Observable[T])"
-playUrl:
+playUrl: https://go.dev/play/p/Nerpzkth1lT
 variantHelpers:
   - core#combining#merge
 similarHelpers:

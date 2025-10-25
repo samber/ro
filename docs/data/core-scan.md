@@ -9,7 +9,7 @@ signatures:
   - "func ScanWithContext[T any, R any](reduce func(ctx context.Context, accumulator R, item T) (context.Context, R), seed R)"
   - "func ScanI[T any, R any](reduce func(accumulator R, item T, index int64) R, seed R)"
   - "func ScanIWithContext[T any, R any](reduce func(ctx context.Context, accumulator R, item T, index int64) (context.Context, R), seed R)"
-playUrl:
+playUrl: https://go.dev/play/p/jZD5FyPN3P_D
 variantHelpers:
   - core#transformation#scan
   - core#transformation#scanwithcontext

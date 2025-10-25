@@ -6,7 +6,7 @@ type: core
 category: transformation
 signatures:
   - "func BufferWithCount[T any](size int)"
-playUrl:
+playUrl: https://go.dev/play/p/IXhDtSybE4R
 variantHelpers:
   - core#transformation#bufferwithcount
 similarHelpers:

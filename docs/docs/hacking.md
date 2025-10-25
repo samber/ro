@@ -1,10 +1,10 @@
 ---
 title: 🏴‍☠️ Hacking
-description: Build your own operators and plugins
+description: Extend ro with your own operators and plugins
 sidebar_position: 200
 ---
 
-# 🏴‍☠️ Create your own operators and plugins
+# 🏴‍☠️ Extend ro with your own operators and plugins
 
 This documentation is dedicated to developers implementing their own custom operators and plugins. If you just want to contribute to `samber/ro`, visit the [contributing section](./contributing).
 

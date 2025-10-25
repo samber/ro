@@ -24,6 +24,12 @@ import (
 	"github.com/samber/ro/internal/xatomic"
 )
 
+// Merge creates an Observable that emits items from multiple source Observables, interleaved as they are emitted.
+// Play: https://go.dev/play/p/Nerpzkth1lT
+func Merge[T any](sources ...Observable[T]) Observable[T] {
+	return MergeAll[T]()(Just(sources...))
+}
+
 // MergeWith merges the values from all observables to a single observable result.
 // It subscribes to each inner Observable, and emits all values
 // from each inner Observable, maintaining their order. It completes when all

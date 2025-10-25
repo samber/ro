@@ -52,6 +52,7 @@ func Start[T any](cb func() T) Observable[T] {
 }
 
 // Timer creates an Observable that emits a value after a specified duration.
+// Play: https://go.dev/play/p/G4HGY4DJ3Od
 func Timer(duration time.Duration) Observable[time.Duration] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[time.Duration]) Teardown {
 		timer := time.NewTimer(duration)
@@ -77,6 +78,7 @@ func Timer(duration time.Duration) Observable[time.Duration] {
 // Interval creates an Observable that emits an infinite sequence of ascending
 // integers, with a constant interval between them. The first value is not emitted
 // immediately, but after the first interval has passed.
+// Play: https://go.dev/play/p/7yskMPPFHA7
 func Interval(interval time.Duration) Observable[int64] {
 	return NewObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
 		ticker := time.NewTicker(interval)

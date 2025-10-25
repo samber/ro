@@ -22,6 +22,7 @@ import (
 )
 
 // Filter emits only those items from an Observable that pass a predicate test.
+// Play: https://go.dev/play/p/3UsEzgLAp4s
 func Filter[T any](predicate func(item T) bool) func(Observable[T]) Observable[T] {
 	return FilterIWithContext(func(ctx context.Context, v T, _ int64) (context.Context, bool) {
 		return ctx, predicate(v)

@@ -40,16 +40,17 @@ jobs:
             - Developer experience and documentation
 
             Check contribution guidelines: ./docs/docs/contributing.md
-            Website documentation guidelines: ./docs/CLAUDE.md
+            Check extending ro guidelines: ./docs/docs/hacking.md
+            Check examples/documentation guidelines: ./docs/CLAUDE.md
+            Check troubleshooting guidelines: ./docs/docs/troubleshooting/
             If you need more context on the project, read the LLMs documentation: ./docs/static/llms.txt
 
             Note: The PR branch is already checked out in the current working directory.
 
-            Use `gh pr comment` for top-level feedback.
             Use `mcp__github_inline_comment__create_inline_comment` to highlight specific code issues.
             Be welcoming but thorough in your comments. Use inline comments for code-specific feedback.
-            Don't write reviews in the PR thread: write only inline comments.
-            Write short and concise comments/reviews. Write comments only if there is a specific issue (skip the "what's good" section).
+            Don't write comments/reviews in the PR thread: write only inline comments.
+            Write short and concise comments/reviews. Write comments only if there is a specific issue: don't show me the good stuff.
 
           # security: a prompt injection can be used to update comments in the current PR.
           claude_args: |

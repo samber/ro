@@ -457,11 +457,6 @@ defer subscription.Unsubscribe()
 
 ### 4. Avoid Memory Leaks
 
-:::danger Bounded Streams
-
-Always bound infinite streams to prevent memory exhaustion:
-
-:::
 ```go
 // Use Take to limit infinite streams
 obs1 := ro.Pipe1(
@@ -483,7 +478,7 @@ obs2 := ro.Pipe1(
 Now that you understand the basics, explore:
 
 - **[Operators Reference](./operator/creation.md)**: Learn about all available operators
-- **[Examples]**: Check out practical examples in the examples directory
+- **[Examples](https://github.com/samber/ro/tree/main/examples)**: Check out practical examples in the examples directory
 - **[Comparison Guides](./comparison/lo-vs-ro)**: See how `samber/ro` compares to `channel`, `iter`, and `samber/lo`
 - **[Advanced Patterns](./core/subject)**: `Subjects`, backpressure, and custom operators
 - **[Troubleshooting Guide](./troubleshooting/)**: Debug and resolve common issues
