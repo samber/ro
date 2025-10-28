@@ -208,6 +208,31 @@ func FlatMapIWithContext[T, R any](project func(ctx context.Context, item T, ind
 	}
 }
 
+// FlattenAlias is an alias-preserving version of Flatten.
+// It accepts slice type aliases such as:
+//     type collection []int
+//     FlattenAlias[int, collection]()
+func FlattenAlias[T any, Slice ~[]T]() func(Observable[Slice]) Observable[T] {
+	return func(source Observable[Slice]) Observable[T] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value Slice) {
+						for _, v := range value {
+							destination.NextWithContext(ctx, v)
+						}
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+			return sub.Unsubscribe
+		})
+	}
+}
+
+
 // Flatten flattens an Observable of Observables into a single Observable.
 // Play: https://go.dev/play/p/vUyrQ4GO87S
 func Flatten[T any]() func(Observable[[]T]) Observable[T] {
@@ -225,7 +250,6 @@ func Flatten[T any]() func(Observable[[]T]) Observable[T] {
 					destination.CompleteWithContext,
 				),
 			)
-
 			return sub.Unsubscribe
 		})
 	}

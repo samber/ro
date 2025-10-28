@@ -23,6 +23,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type collection []int
+
 func TestOperatorTransformationMap(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
@@ -252,6 +254,24 @@ func TestOperatorTransformationFlatten(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+}
+
+func TestFlattenWithAlias(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	s1 := collection{1, 2, 3}
+	s2 := collection{4, 5, 6}
+
+	values, err := Collect(
+		Pipe1(
+			Just(s1, s2),
+			FlattenAlias[int, collection](),
+		),
+	)
+	is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
+	is.NoError(err)
 }
 
 func TestOperatorTransformationCast(t *testing.T) {
