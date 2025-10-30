@@ -28,7 +28,6 @@ var _ Subject[int] = (*publishSubjectImpl[int])(nil)
 // Values received before subscription are not transmitted.
 func NewPublishSubject[T any]() Subject[T] {
 	return &publishSubjectImpl[T]{
-		mu:     sync.Mutex{},
 		status: KindNext,
 
 		observers:     sync.Map{},
@@ -39,7 +38,6 @@ func NewPublishSubject[T any]() Subject[T] {
 }
 
 type publishSubjectImpl[T any] struct {
-	mu     sync.Mutex // sync.RWMutex would be better, but it is too slow for high-volume subjects
 	status Kind
 
 	observers     sync.Map
@@ -56,9 +54,6 @@ func (s *publishSubjectImpl[T]) Subscribe(destination Observer[T]) Subscription 
 // Implements Observable.
 func (s *publishSubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Context, destination Observer[T]) Subscription {
 	subscription := NewSubscriber(destination)
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	switch s.status {
 	case KindNext:
@@ -95,15 +90,11 @@ func (s *publishSubjectImpl[T]) Next(value T) {
 
 // Implements Observer.
 func (s *publishSubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
-	s.mu.Lock()
-
 	if s.status == KindNext {
 		s.broadcastNext(ctx, value)
 	} else {
 		OnDroppedNotification(ctx, NewNotificationNext(value))
 	}
-
-	s.mu.Unlock()
 }
 
 // Implements Observer.
@@ -113,8 +104,6 @@ func (s *publishSubjectImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *publishSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error) {
-	s.mu.Lock()
-
 	if s.status == KindNext {
 		s.err = lo.T2(ctx, err)
 		s.status = KindError
@@ -123,7 +112,6 @@ func (s *publishSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error)
 		OnDroppedNotification(ctx, NewNotificationError[T](err))
 	}
 
-	s.mu.Unlock()
 	s.unsubscribeAll()
 }
 
@@ -134,8 +122,6 @@ func (s *publishSubjectImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *publishSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
-	s.mu.Lock()
-
 	if s.status == KindNext {
 		s.status = KindComplete
 		s.broadcastComplete(ctx)
@@ -143,7 +129,6 @@ func (s *publishSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
 		OnDroppedNotification(ctx, NewNotificationComplete[T]())
 	}
 
-	s.mu.Unlock()
 	s.unsubscribeAll()
 }
 
@@ -171,25 +156,16 @@ func (s *publishSubjectImpl[T]) CountObservers() int {
 
 // Implements Observer.
 func (s *publishSubjectImpl[T]) IsClosed() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	return s.status != KindNext
 }
 
 // Implements Observer.
 func (s *publishSubjectImpl[T]) HasThrown() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	return s.status == KindError
 }
 
 // Implements Observer.
 func (s *publishSubjectImpl[T]) IsCompleted() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	return s.status == KindComplete
 }
 
