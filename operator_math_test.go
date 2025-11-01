@@ -176,6 +176,82 @@ func TestOperatorMathFloor(t *testing.T) { //nolint:paralleltest
 	// @TODO: implement
 }
 
+func TestOperatorMathFloorWithPrecision(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		precision int
+		source    Observable[float64]
+		want      []float64
+		wantErr   error
+	}{
+		{
+			name:      "positive precision",
+			precision: 2,
+			source:    Just(3.14159, 2.71828, 0.0),
+			want:      []float64{3.14, 2.71, 0},
+		},
+		{
+			name:      "negative values",
+			precision: 2,
+			source:    Just(-1.2345, -9.8765),
+			want:      []float64{-1.24, -9.88},
+		},
+		{
+			name:      "zero precision",
+			precision: 0,
+			source:    Just(2.3, -2.3, 5.0),
+			want:      []float64{2, -3, 5},
+		},
+		{
+			name:      "very small numbers",
+			precision: 4,
+			source:    Just(0.000123, -0.000987),
+			want:      []float64{0.0001, -0.001},
+		},
+		{
+			name:      "error propagation",
+			precision: 3,
+			source:    Throw[float64](assert.AnError),
+			want:      []float64{},
+			wantErr:   assert.AnError,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			is := assert.New(t)
+
+			values, err := Collect(
+				FloorWithPrecision(tt.precision)(tt.source),
+			)
+
+			if tt.wantErr != nil {
+				is.Equal(tt.want, values)
+				is.EqualError(err, tt.wantErr.Error())
+				return
+			}
+
+			is.NoError(err)
+			is.Equal(len(tt.want), len(values))
+			for i := range tt.want {
+				is.InDelta(tt.want[i], values[i], 1e-9)
+			}
+		})
+	}
+
+	t.Run("negative precision panics", func(t *testing.T) {
+		t.Parallel()
+		assert.Panics(t, func() {
+			FloorWithPrecision(-1)
+		})
+	})
+}
+
 func TestOperatorMathCeil(t *testing.T) { //nolint:paralleltest
 	// @TODO: implement
 }

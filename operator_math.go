@@ -274,6 +274,34 @@ func Floor() func(Observable[float64]) Observable[float64] {
 	}
 }
 
+// FloorWithPrecision emits the floored values with decimal precision applied before flooring.
+// Precision must be >= 0; a negative precision causes a panic.
+// NaN and +/-Inf values are propagated unchanged, matching math.Floor semantics.
+func FloorWithPrecision(precision int) func(Observable[float64]) Observable[float64] {
+	if precision < 0 {
+		panic("ro.FloorWithPrecision: precision must be >= 0")
+	}
+
+	scale := math.Pow10(precision)
+
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						destination.NextWithContext(ctx, math.Floor(value*scale)/scale)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
 // Ceil emits the ceiling of the values emitted by the source Observable.
 // Play: https://go.dev/play/p/BlpeIki-oMG
 func Ceil() func(Observable[float64]) Observable[float64] {
