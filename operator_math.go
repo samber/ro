@@ -274,6 +274,56 @@ func Floor() func(Observable[float64]) Observable[float64] {
 	}
 }
 
+// FloorWithPrecision emits the floored values with decimal precision applied before flooring.
+// Precision must be between 0 and 308 inclusive; values outside this range cause a panic.
+// NaN and +/-Inf values are propagated unchanged, matching math.Floor semantics.
+func FloorWithPrecision(precision int) func(Observable[float64]) Observable[float64] {
+	if precision < 0 {
+		panic("ro.FloorWithPrecision: precision must be between 0 and 308")
+	}
+
+	scale := math.Pow10(precision)
+
+	if math.IsInf(scale, 1) || scale == 0 {
+		panic("ro.FloorWithPrecision: precision must be between 0 and 308")
+	}
+
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, value)
+							return
+						}
+
+						scaled := value * scale
+						if !math.IsInf(scaled, 0) && !math.IsNaN(scaled) {
+							destination.NextWithContext(ctx, math.Floor(scaled)/scale)
+							return
+						}
+
+						integerPart, fractionalPart := math.Modf(value)
+						if fractionalPart < 0 {
+							integerPart--
+							fractionalPart = 1 + fractionalPart
+						}
+
+						truncated := math.Floor(fractionalPart*scale) / scale
+						destination.NextWithContext(ctx, integerPart+truncated)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
 // Ceil emits the ceiling of the values emitted by the source Observable.
 // Play: https://go.dev/play/p/BlpeIki-oMG
 func Ceil() func(Observable[float64]) Observable[float64] {
