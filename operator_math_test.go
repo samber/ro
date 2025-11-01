@@ -267,6 +267,21 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	is.True(math.IsInf(values[0], 1))
 	is.True(math.IsInf(values[1], -1))
 	is.True(math.IsNaN(values[2]))
+
+	values, err = Collect(
+		CeilWithPrecision(math.MaxInt)(Just(1.2345, -6.789)),
+	)
+	is.NoError(err)
+	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+
+	values, err = Collect(
+		CeilWithPrecision(math.MinInt + 1)(Just(42.5, -42.5, 0)),
+	)
+	is.NoError(err)
+	is.Len(values, 3)
+	is.True(math.IsInf(values[0], 1))
+	is.Equal(0.0, values[1])
+	is.Equal(0.0, values[2])
 }
 
 func TestOperatorMathCeilWithPrecisionMinInt(t *testing.T) {

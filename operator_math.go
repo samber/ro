@@ -407,6 +407,25 @@ func ceilWithInfiniteNegativePrecision() func(Observable[float64]) Observable[fl
 }
 
 func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observable[float64] {
+	if places > math.MaxInt-(maxPow10Chunk-1) {
+		return func(source Observable[float64]) Observable[float64] {
+			return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+				sub := source.SubscribeWithContext(
+					subscriberCtx,
+					NewObserverWithContext(
+						func(ctx context.Context, value float64) {
+							destination.NextWithContext(ctx, value)
+						},
+						destination.ErrorWithContext,
+						destination.CompleteWithContext,
+					),
+				)
+
+				return sub.Unsubscribe
+			})
+		}
+	}
+
 	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
 	chunkFactors := make([]*big.Float, 0, chunkCount)
 
@@ -462,6 +481,10 @@ func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observ
 }
 
 func ceilWithLargeNegativePrecision(places int) func(Observable[float64]) Observable[float64] {
+	if places > math.MaxInt-(maxPow10Chunk-1) {
+		return ceilWithInfiniteNegativePrecision()
+	}
+
 	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
 	chunkFactors := make([]*big.Float, 0, chunkCount)
 
