@@ -275,14 +275,18 @@ func Floor() func(Observable[float64]) Observable[float64] {
 }
 
 // FloorWithPrecision emits the floored values with decimal precision applied before flooring.
-// Precision must be >= 0; a negative precision causes a panic.
+// Precision must be between 0 and 308 inclusive; values outside this range cause a panic.
 // NaN and +/-Inf values are propagated unchanged, matching math.Floor semantics.
 func FloorWithPrecision(precision int) func(Observable[float64]) Observable[float64] {
 	if precision < 0 {
-		panic("ro.FloorWithPrecision: precision must be >= 0")
+		panic("ro.FloorWithPrecision: precision must be between 0 and 308")
 	}
 
 	scale := math.Pow10(precision)
+
+	if math.IsInf(scale, 1) || scale == 0 {
+		panic("ro.FloorWithPrecision: precision must be between 0 and 308")
+	}
 
 	return func(source Observable[float64]) Observable[float64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {

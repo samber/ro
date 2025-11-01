@@ -250,6 +250,13 @@ func TestOperatorMathFloorWithPrecision(t *testing.T) {
 			FloorWithPrecision(-1)
 		})
 	})
+
+	t.Run("precision overflow panics", func(t *testing.T) {
+		t.Parallel()
+		assert.Panics(t, func() {
+			FloorWithPrecision(309)
+		})
+	})
 }
 
 func TestOperatorMathCeil(t *testing.T) { //nolint:paralleltest
