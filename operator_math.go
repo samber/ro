@@ -305,8 +305,19 @@ func Ceil() func(Observable[float64]) Observable[float64] {
 func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64] {
 	factor := math.Pow10(places)
 
-	if places < 0 && (factor == 0 || math.IsInf(1/factor, 0)) {
-		return ceilWithLargeNegativePrecision(-places)
+	if places < 0 {
+		if places == math.MinInt {
+			return ceilWithInfiniteNegativePrecision()
+		}
+
+		if factor == 0 || math.IsInf(1/factor, 0) {
+			negPlaces := -places
+			if negPlaces < 0 {
+				return ceilWithInfiniteNegativePrecision()
+			}
+
+			return ceilWithLargeNegativePrecision(negPlaces)
+		}
 	}
 
 	if factor == 0 {
@@ -320,7 +331,16 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 	inverseFactor := 1 / factor
 	if math.IsInf(inverseFactor, 0) {
 		if places < 0 {
-			return ceilWithLargeNegativePrecision(-places)
+			if places == math.MinInt {
+				return ceilWithInfiniteNegativePrecision()
+			}
+
+			negPlaces := -places
+			if negPlaces < 0 {
+				return ceilWithInfiniteNegativePrecision()
+			}
+
+			return ceilWithLargeNegativePrecision(negPlaces)
 		}
 
 		return Ceil()
@@ -346,6 +366,35 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 						}
 
 						destination.NextWithContext(ctx, result)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+func ceilWithInfiniteNegativePrecision() func(Observable[float64]) Observable[float64] {
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, math.Ceil(value))
+							return
+						}
+
+						if value > 0 {
+							destination.NextWithContext(ctx, math.Inf(1))
+							return
+						}
+
+						destination.NextWithContext(ctx, 0)
 					},
 					destination.ErrorWithContext,
 					destination.CompleteWithContext,

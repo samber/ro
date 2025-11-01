@@ -269,6 +269,23 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	is.True(math.IsNaN(values[2]))
 }
 
+func TestOperatorMathCeilWithPrecisionMinInt(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	values, err := Collect(
+		CeilWithPrecision(math.MinInt)(Just(42.5, -42.5, 0, math.Inf(1), math.Inf(-1), math.NaN())),
+	)
+	is.NoError(err)
+	is.Len(values, 6)
+	is.True(math.IsInf(values[0], 1))
+	is.Equal(0.0, values[1])
+	is.Equal(0.0, values[2])
+	is.True(math.IsInf(values[3], 1))
+	is.True(math.IsInf(values[4], -1))
+	is.True(math.IsNaN(values[5]))
+}
+
 func TestOperatorMathTrunc(t *testing.T) { //nolint:paralleltest
 	// @TODO: implement
 }
