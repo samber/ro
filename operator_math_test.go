@@ -303,23 +303,23 @@ func TestOperatorMathCeilWithPrecisionLargeChunkFallback(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
-	boundary := math.MaxInt - (maxPow10Chunk - 1)
-	boundaryMinusOne := boundary - 1
+	positiveFallback := maxPow10ChunkCount*maxPow10Chunk + 1
+	positiveWithinLimit := positiveFallback - 1
 
 	values, err := Collect(
-		CeilWithPrecision(boundary)(Just(1.2345, -6.789)),
+		CeilWithPrecision(positiveFallback)(Just(1.2345, -6.789)),
 	)
 	is.NoError(err)
 	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
 
 	values, err = Collect(
-		CeilWithPrecision(boundaryMinusOne)(Just(1.2345, -6.789)),
+		CeilWithPrecision(positiveWithinLimit)(Just(1.2345, -6.789)),
 	)
 	is.NoError(err)
 	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
 
 	values, err = Collect(
-		CeilWithPrecision(-boundary)(Just(42.5, -42.5, 0)),
+		CeilWithPrecision(-positiveFallback)(Just(42.5, -42.5, 0)),
 	)
 	is.NoError(err)
 	is.Len(values, 3)
@@ -328,7 +328,7 @@ func TestOperatorMathCeilWithPrecisionLargeChunkFallback(t *testing.T) {
 	is.Equal(0.0, values[2])
 
 	values, err = Collect(
-		CeilWithPrecision(-boundaryMinusOne)(Just(42.5, -42.5, 0)),
+		CeilWithPrecision(-positiveWithinLimit)(Just(42.5, -42.5, 0)),
 	)
 	is.NoError(err)
 	is.Len(values, 3)

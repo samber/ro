@@ -24,7 +24,12 @@ import (
 )
 
 const maxPow10Chunk = 308
-const maxPow10ChunkCount = math.MaxInt / maxPow10Chunk
+
+// maxPow10ChunkCount caps the number of 308-digit chunks we are willing to
+// process when emulating arbitrary-precision ceil operations. 32 chunks (~9.9k
+// decimal digits) keep allocations bounded while still covering far more
+// precision than realistic callers require.
+const maxPow10ChunkCount = 32
 
 // Average calculates the average of the values emitted by the source Observable.
 // It emits the average when the source completes. If the source is empty, it emits NaN.
@@ -463,7 +468,7 @@ func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observ
 	}
 
 	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
-	if chunkCount >= maxPow10ChunkCount {
+	if chunkCount > maxPow10ChunkCount {
 		return func(source Observable[float64]) Observable[float64] {
 			return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
 				sub := source.SubscribeWithContext(
@@ -540,7 +545,7 @@ func ceilWithLargeNegativePrecision(places int) func(Observable[float64]) Observ
 	}
 
 	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
-	if chunkCount >= maxPow10ChunkCount {
+	if chunkCount > maxPow10ChunkCount {
 		return ceilWithInfiniteNegativePrecision()
 	}
 	chunkFactors := make([]*big.Float, 0, chunkCount)
