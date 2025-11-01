@@ -306,6 +306,9 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 	}
 
 	inverseFactor := 1 / factor
+	if math.IsInf(inverseFactor, 0) {
+		return Ceil()
+	}
 
 	return func(source Observable[float64]) Observable[float64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
@@ -314,7 +317,19 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 				NewObserverWithContext(
 					func(ctx context.Context, value float64) {
 						scaled := value * factor
-						destination.NextWithContext(ctx, math.Ceil(scaled)*inverseFactor)
+						if math.IsInf(scaled, 0) {
+							destination.NextWithContext(ctx, math.Ceil(value))
+							return
+						}
+
+						ceiled := math.Ceil(scaled)
+						result := ceiled * inverseFactor
+						if math.IsInf(result, 0) {
+							destination.NextWithContext(ctx, math.Ceil(value))
+							return
+						}
+
+						destination.NextWithContext(ctx, result)
 					},
 					destination.ErrorWithContext,
 					destination.CompleteWithContext,
