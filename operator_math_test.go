@@ -337,6 +337,21 @@ func TestOperatorMathCeilWithPrecisionLargeChunkFallback(t *testing.T) {
 	is.Equal(0.0, values[2])
 }
 
+func TestOperatorMathCeilWithPrecisionUnderflowFallback(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	value := 1e-20
+	places := -308
+
+	values, err := Collect(
+		CeilWithPrecision(places)(Just(value)),
+	)
+	is.NoError(err)
+	is.Len(values, 1)
+	is.InDelta(math.Pow10(308), values[0], 1)
+}
+
 func TestOperatorMathCeilWithPrecisionMinInt(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)

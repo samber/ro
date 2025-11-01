@@ -354,6 +354,8 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 
 	var bigFactor *big.Float
 	var ceilWithBigFactor func(float64) float64
+	var smallFactor *big.Float
+	var ceilWithSmallFactor func(float64) float64
 
 	if places > 0 {
 		bigFactor = new(big.Float).SetPrec(256).SetFloat64(factor)
@@ -370,6 +372,30 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 
 			result, _ := ceiled.Float64()
 			if math.IsInf(result, 0) || math.IsNaN(result) {
+				return math.Ceil(value)
+			}
+
+			return result
+		}
+	} else if places < 0 {
+		smallFactor = new(big.Float).SetPrec(256).SetFloat64(factor)
+		ceilWithSmallFactor = func(value float64) float64 {
+			if math.IsNaN(value) || math.IsInf(value, 0) {
+				return math.Ceil(value)
+			}
+
+			scaled := new(big.Float).SetPrec(256).SetFloat64(value)
+			scaled.Mul(scaled, smallFactor)
+
+			ceiled := ceilBigFloat(scaled)
+			ceiled.Quo(ceiled, smallFactor)
+
+			result, _ := ceiled.Float64()
+			if math.IsInf(result, 0) || math.IsNaN(result) {
+				if value > 0 {
+					return math.Inf(1)
+				}
+
 				return math.Ceil(value)
 			}
 
@@ -393,11 +419,24 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 							return
 						}
 
+						if places < 0 && scaled == 0 && value > 0 && !math.IsNaN(value) && !math.IsInf(value, 0) {
+							if ceilWithSmallFactor != nil {
+								destination.NextWithContext(ctx, ceilWithSmallFactor(value))
+							} else {
+								destination.NextWithContext(ctx, math.Ceil(value))
+							}
+							return
+						}
+
 						ceiled := math.Ceil(scaled)
 						result := ceiled * inverseFactor
 						if math.IsInf(result, 0) || math.IsNaN(result) {
 							if places < 0 && !math.IsNaN(value) && !math.IsInf(value, 0) && value > 0 {
-								destination.NextWithContext(ctx, math.Inf(1))
+								if ceilWithSmallFactor != nil {
+									destination.NextWithContext(ctx, ceilWithSmallFactor(value))
+								} else {
+									destination.NextWithContext(ctx, math.Inf(1))
+								}
 							} else if ceilWithBigFactor != nil {
 								destination.NextWithContext(ctx, ceilWithBigFactor(value))
 							} else {
