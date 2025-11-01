@@ -442,7 +442,7 @@ func ceilWithInfiniteNegativePrecision() func(Observable[float64]) Observable[fl
 }
 
 func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observable[float64] {
-	if places > math.MaxInt-(maxPow10Chunk-1) {
+	if places >= math.MaxInt-(maxPow10Chunk-1) {
 		return func(source Observable[float64]) Observable[float64] {
 			return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
 				sub := source.SubscribeWithContext(
@@ -516,7 +516,7 @@ func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observ
 }
 
 func ceilWithLargeNegativePrecision(places int) func(Observable[float64]) Observable[float64] {
-	if places > math.MaxInt-(maxPow10Chunk-1) {
+	if places >= math.MaxInt-(maxPow10Chunk-1) {
 		return ceilWithInfiniteNegativePrecision()
 	}
 

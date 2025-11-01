@@ -299,6 +299,28 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	is.Equal(0.0, values[2])
 }
 
+func TestOperatorMathCeilWithPrecisionLargeChunkFallback(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	boundary := math.MaxInt - (maxPow10Chunk - 1)
+
+	values, err := Collect(
+		CeilWithPrecision(boundary)(Just(1.2345, -6.789)),
+	)
+	is.NoError(err)
+	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+
+	values, err = Collect(
+		CeilWithPrecision(-boundary)(Just(42.5, -42.5, 0)),
+	)
+	is.NoError(err)
+	is.Len(values, 3)
+	is.True(math.IsInf(values[0], 1))
+	is.Equal(0.0, values[1])
+	is.Equal(0.0, values[2])
+}
+
 func TestOperatorMathCeilWithPrecisionMinInt(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
