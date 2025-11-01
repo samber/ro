@@ -236,6 +236,14 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	is.NotEqual(math.Ceil(1e-310), values[1])
 
 	values, err = Collect(
+		CeilWithPrecision(308)(Just(10.1, -10.1)),
+	)
+	is.NoError(err)
+	is.Len(values, 2)
+	is.InDelta(10.1, values[0], 1e-12)
+	is.InDelta(-10.1, values[1], 1e-12)
+
+	values, err = Collect(
 		CeilWithPrecision(2)(Just(math.MaxFloat64 / 2)),
 	)
 	is.NoError(err)

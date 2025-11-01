@@ -346,6 +346,31 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 		return Ceil()
 	}
 
+	var bigFactor *big.Float
+	var ceilWithBigFactor func(float64) float64
+
+	if places > 0 {
+		bigFactor = new(big.Float).SetPrec(256).SetFloat64(factor)
+		ceilWithBigFactor = func(value float64) float64 {
+			if math.IsNaN(value) || math.IsInf(value, 0) {
+				return math.Ceil(value)
+			}
+
+			scaled := new(big.Float).SetPrec(256).SetFloat64(value)
+			scaled.Mul(scaled, bigFactor)
+
+			ceiled := ceilBigFloat(scaled)
+			ceiled.Quo(ceiled, bigFactor)
+
+			result, _ := ceiled.Float64()
+			if math.IsInf(result, 0) || math.IsNaN(result) {
+				return math.Ceil(value)
+			}
+
+			return result
+		}
+	}
+
 	return func(source Observable[float64]) Observable[float64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
 			sub := source.SubscribeWithContext(
@@ -354,14 +379,22 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 					func(ctx context.Context, value float64) {
 						scaled := value * factor
 						if math.IsInf(scaled, 0) {
-							destination.NextWithContext(ctx, math.Ceil(value))
+							if ceilWithBigFactor != nil {
+								destination.NextWithContext(ctx, ceilWithBigFactor(value))
+							} else {
+								destination.NextWithContext(ctx, math.Ceil(value))
+							}
 							return
 						}
 
 						ceiled := math.Ceil(scaled)
 						result := ceiled * inverseFactor
-						if math.IsInf(result, 0) {
-							destination.NextWithContext(ctx, math.Ceil(value))
+						if math.IsInf(result, 0) || math.IsNaN(result) {
+							if ceilWithBigFactor != nil {
+								destination.NextWithContext(ctx, ceilWithBigFactor(value))
+							} else {
+								destination.NextWithContext(ctx, math.Ceil(value))
+							}
 							return
 						}
 
