@@ -263,6 +263,21 @@ func TestOperatorMathFloorWithPrecision(t *testing.T) {
 			FloorWithPrecision(309)
 		})
 	})
+
+	t.Run("nan and infinities propagate", func(t *testing.T) {
+		t.Parallel()
+
+		values, err := Collect(
+			FloorWithPrecision(2)(Just(math.NaN(), math.Inf(1), math.Inf(-1))),
+		)
+
+		is := assert.New(t)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsNaN(values[0]))
+		is.Equal(math.Inf(1), values[1])
+		is.Equal(math.Inf(-1), values[2])
+	})
 }
 
 func TestOperatorMathCeil(t *testing.T) { //nolint:paralleltest
