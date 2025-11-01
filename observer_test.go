@@ -26,6 +26,20 @@ import (
 
 var panicCaptureGuard sync.Mutex
 
+func guardObserverPanicCapture(t *testing.T, enabled bool) func() {
+	t.Helper()
+
+	panicCaptureGuard.Lock()
+
+	previous := CaptureObserverPanics()
+	SetCaptureObserverPanics(enabled)
+
+	return func() {
+		SetCaptureObserverPanics(previous)
+		panicCaptureGuard.Unlock()
+	}
+}
+
 func TestObserverInternalOk(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
@@ -715,14 +729,9 @@ func TestObserverPanicHandling(t *testing.T) {
 }
 
 func TestObserverDisablePanicCapture(t *testing.T) {
-	panicCaptureGuard.Lock()
-	defer panicCaptureGuard.Unlock()
-
 	is := assert.New(t)
 
-	previous := CaptureObserverPanics()
-	SetCaptureObserverPanics(false)
-	t.Cleanup(func() { SetCaptureObserverPanics(previous) })
+	defer guardObserverPanicCapture(t, false)()
 
 	observer := NewObserver(
 		func(value int) { panic("test panic") },
@@ -736,14 +745,9 @@ func TestObserverDisablePanicCapture(t *testing.T) {
 }
 
 func TestObserverDisablePanicCaptureInUnsafePipeline(t *testing.T) {
-	panicCaptureGuard.Lock()
-	defer panicCaptureGuard.Unlock()
-
 	is := assert.New(t)
 
-	previous := CaptureObserverPanics()
-	SetCaptureObserverPanics(false)
-	t.Cleanup(func() { SetCaptureObserverPanics(previous) })
+	defer guardObserverPanicCapture(t, false)()
 
 	observable := Pipe1(
 		Just(1),
