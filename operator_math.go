@@ -23,6 +23,8 @@ import (
 	"github.com/samber/ro/internal/constraints"
 )
 
+const maxPow10Chunk = 308
+
 // Average calculates the average of the values emitted by the source Observable.
 // It emits the average when the source completes. If the source is empty, it emits NaN.
 // Play: https://go.dev/play/p/B0IhFEsQAin
@@ -302,6 +304,11 @@ func Ceil() func(Observable[float64]) Observable[float64] {
 // precisions round to powers of ten.
 func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64] {
 	factor := math.Pow10(places)
+
+	if places < 0 && (factor == 0 || math.IsInf(1/factor, 0)) {
+		return ceilWithLargeNegativePrecision(-places)
+	}
+
 	if factor == 0 {
 		return Ceil()
 	}
@@ -312,6 +319,10 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 
 	inverseFactor := 1 / factor
 	if math.IsInf(inverseFactor, 0) {
+		if places < 0 {
+			return ceilWithLargeNegativePrecision(-places)
+		}
+
 		return Ceil()
 	}
 
@@ -347,8 +358,6 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 }
 
 func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observable[float64] {
-	const maxPow10Chunk = 308
-
 	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
 	chunkFactors := make([]*big.Float, 0, chunkCount)
 
@@ -391,6 +400,56 @@ func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observ
 							return
 						}
 
+						destination.NextWithContext(ctx, result)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+func ceilWithLargeNegativePrecision(places int) func(Observable[float64]) Observable[float64] {
+	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
+	chunkFactors := make([]*big.Float, 0, chunkCount)
+
+	for remaining := places; remaining > 0; {
+		step := remaining
+		if step > maxPow10Chunk {
+			step = maxPow10Chunk
+		}
+
+		factor := math.Pow10(step)
+		chunkFactors = append(chunkFactors, new(big.Float).SetPrec(256).SetFloat64(factor))
+		remaining -= step
+	}
+
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, math.Ceil(value))
+							return
+						}
+
+						scaled := new(big.Float).SetPrec(256).SetFloat64(value)
+						for _, factor := range chunkFactors {
+							scaled.Quo(scaled, factor)
+						}
+
+						ceiled := ceilBigFloat(scaled)
+
+						for i := len(chunkFactors) - 1; i >= 0; i-- {
+							ceiled.Mul(ceiled, chunkFactors[i])
+						}
+
+						result, _ := ceiled.Float64()
 						destination.NextWithContext(ctx, result)
 					},
 					destination.ErrorWithContext,

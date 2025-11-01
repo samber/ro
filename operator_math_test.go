@@ -244,19 +244,20 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	is.Equal(math.Ceil(math.MaxFloat64/2), values[0])
 
 	values, err = Collect(
-		CeilWithPrecision(-400)(Just(123.45)),
+		CeilWithPrecision(-400)(Just(123.45, -123.45)),
 	)
 	is.NoError(err)
-	is.Len(values, 1)
-	is.Equal(math.Ceil(123.45), values[0])
+	is.Len(values, 2)
+	is.True(math.IsInf(values[0], 1))
+	is.Equal(0.0, values[1])
 
 	values, err = Collect(
-		CeilWithPrecision(-309)(Just(42.5)),
+		CeilWithPrecision(-309)(Just(42.5, -42.5)),
 	)
 	is.NoError(err)
-	is.Len(values, 1)
-	is.False(math.IsInf(values[0], 0))
-	is.Equal(math.Ceil(42.5), values[0])
+	is.Len(values, 2)
+	is.True(math.IsInf(values[0], 1))
+	is.Equal(0.0, values[1])
 
 	values, err = Collect(
 		CeilWithPrecision(3)(Just(math.Inf(1), math.Inf(-1), math.NaN())),
