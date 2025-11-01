@@ -6,6 +6,7 @@ type: core
 category: math
 signatures:
   - "func Ceil()"
+  - "func CeilWithPrecision(places int)"
 playUrl: https://go.dev/play/p/BlpeIki-oMG
 variantHelpers:
   - core#math#ceil
@@ -16,7 +17,9 @@ similarHelpers:
 position: 4
 ---
 
-Emits the ceiling (rounded up) of each number emitted by the source Observable.
+Emits the ceiling (rounded up) of each number emitted by the source Observable. Use
+`CeilWithPrecision` to control the rounding precision (positive values round to decimal
+places, negative values round to powers of ten).
 
 ```go
 obs := ro.Pipe[float64, float64](
@@ -33,6 +36,23 @@ defer sub.Unsubscribe()
 // Next: -5
 // Next: 0
 // Next: 7
+// Completed
+```
+
+### With precision
+
+```go
+obs := ro.Pipe[float64, float64](
+    ro.Just(3.14159, -2.71828, 123.001),
+    ro.CeilWithPrecision(2),
+)
+
+sub := obs.Subscribe(ro.PrintObserver[float64]())
+defer sub.Unsubscribe()
+
+// Next: 3.15
+// Next: -2.71
+// Next: 123.01
 // Completed
 ```
 

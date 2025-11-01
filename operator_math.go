@@ -295,6 +295,37 @@ func Ceil() func(Observable[float64]) Observable[float64] {
 	}
 }
 
+// CeilWithPrecision emits the ceiling of the values emitted by the source Observable.
+// It uses the provided decimal precision. Positive precisions apply the ceiling to the
+// specified number of digits to the right of the decimal point, while negative
+// precisions round to powers of ten.
+func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64] {
+	factor := math.Pow10(places)
+	if factor == 0 || math.IsInf(factor, 0) {
+		return Ceil()
+	}
+
+	inverseFactor := 1 / factor
+
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						scaled := value * factor
+						destination.NextWithContext(ctx, math.Ceil(scaled)*inverseFactor)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
 // Trunc emits the truncated values emitted by the source Observable.
 // Play: https://go.dev/play/p/iYc9oGDgRZJ
 func Trunc() func(Observable[float64]) Observable[float64] {

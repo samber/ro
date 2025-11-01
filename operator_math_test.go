@@ -176,8 +176,77 @@ func TestOperatorMathFloor(t *testing.T) { //nolint:paralleltest
 	// @TODO: implement
 }
 
-func TestOperatorMathCeil(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+func TestOperatorMathCeil(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	values, err := Collect(
+		Ceil()(Just(3.2, 4.7, -2.3, -5.8, 0.0, 7.0)),
+	)
+	is.Equal([]float64{4, 5, -2, -5, 0, 7}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Ceil()(Just(math.Inf(-1), -42.7, math.Inf(1))),
+	)
+	is.NoError(err)
+	is.Len(values, 3)
+	is.True(math.IsInf(values[0], -1))
+	is.Equal(float64(-42), values[1])
+	is.True(math.IsInf(values[2], 1))
+
+	values, err = Collect(
+		Ceil()(Just(math.NaN())),
+	)
+	is.NoError(err)
+	is.Len(values, 1)
+	is.True(math.IsNaN(values[0]))
+}
+
+func TestOperatorMathCeilWithPrecision(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	values, err := Collect(
+		CeilWithPrecision(2)(Just(1.234, -1.234, 9.999)),
+	)
+	is.NoError(err)
+	is.InDeltaSlice([]float64{1.24, -1.23, 10}, values, 1e-9)
+
+	values, err = Collect(
+		CeilWithPrecision(0)(Just(-2.2, 3.1)),
+	)
+	is.NoError(err)
+	is.Equal([]float64{-2, 4}, values)
+
+	values, err = Collect(
+		CeilWithPrecision(-1)(Just(123.45, -123.45)),
+	)
+	is.NoError(err)
+	is.InDeltaSlice([]float64{130, -120}, values, 1e-9)
+
+	values, err = Collect(
+		CeilWithPrecision(309)(Just(1.234)),
+	)
+	is.NoError(err)
+	is.Len(values, 1)
+	is.Equal(math.Ceil(1.234), values[0])
+
+	values, err = Collect(
+		CeilWithPrecision(-400)(Just(123.45)),
+	)
+	is.NoError(err)
+	is.Len(values, 1)
+	is.Equal(math.Ceil(123.45), values[0])
+
+	values, err = Collect(
+		CeilWithPrecision(3)(Just(math.Inf(1), math.Inf(-1), math.NaN())),
+	)
+	is.NoError(err)
+	is.Len(values, 3)
+	is.True(math.IsInf(values[0], 1))
+	is.True(math.IsInf(values[1], -1))
+	is.True(math.IsNaN(values[2]))
 }
 
 func TestOperatorMathTrunc(t *testing.T) { //nolint:paralleltest
