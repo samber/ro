@@ -18,7 +18,7 @@ position: 3
 Floors each value emitted by the source Observable after shifting the decimal point `precision` places to the right.
 A non-negative precision keeps additional fractional digits while still rounding down.
 
-`precision` must be greater than or equal to zero; passing a negative value panics.
+Valid precision values are in the inclusive range `[0, 308]`; passing a value outside this range panics.
 `math.NaN()` and `math.Inf()` inputs propagate as-is, matching `math.Floor` semantics.
 
 ```go
