@@ -23,6 +23,12 @@ import (
 func BenchmarkMillionRowChallenge(b *stdtesting.B) {
 	b.ReportAllocs()
 
+	previous := ro.CaptureObserverPanics()
+	ro.SetCaptureObserverPanics(false)
+	b.Cleanup(func() {
+		ro.SetCaptureObserverPanics(previous)
+	})
+
 	pipeline := ro.Pipe3(
 		ro.Range(0, 1_000_000),
 		ro.Map(func(value int64) int64 { return value + 1 }),
