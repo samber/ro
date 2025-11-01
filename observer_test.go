@@ -24,7 +24,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var panicCaptureGuard sync.Mutex
+var panicCaptureGuard sync.RWMutex
+
+func withObserverPanicCaptureEnabled(t *testing.T) {
+	t.Helper()
+
+	panicCaptureGuard.RLock()
+
+	if !CaptureObserverPanics() {
+		panicCaptureGuard.RUnlock()
+		t.Fatal("observer panic capture disabled; tests relying on default configuration must not run")
+	}
+
+	t.Cleanup(func() {
+		panicCaptureGuard.RUnlock()
+	})
+}
 
 func guardObserverPanicCapture(t *testing.T, enabled bool) func() {
 	t.Helper()
@@ -682,8 +697,7 @@ func TestObserverConcurrentContextMethods(t *testing.T) {
 }
 
 func TestObserverPanicHandling(t *testing.T) {
-	panicCaptureGuard.Lock()
-	defer panicCaptureGuard.Unlock()
+	withObserverPanicCaptureEnabled(t)
 
 	is := assert.New(t)
 
