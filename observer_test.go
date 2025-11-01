@@ -24,6 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var panicCaptureGuard sync.Mutex
+
 func TestObserverInternalOk(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
@@ -666,6 +668,9 @@ func TestObserverConcurrentContextMethods(t *testing.T) {
 }
 
 func TestObserverPanicHandling(t *testing.T) {
+	panicCaptureGuard.Lock()
+	defer panicCaptureGuard.Unlock()
+
 	is := assert.New(t)
 
 	// Test panic in Next callback
@@ -710,6 +715,9 @@ func TestObserverPanicHandling(t *testing.T) {
 }
 
 func TestObserverDisablePanicCapture(t *testing.T) {
+	panicCaptureGuard.Lock()
+	defer panicCaptureGuard.Unlock()
+
 	is := assert.New(t)
 
 	previous := CaptureObserverPanics()
@@ -728,6 +736,9 @@ func TestObserverDisablePanicCapture(t *testing.T) {
 }
 
 func TestObserverDisablePanicCaptureInUnsafePipeline(t *testing.T) {
+	panicCaptureGuard.Lock()
+	defer panicCaptureGuard.Unlock()
+
 	is := assert.New(t)
 
 	previous := CaptureObserverPanics()
