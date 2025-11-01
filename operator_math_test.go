@@ -226,11 +226,14 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	is.InDeltaSlice([]float64{130, -120}, values, 1e-9)
 
 	values, err = Collect(
-		CeilWithPrecision(309)(Just(1.234)),
+		CeilWithPrecision(309)(Just(1.234, 1e-310)),
 	)
 	is.NoError(err)
-	is.Len(values, 1)
-	is.Equal(math.Ceil(1.234), values[0])
+	is.Len(values, 2)
+	is.InDelta(1.234, values[0], 1e-15)
+	is.NotEqual(math.Ceil(1.234), values[0])
+	is.InDelta(1e-309, values[1], 1e-320)
+	is.NotEqual(math.Ceil(1e-310), values[1])
 
 	values, err = Collect(
 		CeilWithPrecision(2)(Just(math.MaxFloat64 / 2)),

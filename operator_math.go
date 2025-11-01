@@ -17,6 +17,7 @@ package ro
 import (
 	"context"
 	"math"
+	"math/big"
 
 	"github.com/samber/lo"
 	"github.com/samber/ro/internal/constraints"
@@ -301,8 +302,12 @@ func Ceil() func(Observable[float64]) Observable[float64] {
 // precisions round to powers of ten.
 func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64] {
 	factor := math.Pow10(places)
-	if factor == 0 || math.IsInf(factor, 0) {
+	if factor == 0 {
 		return Ceil()
+	}
+
+	if places > 0 && math.IsInf(factor, 0) {
+		return ceilWithLargePositivePrecision(places)
 	}
 
 	inverseFactor := 1 / factor
@@ -339,6 +344,83 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 			return sub.Unsubscribe
 		})
 	}
+}
+
+func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observable[float64] {
+	const maxPow10Chunk = 308
+
+	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
+	chunkFactors := make([]*big.Float, 0, chunkCount)
+
+	for remaining := places; remaining > 0; {
+		step := remaining
+		if step > maxPow10Chunk {
+			step = maxPow10Chunk
+		}
+
+		factor := math.Pow10(step)
+		chunkFactors = append(chunkFactors, new(big.Float).SetPrec(256).SetFloat64(factor))
+		remaining -= step
+	}
+
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, math.Ceil(value))
+							return
+						}
+
+						scaled := new(big.Float).SetPrec(256).SetFloat64(value)
+						for _, factor := range chunkFactors {
+							scaled.Mul(scaled, factor)
+						}
+
+						ceiled := ceilBigFloat(scaled)
+
+						for i := len(chunkFactors) - 1; i >= 0; i-- {
+							ceiled.Quo(ceiled, chunkFactors[i])
+						}
+
+						result, _ := ceiled.Float64()
+						if math.IsInf(result, 0) || math.IsNaN(result) {
+							destination.NextWithContext(ctx, math.Ceil(value))
+							return
+						}
+
+						destination.NextWithContext(ctx, result)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+func ceilBigFloat(x *big.Float) *big.Float {
+	prec := x.Prec()
+
+	integer := new(big.Int)
+	x.Int(integer)
+
+	result := new(big.Float).SetPrec(prec).SetInt(integer)
+
+	if x.Sign() > 0 {
+		fractional := new(big.Float).SetPrec(prec)
+		fractional.Sub(x, result)
+		if fractional.Sign() > 0 {
+			integer.Add(integer, big.NewInt(1))
+			result.SetInt(integer)
+		}
+	}
+
+	return result
 }
 
 // Trunc emits the truncated values emitted by the source Observable.
