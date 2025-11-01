@@ -24,6 +24,7 @@ import (
 )
 
 const maxPow10Chunk = 308
+const maxPow10ChunkCount = math.MaxInt / maxPow10Chunk
 
 // Average calculates the average of the values emitted by the source Observable.
 // It emits the average when the source completes. If the source is empty, it emits NaN.
@@ -462,6 +463,24 @@ func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observ
 	}
 
 	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
+	if chunkCount >= maxPow10ChunkCount {
+		return func(source Observable[float64]) Observable[float64] {
+			return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+				sub := source.SubscribeWithContext(
+					subscriberCtx,
+					NewObserverWithContext(
+						func(ctx context.Context, value float64) {
+							destination.NextWithContext(ctx, value)
+						},
+						destination.ErrorWithContext,
+						destination.CompleteWithContext,
+					),
+				)
+
+				return sub.Unsubscribe
+			})
+		}
+	}
 	chunkFactors := make([]*big.Float, 0, chunkCount)
 
 	for remaining := places; remaining > 0; {
@@ -521,6 +540,9 @@ func ceilWithLargeNegativePrecision(places int) func(Observable[float64]) Observ
 	}
 
 	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
+	if chunkCount >= maxPow10ChunkCount {
+		return ceilWithInfiniteNegativePrecision()
+	}
 	chunkFactors := make([]*big.Float, 0, chunkCount)
 
 	for remaining := places; remaining > 0; {
