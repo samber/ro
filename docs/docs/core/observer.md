@@ -216,16 +216,17 @@ defer ro.SetCaptureObserverPanics(true)
 
 // Fast path: panics propagate instead of being routed to OnUnhandledError.
 sum := int64(0)
-ro.Range(0, 1_000_000).
-    Pipe2(
-        ro.Map(func(v int64) int64 { return v + 1 }),
-        ro.Filter(func(v int64) bool { return v%2 == 0 }),
-    ).
-    Subscribe(ro.NewObserver(
-        func(v int64) { sum += v },
-        func(err error) { panic(err) },
-        func() {},
-    ))
+pipeline := ro.Pipe2(
+    ro.Range(0, 1_000_000),
+    ro.Map(func(v int64) int64 { return v + 1 }),
+    ro.Filter(func(v int64) bool { return v%2 == 0 }),
+)
+
+pipeline.Subscribe(ro.NewObserver(
+    func(v int64) { sum += v },
+    func(err error) { panic(err) },
+    func() {},
+))
 ```
 
 While panic capture is disabled, observers created inside unsafe observables use the fast path that no longer wraps callbacks in `lo.TryCatchWithErrorValue`.
