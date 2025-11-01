@@ -390,7 +390,9 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 						ceiled := math.Ceil(scaled)
 						result := ceiled * inverseFactor
 						if math.IsInf(result, 0) || math.IsNaN(result) {
-							if ceilWithBigFactor != nil {
+							if places < 0 && !math.IsNaN(value) && !math.IsInf(value, 0) && value > 0 {
+								destination.NextWithContext(ctx, math.Inf(1))
+							} else if ceilWithBigFactor != nil {
 								destination.NextWithContext(ctx, ceilWithBigFactor(value))
 							} else {
 								destination.NextWithContext(ctx, math.Ceil(value))
