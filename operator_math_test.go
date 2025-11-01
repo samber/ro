@@ -187,6 +187,12 @@ func TestOperatorMathFloorWithPrecision(t *testing.T) {
 		wantErr   error
 	}{
 		{
+			name:      "large finite value remains finite",
+			precision: 1,
+			source:    Just(math.MaxFloat64),
+			want:      []float64{math.MaxFloat64},
+		},
+		{
 			name:      "positive precision",
 			precision: 2,
 			source:    Just(3.14159, 2.71828, 0.0),

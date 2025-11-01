@@ -294,7 +294,25 @@ func FloorWithPrecision(precision int) func(Observable[float64]) Observable[floa
 				subscriberCtx,
 				NewObserverWithContext(
 					func(ctx context.Context, value float64) {
-						destination.NextWithContext(ctx, math.Floor(value*scale)/scale)
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, value)
+							return
+						}
+
+						scaled := value * scale
+						if !math.IsInf(scaled, 0) && !math.IsNaN(scaled) {
+							destination.NextWithContext(ctx, math.Floor(scaled)/scale)
+							return
+						}
+
+						integerPart, fractionalPart := math.Modf(value)
+						if fractionalPart < 0 {
+							integerPart--
+							fractionalPart = 1 + fractionalPart
+						}
+
+						truncated := math.Floor(fractionalPart*scale) / scale
+						destination.NextWithContext(ctx, integerPart+truncated)
 					},
 					destination.ErrorWithContext,
 					destination.CompleteWithContext,
