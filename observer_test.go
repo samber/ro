@@ -666,7 +666,6 @@ func TestObserverConcurrentContextMethods(t *testing.T) {
 }
 
 func TestObserverPanicHandling(t *testing.T) {
-	t.Parallel()
 	is := assert.New(t)
 
 	// Test panic in Next callback
@@ -708,6 +707,51 @@ func TestObserverPanicHandling(t *testing.T) {
 	// After panic in Complete, the observer should still be closed
 	is.True(observer3.IsClosed())
 	is.True(observer3.IsCompleted())
+}
+
+func TestObserverDisablePanicCapture(t *testing.T) {
+	is := assert.New(t)
+
+	previous := CaptureObserverPanics()
+	SetCaptureObserverPanics(false)
+	t.Cleanup(func() { SetCaptureObserverPanics(previous) })
+
+	observer := NewObserver(
+		func(value int) { panic("test panic") },
+		func(err error) {},
+		func() {},
+	)
+
+	is.PanicsWithValue("test panic", func() {
+		observer.Next(42)
+	})
+}
+
+func TestObserverDisablePanicCaptureInUnsafePipeline(t *testing.T) {
+	is := assert.New(t)
+
+	previous := CaptureObserverPanics()
+	SetCaptureObserverPanics(false)
+	t.Cleanup(func() { SetCaptureObserverPanics(previous) })
+
+	observable := Pipe1(
+		Just(1),
+		Map(func(value int) int {
+			if value == 1 {
+				panic("map panic")
+			}
+
+			return value
+		}),
+	)
+
+	is.PanicsWithValue("map panic", func() {
+		observable.Subscribe(NewObserver(
+			func(value int) {},
+			func(err error) { t.Fatalf("unexpected error: %v", err) },
+			func() {},
+		))
+	})
 }
 
 func TestObserverMixedOperations(t *testing.T) {

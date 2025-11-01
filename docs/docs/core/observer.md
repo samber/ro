@@ -200,6 +200,36 @@ ro.Just(1, 2, 3, 4).Subscribe(observer)
 // Recovered error: something went wrong!
 ```
 
+### Opting Out for Maximum Throughput
+
+:::warning Performance vs. Safety
+
+Disabling panic capture removes the recovery overhead but will let panics crash your stream. Only opt out in trusted, performance-critical pipelines.
+
+:::
+
+If you are building high-throughput pipelines with `NewUnsafeObservable*` helpers, you can skip the internal `defer/recover` cost by disabling panic capture globally:
+
+```go
+ro.SetCaptureObserverPanics(false)
+defer ro.SetCaptureObserverPanics(true)
+
+// Fast path: panics propagate instead of being routed to OnUnhandledError.
+sum := int64(0)
+ro.Range(0, 1_000_000).
+    Pipe2(
+        ro.Map(func(v int64) int64 { return v + 1 }),
+        ro.Filter(func(v int64) bool { return v%2 == 0 }),
+    ).
+    Subscribe(ro.NewObserver(
+        func(v int64) { sum += v },
+        func(err error) { panic(err) },
+        func() {},
+    ))
+```
+
+While panic capture is disabled, observers created inside unsafe observables use the fast path that no longer wraps callbacks in `lo.TryCatchWithErrorValue`.
+
 ### State After Error
 
 Once an Observer receives an error, it rejects further notifications:

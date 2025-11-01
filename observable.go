@@ -303,6 +303,11 @@ func (s *observableImpl[T]) Subscribe(destination Observer[T]) Subscription {
 func (s *observableImpl[T]) SubscribeWithContext(ctx context.Context, destination Observer[T]) Subscription {
 	subscription := NewSubscriberWithConcurrencyMode(destination, s.mode)
 
+	if !CaptureObserverPanics() && s.mode == ConcurrencyModeUnsafe {
+		subscription.Add(s.subscribe(ctx, subscription))
+		return subscription
+	}
+
 	lo.TryCatchWithErrorValue(
 		func() error {
 			// Warning: here, we are catching panic in subscription.Add.

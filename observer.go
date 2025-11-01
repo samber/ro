@@ -22,6 +22,24 @@ import (
 	"github.com/samber/lo"
 )
 
+var observerPanicCaptureEnabled atomic.Bool
+
+func init() {
+	observerPanicCaptureEnabled.Store(true)
+}
+
+// SetCaptureObserverPanics toggles panic recovery in observer callbacks. When disabled,
+// observer callbacks execute without the additional defer/recover overhead and panics will
+// propagate to the caller.
+func SetCaptureObserverPanics(enabled bool) {
+	observerPanicCaptureEnabled.Store(enabled)
+}
+
+// CaptureObserverPanics reports whether observer callbacks are wrapped in panic recovery.
+func CaptureObserverPanics() bool {
+	return observerPanicCaptureEnabled.Load()
+}
+
 // Observer is the consumer of an Observable. It receives notifications: Next,
 // Error, and Complete. Observers are safe for concurrent calls to Next,
 // Error, and Complete. It is the responsibility of the Observer to ensure
@@ -66,7 +84,8 @@ var _ Observer[int] = (*observerImpl[int])(nil)
 // is provided.
 func NewObserver[T any](onNext func(value T), onError func(err error), onComplete func()) Observer[T] {
 	return &observerImpl[T]{
-		status: 0,
+		status:        0,
+		capturePanics: observerPanicCaptureEnabled.Load(),
 		onNext: func(ctx context.Context, value T) {
 			onNext(value)
 		},
@@ -83,10 +102,11 @@ func NewObserver[T any](onNext func(value T), onError func(err error), onComplet
 // is provided to each callback.
 func NewObserverWithContext[T any](onNext func(ctx context.Context, value T), onError func(ctx context.Context, err error), onComplete func(ctx context.Context)) Observer[T] {
 	return &observerImpl[T]{
-		status:     0,
-		onNext:     onNext,
-		onError:    onError,
-		onComplete: onComplete,
+		status:        0,
+		capturePanics: observerPanicCaptureEnabled.Load(),
+		onNext:        onNext,
+		onError:       onError,
+		onComplete:    onComplete,
 	}
 }
 
@@ -94,10 +114,11 @@ type observerImpl[T any] struct {
 	// 0: active
 	// 1: errored
 	// 2: completed
-	status     int32
-	onNext     func(context.Context, T)
-	onError    func(context.Context, error) // @TODO: add a default onError that log the error ?
-	onComplete func(context.Context)
+	status        int32
+	capturePanics bool
+	onNext        func(context.Context, T)
+	onError       func(context.Context, error) // @TODO: add a default onError that log the error ?
+	onComplete    func(context.Context)
 }
 
 func (o *observerImpl[T]) Next(value T) {
@@ -140,6 +161,11 @@ func (o *observerImpl[T]) CompleteWithContext(ctx context.Context) {
 }
 
 func (o *observerImpl[T]) tryNext(ctx context.Context, value T) {
+	if !o.capturePanics {
+		o.onNext(ctx, value)
+		return
+	}
+
 	lo.TryCatchWithErrorValue(
 		func() error {
 			o.onNext(ctx, value)
@@ -158,6 +184,11 @@ func (o *observerImpl[T]) tryNext(ctx context.Context, value T) {
 }
 
 func (o *observerImpl[T]) tryError(ctx context.Context, err error) {
+	if !o.capturePanics {
+		o.onError(ctx, err)
+		return
+	}
+
 	lo.TryCatchWithErrorValue(
 		func() error {
 			o.onError(ctx, err)
@@ -171,6 +202,11 @@ func (o *observerImpl[T]) tryError(ctx context.Context, err error) {
 }
 
 func (o *observerImpl[T]) tryComplete(ctx context.Context) {
+	if !o.capturePanics {
+		o.onComplete(ctx)
+		return
+	}
+
 	lo.TryCatchWithErrorValue(
 		func() error {
 			o.onComplete(ctx)
