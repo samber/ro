@@ -648,7 +648,9 @@ func TestOperatorCreationMerge(t *testing.T) { //nolint:paralleltest
 //
 //	go test -run TestSingleProducerWithMultiProducerOperator -race ./ -v
 func TestSingleProducerWithMultiProducerOperator(t *testing.T) { //nolint:paralleltest
-	t.Skip("manual reproduction test: run with -race to observe data races when mixing single-producer mode with Merge")
+	if !RaceEnabled {
+		t.Skip("manual reproduction test: run with -race to observe data races when mixing single-producer mode with Merge")
+	}
 
 	// Construct two single-producer ranges and merge them. Merge is a
 	// multi-producer operator and may invoke downstream subscribers from
