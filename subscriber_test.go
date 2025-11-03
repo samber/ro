@@ -16,6 +16,7 @@ package ro
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -512,6 +513,35 @@ func TestSubscriberWithContext(t *testing.T) {
 	// Test ErrorWithContext
 	subscriber2.ErrorWithContext(ctx, assert.AnError)
 	is.Equal(assert.AnError, receivedError)
+}
+
+func TestLocklessDroppedNotification(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Capture dropped notifications
+	prev := OnDroppedNotification
+	var seen string
+	OnDroppedNotification = func(ctx context.Context, notification fmt.Stringer) {
+		seen = notification.String()
+	}
+	defer func() { OnDroppedNotification = prev }()
+
+	observer := NewObserver(
+		func(value int) {},
+		func(err error) {},
+		func() {},
+	)
+
+	subscriber := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+
+	// Mark as completed so further Next() should be dropped
+	subscriber.Complete()
+
+	subscriber.Next(42)
+
+	is.NotEmpty(seen)
+	is.Contains(seen, "Next(42)")
 }
 
 func TestSubscriberIsClosed(t *testing.T) {

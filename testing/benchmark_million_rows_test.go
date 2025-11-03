@@ -15,8 +15,6 @@
 package testing
 
 import (
-	"context"
-
 	stdtesting "testing"
 
 	"github.com/samber/ro"
@@ -38,8 +36,8 @@ func BenchmarkMillionRowChallenge(b *stdtesting.B) {
 		source ro.Observable[int64]
 	}{
 		{name: "single-producer", source: ro.Range(0, 1_000_000)},
-		{name: "unsafe-mutex", source: newRangeForBenchmark(0, 1_000_000, ro.ConcurrencyModeUnsafe)},
-		{name: "safe-mutex", source: newRangeForBenchmark(0, 1_000_000, ro.ConcurrencyModeSafe)},
+		{name: "unsafe-mutex", source: ro.RangeWithMode(0, 1_000_000, ro.ConcurrencyModeUnsafe)},
+		{name: "safe-mutex", source: ro.RangeWithMode(0, 1_000_000, ro.ConcurrencyModeSafe)},
 	}
 
 	for _, tc := range benchmarkCases {
@@ -75,28 +73,5 @@ func BenchmarkMillionRowChallenge(b *stdtesting.B) {
 	}
 }
 
-func newRangeForBenchmark(start, end int64, mode ro.ConcurrencyMode) ro.Observable[int64] {
-	sign := int64(1)
-
-	if start == end {
-		return ro.Empty[int64]()
-	} else if start > end {
-		sign = -1
-	}
-
-	return ro.NewObservableWithConcurrencyMode(
-		func(ctx context.Context, destination ro.Observer[int64]) ro.Teardown {
-			cursor := start
-
-			for cursor*sign < end*sign {
-				destination.NextWithContext(ctx, cursor)
-				cursor += sign
-			}
-
-			destination.CompleteWithContext(ctx)
-
-			return nil
-		},
-		mode,
-	)
-}
+// Note: RangeWithMode in the main package replaces the ad-hoc helper previously
+// used here. See operator_creation.go for the implementation.
