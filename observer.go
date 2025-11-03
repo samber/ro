@@ -29,10 +29,15 @@ import (
 // `panicCaptureGuard` helper in `observer_test.go` which serialises writers
 // and allows concurrent readers via an RWMutex. Use the exported helpers
 // SetCaptureObserverPanics / CaptureObserverPanics for thread-safe access.
-var observerPanicCaptureEnabled atomic.Bool
+// observerPanicCaptureEnabled stores 0 (false) or 1 (true).
+// Using a uint32 + sync/atomic lets this code remain compatible with Go 1.18
+// (which doesn't have sync/atomic.Bool). Previously this used
+// atomic.Bool which requires Go 1.19+. Keep the public helpers the same so
+// callers/tests aren't affected.
+var observerPanicCaptureEnabled uint32
 
 func init() {
-	observerPanicCaptureEnabled.Store(true)
+	atomic.StoreUint32(&observerPanicCaptureEnabled, 1)
 }
 
 // SetCaptureObserverPanics toggles panic recovery in observer callbacks.
@@ -47,12 +52,16 @@ func init() {
 // to toggle the value should use the coordination helpers in
 // `observer_test.go` (the `panicCaptureGuard`) to avoid races.
 func SetCaptureObserverPanics(enabled bool) {
-	observerPanicCaptureEnabled.Store(enabled)
+	if enabled {
+		atomic.StoreUint32(&observerPanicCaptureEnabled, 1)
+	} else {
+		atomic.StoreUint32(&observerPanicCaptureEnabled, 0)
+	}
 }
 
 // CaptureObserverPanics reports whether observer callbacks are wrapped in panic recovery.
 func CaptureObserverPanics() bool {
-	return observerPanicCaptureEnabled.Load()
+	return atomic.LoadUint32(&observerPanicCaptureEnabled) != 0
 }
 
 // Observer is the consumer of an Observable. It receives notifications: Next,
@@ -100,7 +109,7 @@ var _ Observer[int] = (*observerImpl[int])(nil)
 func NewObserver[T any](onNext func(value T), onError func(err error), onComplete func()) Observer[T] {
 	return &observerImpl[T]{
 		status:        0,
-		capturePanics: observerPanicCaptureEnabled.Load(),
+		capturePanics: CaptureObserverPanics(),
 		onNext: func(ctx context.Context, value T) {
 			onNext(value)
 		},
@@ -118,7 +127,7 @@ func NewObserver[T any](onNext func(value T), onError func(err error), onComplet
 func NewObserverWithContext[T any](onNext func(ctx context.Context, value T), onError func(ctx context.Context, err error), onComplete func(ctx context.Context)) Observer[T] {
 	return &observerImpl[T]{
 		status:        0,
-		capturePanics: observerPanicCaptureEnabled.Load(),
+		capturePanics: CaptureObserverPanics(),
 		onNext:        onNext,
 		onError:       onError,
 		onComplete:    onComplete,
