@@ -22,6 +22,13 @@ import (
 	"github.com/samber/lo"
 )
 
+// observerPanicCaptureEnabled controls whether observer callbacks are wrapped
+// with panic-recovery logic (via lo.TryCatchWithErrorValue). This flag is
+// intentionally unexported to avoid unsynchronized mutations from tests or
+// consumers. Tests that need to toggle the global behaviour should use the
+// `panicCaptureGuard` helper in `observer_test.go` which serialises writers
+// and allows concurrent readers via an RWMutex. Use the exported helpers
+// SetCaptureObserverPanics / CaptureObserverPanics for thread-safe access.
 var observerPanicCaptureEnabled atomic.Bool
 
 func init() {
