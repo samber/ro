@@ -16,6 +16,7 @@ package ro
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -74,6 +75,29 @@ func guardObserverPanicCapture(t *testing.T, enabled bool) func() {
 		SetCaptureObserverPanics(previous)
 		panicCaptureGuard.Unlock()
 	}
+}
+
+// ExampleSetCaptureObserverPanics demonstrates the recommended pattern for
+// temporarily disabling panic capture for performance-sensitive benchmarks.
+// The pattern restores the previous setting using defer to avoid leaking the
+// global configuration into other tests or application code.
+func ExampleSetCaptureObserverPanics() {
+	previous := CaptureObserverPanics()
+	SetCaptureObserverPanics(false)
+	defer SetCaptureObserverPanics(previous)
+
+	// New observers created after disabling the global flag will capture the
+	// current setting at construction time.
+	observer := NewObserver(
+		func(value int) {},
+		func(err error) {},
+		func() {},
+	).(*observerImpl[int])
+
+	// Print the runtime flag and the observer's captured value.
+	fmt.Println(CaptureObserverPanics(), observer.capturePanics)
+
+	// Output: false false
 }
 
 func TestObserverInternalOk(t *testing.T) {
