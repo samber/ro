@@ -35,9 +35,17 @@ func init() {
 	observerPanicCaptureEnabled.Store(true)
 }
 
-// SetCaptureObserverPanics toggles panic recovery in observer callbacks. When disabled,
-// observer callbacks execute without the additional defer/recover overhead and panics will
-// propagate to the caller.
+// SetCaptureObserverPanics toggles panic recovery in observer callbacks.
+//
+// WARNING: this modifies a global package-level setting. The flag is sampled
+// when an Observer is constructed (e.g. via NewObserver / NewObserverWithContext)
+// so changing it at runtime affects *newly created* Observers only — existing
+// Observer instances retain the value they captured at construction time.
+//
+// Because this is global mutable state, prefer setting it once at application
+// startup for benchmarking or performance-sensitive pipelines. Tests that need
+// to toggle the value should use the coordination helpers in
+// `observer_test.go` (the `panicCaptureGuard`) to avoid races.
 func SetCaptureObserverPanics(enabled bool) {
 	observerPanicCaptureEnabled.Store(enabled)
 }
