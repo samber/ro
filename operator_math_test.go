@@ -236,7 +236,7 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	is.NotEqual(math.Ceil(1e-310), values[1])
 
 	values, err = Collect(
-		CeilWithPrecision(308)(Just(10.1, -10.1)),
+		CeilWithPrecision(maxPow10Chunk)(Just(10.1, -10.1)),
 	)
 	is.NoError(err)
 	is.Len(values, 2)
@@ -252,7 +252,7 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	is.Equal(math.Ceil(math.MaxFloat64/2), values[0])
 
 	values, err = Collect(
-		CeilWithPrecision(-308)(Just(math.MaxFloat64)),
+		CeilWithPrecision(-maxPow10Chunk)(Just(math.MaxFloat64)),
 	)
 	is.NoError(err)
 	is.Len(values, 1)
@@ -342,14 +342,14 @@ func TestOperatorMathCeilWithPrecisionUnderflowFallback(t *testing.T) {
 	is := assert.New(t)
 
 	value := 1e-20
-	places := -308
+	places := -maxPow10Chunk
 
 	values, err := Collect(
 		CeilWithPrecision(places)(Just(value)),
 	)
 	is.NoError(err)
 	is.Len(values, 1)
-	is.InDelta(math.Pow10(308), values[0], 1)
+	is.InDelta(math.Pow10(maxPow10Chunk), values[0], 1)
 }
 
 func TestOperatorMathCeilWithPrecisionMinInt(t *testing.T) {

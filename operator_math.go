@@ -332,7 +332,7 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 		}
 	}
 
-	if places > 308 {
+	if places > maxPow10Chunk {
 		return ceilWithLargePositivePrecision(places)
 	}
 
