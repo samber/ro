@@ -544,6 +544,66 @@ func TestLocklessDroppedNotification(t *testing.T) {
 	is.Contains(seen, "Next(42)")
 }
 
+// Stress test for the single-producer fast path. This exercises the lockless
+// code path under a tight sequential loop to ensure correctness and to make it
+// easy to run under the race detector in CI.
+func TestSingleProducerStress(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	var counter int64
+	observer := NewObserver(
+		func(value int) { atomic.AddInt64(&counter, int64(value)) },
+		func(err error) {},
+		func() {},
+	)
+
+	subscriber := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+
+	const iterations = 100000
+	for i := 0; i < iterations; i++ {
+		subscriber.Next(1)
+	}
+
+	is.EqualValues(int64(iterations), atomic.LoadInt64(&counter))
+}
+
+// Concurrent stress test for the safe subscriber. Spawns multiple goroutines
+// concurrently calling Next and validates the final accumulated value.
+func TestSafeSubscriberConcurrentStress(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	var counter int64
+	observer := NewObserver(
+		func(value int) { atomic.AddInt64(&counter, int64(value)) },
+		func(err error) {},
+		func() {},
+	)
+
+	subscriber := NewSafeSubscriber(observer).(*subscriberImpl[int])
+
+	const goroutines = 8
+	const per = 10000
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	for g := 0; g < goroutines; g++ {
+		go func() {
+			for i := 0; i < per; i++ {
+				subscriber.Next(1)
+			}
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	expected := int64(goroutines * per)
+	is.Equal(expected, atomic.LoadInt64(&counter))
+}
+
 func TestSubscriberIsClosed(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)

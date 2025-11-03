@@ -37,7 +37,8 @@ func BenchmarkMillionRowChallenge(b *stdtesting.B) {
 	}{
 		{name: "single-producer", source: ro.Range(0, 1_000_000)},
 		{name: "unsafe-mutex", source: ro.RangeWithMode(0, 1_000_000, ro.ConcurrencyModeUnsafe)},
-		{name: "safe-mutex", source: ro.RangeWithMode(0, 1_000_000, ro.ConcurrencyModeSafe)},
+	       {name: "safe-mutex", source: ro.RangeWithMode(0, 1_000_000, ro.ConcurrencyModeSafe)},
+	       {name: "eventually-safe", source: ro.RangeWithMode(0, 1_000_000, ro.ConcurrencyModeEventuallySafe)},
 	}
 
 	for _, tc := range benchmarkCases {
