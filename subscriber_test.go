@@ -568,6 +568,36 @@ func TestSingleProducerStress(t *testing.T) {
 	is.EqualValues(int64(iterations), atomic.LoadInt64(&counter))
 }
 
+// TestSingleProducerContextCancellation ensures the single-producer (lockless)
+// fast path forwards the provided context to the destination observer and that
+// a cancelled context is visible to the observer callback.
+func TestSingleProducerContextCancellation(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	var sawCanceled bool
+
+	observer := NewObserverWithContext(
+		func(ctx context.Context, value int) {
+			if ctx.Err() == context.Canceled {
+				sawCanceled = true
+			}
+		},
+		func(ctx context.Context, err error) {},
+		func(ctx context.Context) {},
+	)
+
+	subscriber := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	subscriber.NextWithContext(ctx, 42)
+
+	is.True(sawCanceled)
+}
+
 // Concurrent stress test for the safe subscriber. Spawns multiple goroutines
 // concurrently calling Next and validates the final accumulated value.
 func TestSafeSubscriberConcurrentStress(t *testing.T) {
