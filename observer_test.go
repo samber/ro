@@ -24,18 +24,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// panicCaptureGuard synchronises tests that read or modify the global
+// `CaptureObserverPanics` flag. Tests that only *read* the flag (and expect it
+// to be enabled) call `withObserverPanicCaptureEnabled` which acquires a read
+// lock; this allows multiple reader tests to run in parallel. Tests that
+// modify the global flag call `guardObserverPanicCapture` which acquires an
+// exclusive lock so the change is serialized and won't race with readers.
+//
+// We use an RWMutex so multiple reader tests can run concurrently while
+// still allowing exclusive, deterministic updates when a test needs to toggle
+// the global state. A plain Mutex would force readers and writers to serialize
+// and reduce parallel test throughput.
 var panicCaptureGuard sync.RWMutex
 
 func withObserverPanicCaptureEnabled(t *testing.T) {
 	t.Helper()
 
+	// Acquire a read lock to prevent guard functions from toggling the
+	// global flag while this test is running. If capture is disabled, fail
+	// fast and release the lock immediately.
 	panicCaptureGuard.RLock()
 
 	if !CaptureObserverPanics() {
+		// Release the read lock before failing to avoid deadlocks in other
+		// tests that may attempt to acquire the exclusive lock.
 		panicCaptureGuard.RUnlock()
 		t.Fatal("observer panic capture disabled; tests relying on default configuration must not run")
 	}
 
+	// Release the read-lock when the test completes.
 	t.Cleanup(func() {
 		panicCaptureGuard.RUnlock()
 	})
@@ -44,6 +61,10 @@ func withObserverPanicCaptureEnabled(t *testing.T) {
 func guardObserverPanicCapture(t *testing.T, enabled bool) func() {
 	t.Helper()
 
+	// Acquire exclusive access before mutating the global flag. This ensures
+	// that no tests are concurrently relying on the previous value when we
+	// flip it. The returned function restores the previous setting and
+	// releases the lock.
 	panicCaptureGuard.Lock()
 
 	previous := CaptureObserverPanics()
