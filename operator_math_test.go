@@ -290,7 +290,7 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
 
 	values, err = Collect(
-		CeilWithPrecision(math.MinInt + 1)(Just(42.5, -42.5, 0)),
+		CeilWithPrecision(math.MinInt + 1)(Just(42.5, -42.5, 0.0)),
 	)
 	is.NoError(err)
 	is.Len(values, 3)
@@ -319,7 +319,7 @@ func TestOperatorMathCeilWithPrecisionLargeChunkFallback(t *testing.T) {
 	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
 
 	values, err = Collect(
-		CeilWithPrecision(-positiveFallback)(Just(42.5, -42.5, 0)),
+		CeilWithPrecision(-positiveFallback)(Just(42.5, -42.5, 0.0)),
 	)
 	is.NoError(err)
 	is.Len(values, 3)
@@ -328,7 +328,7 @@ func TestOperatorMathCeilWithPrecisionLargeChunkFallback(t *testing.T) {
 	is.Equal(0.0, values[2])
 
 	values, err = Collect(
-		CeilWithPrecision(-positiveWithinLimit)(Just(42.5, -42.5, 0)),
+		CeilWithPrecision(-positiveWithinLimit)(Just(42.5, -42.5, 0.0)),
 	)
 	is.NoError(err)
 	is.Len(values, 3)
@@ -356,9 +356,17 @@ func TestOperatorMathCeilWithPrecisionMinInt(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
-	values, err := Collect(
-		CeilWithPrecision(math.MinInt)(Just(42.5, -42.5, 0, math.Inf(1), math.Inf(-1), math.NaN())),
+	var (
+		values []float64
+		err    error
 	)
+
+	assert.NotPanics(t, func() {
+		values, err = Collect(
+			CeilWithPrecision(math.MinInt)(Just(42.5, -42.5, 0.0, math.Inf(1), math.Inf(-1), math.NaN())),
+		)
+	})
+
 	is.NoError(err)
 	is.Len(values, 6)
 	is.True(math.IsInf(values[0], 1))

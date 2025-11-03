@@ -309,22 +309,26 @@ func Ceil() func(Observable[float64]) Observable[float64] {
 // specified number of digits to the right of the decimal point, while negative
 // precisions round to powers of ten.
 func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64] {
-	factor := math.Pow10(places)
-
 	if places < 0 {
 		if places == math.MinInt {
 			return ceilWithInfiniteNegativePrecision()
 		}
 
-		if factor == 0 || math.IsInf(1/factor, 0) {
-			negPlaces := -places
-			if negPlaces < 0 {
-				return ceilWithInfiniteNegativePrecision()
-			}
+		negPlaces := -places
+		if negPlaces < 0 {
+			return ceilWithInfiniteNegativePrecision()
+		}
 
+		if negPlaces > maxPow10Chunk {
 			return ceilWithLargeNegativePrecision(negPlaces)
 		}
 	}
+
+	if places > 308 {
+		return ceilWithLargePositivePrecision(places)
+	}
+
+	factor := math.Pow10(places)
 
 	if factor == 0 {
 		return Ceil()
@@ -337,10 +341,6 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 	inverseFactor := 1 / factor
 	if math.IsInf(inverseFactor, 0) {
 		if places < 0 {
-			if places == math.MinInt {
-				return ceilWithInfiniteNegativePrecision()
-			}
-
 			negPlaces := -places
 			if negPlaces < 0 {
 				return ceilWithInfiniteNegativePrecision()
