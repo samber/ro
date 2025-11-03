@@ -360,55 +360,13 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 		return Ceil()
 	}
 
-	var bigFactor *big.Float
 	var ceilWithBigFactor func(float64) float64
-	var smallFactor *big.Float
 	var ceilWithSmallFactor func(float64) float64
 
 	if places > 0 {
-		bigFactor = new(big.Float).SetPrec(256).SetFloat64(factor)
-		ceilWithBigFactor = func(value float64) float64 {
-			if math.IsNaN(value) || math.IsInf(value, 0) {
-				return math.Ceil(value)
-			}
-
-			scaled := new(big.Float).SetPrec(256).SetFloat64(value)
-			scaled.Mul(scaled, bigFactor)
-
-			ceiled := ceilBigFloat(scaled)
-			ceiled.Quo(ceiled, bigFactor)
-
-			result, _ := ceiled.Float64()
-			if math.IsInf(result, 0) || math.IsNaN(result) {
-				return math.Ceil(value)
-			}
-
-			return result
-		}
+		ceilWithBigFactor = makeCeilWithBigFactor(factor)
 	} else if places < 0 {
-		smallFactor = new(big.Float).SetPrec(256).SetFloat64(factor)
-		ceilWithSmallFactor = func(value float64) float64 {
-			if math.IsNaN(value) || math.IsInf(value, 0) {
-				return math.Ceil(value)
-			}
-
-			scaled := new(big.Float).SetPrec(256).SetFloat64(value)
-			scaled.Mul(scaled, smallFactor)
-
-			ceiled := ceilBigFloat(scaled)
-			ceiled.Quo(ceiled, smallFactor)
-
-			result, _ := ceiled.Float64()
-			if math.IsInf(result, 0) || math.IsNaN(result) {
-				if value > 0 {
-					return math.Inf(1)
-				}
-
-				return math.Ceil(value)
-			}
-
-			return result
-		}
+		ceilWithSmallFactor = makeCeilWithSmallFactor(factor)
 	}
 
 	return func(source Observable[float64]) Observable[float64] {
@@ -661,6 +619,56 @@ func ceilBigFloat(x *big.Float) *big.Float {
 	}
 
 	return result
+}
+
+// helper: create a ceiler that uses a big.Float factor (used for positive places)
+func makeCeilWithBigFactor(factor float64) func(float64) float64 {
+	bigFactor := new(big.Float).SetPrec(256).SetFloat64(factor)
+	return func(value float64) float64 {
+		if math.IsNaN(value) || math.IsInf(value, 0) {
+			return math.Ceil(value)
+		}
+
+		scaled := new(big.Float).SetPrec(256).SetFloat64(value)
+		scaled.Mul(scaled, bigFactor)
+
+		ceiled := ceilBigFloat(scaled)
+		ceiled.Quo(ceiled, bigFactor)
+
+		result, _ := ceiled.Float64()
+		if math.IsInf(result, 0) || math.IsNaN(result) {
+			return math.Ceil(value)
+		}
+
+		return result
+	}
+}
+
+// helper: create a ceiler that uses a big.Float factor (used for negative places)
+func makeCeilWithSmallFactor(factor float64) func(float64) float64 {
+	smallFactor := new(big.Float).SetPrec(256).SetFloat64(factor)
+	return func(value float64) float64 {
+		if math.IsNaN(value) || math.IsInf(value, 0) {
+			return math.Ceil(value)
+		}
+
+		scaled := new(big.Float).SetPrec(256).SetFloat64(value)
+		scaled.Mul(scaled, smallFactor)
+
+		ceiled := ceilBigFloat(scaled)
+		ceiled.Quo(ceiled, smallFactor)
+
+		result, _ := ceiled.Float64()
+		if math.IsInf(result, 0) || math.IsNaN(result) {
+			if value > 0 {
+				return math.Inf(1)
+			}
+
+			return math.Ceil(value)
+		}
+
+		return result
+	}
 }
 
 // Trunc emits the truncated values emitted by the source Observable.
