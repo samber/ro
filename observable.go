@@ -41,6 +41,7 @@ const (
 	ConcurrencyModeSafe ConcurrencyMode = iota
 	ConcurrencyModeUnsafe
 	ConcurrencyModeEventuallySafe
+	ConcurrencyModeSingleProducer
 )
 
 // Observable is the producer of values. It is the source of values that are
@@ -166,6 +167,28 @@ func NewEventuallySafeObservable[T any](subscribe func(destination Observer[T]) 
 	)
 }
 
+// NewSingleProducerObservable creates a new Observable optimized for single producer scenarios.
+// The subscribe function is called when the Observable is subscribed to. The subscribe function is given an Observer,
+// to which it may emit any number of items, then may either complete or error, but not both. Upon completion or error,
+// the Observable will not emit any more items.
+//
+// The subscribe function should return a Teardown function that will be called
+// when the Subscription is unsubscribed. The Teardown function should clean up
+// any resources created during the subscription.
+//
+// The subscribe function may return a Teardown function that does nothing, if
+// no cleanup is necessary. In this case, the Teardown function should return nil.
+//
+// This method is not safe for concurrent use.
+func NewSingleProducerObservable[T any](subscribe func(destination Observer[T]) Teardown) Observable[T] {
+	return NewObservableWithConcurrencyMode(
+		func(ctx context.Context, destination Observer[T]) Teardown {
+			return subscribe(destination)
+		},
+		ConcurrencyModeSingleProducer,
+	)
+}
+
 // NewObservableWithContext creates a new Observable. The subscribe function is called when
 // the Observable is subscribed to. The subscribe function is given an Observer,
 // to which it may emit any number of items, then may either complete or error,
@@ -238,6 +261,22 @@ func NewEventuallySafeObservableWithContext[T any](subscribe func(ctx context.Co
 	return NewObservableWithConcurrencyMode(subscribe, ConcurrencyModeEventuallySafe)
 }
 
+// NewSingleProducerObservableWithContext creates a new Observable optimized for single producer scenarios.
+// The subscribe function is called when the Observable is subscribed to. The subscribe function is given an Observer,
+// to which it may emit any number of items, then may either complete or error, but not both. Upon completion or error, the Observable will not emit any more items.
+//
+// The subscribe function should return a Teardown function that will be called
+// when the Subscription is unsubscribed. The Teardown function should clean up
+// any resources created during the subscription.
+//
+// The subscribe function may return a Teardown function that does nothing, if
+// no cleanup is necessary. In this case, the Teardown function should return nil.
+//
+// This method is not safe for concurrent use.
+func NewSingleProducerObservableWithContext[T any](subscribe func(ctx context.Context, destination Observer[T]) Teardown) Observable[T] {
+	return NewObservableWithConcurrencyMode(subscribe, ConcurrencyModeSingleProducer)
+}
+
 // NewObservableWithConcurrencyMode creates a new Observable with the given concurrency mode.
 // The subscribe function is called when the Observable is subscribed to. The subscribe function is given an Observer,
 // to which it may emit any number of items, then may either complete or error, but not both. Upon completion or error, the Observable will not emit any more items.
@@ -303,7 +342,7 @@ func (s *observableImpl[T]) Subscribe(destination Observer[T]) Subscription {
 func (s *observableImpl[T]) SubscribeWithContext(ctx context.Context, destination Observer[T]) Subscription {
 	subscription := NewSubscriberWithConcurrencyMode(destination, s.mode)
 
-	if !CaptureObserverPanics() && s.mode == ConcurrencyModeUnsafe {
+	if !CaptureObserverPanics() && (s.mode == ConcurrencyModeUnsafe || s.mode == ConcurrencyModeSingleProducer) {
 		subscription.Add(s.subscribe(ctx, subscription))
 		return subscription
 	}

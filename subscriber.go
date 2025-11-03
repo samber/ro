@@ -89,6 +89,18 @@ func NewEventuallySafeSubscriber[T any](destination Observer[T]) Subscriber[T] {
 	return NewSubscriberWithConcurrencyMode(destination, ConcurrencyModeEventuallySafe)
 }
 
+// NewSingleProducerSubscriber creates a new Subscriber optimized for single producer scenarios.
+// If the Observer is already a Subscriber, it is returned as is. Otherwise, a new Subscriber
+// is created that wraps the Observer.
+//
+// The returned Subscriber will unsubscribe from the destination Observer when
+// Unsubscribe() is called.
+//
+// This method is not safe for concurrent producers.
+func NewSingleProducerSubscriber[T any](destination Observer[T]) Subscriber[T] {
+	return NewSubscriberWithConcurrencyMode(destination, ConcurrencyModeSingleProducer)
+}
+
 // NewSubscriberWithConcurrencyMode creates a new Subscriber from an Observer. If the Observer
 // is already a Subscriber, it is returned as is. Otherwise, a new Subscriber
 // is created that wraps the Observer.
@@ -102,11 +114,13 @@ func NewSubscriberWithConcurrencyMode[T any](destination Observer[T], mode Concu
 	// only for short-lived local locks.
 	switch mode {
 	case ConcurrencyModeSafe:
-		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureBlock, destination)
+		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureBlock, destination, false)
 	case ConcurrencyModeUnsafe:
-		return newSubscriberImpl(mode, xsync.NewMutexWithoutLock(), BackpressureBlock, destination)
+		return newSubscriberImpl(mode, xsync.NewMutexWithoutLock(), BackpressureBlock, destination, false)
 	case ConcurrencyModeEventuallySafe:
-		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureDrop, destination)
+		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureDrop, destination, false)
+	case ConcurrencyModeSingleProducer:
+		return newSubscriberImpl(mode, nil, BackpressureBlock, destination, true)
 	default:
 		panic("invalid concurrency mode")
 	}
@@ -114,7 +128,7 @@ func NewSubscriberWithConcurrencyMode[T any](destination Observer[T], mode Concu
 
 // newSubscriberImpl creates a new subscriber implementation with the specified
 // synchronization behavior and destination observer.
-func newSubscriberImpl[T any](mode ConcurrencyMode, mu xsync.Mutex, backpressure Backpressure, destination Observer[T]) Subscriber[T] {
+func newSubscriberImpl[T any](mode ConcurrencyMode, mu xsync.Mutex, backpressure Backpressure, destination Observer[T], lockless bool) Subscriber[T] {
 	// Protect against multiple encapsulation layers.
 	if subscriber, ok := destination.(Subscriber[T]); ok {
 		return subscriber
@@ -129,6 +143,7 @@ func newSubscriberImpl[T any](mode ConcurrencyMode, mu xsync.Mutex, backpressure
 
 		Subscription: NewSubscription(nil),
 		mode:         mode,
+		lockless:     lockless,
 	}
 
 	if subscription, ok := destination.(Subscription); ok {
@@ -164,7 +179,8 @@ type subscriberImpl[T any] struct {
 
 	Subscription
 
-	mode ConcurrencyMode
+	mode     ConcurrencyMode
+	lockless bool
 }
 
 // Implements Observer.
@@ -175,6 +191,16 @@ func (s *subscriberImpl[T]) Next(v T) {
 // Implements Observer.
 func (s *subscriberImpl[T]) NextWithContext(ctx context.Context, v T) {
 	if s.destination == nil {
+		return
+	}
+
+	if s.lockless {
+		if atomic.LoadInt32(&s.status) == 0 {
+			s.destination.NextWithContext(ctx, v)
+		} else {
+			OnDroppedNotification(ctx, NewNotificationNext(v))
+		}
+
 		return
 	}
 
@@ -203,6 +229,20 @@ func (s *subscriberImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *subscriberImpl[T]) ErrorWithContext(ctx context.Context, err error) {
+	if s.lockless {
+		if atomic.CompareAndSwapInt32(&s.status, 0, 1) {
+			if s.destination != nil {
+				s.destination.ErrorWithContext(ctx, err)
+			}
+		} else {
+			OnDroppedNotification(ctx, NewNotificationError[T](err))
+		}
+
+		s.unsubscribe()
+
+		return
+	}
+
 	s.mu.Lock()
 
 	if atomic.CompareAndSwapInt32(&s.status, 0, 1) {
@@ -225,6 +265,20 @@ func (s *subscriberImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *subscriberImpl[T]) CompleteWithContext(ctx context.Context) {
+	if s.lockless {
+		if atomic.CompareAndSwapInt32(&s.status, 0, 2) {
+			if s.destination != nil {
+				s.destination.CompleteWithContext(ctx)
+			}
+		} else {
+			OnDroppedNotification(ctx, NewNotificationComplete[T]())
+		}
+
+		s.unsubscribe()
+
+		return
+	}
+
 	s.mu.Lock()
 
 	if atomic.CompareAndSwapInt32(&s.status, 0, 2) {

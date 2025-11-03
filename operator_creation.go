@@ -186,7 +186,7 @@ func Range(start, end int64) Observable[int64] {
 		sign = -1
 	}
 
-	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
+	return NewObservableWithConcurrencyMode(func(ctx context.Context, destination Observer[int64]) Teardown {
 		cursor := start
 
 		for cursor*sign < end*sign {
@@ -197,7 +197,7 @@ func Range(start, end int64) Observable[int64] {
 		destination.CompleteWithContext(ctx)
 
 		return nil
-	})
+	}, ConcurrencyModeSingleProducer)
 }
 
 // RangeWithStep creates an Observable that emits a range of floats.
@@ -220,7 +220,7 @@ func RangeWithStep(start, end, step float64) Observable[float64] {
 		panic(ErrRangeWithStepWrongStep)
 	}
 
-	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[float64]) Teardown {
+	return NewObservableWithConcurrencyMode(func(ctx context.Context, destination Observer[float64]) Teardown {
 		cursor := start
 
 		for cursor*sign < end*sign {
@@ -231,7 +231,7 @@ func RangeWithStep(start, end, step float64) Observable[float64] {
 		destination.CompleteWithContext(ctx)
 
 		return nil
-	})
+	}, ConcurrencyModeSingleProducer)
 }
 
 // RangeWithInterval creates an Observable that emits a range of integers.

@@ -15,6 +15,8 @@
 package testing
 
 import (
+	"context"
+
 	stdtesting "testing"
 
 	"github.com/samber/ro"
@@ -29,33 +31,72 @@ func BenchmarkMillionRowChallenge(b *stdtesting.B) {
 		ro.SetCaptureObserverPanics(previous)
 	})
 
-	pipeline := ro.Pipe3(
-		ro.Range(0, 1_000_000),
-		ro.Map(func(value int64) int64 { return value + 1 }),
-		ro.Filter(func(value int64) bool { return value%2 == 0 }),
-		ro.Map(func(value int64) int64 { return value * 3 }),
-	)
-
 	const expectedSum int64 = 750001500000
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		var sum int64
-
-		subscription := pipeline.Subscribe(ro.NewObserver(
-			func(value int64) {
-				sum += value
-			},
-			func(err error) {
-				b.Fatalf("unexpected error: %v", err)
-			},
-			func() {},
-		))
-
-		subscription.Wait()
-
-		if sum != expectedSum {
-			b.Fatalf("unexpected sum: %d", sum)
-		}
+	benchmarkCases := []struct {
+		name   string
+		source ro.Observable[int64]
+	}{
+		{name: "single-producer", source: ro.Range(0, 1_000_000)},
+		{name: "unsafe-mutex", source: newRangeForBenchmark(0, 1_000_000, ro.ConcurrencyModeUnsafe)},
+		{name: "safe-mutex", source: newRangeForBenchmark(0, 1_000_000, ro.ConcurrencyModeSafe)},
 	}
+
+	for _, tc := range benchmarkCases {
+		b.Run(tc.name, func(b *stdtesting.B) {
+			pipeline := ro.Pipe3(
+				tc.source,
+				ro.Map(func(value int64) int64 { return value + 1 }),
+				ro.Filter(func(value int64) bool { return value%2 == 0 }),
+				ro.Map(func(value int64) int64 { return value * 3 }),
+			)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				var sum int64
+
+				subscription := pipeline.Subscribe(ro.NewObserver(
+					func(value int64) {
+						sum += value
+					},
+					func(err error) {
+						b.Fatalf("unexpected error: %v", err)
+					},
+					func() {},
+				))
+
+				subscription.Wait()
+
+				if sum != expectedSum {
+					b.Fatalf("unexpected sum: %d", sum)
+				}
+			}
+		})
+	}
+}
+
+func newRangeForBenchmark(start, end int64, mode ro.ConcurrencyMode) ro.Observable[int64] {
+	sign := int64(1)
+
+	if start == end {
+		return ro.Empty[int64]()
+	} else if start > end {
+		sign = -1
+	}
+
+	return ro.NewObservableWithConcurrencyMode(
+		func(ctx context.Context, destination ro.Observer[int64]) ro.Teardown {
+			cursor := start
+
+			for cursor*sign < end*sign {
+				destination.NextWithContext(ctx, cursor)
+				cursor += sign
+			}
+
+			destination.CompleteWithContext(ctx)
+
+			return nil
+		},
+		mode,
+	)
 }

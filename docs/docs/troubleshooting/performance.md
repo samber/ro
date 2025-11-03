@@ -291,7 +291,7 @@ func BenchmarkMapOperator(b *testing.B) {
 }
 
 func BenchmarkConcurrentProcessing(b *testing.B) {
-    source := ro.Just(make([]int, 1000)...)
+    source := ro.Just(make([]int, 1000)...) 
     
     b.Run("Serial", func(b *testing.B) {
         operator := serialProcessing()
@@ -310,6 +310,31 @@ func BenchmarkConcurrentProcessing(b *testing.B) {
     })
 }
 ```
+
+### Subscriber Concurrency Modes
+
+High-throughput sources can avoid unnecessary synchronization by selecting the right subscriber implementation. The core library now exposes `NewSingleProducerSubscriber`/`NewSingleProducerObservableWithContext`, and operators such as `Range` automatically opt into the `ConcurrencyModeSingleProducer` fast-path when there is exactly one upstream writer. This mode bypasses the `Lock`/`Unlock` calls entirely while retaining panic safety and teardown behavior. Use the following guidance when choosing a mode:
+
+| Concurrency mode | Locking strategy | Drop policy | Recommended usage |
+| --- | --- | --- | --- |
+| `ConcurrencyModeSafe` | `sync.Mutex` | Blocks producers | Multiple writers or callbacks that may concurrently re-enter observers |
+| `ConcurrencyModeEventuallySafe` | `sync.Mutex` | Drops when contended | Fan-in scenarios where losing values is acceptable |
+| `ConcurrencyModeUnsafe` | No-op lock wrapper | Blocks producers | Single writer, but still routes through the locking API surface |
+| `ConcurrencyModeSingleProducer` | No locking | Blocks producers | Single writer that needs the lowest possible overhead |
+
+Run the million-row benchmark to compare the trade-offs:
+
+```bash
+go test -run=^$ -bench BenchmarkMillionRowChallenge -benchmem ./testing
+```
+
+Sample results on a 1M element pipeline:
+
+- `single-producer`: 60.3 ms/op, 1.5 KiB/op, 39 allocs/op【9dc40c†L1-L5】【f63774†L1-L2】
+- `unsafe-mutex`: 63.2 ms/op, 1.5 KiB/op, 39 allocs/op【f63774†L1-L2】【604fb9†L1-L2】
+- `safe-mutex`: 67.1 ms/op, 1.6 KiB/op, 40 allocs/op【604fb9†L1-L2】【9ecf78†L1-L4】
+
+The single-producer path trims roughly 4–6% off the runtime compared to the previous `unsafe` mode while preserving allocation characteristics. Stick with the safe variants whenever multiple goroutines might call `Next` concurrently.
 
 ## 6. Performance Optimization Checklist
 
