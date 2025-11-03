@@ -231,6 +231,32 @@ pipeline.Subscribe(ro.NewObserver(
 
 While panic capture is disabled, observers created inside unsafe observables use the fast path that no longer wraps callbacks in `lo.TryCatchWithErrorValue`.
 
+### Panic capture (global flag)
+
+`samber/ro` exposes a global toggle to control whether observer callbacks are wrapped with panic-recovery logic:
+
+- `ro.SetCaptureObserverPanics(enabled bool)` — set the global behaviour
+- `ro.CaptureObserverPanics()` — read the current setting
+
+Important notes:
+
+- Global scope: the flag is process-global. It affects how *newly constructed* `Observer` instances behave and does not retroactively change observers already created.
+- Snapshot behaviour: the capture setting is sampled at observer construction time and stored on the observer instance. Toggling the global flag later does not modify existing observers.
+- Thread-safety: the flag is implemented with an `atomic.Bool` and is safe to read/write concurrently.
+- Trade-offs and recommended usage:
+    - Default (capture enabled): safe — panics inside observer callbacks are routed to `ro.OnUnhandledError` and the pipeline can teardown gracefully. Recommended for library and production code.
+    - Capture disabled: improves throughput by avoiding per-callback defer/recover overhead. Use only in controlled scenarios (benchmarks or trusted pipelines) and always restore the previous value with `defer`.
+
+Example (benchmark scoping):
+
+```go
+previous := ro.CaptureObserverPanics()
+ro.SetCaptureObserverPanics(false)
+defer ro.SetCaptureObserverPanics(previous)
+
+// Build and run pipeline within this scope
+```
+
 ### State After Error
 
 Once an Observer receives an error, it rejects further notifications:

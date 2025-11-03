@@ -322,11 +322,32 @@ High-throughput sources can avoid unnecessary synchronization by selecting the r
 | `ConcurrencyModeUnsafe` | No-op lock wrapper | Blocks producers | Single writer, but still routes through the locking API surface |
 | `ConcurrencyModeSingleProducer` | No locking | Blocks producers | Single writer that needs the lowest possible overhead |
 
+Note on panic-capture interaction
+: The library also has a global panic-capture toggle (`ro.SetCaptureObserverPanics`). When panic capture is disabled, some fast-paths (for example the single-producer and unsafe modes) avoid wrapping observer callbacks in the usual defer/recover machinery. In practice this means the single-producer/unsafe modes deliver their best performance only when panic capture is disabled or when observers were constructed with capture disabled. Keep this interaction in mind when benchmarking or selecting a mode for production: safety (capture enabled) and peak throughput (capture disabled + single-producer) are orthogonal choices.
+
 Run the million-row benchmark to compare the trade-offs:
 
 ```bash
 go test -run=^$ -bench BenchmarkMillionRowChallenge -benchmem ./testing
 ```
+
+Running the benchmark (tips)
+:
+- The benchmark harness in `testing/benchmark_million_rows_test.go` disables panic capture for the duration of the bench to measure the fastest hot-path. If you want to reproduce realistic production numbers, run the benchmark both with capture enabled and disabled.
+- Increase bench time to reduce noise:
+
+```bash
+go test -run=^$ -bench BenchmarkMillionRowChallenge -benchmem ./testing -benchtime=10s
+```
+
+- To check for races, run:
+
+```bash
+go test -race ./...
+```
+
+- To profile CPU or mutex contention, use `pprof` with the benchmark or a traced run and inspect lock profiles to see how much time is spent acquiring `sync.Mutex` vs useful work.
+
 
 Sample results on a 1M element pipeline:
 
