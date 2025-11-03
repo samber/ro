@@ -37,6 +37,16 @@ type ConcurrencyMode int8
 // ConcurrencyModeSafe is a concurrency mode that is safe to use.
 // Spinlock is ignored because it is too slow when chaining operators. Spinlock should be used
 // only for short-lived local locks.
+//
+// ConcurrencyModeSingleProducer is an optimization targeted at hot, single-
+// producer pipelines. It avoids mutex acquisition and relies on atomic state
+// transitions, making it the fastest path for sequential emission from a single
+// goroutine. IMPORTANT: this mode is UNSAFE if multiple goroutines may emit
+// concurrently into the same subscriber. Do NOT use this mode with multi-
+// producer operators such as `Merge`, `CombineLatest`, `WithConcurrency` or
+// any operator that may call into a downstream subscriber from multiple
+// goroutines. Use `ConcurrencyModeSafe` or `ConcurrencyModeEventuallySafe`
+// when upstream concurrency is possible.
 const (
 	ConcurrencyModeSafe ConcurrencyMode = iota
 	ConcurrencyModeUnsafe
