@@ -23,12 +23,20 @@ import (
 	"github.com/samber/ro/internal/constraints"
 )
 
+// maxPow10Chunk is the largest decimal exponent n for which 10^n fits in a
+// float64 (IEEE-754). math.Pow10(308) == 1e308 is finite; math.Pow10(309)
+// overflows to +Inf. The code uses math.Pow10(step) and then converts that
+// finite float64 into a big.Float when constructing chunk factors. Keeping
+// the step ≤ 308 prevents creating +Inf/NaN from math.Pow10 before moving to
+// big.Float arithmetic.
 const maxPow10Chunk = 308
 
 // maxPow10ChunkCount caps the number of 308-digit chunks we are willing to
-// process when emulating arbitrary-precision ceil operations. 32 chunks (~9.9k
-// decimal digits) keep allocations bounded while still covering far more
-// precision than realistic callers require.
+// process when emulating arbitrary-precision ceil operations. 32 chunks
+// (32 * 308 ≈ 9856 decimal digits) keep allocations bounded while still
+// covering far more precision than realistic callers require. If the required
+// chunk count exceeds this value the implementation falls back to a safe
+// no-op or infinite-precision handler to avoid runaway allocations.
 const maxPow10ChunkCount = 32
 
 // Average calculates the average of the values emitted by the source Observable.
