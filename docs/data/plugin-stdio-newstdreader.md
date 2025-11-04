@@ -3,7 +3,7 @@ name: NewStdReader
 slug: newstdreader
 sourceRef: plugins/io/source.go#L82
 type: plugin
-category: io
+category: stdio
 signatures:
   - "func NewStdReader()"
 playUrl: https://go.dev/play/p/YDjiTqvKbcl
@@ -20,10 +20,10 @@ Creates an observable that reads data from standard input.
 ```go
 import (
     "github.com/samber/ro"
-    roio "github.com/samber/ro/plugins/io"
+    rostdio "github.com/samber/ro/plugins/stdio"
 )
 
-obs := roio.NewStdReader()
+obs := rostdio.NewStdReader()
 
 sub := obs.Subscribe(ro.PrintObserver[[]byte]())
 defer sub.Unsubscribe()

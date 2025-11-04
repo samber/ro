@@ -24,7 +24,7 @@ use (
 	./plugins/http/client
 	// Commented out because requires go>=1.23
 	// ./plugins/hyperloglog
-	./plugins/io
+	./plugins/stdio
 	// Commented out because requires go>=1.23
 	// ./plugins/iter
 	./plugins/observability/log

@@ -3,7 +3,7 @@ name: NewIOWriter
 slug: newiowriter
 sourceRef: plugins/io/sink.go#L26
 type: plugin
-category: io
+category: stdio
 signatures:
   - "func NewIOWriter(writer io.Writer)"
 playUrl: https://go.dev/play/p/LazCm43IDml
@@ -21,13 +21,13 @@ import (
     "bytes"
 
     "github.com/samber/ro"
-    roio "github.com/samber/ro/plugins/io"
+    rostdio "github.com/samber/ro/plugins/stdio"
 )
 
 var buf bytes.Buffer
 obs := ro.Pipe[[]byte, int](
     ro.Just([]byte("Hello, "), []byte("World!")),
-    roio.NewIOWriter(&buf),
+    rostdio.NewIOWriter(&buf),
 )
 
 sub := obs.Subscribe(ro.PrintObserver[int]())
