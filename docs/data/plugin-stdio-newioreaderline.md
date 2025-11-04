@@ -1,7 +1,7 @@
 ---
 name: NewIOReaderLine
 slug: newioreaderline
-sourceRef: plugins/io/source.go#L54
+sourceRef: plugins/stdio/source.go#L54
 type: plugin
 category: stdio
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: NewStdReaderLine
 slug: newstdreaderline
-sourceRef: plugins/io/source.go#L86
+sourceRef: plugins/stdio/source.go#L86
 type: plugin
 category: stdio
 signatures:

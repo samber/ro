@@ -1,7 +1,7 @@
 ---
 name: NewStdReader
 slug: newstdreader
-sourceRef: plugins/io/source.go#L82
+sourceRef: plugins/stdio/source.go#L82
 type: plugin
 category: stdio
 signatures:

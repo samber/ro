@@ -1,7 +1,7 @@
 ---
 name: NewIOWriter
 slug: newiowriter
-sourceRef: plugins/io/sink.go#L26
+sourceRef: plugins/stdio/sink.go#L26
 type: plugin
 category: stdio
 signatures:
