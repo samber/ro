@@ -1,9 +1,9 @@
 ---
 name: NewStdWriter
 slug: newstdwriter
-sourceRef: plugins/io/sink.go#L59
+sourceRef: plugins/stdio/sink.go#L59
 type: plugin
-category: io
+category: stdio
 signatures:
   - "func NewStdWriter()"
 playUrl: https://go.dev/play/p/tj1fyTjkCDn
@@ -19,12 +19,12 @@ Creates an operator that writes byte arrays to standard output and returns the c
 ```go
 import (
     "github.com/samber/ro"
-    roio "github.com/samber/ro/plugins/io"
+    rostdio "github.com/samber/ro/plugins/stdio"
 )
 
 obs := ro.Pipe[[]byte, int](
     ro.Just([]byte("Hello, World!")),
-    roio.NewStdWriter(),
+    rostdio.NewStdWriter(),
 )
 
 sub := obs.Subscribe(ro.PrintObserver[int]())

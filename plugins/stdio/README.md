@@ -1,11 +1,11 @@
-# IO Plugin
+# stdio Plugin
 
-The IO plugin provides operators for reading from and writing to various input/output streams.
+The stdio plugin provides operators for reading from and writing to various input/output streams.
 
 ## Installation
 
 ```bash
-go get github.com/samber/ro/plugins/io
+go get github.com/samber/ro/plugins/stdio
 ```
 
 ## Operators
@@ -18,13 +18,13 @@ Creates an observable that reads data from an `io.Reader`.
 import (
     "strings"
     "github.com/samber/ro"
-    roio "github.com/samber/ro/plugins/io"
+    rostdio "github.com/samber/ro/plugins/stdio"
 )
 
 // Read data from a string reader
 data := "Hello, World! This is a test."
 reader := strings.NewReader(data)
-observable := roio.NewIOReader(reader)
+observable := rostdio.NewIOReader(reader)
 
 subscription := observable.Subscribe(ro.PrintObserver[[]byte]())
 defer subscription.Unsubscribe()
@@ -42,7 +42,7 @@ Creates an observable that reads lines from an `io.Reader`.
 // Read lines from a string reader
 data := "Line 1\nLine 2\nLine 3\n"
 reader := strings.NewReader(data)
-observable := roio.NewIOReaderLine(reader)
+observable := rostdio.NewIOReaderLine(reader)
 
 subscription := observable.Subscribe(ro.PrintObserver[[]byte]())
 defer subscription.Unsubscribe()
@@ -62,7 +62,7 @@ Creates an operator that writes data to an `io.Writer` and returns the number of
 import (
     "bytes"
     "github.com/samber/ro"
-    roio "github.com/samber/ro/plugins/io"
+    rostdio "github.com/samber/ro/plugins/stdio"
 )
 
 // Write data to a buffer
@@ -77,7 +77,7 @@ data := ro.Just(
 
 observable := ro.Pipe1(
     data,
-    roio.NewIOWriter(writer),
+    rostdio.NewIOWriter(writer),
 )
 
 subscription := observable.Subscribe(ro.PrintObserver[int]())
@@ -93,7 +93,7 @@ defer subscription.Unsubscribe()
 Creates an observable that reads from standard input.
 
 ```go
-observable := roio.NewStdReader()
+observable := rostdio.NewStdReader()
 
 subscription := observable.Subscribe(
     ro.NewObserver(
@@ -116,7 +116,7 @@ defer subscription.Unsubscribe()
 Creates an observable that reads lines from standard input.
 
 ```go
-observable := roio.NewStdReaderLine()
+observable := rostdio.NewStdReaderLine()
 
 subscription := observable.Subscribe(
     ro.NewObserver(
@@ -139,7 +139,7 @@ defer subscription.Unsubscribe()
 Creates an observable that prompts the user for input and reads their response.
 
 ```go
-observable := roio.NewPrompt("Enter your name: ")
+observable := rostdio.NewPrompt("Enter your name: ")
 
 subscription := observable.Subscribe(
     ro.NewObserver(
@@ -171,7 +171,7 @@ data := ro.Just(
 
 observable := ro.Pipe1(
     data,
-    roio.NewStdWriter(),
+    rostdio.NewStdWriter(),
 )
 
 subscription := observable.Subscribe(ro.PrintObserver[int]())
@@ -192,7 +192,7 @@ The plugin supports various `io.Reader` implementations:
 import "strings"
 
 reader := strings.NewReader("Hello, World!")
-observable := roio.NewIOReader(reader)
+observable := rostdio.NewIOReader(reader)
 ```
 
 ### File Reader
@@ -206,7 +206,7 @@ if err != nil {
 }
 defer file.Close()
 
-observable := roio.NewIOReader(file)
+observable := rostdio.NewIOReader(file)
 ```
 
 ### Buffer Reader
@@ -216,7 +216,7 @@ import "bytes"
 
 data := []byte("Hello, World!")
 reader := bytes.NewReader(data)
-observable := roio.NewIOReader(reader)
+observable := rostdio.NewIOReader(reader)
 ```
 
 ## Supported Writer Types
@@ -234,7 +234,7 @@ writer := &buf
 data := ro.Just([]byte("Hello, World!"))
 observable := ro.Pipe1(
     data,
-    roio.NewIOWriter(writer),
+    rostdio.NewIOWriter(writer),
 )
 ```
 
@@ -252,7 +252,7 @@ defer file.Close()
 data := ro.Just([]byte("Hello, World!"))
 observable := ro.Pipe1(
     data,
-    roio.NewIOWriter(file),
+    rostdio.NewIOWriter(file),
 )
 ```
 
@@ -264,7 +264,7 @@ The plugin handles IO errors gracefully:
 
 ```go
 reader := strings.NewReader("Hello, World!")
-observable := roio.NewIOReader(reader)
+observable := rostdio.NewIOReader(reader)
 
 subscription := observable.Subscribe(
     ro.NewObserver(
@@ -295,7 +295,7 @@ writer := &buf
 data := ro.Just([]byte("Hello, World!"))
 observable := ro.Pipe1(
     data,
-    roio.NewIOWriter(writer),
+    rostdio.NewIOWriter(writer),
 )
 
 subscription := observable.Subscribe(
@@ -328,13 +328,13 @@ import (
     "os"
     "strings"
     "github.com/samber/ro"
-    roio "github.com/samber/ro/plugins/io"
+    rostdio "github.com/samber/ro/plugins/stdio"
 )
 
 // Process a file line by line
 pipeline := ro.Pipe2(
     // Read lines from file
-    roio.NewIOReaderLine(strings.NewReader(`Line 1: Hello
+    rostdio.NewIOReaderLine(strings.NewReader(`Line 1: Hello
 Line 2: World
 Line 3: Test`)),
     // Transform lines
@@ -362,7 +362,7 @@ defer subscription.Unsubscribe()
 
 ## Performance Considerations
 
-- The plugin uses Go's standard `io` package for all operations
+- The plugin uses Go's standard `stdio` package for all operations
 - Reading is done in chunks of 1024 bytes by default
 - Line reading uses buffered I/O for efficiency
 - The plugin automatically handles resource cleanup

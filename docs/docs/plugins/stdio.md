@@ -1,5 +1,5 @@
 ---
-title: IO
+title: STDIO
 description: I/O operations and file system utilities for streams.
 sidebar_position: 60
 hide_table_of_contents: true
@@ -14,19 +14,19 @@ Your feedback helps us improve!
 #
 ## I/O operators
 
-This page lists all operators available in the `io` sub-package of ro.
+This page lists all operators available in the `stdio` sub-package of ro.
 
 ### Install
 
 First, import the sub-package in your project:
 
 ```bash
-go get -u github.com/samber/ro/plugins/io
+go get -u github.com/samber/ro/plugins/stdio
 ```
 
 import HelperList from '@site/plugins/helpers-pages/components/HelperList';
 
 <HelperList 
   type="plugin"
-  category="io"
+  category="stdio"
 />

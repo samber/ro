@@ -1,9 +1,9 @@
 ---
 name: NewStdReaderLine
 slug: newstdreaderline
-sourceRef: plugins/io/source.go#L86
+sourceRef: plugins/stdio/source.go#L86
 type: plugin
-category: io
+category: stdio
 signatures:
   - "func NewStdReaderLine()"
 playUrl: ""
@@ -20,10 +20,10 @@ Creates an observable that reads lines from standard input.
 ```go
 import (
     "github.com/samber/ro"
-    roio "github.com/samber/ro/plugins/io"
+    rostdio "github.com/samber/ro/plugins/stdio"
 )
 
-obs := roio.NewStdReaderLine()
+obs := rostdio.NewStdReaderLine()
 
 sub := obs.Subscribe(ro.PrintObserver[[]byte]())
 defer sub.Unsubscribe()

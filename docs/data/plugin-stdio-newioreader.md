@@ -1,9 +1,9 @@
 ---
 name: NewIOReader
 slug: newioreader
-sourceRef: plugins/io/source.go#L29
+sourceRef: plugins/stdio/source.go#L29
 type: plugin
-category: io
+category: stdio
 signatures:
   - "func NewIOReader(reader io.Reader)"
 playUrl: https://go.dev/play/p/IvjWBKDHYHM
@@ -23,11 +23,11 @@ import (
     "strings"
 
     "github.com/samber/ro"
-    roio "github.com/samber/ro/plugins/io"
+    rostdio "github.com/samber/ro/plugins/stdio"
 )
 
 data := strings.NewReader("Hello, World!")
-obs := roio.NewIOReader(data)
+obs := rostdio.NewIOReader(data)
 
 sub := obs.Subscribe(ro.PrintObserver[[]byte]())
 defer sub.Unsubscribe()
