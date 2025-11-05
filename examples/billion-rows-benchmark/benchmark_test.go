@@ -1,5 +1,4 @@
 package benchmark
-package benchmark
 
 import (
 	"bufio"
