@@ -1,7 +1,6 @@
 package ro
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -37,39 +36,5 @@ func BenchmarkSubscriberNextPath(b *testing.B) {
 				sub.Next(i)
 			}
 		})
-	}
-}
-
-// BenchmarkSubscriberPanicCapture measures the overhead of observer panic-capture
-// (lo.TryCatchWithErrorValue previously) by toggling CaptureObserverPanics and
-// constructing subscribers after each toggle. This shows the per-notification
-// overhead when capture is enabled vs disabled for each concurrency mode.
-func BenchmarkSubscriberPanicCapture(b *testing.B) {
-	modes := []struct {
-		name string
-		mode ConcurrencyMode
-	}{
-		{"Safe", ConcurrencyModeSafe},
-		{"Unsafe", ConcurrencyModeUnsafe},
-		{"SingleProducer", ConcurrencyModeSingleProducer},
-	}
-
-	for _, capture := range []bool{false, true} {
-		for _, m := range modes {
-			m := m
-			capture := capture
-			b.Run(fmt.Sprintf("%s/capture=%v", m.name, capture), func(b *testing.B) {
-				prev := CaptureObserverPanics()
-				SetCaptureObserverPanics(capture)
-				defer SetCaptureObserverPanics(prev)
-
-				sub := NewSubscriberWithConcurrencyMode[int](NoopObserver[int](), m.mode)
-				b.ReportAllocs()
-				b.ResetTimer()
-				for i := 0; i < b.N; i++ {
-					sub.Next(i)
-				}
-			})
-		}
 	}
 }
