@@ -323,7 +323,7 @@ High-throughput sources can avoid unnecessary synchronization by selecting the r
 | `ConcurrencyModeSingleProducer` | No locking | Blocks producers | Single writer that needs the lowest possible overhead |
 
 Note on panic-capture interaction
-: Prefer opting out per-subscription. Disabling capture lets some fast-paths
+: Disabling capture lets some fast-paths
 : (for example the single-producer and unsafe modes) avoid wrapping observer
 : callbacks in the usual defer/recover machinery, which reduces
 : per-notification overhead. Use `ro.WithObserverPanicCaptureDisabled(ctx)`

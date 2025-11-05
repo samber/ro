@@ -208,7 +208,7 @@ Disabling panic capture removes the recovery overhead but will let panics crash 
 
 :::
 
-If you are building high-throughput pipelines, prefer opting-out per-subscription instead of toggling global state. The library provides a small helper to disable panic capture on the subscription context. Use it when you want to measure pure hot-path throughput or when you intentionally accept panics to propagate.
+If you are building high-throughput pipelines, you can opt-out per-subscription. The library provides a small helper to disable panic capture on the subscription context. Use it when you want to measure pure hot-path throughput or when you intentionally accept panics to propagate.
 
 ```go
 // Create a context that disables observer panic capture for the subscription.
