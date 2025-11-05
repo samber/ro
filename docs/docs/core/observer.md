@@ -208,13 +208,12 @@ Disabling panic capture removes the recovery overhead but will let panics crash 
 
 :::
 
-If you are building high-throughput pipelines with `NewUnsafeObservable*` helpers, you can skip the internal `defer/recover` cost by disabling panic capture globally:
+If you are building high-throughput pipelines, prefer opting-out per-subscription instead of toggling global state. The library provides a small helper to disable panic capture on the subscription context. Use it when you want to measure pure hot-path throughput or when you intentionally accept panics to propagate.
 
 ```go
-ro.SetCaptureObserverPanics(false)
-defer ro.SetCaptureObserverPanics(true)
+// Create a context that disables observer panic capture for the subscription.
+ctx := ro.WithObserverPanicCaptureDisabled(context.Background())
 
-// Fast path: panics propagate instead of being routed to OnUnhandledError.
 sum := int64(0)
 pipeline := ro.Pipe2(
     ro.Range(0, 1_000_000),
@@ -222,18 +221,18 @@ pipeline := ro.Pipe2(
     ro.Filter(func(v int64) bool { return v%2 == 0 }),
 )
 
-pipeline.Subscribe(ro.NewObserver(
+// SubscribeWithContext will pass the context to the subscription and
+// downstream notifications — the opt-out avoids per-callback recover wrappers.
+pipeline.SubscribeWithContext(ctx, ro.NewObserver(
     func(v int64) { sum += v },
     func(err error) { panic(err) },
     func() {},
 ))
 ```
 
-While panic capture is disabled, observers created inside unsafe observables use the fast path that no longer wraps callbacks in `lo.TryCatchWithErrorValue`.
-
 ### Panic capture (global flag)
 
-`samber/ro` exposes a global toggle to control whether observer callbacks are wrapped with panic-recovery logic:
+`samber/ro` still exposes a global toggle to control whether observer callbacks are wrapped with panic-recovery logic:
 
 - `ro.SetCaptureObserverPanics(enabled bool)` — set the global behaviour
 - `ro.CaptureObserverPanics()` — read the current setting
@@ -242,19 +241,17 @@ Important notes:
 
 - Global scope: the flag is process-global. It affects how *newly constructed* `Observer` instances behave and does not retroactively change observers already created.
 - Snapshot behaviour: the capture setting is sampled at observer construction time and stored on the observer instance. Toggling the global flag later does not modify existing observers.
-- Thread-safety: the flag is implemented with an `atomic.Bool` and is safe to read/write concurrently.
+- Thread-safety: the flag is implemented with an `atomic` variable and is safe to read/write concurrently.
 - Trade-offs and recommended usage:
     - Default (capture enabled): safe — panics inside observer callbacks are routed to `ro.OnUnhandledError` and the pipeline can teardown gracefully. Recommended for library and production code.
-    - Capture disabled: improves throughput by avoiding per-callback defer/recover overhead. Use only in controlled scenarios (benchmarks or trusted pipelines) and always restore the previous value with `defer`.
+    - Capture disabled (global): improves throughput by avoiding per-callback defer/recover overhead, but affects all new observers in the process. Prefer the per-subscription opt-out helper for benchmarks or local experiments.
 
-Example (benchmark scoping):
+Example (per-subscription opt-out):
 
 ```go
-previous := ro.CaptureObserverPanics()
-ro.SetCaptureObserverPanics(false)
-defer ro.SetCaptureObserverPanics(previous)
-
-// Build and run pipeline within this scope
+// Preferred: disable capture only for this subscription
+ctx := ro.WithObserverPanicCaptureDisabled(context.Background())
+pipeline.SubscribeWithContext(ctx, observer)
 ```
 
 ### State After Error

@@ -156,6 +156,38 @@ func NewObserverWithContext[T any](onNext func(ctx context.Context, value T), on
 	}
 }
 
+// NewObserverUnsafe creates a new Observer that does NOT wrap callbacks with
+// panic-recovery. Use this only in performance-sensitive paths where callers
+// guarantee no panics or want panics to propagate to the caller. This mirrors
+// the repository's "unsafe" naming for performance-optimized constructors.
+func NewObserverUnsafe[T any](onNext func(value T), onError func(err error), onComplete func()) Observer[T] {
+	return &observerImpl[T]{
+		status:        0,
+		capturePanics: false,
+		onNext: func(ctx context.Context, value T) {
+			onNext(value)
+		},
+		onError: func(ctx context.Context, err error) {
+			onError(err)
+		},
+		onComplete: func(ctx context.Context) {
+			onComplete()
+		},
+	}
+}
+
+// NewObserverWithContextUnsafe creates a new Observer that does NOT wrap
+// callbacks with panic-recovery and receives a context in callbacks.
+func NewObserverWithContextUnsafe[T any](onNext func(ctx context.Context, value T), onError func(ctx context.Context, err error), onComplete func(ctx context.Context)) Observer[T] {
+	return &observerImpl[T]{
+		status:        0,
+		capturePanics: false,
+		onNext:        onNext,
+		onError:       onError,
+		onComplete:    onComplete,
+	}
+}
+
 type observerImpl[T any] struct {
 	// 0: active
 	// 1: errored
