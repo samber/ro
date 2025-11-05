@@ -127,7 +127,6 @@ func TestOperatorTransformationMapTo(t *testing.T) {
 
 func TestOperatorTransformationMapErr(t *testing.T) {
 	t.Parallel()
-	withObserverPanicCaptureEnabled(t)
 	is := assert.New(t)
 
 	values, err := Collect(

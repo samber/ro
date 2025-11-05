@@ -44,47 +44,18 @@ func isObserverPanicCaptureDisabled(ctx context.Context) bool {
 	return ok && b
 }
 
-// observerPanicCaptureEnabled controls whether observer callbacks are wrapped
-// with panic-recovery logic (via lo.TryCatchWithErrorValue). This flag is
-// intentionally unexported to avoid unsynchronized mutations from tests or
-// consumers. Tests that need to toggle the global behaviour should use the
-// `panicCaptureGuard` helper in `observer_test.go` which serialises writers
-// and allows concurrent readers via an RWMutex. Use the exported helpers
-// SetCaptureObserverPanics / CaptureObserverPanics for thread-safe access.
-// observerPanicCaptureEnabled stores 0 (false) or 1 (true).
-// Using a uint32 + sync/atomic lets this code remain compatible with Go 1.18
-// (which doesn't have sync/atomic.Bool). Previously this used
-// atomic.Bool which requires Go 1.19+. Keep the public helpers the same so
-// callers/tests aren't affected.
-var observerPanicCaptureEnabled uint32
-
-func init() {
-	atomic.StoreUint32(&observerPanicCaptureEnabled, 1)
-}
-
-// SetCaptureObserverPanics toggles panic recovery in observer callbacks.
-//
-// WARNING: this modifies a global package-level setting. The flag is sampled
-// when an Observer is constructed (e.g. via NewObserver / NewObserverWithContext)
-// so changing it at runtime affects *newly created* Observers only — existing
-// Observer instances retain the value they captured at construction time.
-//
-// Because this is global mutable state, prefer setting it once at application
-// startup for benchmarking or performance-sensitive pipelines. Tests that need
-// to toggle the value should use the coordination helpers in
-// `observer_test.go` (the `panicCaptureGuard`) to avoid races.
-func SetCaptureObserverPanics(enabled bool) {
-	if enabled {
-		atomic.StoreUint32(&observerPanicCaptureEnabled, 1)
-	} else {
-		atomic.StoreUint32(&observerPanicCaptureEnabled, 0)
-	}
-}
-
-// CaptureObserverPanics reports whether observer callbacks are wrapped in panic recovery.
-func CaptureObserverPanics() bool {
-	return atomic.LoadUint32(&observerPanicCaptureEnabled) != 0
-}
+// Historically the implementation exposed a package-level flag to control
+// whether observer callbacks were wrapped with panic-recovery logic. That
+// global mutable flag has been removed; tests that previously toggled the
+// flag should be updated to use the unsafe observers or per-subscription
+// opt-out via WithObserverPanicCaptureDisabled.
+// Historically this package exposed a global toggle for wrapping observer
+// callbacks with panic-recovery logic. That global mutable setting has been
+// removed in favor of per-subscription opt-out via
+// `WithObserverPanicCaptureDisabled(ctx)`. New observers created via
+// NewObserver/WithContext will capture panics by default; callers who need
+// panics to propagate should use the Unsafe constructors or opt-out on the
+// subscription context.
 
 // Observer is the consumer of an Observable. It receives notifications: Next,
 // Error, and Complete. Observers are safe for concurrent calls to Next,
@@ -131,7 +102,7 @@ var _ Observer[int] = (*observerImpl[int])(nil)
 func NewObserver[T any](onNext func(value T), onError func(err error), onComplete func()) Observer[T] {
 	return &observerImpl[T]{
 		status:        0,
-		capturePanics: CaptureObserverPanics(),
+		capturePanics: true,
 		onNext: func(ctx context.Context, value T) {
 			onNext(value)
 		},
@@ -149,7 +120,7 @@ func NewObserver[T any](onNext func(value T), onError func(err error), onComplet
 func NewObserverWithContext[T any](onNext func(ctx context.Context, value T), onError func(ctx context.Context, err error), onComplete func(ctx context.Context)) Observer[T] {
 	return &observerImpl[T]{
 		status:        0,
-		capturePanics: CaptureObserverPanics(),
+		capturePanics: true,
 		onNext:        onNext,
 		onError:       onError,
 		onComplete:    onComplete,

@@ -95,8 +95,6 @@ func TestObservable_handleError(t *testing.T) {
 }
 
 func TestObservable_handlePanic_string(t *testing.T) {
-	withObserverPanicCaptureEnabled(t)
-
 	testWithTimeout(t, 10*time.Millisecond)
 	is := assert.New(t)
 
@@ -128,8 +126,6 @@ func TestObservable_handlePanic_string(t *testing.T) {
 }
 
 func TestObservable_handlePanic_error(t *testing.T) {
-	withObserverPanicCaptureEnabled(t)
-
 	testWithTimeout(t, 10*time.Millisecond)
 	is := assert.New(t)
 
@@ -224,8 +220,6 @@ func TestObservable_notNilTeardown(t *testing.T) {
 }
 
 func TestObservable_panicTeardown(t *testing.T) {
-	withObserverPanicCaptureEnabled(t)
-
 	testWithTimeout(t, 10*time.Millisecond)
 	is := assert.New(t)
 

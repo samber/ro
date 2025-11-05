@@ -16,7 +16,6 @@ package ro
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -25,80 +24,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// panicCaptureGuard synchronises tests that read or modify the global
-// `CaptureObserverPanics` flag. Tests that only *read* the flag (and expect it
-// to be enabled) call `withObserverPanicCaptureEnabled` which acquires a read
-// lock; this allows multiple reader tests to run in parallel. Tests that
-// modify the global flag call `guardObserverPanicCapture` which acquires an
-// exclusive lock so the change is serialized and won't race with readers.
-//
-// We use an RWMutex so multiple reader tests can run concurrently while
-// still allowing exclusive, deterministic updates when a test needs to toggle
-// the global state. A plain Mutex would force readers and writers to serialize
-// and reduce parallel test throughput.
-var panicCaptureGuard sync.RWMutex
-
-func withObserverPanicCaptureEnabled(t *testing.T) {
-	t.Helper()
-
-	// Acquire a read lock to prevent guard functions from toggling the
-	// global flag while this test is running. If capture is disabled, fail
-	// fast and release the lock immediately.
-	panicCaptureGuard.RLock()
-
-	if !CaptureObserverPanics() {
-		// Release the read lock before failing to avoid deadlocks in other
-		// tests that may attempt to acquire the exclusive lock.
-		panicCaptureGuard.RUnlock()
-		t.Fatal("observer panic capture disabled; tests relying on default configuration must not run")
-	}
-
-	// Release the read-lock when the test completes.
-	t.Cleanup(func() {
-		panicCaptureGuard.RUnlock()
-	})
-}
-
-func guardObserverPanicCapture(t *testing.T, enabled bool) func() {
-	t.Helper()
-
-	// Acquire exclusive access before mutating the global flag. This ensures
-	// that no tests are concurrently relying on the previous value when we
-	// flip it. The returned function restores the previous setting and
-	// releases the lock.
-	panicCaptureGuard.Lock()
-
-	previous := CaptureObserverPanics()
-	SetCaptureObserverPanics(enabled)
-
-	return func() {
-		SetCaptureObserverPanics(previous)
-		panicCaptureGuard.Unlock()
-	}
-}
-
-// ExampleSetCaptureObserverPanics demonstrates the recommended pattern for
-// temporarily disabling panic capture for performance-sensitive benchmarks.
-// The pattern restores the previous setting using defer to avoid leaking the
-// global configuration into other tests or application code.
-func ExampleSetCaptureObserverPanics() {
-	previous := CaptureObserverPanics()
-	SetCaptureObserverPanics(false)
-	defer SetCaptureObserverPanics(previous)
-
-	// New observers created after disabling the global flag will capture the
-	// current setting at construction time.
-	observer := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() {},
-	).(*observerImpl[int])
-
-	// Print the runtime flag and the observer's captured value.
-	fmt.Println(CaptureObserverPanics(), observer.capturePanics)
-
-	// Output: false false
-}
+// Global panic-capture toggling was removed. Tests that once relied on the
+// package-level toggle should either use the Unsafe observer constructors
+// (e.g. NewObserverUnsafe) or opt-out on a subscription via
+// WithObserverPanicCaptureDisabled(ctx).
 
 func TestObserverInternalOk(t *testing.T) {
 	t.Parallel()
@@ -742,8 +671,6 @@ func TestObserverConcurrentContextMethods(t *testing.T) {
 }
 
 func TestObserverPanicHandling(t *testing.T) {
-	withObserverPanicCaptureEnabled(t)
-
 	is := assert.New(t)
 
 	// Test panic in Next callback
@@ -790,9 +717,8 @@ func TestObserverPanicHandling(t *testing.T) {
 func TestObserverDisablePanicCapture(t *testing.T) {
 	is := assert.New(t)
 
-	defer guardObserverPanicCapture(t, false)()
-
-	observer := NewObserver(
+	// Use the unsafe constructor so panics propagate.
+	observer := NewObserverUnsafe(
 		func(value int) { panic("test panic") },
 		func(err error) {},
 		func() {},
@@ -805,9 +731,7 @@ func TestObserverDisablePanicCapture(t *testing.T) {
 
 func TestObserverDisablePanicCaptureInUnsafePipeline(t *testing.T) {
 	is := assert.New(t)
-
-	defer guardObserverPanicCapture(t, false)()
-
+	// Opt-out on the subscription context so panics from operators propagate.
 	observable := Pipe1(
 		Just(1),
 		Map(func(value int) int {
@@ -820,7 +744,7 @@ func TestObserverDisablePanicCaptureInUnsafePipeline(t *testing.T) {
 	)
 
 	is.PanicsWithValue("map panic", func() {
-		observable.Subscribe(NewObserver(
+		observable.SubscribeWithContext(WithObserverPanicCaptureDisabled(context.Background()), NewObserver(
 			func(value int) {},
 			func(err error) { t.Fatalf("unexpected error: %v", err) },
 			func() {},

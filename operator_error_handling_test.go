@@ -25,7 +25,6 @@ import (
 
 func TestOperatorErrorHandlingCatch(t *testing.T) {
 	t.Parallel()
-	withObserverPanicCaptureEnabled(t)
 	is := assert.New(t)
 
 	values, err := Collect(
@@ -62,7 +61,6 @@ func TestOperatorErrorHandlingCatch(t *testing.T) {
 
 func TestOperatorErrorHandlingOnErrorResumeNextWith(t *testing.T) {
 	t.Parallel()
-	withObserverPanicCaptureEnabled(t)
 	is := assert.New(t)
 
 	values, err := Collect(
@@ -162,7 +160,6 @@ func TestOperatorErrorHandlingOnErrorResumeNextWith(t *testing.T) {
 
 func TestOperatorErrorHandlingOnErrorReturn(t *testing.T) {
 	t.Parallel()
-	withObserverPanicCaptureEnabled(t)
 	is := assert.New(t)
 
 	values, err := Collect(
@@ -194,7 +191,6 @@ func TestOperatorErrorHandlingOnErrorReturn(t *testing.T) {
 func TestOperatorErrorHandlingRetry(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
-	withObserverPanicCaptureEnabled(t)
 	is := assert.New(t)
 
 	values, err := Collect(
@@ -229,7 +225,6 @@ func TestOperatorErrorHandlingRetry(t *testing.T) {
 func TestOperatorErrorHandlingRetryWithConfig(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 400*time.Millisecond)
-	withObserverPanicCaptureEnabled(t)
 	is := assert.New(t)
 
 	values, err := Collect(
