@@ -323,7 +323,7 @@ High-throughput sources can avoid unnecessary synchronization by selecting the r
 | `ConcurrencyModeSingleProducer` | No locking | Blocks producers | Single writer that needs the lowest possible overhead |
 
 Note on panic-capture interaction
-: The library still provides a global panic-capture toggle (`ro.SetCaptureObserverPanics`), but for benchmarks and experiments prefer opting out per-subscription. Disabling capture lets some fast-paths (for example the single-producer and unsafe modes) avoid wrapping observer callbacks in the usual defer/recover machinery, which reduces per-notification overhead. Use `ro.WithObserverPanicCaptureDisabled(ctx)` when subscribing in benchmarks to avoid mutating global state and to keep tests parallel-friendly.
+: The library no longer exposes a global panic-capture toggle; prefer opting out per-subscription. Disabling capture lets some fast-paths (for example the single-producer and unsafe modes) avoid wrapping observer callbacks in the usual defer/recover machinery, which reduces per-notification overhead. Use `ro.WithObserverPanicCaptureDisabled(ctx)` when subscribing in benchmarks to avoid mutating global state and to keep tests parallel-friendly.
 
 Run the million-row benchmark to compare the trade-offs:
 

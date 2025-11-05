@@ -230,26 +230,15 @@ pipeline.SubscribeWithContext(ctx, ro.NewObserver(
 ))
 ```
 
-### Panic capture (global flag)
+### Panic capture
 
-`samber/ro` still exposes a global toggle to control whether observer callbacks are wrapped with panic-recovery logic:
-
-- `ro.SetCaptureObserverPanics(enabled bool)` — set the global behaviour
-- `ro.CaptureObserverPanics()` — read the current setting
-
-Important notes:
-
-- Global scope: the flag is process-global. It affects how *newly constructed* `Observer` instances behave and does not retroactively change observers already created.
-- Snapshot behaviour: the capture setting is sampled at observer construction time and stored on the observer instance. Toggling the global flag later does not modify existing observers.
-- Thread-safety: the flag is implemented with an `atomic` variable and is safe to read/write concurrently.
-- Trade-offs and recommended usage:
-    - Default (capture enabled): safe — panics inside observer callbacks are routed to `ro.OnUnhandledError` and the pipeline can teardown gracefully. Recommended for library and production code.
-    - Capture disabled (global): improves throughput by avoiding per-callback defer/recover overhead, but affects all new observers in the process. Prefer the per-subscription opt-out helper for benchmarks or local experiments.
-
-Example (per-subscription opt-out):
+The package no longer exposes a global toggle for panic-capture. Observers
+capture panics by default; callers that need panics to propagate should either
+use the unsafe constructors (`NewObserverUnsafe`, `NewObserverWithContextUnsafe`)
+or opt-out on a per-subscription basis using `WithObserverPanicCaptureDisabled`:
 
 ```go
-// Preferred: disable capture only for this subscription
+// Disable capture only for this subscription
 ctx := ro.WithObserverPanicCaptureDisabled(context.Background())
 pipeline.SubscribeWithContext(ctx, observer)
 ```
