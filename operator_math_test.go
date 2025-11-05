@@ -415,6 +415,7 @@ func TestChunkCountComputation(t *testing.T) {
 		t.Fatalf("expected chunkCount2 > maxPow10ChunkCount for largePlaces, got %d", chunkCount2)
 	}
 }
+
 func TestOperatorMathReduce(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
