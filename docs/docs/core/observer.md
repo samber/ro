@@ -232,10 +232,11 @@ pipeline.SubscribeWithContext(ctx, ro.NewObserver(
 
 ### Panic capture
 
-The package no longer exposes a global toggle for panic-capture. Observers
-capture panics by default; callers that need panics to propagate should either
-use the unsafe constructors (`NewObserverUnsafe`, `NewObserverWithContextUnsafe`)
-or opt-out on a per-subscription basis using `WithObserverPanicCaptureDisabled`:
+Observers capture panics by default. If you need panics to propagate (for
+benchmarking or performance-sensitive workloads), either construct an unsafe
+observer with `NewObserverUnsafe` / `NewObserverWithContextUnsafe`, or
+disable capture for a specific subscription by passing a context derived
+with `WithObserverPanicCaptureDisabled(ctx)` to `SubscribeWithContext`:
 
 ```go
 // Disable capture only for this subscription

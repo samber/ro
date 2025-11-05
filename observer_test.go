@@ -24,10 +24,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Global panic-capture toggling was removed. Tests that once relied on the
-// package-level toggle should either use the Unsafe observer constructors
-// (e.g. NewObserverUnsafe) or opt-out on a subscription via
-// WithObserverPanicCaptureDisabled(ctx).
+// Observers capture panics by default. Tests that need panics to propagate
+// should either use the unsafe observer constructors (e.g. NewObserverUnsafe)
+// or opt-out per-subscription via `WithObserverPanicCaptureDisabled(ctx)`.
 
 func TestObserverInternalOk(t *testing.T) {
 	t.Parallel()

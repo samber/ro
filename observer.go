@@ -44,18 +44,11 @@ func isObserverPanicCaptureDisabled(ctx context.Context) bool {
 	return ok && b
 }
 
-// Historically the implementation exposed a package-level flag to control
-// whether observer callbacks were wrapped with panic-recovery logic. That
-// global mutable flag has been removed; tests that previously toggled the
-// flag should be updated to use the unsafe observers or per-subscription
-// opt-out via WithObserverPanicCaptureDisabled.
-// Historically this package exposed a global toggle for wrapping observer
-// callbacks with panic-recovery logic. That global mutable setting has been
-// removed in favor of per-subscription opt-out via
-// `WithObserverPanicCaptureDisabled(ctx)`. New observers created via
-// NewObserver/WithContext will capture panics by default; callers who need
-// panics to propagate should use the Unsafe constructors or opt-out on the
-// subscription context.
+// Observers capture panics by default. If you need panics to propagate (for
+// benchmarking or ultra-low-latency pipelines), either construct an unsafe
+// observer with `NewObserverUnsafe` / `NewObserverWithContextUnsafe`, or
+// disable capture for a specific subscription by passing a context derived
+// with `WithObserverPanicCaptureDisabled(ctx)` to `SubscribeWithContext`.
 
 // Observer is the consumer of an Observable. It receives notifications: Next,
 // Error, and Complete. Observers are safe for concurrent calls to Next,
