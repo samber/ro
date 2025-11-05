@@ -382,6 +382,7 @@ func TestOperatorMathTrunc(t *testing.T) { //nolint:paralleltest
 }
 
 func TestMaxPow10ChunkValue(t *testing.T) {
+	t.Parallel()
 	if maxPow10Chunk != 308 {
 		t.Fatalf("expected maxPow10Chunk == 308, got %d", maxPow10Chunk)
 	}
@@ -398,6 +399,7 @@ func TestMaxPow10ChunkValue(t *testing.T) {
 }
 
 func TestChunkCountComputation(t *testing.T) {
+	t.Parallel()
 	// a moderately large precision should require multiple chunks
 	places := 1000
 	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk

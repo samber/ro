@@ -374,46 +374,7 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 			sub := source.SubscribeWithContext(
 				subscriberCtx,
 				NewObserverWithContext(
-					func(ctx context.Context, value float64) {
-						scaled := value * factor
-						if math.IsInf(scaled, 0) {
-							if ceilWithBigFactor != nil {
-								destination.NextWithContext(ctx, ceilWithBigFactor(value))
-							} else {
-								destination.NextWithContext(ctx, math.Ceil(value))
-							}
-							return
-						}
-
-						if places < 0 && scaled == 0 && value > 0 && !math.IsNaN(value) && !math.IsInf(value, 0) {
-							if ceilWithSmallFactor != nil {
-								destination.NextWithContext(ctx, ceilWithSmallFactor(value))
-							} else {
-								destination.NextWithContext(ctx, math.Ceil(value))
-							}
-							return
-						}
-
-						ceiled := math.Ceil(scaled)
-						result := ceiled * inverseFactor
-						if math.IsInf(result, 0) || math.IsNaN(result) {
-							switch {
-							case places < 0 && !math.IsNaN(value) && !math.IsInf(value, 0) && value > 0:
-								if ceilWithSmallFactor != nil {
-									destination.NextWithContext(ctx, ceilWithSmallFactor(value))
-								} else {
-									destination.NextWithContext(ctx, math.Inf(1))
-								}
-							case ceilWithBigFactor != nil:
-								destination.NextWithContext(ctx, ceilWithBigFactor(value))
-							default:
-								destination.NextWithContext(ctx, math.Ceil(value))
-							}
-							return
-						}
-
-						destination.NextWithContext(ctx, result)
-					},
+					makeCeilNext(destination, places, factor, inverseFactor, ceilWithBigFactor, ceilWithSmallFactor),
 					destination.ErrorWithContext,
 					destination.CompleteWithContext,
 				),
@@ -643,6 +604,64 @@ func makeCeilWithSmallFactor(factor float64) func(float64) float64 {
 		}
 
 		return result
+	}
+}
+
+// makeCeilNext returns a Next handler implementing CeilWithPrecision's core
+// logic. Extracting it here reduces cyclomatic complexity of
+// CeilWithPrecision while preserving behavior.
+func makeCeilNext(destination Observer[float64], places int, factor, inverseFactor float64, ceilWithBigFactor, ceilWithSmallFactor func(float64) float64) func(ctx context.Context, value float64) {
+	return func(ctx context.Context, value float64) {
+		scaled := value * factor
+		if math.IsInf(scaled, 0) {
+			handleInfScaled(ctx, destination, value, ceilWithBigFactor)
+			return
+		}
+
+		if places < 0 && scaled == 0 && value > 0 && !math.IsNaN(value) && !math.IsInf(value, 0) {
+			handleUnderflow(ctx, destination, value, ceilWithSmallFactor)
+			return
+		}
+
+		ceiled := math.Ceil(scaled)
+		result := ceiled * inverseFactor
+		if math.IsInf(result, 0) || math.IsNaN(result) {
+			handleResultInfOrNaN(ctx, destination, places, value, ceilWithSmallFactor, ceilWithBigFactor)
+			return
+		}
+
+		destination.NextWithContext(ctx, result)
+	}
+}
+
+func handleInfScaled(ctx context.Context, destination Observer[float64], value float64, ceilWithBigFactor func(float64) float64) {
+	if ceilWithBigFactor != nil {
+		destination.NextWithContext(ctx, ceilWithBigFactor(value))
+	} else {
+		destination.NextWithContext(ctx, math.Ceil(value))
+	}
+}
+
+func handleUnderflow(ctx context.Context, destination Observer[float64], value float64, ceilWithSmallFactor func(float64) float64) {
+	if ceilWithSmallFactor != nil {
+		destination.NextWithContext(ctx, ceilWithSmallFactor(value))
+	} else {
+		destination.NextWithContext(ctx, math.Ceil(value))
+	}
+}
+
+func handleResultInfOrNaN(ctx context.Context, destination Observer[float64], places int, value float64, ceilWithSmallFactor, ceilWithBigFactor func(float64) float64) {
+	switch {
+	case places < 0 && !math.IsNaN(value) && !math.IsInf(value, 0) && value > 0:
+		if ceilWithSmallFactor != nil {
+			destination.NextWithContext(ctx, ceilWithSmallFactor(value))
+		} else {
+			destination.NextWithContext(ctx, math.Inf(1))
+		}
+	case ceilWithBigFactor != nil:
+		destination.NextWithContext(ctx, ceilWithBigFactor(value))
+	default:
+		destination.NextWithContext(ctx, math.Ceil(value))
 	}
 }
 
