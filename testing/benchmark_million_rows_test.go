@@ -15,6 +15,7 @@
 package testing
 
 import (
+	"context"
 	stdtesting "testing"
 
 	"github.com/samber/ro"
@@ -22,12 +23,10 @@ import (
 
 func BenchmarkMillionRowChallenge(b *stdtesting.B) {
 	b.ReportAllocs()
-
-	previous := ro.CaptureObserverPanics()
-	ro.SetCaptureObserverPanics(false)
-	b.Cleanup(func() {
-		ro.SetCaptureObserverPanics(previous)
-	})
+	// Use a per-subscription context to disable observer panic capture for the
+	// benchmark. This avoids mutating global state and keeps tests parallel-
+	// friendly while removing the panic-capture overhead.
+	ctx := ro.WithObserverPanicCaptureDisabled(context.Background())
 
 	const expectedSum int64 = 750001500000
 
@@ -54,7 +53,7 @@ func BenchmarkMillionRowChallenge(b *stdtesting.B) {
 			for i := 0; i < b.N; i++ {
 				var sum int64
 
-				subscription := pipeline.Subscribe(ro.NewObserver(
+				subscription := pipeline.SubscribeWithContext(ctx, ro.NewObserver(
 					func(value int64) {
 						sum += value
 					},

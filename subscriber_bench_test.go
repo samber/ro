@@ -1,6 +1,7 @@
 package ro
 
 import (
+	"context"
 	"testing"
 )
 
@@ -13,9 +14,9 @@ import (
 // The benchmark disables observer panic-capture to reduce noise from the
 // panic-recovery wrappers and focus measurements on synchronization costs.
 func BenchmarkSubscriberNextPath(b *testing.B) {
-	prev := CaptureObserverPanics()
-	SetCaptureObserverPanics(false)
-	defer SetCaptureObserverPanics(prev)
+	// Use a context-scoped opt-out for panic capture so the benchmark avoids
+	// global state mutation and measures only the synchronization costs.
+	ctx := WithObserverPanicCaptureDisabled(context.Background())
 
 	cases := []struct {
 		name string
@@ -33,7 +34,7 @@ func BenchmarkSubscriberNextPath(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				sub.Next(i)
+				sub.NextWithContext(ctx, i)
 			}
 		})
 	}

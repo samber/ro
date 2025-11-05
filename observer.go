@@ -22,6 +22,28 @@ import (
 	"github.com/samber/lo"
 )
 
+// Context key used to opt-out of observer panic capture for a specific
+// subscription. Use the helper WithObserverPanicCaptureDisabled to set this
+// value on a subscription's context. The key type is unexported to avoid
+// collisions with user-defined context keys.
+type observerPanicCaptureDisabledKeyType struct{}
+
+var observerPanicCaptureDisabledKey observerPanicCaptureDisabledKeyType
+
+// WithObserverPanicCaptureDisabled returns a derived context that disables
+// wrapping observer callbacks with panic-capture for the subscription that
+// uses this context. This is intended for benchmarking or performance-\
+// sensitive pipelines; by default the library keeps panic-capture enabled.
+func WithObserverPanicCaptureDisabled(ctx context.Context) context.Context {
+	return context.WithValue(ctx, observerPanicCaptureDisabledKey, true)
+}
+
+func isObserverPanicCaptureDisabled(ctx context.Context) bool {
+	v := ctx.Value(observerPanicCaptureDisabledKey)
+	b, ok := v.(bool)
+	return ok && b
+}
+
 // observerPanicCaptureEnabled controls whether observer callbacks are wrapped
 // with panic-recovery logic (via lo.TryCatchWithErrorValue). This flag is
 // intentionally unexported to avoid unsynchronized mutations from tests or
@@ -185,7 +207,7 @@ func (o *observerImpl[T]) CompleteWithContext(ctx context.Context) {
 }
 
 func (o *observerImpl[T]) tryNext(ctx context.Context, value T) {
-	if !o.capturePanics {
+	if !o.capturePanics || isObserverPanicCaptureDisabled(ctx) {
 		o.onNext(ctx, value)
 		return
 	}
@@ -208,7 +230,7 @@ func (o *observerImpl[T]) tryNext(ctx context.Context, value T) {
 }
 
 func (o *observerImpl[T]) tryError(ctx context.Context, err error) {
-	if !o.capturePanics {
+	if !o.capturePanics || isObserverPanicCaptureDisabled(ctx) {
 		o.onError(ctx, err)
 		return
 	}
@@ -226,7 +248,7 @@ func (o *observerImpl[T]) tryError(ctx context.Context, err error) {
 }
 
 func (o *observerImpl[T]) tryComplete(ctx context.Context) {
-	if !o.capturePanics {
+	if !o.capturePanics || isObserverPanicCaptureDisabled(ctx) {
 		o.onComplete(ctx)
 		return
 	}

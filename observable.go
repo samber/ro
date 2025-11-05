@@ -352,7 +352,12 @@ func (s *observableImpl[T]) Subscribe(destination Observer[T]) Subscription {
 func (s *observableImpl[T]) SubscribeWithContext(ctx context.Context, destination Observer[T]) Subscription {
 	subscription := NewSubscriberWithConcurrencyMode(destination, s.mode)
 
-	if !CaptureObserverPanics() && (s.mode == ConcurrencyModeUnsafe || s.mode == ConcurrencyModeSingleProducer) {
+	// If panic capture is globally disabled or explicitly disabled on the
+	// subscription context, and the observable is in an unsafe/single-producer
+	// mode, skip the TryCatch wrapper to avoid extra allocations on the hot
+	// path. By default CaptureObserverPanics() == true so this keeps current
+	// behaviour unless callers opt-out via the context helper.
+	if (!CaptureObserverPanics() || isObserverPanicCaptureDisabled(ctx)) && (s.mode == ConcurrencyModeUnsafe || s.mode == ConcurrencyModeSingleProducer) {
 		subscription.Add(s.subscribe(ctx, subscription))
 		return subscription
 	}
