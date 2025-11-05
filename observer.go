@@ -18,8 +18,6 @@ import (
 	"context"
 	"fmt"
 	"sync/atomic"
-
-	"github.com/samber/lo"
 )
 
 // observerPanicCaptureEnabled controls whether observer callbacks are wrapped
@@ -190,21 +188,19 @@ func (o *observerImpl[T]) tryNext(ctx context.Context, value T) {
 		return
 	}
 
-	lo.TryCatchWithErrorValue(
-		func() error {
-			o.onNext(ctx, value)
-			return nil
-		},
-		func(e any) {
-			err := newObserverError(recoverValueToError(e))
+	defer func() {
+		if r := recover(); r != nil {
+			err := newObserverError(recoverValueToError(r))
 
 			if o.onError == nil {
 				OnUnhandledError(ctx, err)
 			} else {
 				o.tryError(ctx, err)
 			}
-		},
-	)
+		}
+	}()
+
+	o.onNext(ctx, value)
 }
 
 func (o *observerImpl[T]) tryError(ctx context.Context, err error) {
@@ -213,16 +209,14 @@ func (o *observerImpl[T]) tryError(ctx context.Context, err error) {
 		return
 	}
 
-	lo.TryCatchWithErrorValue(
-		func() error {
-			o.onError(ctx, err)
-			return nil
-		},
-		func(e any) {
-			err := newObserverError(recoverValueToError(e))
+	defer func() {
+		if r := recover(); r != nil {
+			err := newObserverError(recoverValueToError(r))
 			OnUnhandledError(ctx, err)
-		},
-	)
+		}
+	}()
+
+	o.onError(ctx, err)
 }
 
 func (o *observerImpl[T]) tryComplete(ctx context.Context) {
@@ -231,16 +225,14 @@ func (o *observerImpl[T]) tryComplete(ctx context.Context) {
 		return
 	}
 
-	lo.TryCatchWithErrorValue(
-		func() error {
-			o.onComplete(ctx)
-			return nil
-		},
-		func(e any) {
-			err := newObserverError(recoverValueToError(e))
+	defer func() {
+		if r := recover(); r != nil {
+			err := newObserverError(recoverValueToError(r))
 			OnUnhandledError(ctx, err)
-		},
-	)
+		}
+	}()
+
+	o.onComplete(ctx)
 }
 
 func (o *observerImpl[T]) IsClosed() bool {
