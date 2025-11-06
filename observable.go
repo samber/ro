@@ -356,7 +356,7 @@ func (s *observableImpl[T]) SubscribeWithContext(ctx context.Context, destinatio
 	// the observable is in an unsafe/single-producer mode, skip the TryCatch
 	// wrapper to avoid extra allocations on the hot path. Callers should use
 	// `WithObserverPanicCaptureDisabled(ctx)` when subscribing in
-	// performance-sensitive code; there is no longer a global toggle.
+	// performance-sensitive code
 	if isObserverPanicCaptureDisabled(ctx) && (s.mode == ConcurrencyModeUnsafe || s.mode == ConcurrencyModeSingleProducer) {
 		subscription.Add(s.subscribe(ctx, subscription))
 		return subscription
