@@ -198,6 +198,13 @@ type subscriberImpl[T any] struct {
 
 	mode     ConcurrencyMode
 	lockless bool
+	// Per-subscription direct call helpers. When non-nil these are used in the
+	// hot path to call the destination without additional interface dispatch
+	// or context lookups. They are set once at subscription time by the
+	// Observable (see observable.SubscribeWithContext).
+	nextDirect     func(context.Context, T)
+	errorDirect    func(context.Context, error)
+	completeDirect func(context.Context)
 }
 
 // Implements Observer.
@@ -213,7 +220,11 @@ func (s *subscriberImpl[T]) NextWithContext(ctx context.Context, v T) {
 
 	if s.lockless {
 		if atomic.LoadInt32(&s.status) == 0 {
-			s.destination.NextWithContext(ctx, v)
+			if s.nextDirect != nil {
+				s.nextDirect(ctx, v)
+			} else {
+				s.destination.NextWithContext(ctx, v)
+			}
 		} else {
 			OnDroppedNotification(ctx, NewNotificationNext(v))
 		}
@@ -231,7 +242,11 @@ func (s *subscriberImpl[T]) NextWithContext(ctx context.Context, v T) {
 	}
 
 	if atomic.LoadInt32(&s.status) == 0 {
-		s.destination.NextWithContext(ctx, v)
+		if s.nextDirect != nil {
+			s.nextDirect(ctx, v)
+		} else {
+			s.destination.NextWithContext(ctx, v)
+		}
 	} else {
 		OnDroppedNotification(ctx, NewNotificationNext(v))
 	}
@@ -249,7 +264,11 @@ func (s *subscriberImpl[T]) ErrorWithContext(ctx context.Context, err error) {
 	if s.lockless {
 		if atomic.CompareAndSwapInt32(&s.status, 0, 1) {
 			if s.destination != nil {
-				s.destination.ErrorWithContext(ctx, err)
+				if s.errorDirect != nil {
+					s.errorDirect(ctx, err)
+				} else {
+					s.destination.ErrorWithContext(ctx, err)
+				}
 			}
 		} else {
 			OnDroppedNotification(ctx, NewNotificationError[T](err))
@@ -264,7 +283,11 @@ func (s *subscriberImpl[T]) ErrorWithContext(ctx context.Context, err error) {
 
 	if atomic.CompareAndSwapInt32(&s.status, 0, 1) {
 		if s.destination != nil {
-			s.destination.ErrorWithContext(ctx, err)
+			if s.errorDirect != nil {
+				s.errorDirect(ctx, err)
+			} else {
+				s.destination.ErrorWithContext(ctx, err)
+			}
 		}
 	} else {
 		OnDroppedNotification(ctx, NewNotificationError[T](err))
@@ -285,7 +308,11 @@ func (s *subscriberImpl[T]) CompleteWithContext(ctx context.Context) {
 	if s.lockless {
 		if atomic.CompareAndSwapInt32(&s.status, 0, 2) {
 			if s.destination != nil {
-				s.destination.CompleteWithContext(ctx)
+				if s.completeDirect != nil {
+					s.completeDirect(ctx)
+				} else {
+					s.destination.CompleteWithContext(ctx)
+				}
 			}
 		} else {
 			OnDroppedNotification(ctx, NewNotificationComplete[T]())
@@ -300,7 +327,11 @@ func (s *subscriberImpl[T]) CompleteWithContext(ctx context.Context) {
 
 	if atomic.CompareAndSwapInt32(&s.status, 0, 2) {
 		if s.destination != nil {
-			s.destination.CompleteWithContext(ctx)
+			if s.completeDirect != nil {
+				s.completeDirect(ctx)
+			} else {
+				s.destination.CompleteWithContext(ctx)
+			}
 		}
 	} else {
 		OnDroppedNotification(ctx, NewNotificationComplete[T]())
@@ -336,4 +367,22 @@ func (s *subscriberImpl[T]) Unsubscribe() {
 func (s *subscriberImpl[T]) unsubscribe() {
 	// s.Subscription.Unsubscribe() is protected against concurrent calls.
 	s.Subscription.Unsubscribe()
+}
+
+// setDirectors configures per-subscription direct call helpers based on the
+// concrete destination type and the precomputed capture flag. This avoids
+// per-notification context lookups and type assertions on the hot path.
+func (s *subscriberImpl[T]) setDirectors(destination Observer[T], capture bool) {
+	// Default to interface-based calls.
+	s.nextDirect = func(ctx context.Context, v T) { destination.NextWithContext(ctx, v) }
+	s.errorDirect = func(ctx context.Context, err error) { destination.ErrorWithContext(ctx, err) }
+	s.completeDirect = func(ctx context.Context) { destination.CompleteWithContext(ctx) }
+
+	// If destination is an *observerImpl[T], we can call internal helpers that
+	// accept a precomputed capture flag and therefore avoid context lookups.
+	if oi, ok := destination.(*observerImpl[T]); ok {
+		s.nextDirect = func(ctx context.Context, v T) { oi.tryNextWithCapture(ctx, v, capture) }
+		s.errorDirect = func(ctx context.Context, err error) { oi.tryErrorWithCapture(ctx, err, capture) }
+		s.completeDirect = func(ctx context.Context) { oi.tryCompleteWithCapture(ctx, capture) }
+	}
 }

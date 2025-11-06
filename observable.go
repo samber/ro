@@ -351,16 +351,37 @@ func (s *observableImpl[T]) Subscribe(destination Observer[T]) Subscription {
 // synchronization.
 func (s *observableImpl[T]) SubscribeWithContext(ctx context.Context, destination Observer[T]) Subscription {
 	subscription := NewSubscriberWithConcurrencyMode(destination, s.mode)
+	// Compute effective panic-capture policy once at subscription time and
+	// configure the subscriber hot-path helpers to avoid per-notification
+	// context lookups. If the destination is not an internal observerImpl,
+	// we conservatively assume capture is enabled.
+	capture := true
+	if oi, ok := destination.(*observerImpl[T]); ok {
+		capture = oi.capturePanics && !isObserverPanicCaptureDisabled(ctx)
+	} else {
+		// For external observer implementations, respect context opt-out.
+		if isObserverPanicCaptureDisabled(ctx) {
+			capture = false
+		}
+	}
+
+	// If subscription is our concrete subscriberImpl, set direct call helpers.
+	if ssub, ok := subscription.(*subscriberImpl[T]); ok {
+		// Avoid configuring directors when NewSubscriber returned the input
+		// subscriber itself (subscription == destination) — in that case the
+		// destination is already a Subscriber and it is responsible for its
+		// own hot-path wiring.
+		if subscription != destination {
+			ssub.setDirectors(destination, capture)
+		}
+	}
 
 	// If panic capture is explicitly disabled on the subscription context and
 	// the observable is in an unsafe/single-producer mode, skip the TryCatch
-	// wrapper to avoid extra allocations on the hot path. Callers should use
-	// `WithObserverPanicCaptureDisabled(ctx)` when subscribing in
-	// performance-sensitive code
+	// wrapper to avoid extra allocations on the subscribe path. Callers should
+	// use `WithObserverPanicCaptureDisabled(ctx)` when subscribing in
+	// performance-sensitive code.
 	if isObserverPanicCaptureDisabled(ctx) && (s.mode == ConcurrencyModeUnsafe || s.mode == ConcurrencyModeSingleProducer) {
-		subscription.Add(s.subscribe(ctx, subscription))
-		return subscription
-	}
 		subscription.Add(s.subscribe(ctx, subscription))
 		return subscription
 	}
