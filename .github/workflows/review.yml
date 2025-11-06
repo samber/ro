@@ -26,6 +26,8 @@ jobs:
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+          use_sticky_comment: true
+          track_progress: true
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -39,19 +41,21 @@ jobs:
             - Potential breaking changes
             - Developer experience and documentation
 
-            Check contribution guidelines: ./docs/docs/contributing.md
-            Check extending ro guidelines: ./docs/docs/hacking.md
-            Check examples/documentation guidelines: ./docs/CLAUDE.md
-            Check troubleshooting guidelines: ./docs/docs/troubleshooting/
-            If you need more context on the project, read the LLMs documentation: ./docs/static/llms.txt
+            Check contribution guidelines: @./docs/docs/contributing.md
+            Check extending ro guidelines: @./docs/docs/hacking.md
+            Check examples/documentation guidelines: @./docs/CLAUDE.md
+            Check troubleshooting guidelines: @./docs/docs/troubleshooting/
+            If you need more context on the project, read the LLMs documentation: @./docs/static/llms.txt
 
             Note: The PR branch is already checked out in the current working directory.
 
             Use `mcp__github_inline_comment__create_inline_comment` to highlight specific code issues.
             Be welcoming but thorough in your comments. Use inline comments for code-specific feedback.
-            Don't write comments/reviews in the PR thread: write only inline comments.
-            Write short and concise comments/reviews. Write comments only if there is a specific issue: don't show me the good stuff.
-            Before posting a new comment, make sure it doesn’t repeat a point that’s already been made.
+
+            Write short and concise comments/reviews. Write comments only if there is a specific issue: don't
+            waste my time commenting on the good stuff. If you have nothing to say, don't say anything. Before
+            posting a new comment (inline or in the PR thread), make sure it doesn’t repeat a point already
+            made previously in comments.
 
           # security: a prompt injection can be used to update comments in the current PR.
           claude_args: |
