@@ -362,7 +362,7 @@ defer subscription.Unsubscribe()
 
 ## Performance Considerations
 
-- The plugin uses Go's standard `stdio` package for all operations
+- The plugin uses Go's standard `io` package for all operations
 - Reading is done in chunks of 1024 bytes by default
 - Line reading uses buffered I/O for efficiency
 - The plugin automatically handles resource cleanup
