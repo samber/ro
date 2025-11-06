@@ -717,7 +717,7 @@ func TestObserverDisablePanicCapture(t *testing.T) {
 	is := assert.New(t)
 
 	// Use the unsafe constructor so panics propagate.
-	observer := NewObserverUnsafe(
+	observer := NewUnsafeObserver(
 		func(value int) { panic("test panic") },
 		func(err error) {},
 		func() {},

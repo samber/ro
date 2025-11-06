@@ -361,6 +361,9 @@ func (s *observableImpl[T]) SubscribeWithContext(ctx context.Context, destinatio
 		subscription.Add(s.subscribe(ctx, subscription))
 		return subscription
 	}
+		subscription.Add(s.subscribe(ctx, subscription))
+		return subscription
+	}
 
 	lo.TryCatchWithErrorValue(
 		func() error {

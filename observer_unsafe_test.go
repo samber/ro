@@ -5,7 +5,7 @@ import (
 )
 
 func TestNewObserverUnsafe_panicsPropagate(t *testing.T) {
-	obs := NewObserverUnsafe[int](
+	obs := NewUnsafeObserver[int](
 		func(v int) { panic("boom") },
 		func(err error) {},
 		func() {},
