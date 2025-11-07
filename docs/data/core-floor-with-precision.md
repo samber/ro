@@ -1,7 +1,7 @@
 ---
 name: FloorWithPrecision
 slug: floor-with-precision
-sourceRef: operator_math.go#L297
+sourceRef: operator_math.go#L296
 type: core
 category: math
 signatures:
@@ -16,9 +16,9 @@ position: 3
 ---
 
 Floors each value emitted by the source Observable after shifting the decimal point `precision` places to the right.
-A non-negative precision keeps additional fractional digits while still rounding down.
+Positive precisions keep additional fractional digits while still rounding down, whereas negative precisions round to powers of ten.
 
-Valid precision values are in the inclusive range `[0, 308]`; passing a value outside this range panics.
+Any integer precision is accepted. Large magnitudes rely on chunked `big.Float` arithmetic shared with `CeilWithPrecision`; extremely large positive precisions fall back to returning the original values, while sufficiently negative precisions yield `0` for non-negative inputs and `-Inf` for negative ones.
 `math.NaN()` and `math.Inf()` inputs propagate as-is, matching `math.Floor` semantics.
 
 ```go
@@ -51,5 +51,21 @@ defer sub.Unsubscribe()
 // Next: -0.001
 // Next: +Inf
 // Next: NaN
+// Completed
+```
+
+### Rounding to powers of ten
+
+```go
+obs := ro.Pipe[float64, float64](
+    ro.Just(123.45, -123.45),
+    ro.FloorWithPrecision(-2),
+)
+
+sub := obs.Subscribe(ro.PrintObserver[float64]())
+defer sub.Unsubscribe()
+
+// Next: 100
+// Next: -200
 // Completed
 ```
