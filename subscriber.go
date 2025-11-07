@@ -219,14 +219,16 @@ func (s *subscriberImpl[T]) NextWithContext(ctx context.Context, v T) {
 	}
 
 	if s.lockless {
-		if atomic.LoadInt32(&s.status) == 0 {
-			if s.nextDirect != nil {
-				s.nextDirect(ctx, v)
-			} else {
-				s.destination.NextWithContext(ctx, v)
-			}
-		} else {
+		// Fast-path: if status indicates not-next, drop the notification.
+		if atomic.LoadInt32(&s.status) != 0 {
 			OnDroppedNotification(ctx, NewNotificationNext(v))
+			return
+		}
+
+		if s.nextDirect != nil {
+			s.nextDirect(ctx, v)
+		} else {
+			s.destination.NextWithContext(ctx, v)
 		}
 
 		return
@@ -241,14 +243,17 @@ func (s *subscriberImpl[T]) NextWithContext(ctx context.Context, v T) {
 		s.mu.Lock()
 	}
 
-	if atomic.LoadInt32(&s.status) == 0 {
-		if s.nextDirect != nil {
-			s.nextDirect(ctx, v)
-		} else {
-			s.destination.NextWithContext(ctx, v)
-		}
-	} else {
+	// If already in non-next state, drop the notification and return early.
+	if atomic.LoadInt32(&s.status) != 0 {
+		s.mu.Unlock()
 		OnDroppedNotification(ctx, NewNotificationNext(v))
+		return
+	}
+
+	if s.nextDirect != nil {
+		s.nextDirect(ctx, v)
+	} else {
+		s.destination.NextWithContext(ctx, v)
 	}
 
 	s.mu.Unlock()
@@ -262,35 +267,45 @@ func (s *subscriberImpl[T]) Error(err error) {
 // Implements Observer.
 func (s *subscriberImpl[T]) ErrorWithContext(ctx context.Context, err error) {
 	if s.lockless {
-		if atomic.CompareAndSwapInt32(&s.status, 0, 1) {
-			if s.destination != nil {
-				if s.errorDirect != nil {
-					s.errorDirect(ctx, err)
-				} else {
-					s.destination.ErrorWithContext(ctx, err)
-				}
-			}
-		} else {
+		// Fast-path: attempt to move to error state; if CAS fails, drop.
+		if !atomic.CompareAndSwapInt32(&s.status, 0, 1) {
 			OnDroppedNotification(ctx, NewNotificationError[T](err))
+			s.unsubscribe()
+			return
+		}
+
+		// If no destination, nothing to do beyond unsubscribing.
+		if s.destination == nil {
+			s.unsubscribe()
+			return
+		}
+
+		if s.errorDirect != nil {
+			s.errorDirect(ctx, err)
+		} else {
+			s.destination.ErrorWithContext(ctx, err)
 		}
 
 		s.unsubscribe()
-
 		return
 	}
 
 	s.mu.Lock()
 
-	if atomic.CompareAndSwapInt32(&s.status, 0, 1) {
-		if s.destination != nil {
-			if s.errorDirect != nil {
-				s.errorDirect(ctx, err)
-			} else {
-				s.destination.ErrorWithContext(ctx, err)
-			}
-		}
-	} else {
+	// If CAS to error fails, drop and return early.
+	if !atomic.CompareAndSwapInt32(&s.status, 0, 1) {
+		s.mu.Unlock()
 		OnDroppedNotification(ctx, NewNotificationError[T](err))
+		s.unsubscribe()
+		return
+	}
+
+	if s.destination != nil {
+		if s.errorDirect != nil {
+			s.errorDirect(ctx, err)
+		} else {
+			s.destination.ErrorWithContext(ctx, err)
+		}
 	}
 
 	s.mu.Unlock()
@@ -306,35 +321,45 @@ func (s *subscriberImpl[T]) Complete() {
 // Implements Observer.
 func (s *subscriberImpl[T]) CompleteWithContext(ctx context.Context) {
 	if s.lockless {
-		if atomic.CompareAndSwapInt32(&s.status, 0, 2) {
-			if s.destination != nil {
-				if s.completeDirect != nil {
-					s.completeDirect(ctx)
-				} else {
-					s.destination.CompleteWithContext(ctx)
-				}
-			}
-		} else {
+		// Fast-path: attempt to move to complete state; if CAS fails, drop.
+		if !atomic.CompareAndSwapInt32(&s.status, 0, 2) {
 			OnDroppedNotification(ctx, NewNotificationComplete[T]())
+			s.unsubscribe()
+			return
+		}
+
+		// If no destination, nothing to do beyond unsubscribing.
+		if s.destination == nil {
+			s.unsubscribe()
+			return
+		}
+
+		if s.completeDirect != nil {
+			s.completeDirect(ctx)
+		} else {
+			s.destination.CompleteWithContext(ctx)
 		}
 
 		s.unsubscribe()
-
 		return
 	}
 
 	s.mu.Lock()
 
-	if atomic.CompareAndSwapInt32(&s.status, 0, 2) {
-		if s.destination != nil {
-			if s.completeDirect != nil {
-				s.completeDirect(ctx)
-			} else {
-				s.destination.CompleteWithContext(ctx)
-			}
-		}
-	} else {
+	// If CAS to complete fails, drop and return early.
+	if !atomic.CompareAndSwapInt32(&s.status, 0, 2) {
+		s.mu.Unlock()
 		OnDroppedNotification(ctx, NewNotificationComplete[T]())
+		s.unsubscribe()
+		return
+	}
+
+	if s.destination != nil {
+		if s.completeDirect != nil {
+			s.completeDirect(ctx)
+		} else {
+			s.destination.CompleteWithContext(ctx)
+		}
 	}
 
 	s.mu.Unlock()

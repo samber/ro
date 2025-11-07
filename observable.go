@@ -358,11 +358,9 @@ func (s *observableImpl[T]) SubscribeWithContext(ctx context.Context, destinatio
 	capture := true
 	if oi, ok := destination.(*observerImpl[T]); ok {
 		capture = oi.capturePanics && !isObserverPanicCaptureDisabled(ctx)
-	} else {
+	} else if isObserverPanicCaptureDisabled(ctx) {
 		// For external observer implementations, respect context opt-out.
-		if isObserverPanicCaptureDisabled(ctx) {
-			capture = false
-		}
+		capture = false
 	}
 
 	// If subscription is our concrete subscriberImpl, set direct call helpers.

@@ -670,6 +670,7 @@ func TestObserverConcurrentContextMethods(t *testing.T) {
 }
 
 func TestObserverPanicHandling(t *testing.T) {
+	t.Parallel()
 	is := assert.New(t)
 
 	// Test panic in Next callback
@@ -714,6 +715,7 @@ func TestObserverPanicHandling(t *testing.T) {
 }
 
 func TestObserverDisablePanicCapture(t *testing.T) {
+	t.Parallel()
 	is := assert.New(t)
 
 	// Use the unsafe constructor so panics propagate.
@@ -729,6 +731,7 @@ func TestObserverDisablePanicCapture(t *testing.T) {
 }
 
 func TestObserverDisablePanicCaptureInUnsafePipeline(t *testing.T) {
+	t.Parallel()
 	is := assert.New(t)
 	// Opt-out on the subscription context so panics from operators propagate.
 	observable := Pipe1(

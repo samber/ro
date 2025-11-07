@@ -5,6 +5,7 @@ import (
 )
 
 func TestNewObserverUnsafe_panicsPropagate(t *testing.T) {
+	t.Parallel()
 	obs := NewUnsafeObserver[int](
 		func(v int) { panic("boom") },
 		func(err error) {},
@@ -27,6 +28,7 @@ func TestNewObserverUnsafe_panicsPropagate(t *testing.T) {
 }
 
 func TestNewObserver_defaultCapturesPanic(t *testing.T) {
+	t.Parallel()
 	caught := false
 	obs := NewObserver[int](
 		func(v int) { panic("boom2") },

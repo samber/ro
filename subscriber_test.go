@@ -533,7 +533,8 @@ func TestLocklessDroppedNotification(t *testing.T) {
 		func() {},
 	)
 
-	subscriber := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+	subscriber, ok := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+	is.True(ok)
 
 	// Mark as completed so further Next() should be dropped
 	subscriber.Complete()
@@ -558,14 +559,15 @@ func TestSingleProducerStress(t *testing.T) {
 		func() {},
 	)
 
-	subscriber := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+	subscriber, ok := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+	is.True(ok)
 
 	const iterations = 100000
 	for i := 0; i < iterations; i++ {
 		subscriber.Next(1)
 	}
 
-	is.EqualValues(int64(iterations), atomic.LoadInt64(&counter))
+	is.Equal(int64(iterations), atomic.LoadInt64(&counter))
 }
 
 // TestSingleProducerContextCancellation ensures the single-producer (lockless)
@@ -588,7 +590,8 @@ func TestSingleProducerContextCancellation(t *testing.T) {
 		func(ctx context.Context) {},
 	)
 
-	subscriber := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+	subscriber, ok := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+	is.True(ok)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -611,7 +614,8 @@ func TestSafeSubscriberConcurrentStress(t *testing.T) {
 		func() {},
 	)
 
-	subscriber := NewSafeSubscriber(observer).(*subscriberImpl[int])
+	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
+	is.True(ok)
 
 	const goroutines = 8
 	const per = 10000
