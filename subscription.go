@@ -17,7 +17,6 @@ package ro
 import (
 	"sync"
 
-	"github.com/samber/lo"
 	"github.com/samber/ro/internal/xerrors"
 )
 
@@ -184,18 +183,16 @@ func (s *subscriptionImpl) Wait() {
 
 // execFinalizer runs the finalizer and catches any panics, converting them to errors.
 func execFinalizer(finalizer func()) (err error) {
-	lo.TryCatchWithErrorValue(
-		func() error {
-			finalizer()
+	func() {
+		defer func() {
+			if e := recover(); e != nil {
+				err = newUnsubscriptionError(recoverValueToError(e))
+			}
+		}()
 
-			err = nil
-
-			return nil
-		},
-		func(e any) {
-			err = newUnsubscriptionError(recoverValueToError(e))
-		},
-	)
+		finalizer()
+		err = nil
+	}()
 
 	return err
 }
