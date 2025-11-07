@@ -1,7 +1,7 @@
 ---
 name: FloorWithPrecision
 slug: floor-with-precision
-sourceRef: operator_math.go#L270
+sourceRef: operator_math.go#L297
 type: core
 category: math
 signatures:
