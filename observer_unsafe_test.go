@@ -1,6 +1,7 @@
 package ro
 
 import (
+	"context"
 	"testing"
 )
 
@@ -24,6 +25,29 @@ func TestNewObserverUnsafe_panicsPropagate(t *testing.T) {
 
 	if !recovered {
 		t.Fatalf("expected panic to propagate from NewObserverUnsafe")
+	}
+}
+
+func TestNewObserverWithContextUnsafe_panicsPropagate(t *testing.T) {
+	t.Parallel()
+	obs := NewObserverWithContextUnsafe[int](
+		func(ctx context.Context, v int) { panic("boom") },
+		func(ctx context.Context, err error) {},
+		func(ctx context.Context) {},
+	)
+
+	recovered := false
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				recovered = true
+			}
+		}()
+		obs.NextWithContext(context.Background(), 1)
+	}()
+
+	if !recovered {
+		t.Fatalf("expected panic to propagate from NewObserverWithContextUnsafe")
 	}
 }
 
