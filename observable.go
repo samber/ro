@@ -592,12 +592,28 @@ func newConnectableObservableImpl[T any](source Observable[T], config Connectabl
 	}
 }
 
+// isBackgroundContext detects whether the provided context is a top-level
+// background or TODO context. We compare pointers to the well-known
+// background/TODO values so callers can decide whether the provided context
+// is the default empty context. This is intentionally conservative — many
+// derived contexts will not be equal to Background/TODO and therefore will
+// be treated as explicit contexts.
+func isBackgroundContext(ctx context.Context) bool {
+	return ctx == context.Background() || ctx == context.TODO()
+}
+
 type connectableObservableImpl[T any] struct {
 	mu           sync.Mutex
 	config       ConnectableConfig[T]
 	source       Observable[T]
 	subject      Subject[T]
 	subscription Subscription
+	// lastSubscriberCtx stores the most-recent non-nil context passed to
+	// SubscribeWithContext. It is used as a fallback when Connect() is
+	// called without an explicit context so that the source subscription
+	// inherits the subscriber's context (values, cancellation) as tests
+	// expect.
+	lastSubscriberCtx context.Context
 }
 
 // Connect connects the ConnectableObservable. When connected, the ConnectableObservable
@@ -625,7 +641,16 @@ func (s *connectableObservableImpl[T]) Connect() Subscription {
 func (s *connectableObservableImpl[T]) ConnectWithContext(ctx context.Context) Subscription {
 	s.mu.Lock()
 	if s.subscription == nil || s.subscription.IsClosed() {
-		s.subscription = s.source.SubscribeWithContext(ctx, s.subject)
+		// If caller passed a background context and we have a subscriber
+		// context stored, prefer that so subscribers' context values are
+		// visible to the source. This mirrors expected behavior in tests
+		// where SubscribeWithContext is called before Connect().
+		effectiveCtx := ctx
+		if isBackgroundContext(ctx) && s.lastSubscriberCtx != nil {
+			effectiveCtx = s.lastSubscriberCtx
+		}
+
+		s.subscription = s.source.SubscribeWithContext(effectiveCtx, s.subject)
 		s.mu.Unlock()
 		s.subscription.Add(func() {
 			if s.config.ResetOnDisconnect {
@@ -644,5 +669,14 @@ func (s *connectableObservableImpl[T]) Subscribe(observer Observer[T]) Subscript
 }
 
 func (s *connectableObservableImpl[T]) SubscribeWithContext(ctx context.Context, observer Observer[T]) Subscription {
+	// Record the subscriber context so Connect() can use it if caller
+	// didn't provide an explicit context. We store the most recent
+	// non-background context.
+	if ctx != nil && !isBackgroundContext(ctx) {
+		s.mu.Lock()
+		s.lastSubscriberCtx = ctx
+		s.mu.Unlock()
+	}
+
 	return s.subject.SubscribeWithContext(ctx, observer)
 }
