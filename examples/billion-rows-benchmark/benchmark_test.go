@@ -1,7 +1,7 @@
 package benchmark
 
 import (
-	"bufio"
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/samber/ro"
+	"golang.org/x/exp/mmap"
 )
 
 // csvSource creates an Observable that reads int64 values (one per line)
@@ -17,19 +18,44 @@ import (
 // on subscribe and emits values to the destination observer.
 func csvSource(path string) ro.Observable[int64] {
 	return ro.NewObservableWithContext(func(ctx context.Context, dest ro.Observer[int64]) ro.Teardown {
-		f, err := os.Open(path)
+		reader, err := mmap.Open(path)
 		if err != nil {
 			dest.Error(err)
 			return nil
 		}
+		defer func() { _ = reader.Close() }()
 
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			line := scanner.Text()
-			v, err := strconv.ParseInt(line, 10, 64)
+		size := reader.Len()
+		if size == 0 {
+			dest.CompleteWithContext(ctx)
+			return nil
+		}
+
+		data := make([]byte, size)
+		if _, err := reader.ReadAt(data, 0); err != nil {
+			dest.Error(err)
+			return nil
+		}
+
+		offset := 0
+		for offset < len(data) {
+			next := bytes.IndexByte(data[offset:], '\n')
+			var line []byte
+			if next == -1 {
+				line = data[offset:]
+				offset = len(data)
+			} else {
+				line = data[offset : offset+next]
+				offset += next + 1
+			}
+
+			if len(line) > 0 && line[len(line)-1] == '\r' {
+				line = line[:len(line)-1]
+			}
+
+			v, err := strconv.ParseInt(string(line), 10, 64)
 			if err != nil {
 				dest.Error(err)
-				_ = f.Close()
 				return nil
 			}
 
@@ -37,13 +63,7 @@ func csvSource(path string) ro.Observable[int64] {
 			dest.NextWithContext(ctx, v)
 		}
 
-		if err := scanner.Err(); err != nil {
-			dest.Error(err)
-		} else {
-			dest.CompleteWithContext(ctx)
-		}
-
-		_ = f.Close()
+		dest.CompleteWithContext(ctx)
 		return nil
 	})
 }
