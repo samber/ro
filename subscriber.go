@@ -405,9 +405,8 @@ func (s *subscriberImpl[T]) setDirectors(destination Observer[T], capture bool) 
 
 	// If destination is an *observerImpl[T], we can configure per-subscription
 	// direct call helpers. When capture==true we create one-off wrappers that
-	// use inline defer/recover to avoid allocating a TryCatch closure on every
-	// notification. The wrappers are created once per subscription so hot-path
-	// Next calls don't allocate.
+	// call internal helpers that accept a precomputed capture flag and therefore
+	// avoid context lookups.
 	if oi, ok := destination.(*observerImpl[T]); ok {
 		if !capture {
 			// No panic capture: call internal methods directly.
@@ -416,54 +415,9 @@ func (s *subscriberImpl[T]) setDirectors(destination Observer[T], capture bool) 
 			s.completeDirect = func(ctx context.Context) { oi.onComplete(ctx) }
 			return
 		}
+		s.nextDirect = func(ctx context.Context, v T) { oi.tryNextWithCapture(ctx, v, capture) }
+		s.errorDirect = func(ctx context.Context, err error) { oi.tryErrorWithCapture(ctx, err, capture) }
+		s.completeDirect = func(ctx context.Context) { oi.tryCompleteWithCapture(ctx, capture) }
 
-		// Capture == true: create non-allocating wrappers that handle panics
-		// via defer/recover. We create the error wrapper first so the next
-		// wrapper can invoke it without allocating.
-		errorWrapper := func(ctx context.Context, err error) {
-			// Protect onError from panics and forward to OnUnhandledError if it panics.
-			defer func() {
-				if r := recover(); r != nil {
-					OnUnhandledError(ctx, newObserverError(recoverValueToError(r)))
-				}
-			}()
-
-			if oi.onError == nil {
-				OnUnhandledError(ctx, newObserverError(err))
-				return
-			}
-
-			oi.onError(ctx, err)
-		}
-
-		nextWrapper := func(ctx context.Context, v T) {
-			defer func() {
-				if r := recover(); r != nil {
-					e := newObserverError(recoverValueToError(r))
-					if oi.onError == nil {
-						OnUnhandledError(ctx, e)
-					} else {
-						// Use the prebuilt error wrapper to avoid allocation.
-						errorWrapper(ctx, e)
-					}
-				}
-			}()
-
-			oi.onNext(ctx, v)
-		}
-
-		completeWrapper := func(ctx context.Context) {
-			defer func() {
-				if r := recover(); r != nil {
-					OnUnhandledError(ctx, newObserverError(recoverValueToError(r)))
-				}
-			}()
-
-			oi.onComplete(ctx)
-		}
-
-		s.nextDirect = nextWrapper
-		s.errorDirect = errorWrapper
-		s.completeDirect = completeWrapper
 	}
 }
