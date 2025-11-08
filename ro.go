@@ -46,7 +46,11 @@ func SetOnUnhandledError(fn func(ctx context.Context, err error)) {
 
 // GetOnUnhandledError returns the currently configured unhandled-error handler.
 func GetOnUnhandledError() func(ctx context.Context, err error) {
-	return onUnhandledError.Load().(func(context.Context, error))
+	v := onUnhandledError.Load()
+	if fn, ok := v.(func(context.Context, error)); ok && fn != nil {
+		return fn
+	}
+	return IgnoreOnUnhandledError
 }
 
 // OnUnhandledError calls the currently configured unhandled-error handler.
@@ -65,7 +69,11 @@ func SetOnDroppedNotification(fn func(ctx context.Context, notification fmt.Stri
 
 // GetOnDroppedNotification returns the currently configured dropped-notification handler.
 func GetOnDroppedNotification() func(ctx context.Context, notification fmt.Stringer) {
-	return onDroppedNotification.Load().(func(context.Context, fmt.Stringer))
+	v := onDroppedNotification.Load()
+	if fn, ok := v.(func(context.Context, fmt.Stringer)); ok && fn != nil {
+		return fn
+	}
+	return IgnoreOnDroppedNotification
 }
 
 // OnDroppedNotification calls the currently configured dropped-notification handler.

@@ -35,12 +35,12 @@ func WithDroppedNotification(t *testing.T, handler func(ctx context.Context, not
 	t.Helper()
 
 	droppedNotificationMu.Lock()
-	prev := OnDroppedNotification
-	OnDroppedNotification = handler
+	prev := GetOnDroppedNotification()
+	SetOnDroppedNotification(handler)
 
 	// Ensure restore and unlock even if fn panics.
 	defer func() {
-		OnDroppedNotification = prev
+		SetOnDroppedNotification(prev)
 		droppedNotificationMu.Unlock()
 	}()
 
