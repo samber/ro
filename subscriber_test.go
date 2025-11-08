@@ -515,6 +515,10 @@ func TestSubscriberWithContext(t *testing.T) {
 	is.Equal(assert.AnError, receivedError)
 }
 
+// it uses a helper to serialize overrides but intentionally does not call
+// t.Parallel() to avoid races on the global variable.
+//
+//nolint:paralleltest // this test mutates the global `OnDroppedNotification` hook;
 func TestLocklessDroppedNotification(t *testing.T) {
 	// Do NOT run this test in parallel. It mutates the global
 	// `OnDroppedNotification` hook which may race with other tests
