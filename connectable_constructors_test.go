@@ -36,7 +36,7 @@ func TestNewConnectableObservableWithContext(t *testing.T) {
 	})
 
 	var values []int
-	ctx := context.WithValue(context.Background(), "test", "value")
+	ctx := context.WithValue(context.Background(), testCtxKey, "value")
 	sub := connectable.SubscribeWithContext(ctx, NewObserver(
 		func(value int) { values = append(values, value) },
 		func(err error) { t.Fatalf("unexpected error: %v", err) },
@@ -50,7 +50,7 @@ func TestNewConnectableObservableWithContext(t *testing.T) {
 
 	is.Equal([]int{1, 2, 3}, values)
 	is.NotNil(ctxReceived)
-	is.Equal("value", ctxReceived.Value("test"))
+	is.Equal("value", ctxReceived.Value(testCtxKey))
 }
 
 func TestNewConnectableObservableWithConfigAndContext(t *testing.T) {
@@ -76,7 +76,7 @@ func TestNewConnectableObservableWithConfigAndContext(t *testing.T) {
 	)
 
 	var values []int
-	ctx := context.WithValue(context.Background(), "test", "value")
+	ctx := context.WithValue(context.Background(), testCtxKey, "value")
 	sub := connectable.SubscribeWithContext(ctx, NewObserver(
 		func(value int) { values = append(values, value) },
 		func(err error) { t.Fatalf("unexpected error: %v", err) },
@@ -90,5 +90,5 @@ func TestNewConnectableObservableWithConfigAndContext(t *testing.T) {
 
 	is.Equal([]int{1, 2, 3}, values)
 	is.NotNil(ctxReceived)
-	is.Equal("value", ctxReceived.Value("test"))
+	is.Equal("value", ctxReceived.Value(testCtxKey))
 }

@@ -40,7 +40,7 @@ func TestObserverImpl_tryNextWithCapture_withCapture(t *testing.T) {
 
 	// Should capture the panic and call onError
 	observer.tryNextWithCapture(context.Background(), 42, true)
-	is.NotNil(errorCaught)
+	is.Error(errorCaught)
 	is.Contains(errorCaught.Error(), "next panic")
 }
 
@@ -96,7 +96,7 @@ func TestObserverImpl_tryErrorWithCapture_withCapture(t *testing.T) {
 
 	// Should capture the panic from onError and call OnUnhandledError
 	observer.tryErrorWithCapture(context.Background(), assert.AnError, true)
-	is.NotNil(unhandledError)
+	is.Error(unhandledError)
 	is.Contains(unhandledError.Error(), "error panic")
 }
 
@@ -152,7 +152,7 @@ func TestObserverImpl_tryCompleteWithCapture_withCapture(t *testing.T) {
 
 	// Should capture the panic from onComplete and call OnUnhandledError
 	observer.tryCompleteWithCapture(context.Background(), true)
-	is.NotNil(unhandledError)
+	is.Error(unhandledError)
 	is.Contains(unhandledError.Error(), "complete panic")
 }
 

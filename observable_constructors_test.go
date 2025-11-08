@@ -105,7 +105,7 @@ func TestNewSingleProducerObservableWithContext(t *testing.T) {
 		return nil
 	})
 
-	ctx := context.WithValue(context.Background(), "test", "value")
+	ctx := context.WithValue(context.Background(), testCtxKey, "value")
 	sub := obs.SubscribeWithContext(ctx, NewObserver(
 		func(value int) { values = append(values, value) },
 		func(err error) { t.Fatalf("unexpected error: %v", err) },
@@ -115,7 +115,7 @@ func TestNewSingleProducerObservableWithContext(t *testing.T) {
 	sub.Wait()
 	is.Equal([]int{1, 2, 3}, values)
 	is.NotNil(ctxReceived)
-	is.Equal("value", ctxReceived.Value("test"))
+	is.Equal("value", ctxReceived.Value(testCtxKey))
 }
 
 func TestNewEventuallySafeObservableWithContext(t *testing.T) {
@@ -133,7 +133,7 @@ func TestNewEventuallySafeObservableWithContext(t *testing.T) {
 		return nil
 	})
 
-	ctx := context.WithValue(context.Background(), "test", "value")
+	ctx := context.WithValue(context.Background(), testCtxKey, "value")
 	sub := obs.SubscribeWithContext(ctx, NewObserver(
 		func(value int) { values = append(values, value) },
 		func(err error) { t.Fatalf("unexpected error: %v", err) },
@@ -143,5 +143,5 @@ func TestNewEventuallySafeObservableWithContext(t *testing.T) {
 	sub.Wait()
 	is.Equal([]int{1, 2, 3}, values)
 	is.NotNil(ctxReceived)
-	is.Equal("value", ctxReceived.Value("test"))
+	is.Equal("value", ctxReceived.Value(testCtxKey))
 }
