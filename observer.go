@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 	"sync/atomic"
+
+	"github.com/samber/lo"
 )
 
 // Context key used to opt-out of observer panic capture for a specific
@@ -208,21 +210,22 @@ func (o *observerImpl[T]) tryNext(ctx context.Context, value T) {
 		return
 	}
 
-	func() {
-		defer func() {
-			if e := recover(); e != nil {
-				err := newObserverError(recoverValueToError(e))
+	lo.TryCatchWithErrorValue(
+		func() error {
+			o.onNext(ctx, value)
+			return nil
+		},
+		func(e any) {
+			err := newObserverError(recoverValueToError(e))
 
-				if o.onError == nil {
-					OnUnhandledError(ctx, err)
-				} else {
-					o.tryError(ctx, err)
-				}
+			if o.onError == nil {
+				OnUnhandledError(ctx, err)
+			} else {
+				o.tryError(ctx, err)
 			}
-		}()
+		},
+	)
 
-		o.onNext(ctx, value)
-	}()
 }
 
 // tryNextWithCapture is similar to tryNext but uses the provided `capture` flag
@@ -235,22 +238,22 @@ func (o *observerImpl[T]) tryNextWithCapture(ctx context.Context, value T, captu
 		return
 	}
 
-	func() {
-		defer func() {
-			if e := recover(); e != nil {
-				err := newObserverError(recoverValueToError(e))
+	lo.TryCatchWithErrorValue(
+		func() error {
+			o.onNext(ctx, value)
+			return nil
+		},
+		func(e any) {
+			err := newObserverError(recoverValueToError(e))
 
-				if o.onError == nil {
-					OnUnhandledError(ctx, err)
-				} else {
-					// Use tryErrorWithCapture to ensure consistent panic handling.
-					o.tryErrorWithCapture(ctx, err, capture)
-				}
+			if o.onError == nil {
+				OnUnhandledError(ctx, err)
+			} else {
+				// Use tryErrorWithCapture to ensure consistent panic handling.
+				o.tryErrorWithCapture(ctx, err, capture)
 			}
-		}()
-
-		o.onNext(ctx, value)
-	}()
+		},
+	)
 }
 
 func (o *observerImpl[T]) tryError(ctx context.Context, err error) {
@@ -259,16 +262,16 @@ func (o *observerImpl[T]) tryError(ctx context.Context, err error) {
 		return
 	}
 
-	func() {
-		defer func() {
-			if e := recover(); e != nil {
-				err := newObserverError(recoverValueToError(e))
-				OnUnhandledError(ctx, err)
-			}
-		}()
-
-		o.onError(ctx, err)
-	}()
+	lo.TryCatchWithErrorValue(
+		func() error {
+			o.onError(ctx, err)
+			return nil
+		},
+		func(e any) {
+			err := newObserverError(recoverValueToError(e))
+			OnUnhandledError(ctx, err)
+		},
+	)
 }
 
 // tryErrorWithCapture behaves like tryError but takes a precomputed capture flag
@@ -281,16 +284,16 @@ func (o *observerImpl[T]) tryErrorWithCapture(ctx context.Context, err error, ca
 		return
 	}
 
-	func() {
-		defer func() {
-			if e := recover(); e != nil {
-				err := newObserverError(recoverValueToError(e))
-				OnUnhandledError(ctx, err)
-			}
-		}()
-
-		o.onError(ctx, err)
-	}()
+	lo.TryCatchWithErrorValue(
+		func() error {
+			o.onError(ctx, err)
+			return nil
+		},
+		func(e any) {
+			err := newObserverError(recoverValueToError(e))
+			OnUnhandledError(ctx, err)
+		},
+	)
 }
 
 func (o *observerImpl[T]) tryComplete(ctx context.Context) {
@@ -299,16 +302,16 @@ func (o *observerImpl[T]) tryComplete(ctx context.Context) {
 		return
 	}
 
-	func() {
-		defer func() {
-			if e := recover(); e != nil {
-				err := newObserverError(recoverValueToError(e))
-				OnUnhandledError(ctx, err)
-			}
-		}()
-
-		o.onComplete(ctx)
-	}()
+	lo.TryCatchWithErrorValue(
+		func() error {
+			o.onComplete(ctx)
+			return nil
+		},
+		func(e any) {
+			err := newObserverError(recoverValueToError(e))
+			OnUnhandledError(ctx, err)
+		},
+	)
 }
 
 // tryCompleteWithCapture behaves like tryComplete but uses the provided capture
@@ -319,16 +322,16 @@ func (o *observerImpl[T]) tryCompleteWithCapture(ctx context.Context, capture bo
 		return
 	}
 
-	func() {
-		defer func() {
-			if e := recover(); e != nil {
-				err := newObserverError(recoverValueToError(e))
-				OnUnhandledError(ctx, err)
-			}
-		}()
-
-		o.onComplete(ctx)
-	}()
+	lo.TryCatchWithErrorValue(
+		func() error {
+			o.onComplete(ctx)
+			return nil
+		},
+		func(e any) {
+			err := newObserverError(recoverValueToError(e))
+			OnUnhandledError(ctx, err)
+		},
+	)
 }
 
 func (o *observerImpl[T]) IsClosed() bool {

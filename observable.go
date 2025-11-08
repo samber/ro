@@ -17,6 +17,8 @@ package ro
 import (
 	"context"
 	"sync"
+
+	"github.com/samber/lo"
 )
 
 // Backpressure is a type that represents the backpressure strategy to use.
@@ -382,19 +384,19 @@ func (s *observableImpl[T]) SubscribeWithContext(ctx context.Context, destinatio
 		return subscription
 	}
 
-	func() {
-		defer func() {
-			if e := recover(); e != nil {
-				err := recoverValueToError(e)
-				subscription.ErrorWithContext(ctx, newObservableError(err))
-				subscription.Unsubscribe()
-			}
-		}()
-
-		// Warning: here, we are catching panic in subscription.Add.
-		// I'm not sure if it's a good idea.
-		subscription.Add(s.subscribe(ctx, subscription))
-	}()
+	lo.TryCatchWithErrorValue(
+		func() error {
+			// Warning: here, we are catching panic in subscription.Add.
+			// I'm not sure if it's a good idea.
+			subscription.Add(s.subscribe(ctx, subscription))
+			return nil
+		},
+		func(e any) {
+			err := recoverValueToError(e)
+			subscription.ErrorWithContext(ctx, newObservableError(err))
+			subscription.Unsubscribe()
+		},
+	)
 
 	return subscription
 }
