@@ -78,11 +78,11 @@ func TestObserverImpl_tryErrorWithCapture_withCapture(t *testing.T) {
 	is := assert.New(t)
 
 	var unhandledError error
-	prev := OnUnhandledError
-	OnUnhandledError = func(ctx context.Context, err error) {
+	prev := GetOnUnhandledError()
+	SetOnUnhandledError(func(ctx context.Context, err error) {
 		unhandledError = err
-	}
-	defer func() { OnUnhandledError = prev }()
+	})
+	defer SetOnUnhandledError(prev)
 
 	observer := &observerImpl[int]{
 		status:        0,
@@ -134,11 +134,11 @@ func TestObserverImpl_tryCompleteWithCapture_withCapture(t *testing.T) {
 	is := assert.New(t)
 
 	var unhandledError error
-	prev := OnUnhandledError
-	OnUnhandledError = func(ctx context.Context, err error) {
+	prev := GetOnUnhandledError()
+	SetOnUnhandledError(func(ctx context.Context, err error) {
 		unhandledError = err
-	}
-	defer func() { OnUnhandledError = prev }()
+	})
+	defer SetOnUnhandledError(prev)
 
 	observer := &observerImpl[int]{
 		status:        0,

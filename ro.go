@@ -18,34 +18,60 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync/atomic"
 )
 
 var (
-	// By default, the library will ignore unhandled errors and dropped notifications.
-	// You can change this behavior by setting the following variables to your own
-	// error handling functions.
-	//
-	// Example:
-	//
-	// 	ro.OnUnhandledError = func(ctx context.Context, err error) {
-	// 		slog.Error(fmt.Sprintf("unhandled error: %s\n", err.Error()))
-	// 	}
-	//
-	// 	ro.OnDroppedNotification = func(ctx context.Context, notification fmt.Stringer) {
-	// 		slog.Warn(fmt.Sprintf("dropped notification: %s\n", notification.String()))
-	// 	}
-	//
-	// Note: `OnUnhandledError` and `OnDroppedNotification` are called synchronously from
-	// the goroutine that emits the error or the notification. A slow callback will slow
-	// down the whole pipeline.
+	// onUnhandledError stores the current handler for unhandled errors. It is accessed
+	// via atomic.Value to allow concurrent readers and writers without data races.
+	onUnhandledError atomic.Value // func(context.Context, error)
 
-	// OnUnhandledError is called when an error is emitted by an Observable and
-	// no error handler is registered.
-	OnUnhandledError = IgnoreOnUnhandledError
-	// OnDroppedNotification is called when a notification is emitted by an Observable and
-	// no notification handler is registered.
-	OnDroppedNotification = IgnoreOnDroppedNotification
+	// onDroppedNotification stores the current handler for dropped notifications.
+	onDroppedNotification atomic.Value // func(context.Context, fmt.Stringer)
 )
+
+func init() {
+	onUnhandledError.Store(IgnoreOnUnhandledError)
+	onDroppedNotification.Store(IgnoreOnDroppedNotification)
+}
+
+// SetOnUnhandledError sets the handler that will be invoked when an error is
+// emitted and not otherwise handled. Passing nil restores the default.
+func SetOnUnhandledError(fn func(ctx context.Context, err error)) {
+	if fn == nil {
+		fn = IgnoreOnUnhandledError
+	}
+	onUnhandledError.Store(fn)
+}
+
+// GetOnUnhandledError returns the currently configured unhandled-error handler.
+func GetOnUnhandledError() func(ctx context.Context, err error) {
+	return onUnhandledError.Load().(func(context.Context, error))
+}
+
+// OnUnhandledError calls the currently configured unhandled-error handler.
+func OnUnhandledError(ctx context.Context, err error) {
+	GetOnUnhandledError()(ctx, err)
+}
+
+// SetOnDroppedNotification sets the handler invoked when a notification is
+// dropped. Passing nil restores the default.
+func SetOnDroppedNotification(fn func(ctx context.Context, notification fmt.Stringer)) {
+	if fn == nil {
+		fn = IgnoreOnDroppedNotification
+	}
+	onDroppedNotification.Store(fn)
+}
+
+// GetOnDroppedNotification returns the currently configured dropped-notification handler.
+func GetOnDroppedNotification() func(ctx context.Context, notification fmt.Stringer) {
+	return onDroppedNotification.Load().(func(context.Context, fmt.Stringer))
+}
+
+// OnDroppedNotification calls the currently configured dropped-notification handler.
+func OnDroppedNotification(ctx context.Context, notification fmt.Stringer) {
+	GetOnDroppedNotification()(ctx, notification)
+}
 
 // IgnoreOnUnhandledError is the default implementation of `OnUnhandledError`.
 func IgnoreOnUnhandledError(ctx context.Context, err error) {}
