@@ -516,33 +516,37 @@ func TestSubscriberWithContext(t *testing.T) {
 }
 
 func TestLocklessDroppedNotification(t *testing.T) {
-	t.Parallel()
+	// Do NOT run this test in parallel. It mutates the global
+	// `OnDroppedNotification` hook which may race with other tests
+	// that read or call the hook. Keep the existing defer that
+	// restores the previous handler so the hook is reset for later
+	// tests.
 	is := assert.New(t)
 
-	// Capture dropped notifications
-	prev := OnDroppedNotification
+	// Capture dropped notifications using the helper which serializes
+	// overrides of the global `OnDroppedNotification` hook and restores it
+	// after the inner function returns.
 	var seen string
-	OnDroppedNotification = func(ctx context.Context, notification fmt.Stringer) {
+	WithDroppedNotification(t, func(ctx context.Context, notification fmt.Stringer) {
 		seen = notification.String()
-	}
-	defer func() { OnDroppedNotification = prev }()
+	}, func() {
+		observer := NewObserver(
+			func(value int) {},
+			func(err error) {},
+			func() {},
+		)
 
-	observer := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() {},
-	)
+		subscriber, ok := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+		is.True(ok)
 
-	subscriber, ok := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
-	is.True(ok)
+		// Mark as completed so further Next() should be dropped
+		subscriber.Complete()
 
-	// Mark as completed so further Next() should be dropped
-	subscriber.Complete()
+		subscriber.Next(42)
 
-	subscriber.Next(42)
-
-	is.NotEmpty(seen)
-	is.Contains(seen, "Next(42)")
+		is.NotEmpty(seen)
+		is.Contains(seen, "Next(42)")
+	})
 }
 
 // Stress test for the single-producer fast path. This exercises the lockless
