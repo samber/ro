@@ -156,3 +156,42 @@ func TestSubscriberImpl_setDirectors_withObserverImpl(t *testing.T) {
 	subscriber.completeDirect(context.Background())
 	is.True(completeCalled)
 }
+
+func TestSubscriberImpl_setDirectors_noCapture_propagatesPanics(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Create an observerImpl whose handlers panic. When setDirectors is
+	// invoked with capture==false we expect these panics to propagate
+	// (i.e. no TryCatch wrapper should be used).
+	observer := &observerImpl[int]{
+		status:        0,
+		capturePanics: true,
+		onNext:        func(ctx context.Context, value int) { panic("onNext panic") },
+		onError:       func(ctx context.Context, err error) { panic("onError panic") },
+		onComplete:    func(ctx context.Context) { panic("onComplete panic") },
+	}
+
+	subscriber := &subscriberImpl[int]{
+		status:       0,
+		backpressure: BackpressureBlock,
+		mu:           xsync.NewMutexWithLock(),
+		destination:  observer,
+		Subscription: NewSubscription(nil),
+		mode:         ConcurrencyModeSafe,
+		lockless:     false,
+	}
+
+	// Configure directors with capture=false so the direct helpers call
+	// the internal onNext/onError/onComplete without TryCatch wrappers.
+	subscriber.setDirectors(observer, false)
+
+	is.NotNil(subscriber.nextDirect)
+	is.NotNil(subscriber.errorDirect)
+	is.NotNil(subscriber.completeDirect)
+
+	// Each direct call should panic (propagate) because capture==false.
+	is.Panics(func() { subscriber.nextDirect(context.Background(), 1) })
+	is.Panics(func() { subscriber.errorDirect(context.Background(), assert.AnError) })
+	is.Panics(func() { subscriber.completeDirect(context.Background()) })
+}
