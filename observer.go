@@ -225,7 +225,6 @@ func (o *observerImpl[T]) tryNext(ctx context.Context, value T) {
 			}
 		},
 	)
-
 }
 
 // tryNextWithCapture is similar to tryNext but uses the provided `capture` flag

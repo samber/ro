@@ -418,6 +418,5 @@ func (s *subscriberImpl[T]) setDirectors(destination Observer[T], capture bool) 
 		s.nextDirect = func(ctx context.Context, v T) { oi.tryNextWithCapture(ctx, v, capture) }
 		s.errorDirect = func(ctx context.Context, err error) { oi.tryErrorWithCapture(ctx, err, capture) }
 		s.completeDirect = func(ctx context.Context) { oi.tryCompleteWithCapture(ctx, capture) }
-
 	}
 }
