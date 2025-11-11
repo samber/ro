@@ -16,6 +16,7 @@ package ro
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -38,47 +39,56 @@ func TestSubscriberInternalOk(t *testing.T) {
 	subscriber2, ok2 := NewSafeSubscriber(observer).(*subscriberImpl[int])
 	subscriber3, ok3 := NewUnsafeSubscriber(observer).(*subscriberImpl[int])
 	subscriber4, ok4 := NewEventuallySafeSubscriber(observer).(*subscriberImpl[int])
+	subscriber5, ok5 := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
 
 	is.True(ok1)
 	is.True(ok2)
 	is.True(ok3)
 	is.True(ok4)
+	is.True(ok5)
 
 	// default state
 	is.EqualValues(KindNext, subscriber1.status)
 	is.EqualValues(KindNext, subscriber2.status)
 	is.EqualValues(KindNext, subscriber3.status)
 	is.EqualValues(KindNext, subscriber4.status)
+	is.EqualValues(KindNext, subscriber5.status)
 
 	// send values
 	subscriber1.Next(21)
 	subscriber2.Next(21)
 	subscriber3.Next(21)
 	subscriber4.Next(21)
+	subscriber5.Next(21)
 	is.EqualValues(KindNext, subscriber1.status)
 	is.EqualValues(KindNext, subscriber2.status)
 	is.EqualValues(KindNext, subscriber3.status)
 	is.EqualValues(KindNext, subscriber4.status)
+	is.EqualValues(KindNext, subscriber5.status)
 
 	// completed state
 	subscriber1.Complete()
 	subscriber2.Complete()
 	subscriber3.Complete()
 	subscriber4.Complete()
+	subscriber5.Complete()
 	is.EqualValues(KindComplete, subscriber1.status)
 	is.EqualValues(KindComplete, subscriber2.status)
 	is.EqualValues(KindComplete, subscriber3.status)
 	is.EqualValues(KindComplete, subscriber4.status)
+	is.EqualValues(KindComplete, subscriber5.status)
 
 	// no change
 	subscriber1.Next(42)
 	subscriber2.Next(42)
 	subscriber3.Next(42)
 	subscriber4.Next(42)
+	subscriber5.Next(42)
 	is.EqualValues(KindComplete, subscriber1.status)
 	is.EqualValues(KindComplete, subscriber2.status)
 	is.EqualValues(KindComplete, subscriber3.status)
 	is.EqualValues(KindComplete, subscriber4.status)
+	is.EqualValues(KindComplete, subscriber5.status)
 }
 
 func TestSubscriberInternalError(t *testing.T) {
@@ -95,11 +105,13 @@ func TestSubscriberInternalError(t *testing.T) {
 	subscriber2, ok2 := NewSafeSubscriber(observer).(*subscriberImpl[int])
 	subscriber3, ok3 := NewUnsafeSubscriber(observer).(*subscriberImpl[int])
 	subscriber4, ok4 := NewEventuallySafeSubscriber(observer).(*subscriberImpl[int])
+	subscriber5, ok5 := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
 
 	is.True(ok1)
 	is.True(ok2)
 	is.True(ok3)
 	is.True(ok4)
+	is.True(ok5)
 
 	// default state
 	is.EqualValues(KindNext, subscriber1.status)
@@ -112,30 +124,36 @@ func TestSubscriberInternalError(t *testing.T) {
 	subscriber2.Next(21)
 	subscriber3.Next(21)
 	subscriber4.Next(21)
+	subscriber5.Next(21)
 	is.EqualValues(KindNext, subscriber1.status)
 	is.EqualValues(KindNext, subscriber2.status)
 	is.EqualValues(KindNext, subscriber3.status)
 	is.EqualValues(KindNext, subscriber4.status)
+	is.EqualValues(KindNext, subscriber5.status)
 
 	// trigger error
 	subscriber1.Error(assert.AnError)
 	subscriber2.Error(assert.AnError)
 	subscriber3.Error(assert.AnError)
 	subscriber4.Error(assert.AnError)
+	subscriber5.Error(assert.AnError)
 	is.EqualValues(KindError, subscriber1.status)
 	is.EqualValues(KindError, subscriber2.status)
 	is.EqualValues(KindError, subscriber3.status)
 	is.EqualValues(KindError, subscriber4.status)
+	is.EqualValues(KindError, subscriber5.status)
 
 	// no change
 	subscriber1.Next(42)
 	subscriber2.Next(42)
 	subscriber3.Next(42)
 	subscriber4.Next(42)
+	subscriber5.Next(42)
 	is.EqualValues(KindError, subscriber1.status)
 	is.EqualValues(KindError, subscriber2.status)
 	is.EqualValues(KindError, subscriber3.status)
 	is.EqualValues(KindError, subscriber4.status)
+	is.EqualValues(KindError, subscriber5.status)
 }
 
 func TestSubscriberNext(t *testing.T) {
@@ -147,6 +165,7 @@ func TestSubscriberNext(t *testing.T) {
 	var counter2 int64
 	var counter3 int64
 	var counter4 int64
+	var counter5 int64
 
 	observer1 := NewObserver(
 		func(value int) { atomic.AddInt64(&counter1, int64(value)) },
@@ -168,64 +187,93 @@ func TestSubscriberNext(t *testing.T) {
 		func(err error) {},
 		func() {},
 	)
+	observer5 := NewObserver(
+		func(value int) { atomic.AddInt64(&counter5, int64(value)) },
+		func(err error) {},
+		func() {},
+	)
 
 	subscriber1, ok1 := NewSubscriber(observer1).(*subscriberImpl[int])
 	subscriber2, ok2 := NewSafeSubscriber(observer2).(*subscriberImpl[int])
 	subscriber3, ok3 := NewUnsafeSubscriber(observer3).(*subscriberImpl[int])
 	subscriber4, ok4 := NewEventuallySafeSubscriber(observer4).(*subscriberImpl[int])
+	subscriber5, ok5 := NewSingleProducerSubscriber(observer5).(*subscriberImpl[int])
 
 	is.True(ok1)
 	is.True(ok2)
 	is.True(ok3)
 	is.True(ok4)
+	is.True(ok5)
 
 	subscriber1.Next(21)
 	is.EqualValues(21, atomic.LoadInt64(&counter1))
 	is.EqualValues(0, atomic.LoadInt64(&counter2))
 	is.EqualValues(0, atomic.LoadInt64(&counter3))
 	is.EqualValues(0, atomic.LoadInt64(&counter4))
+	is.EqualValues(0, atomic.LoadInt64(&counter5))
 
 	subscriber2.Next(21)
 	is.EqualValues(21, atomic.LoadInt64(&counter1))
 	is.EqualValues(21, atomic.LoadInt64(&counter2))
 	is.EqualValues(0, atomic.LoadInt64(&counter3))
 	is.EqualValues(0, atomic.LoadInt64(&counter4))
+	is.EqualValues(0, atomic.LoadInt64(&counter5))
 
 	subscriber3.Next(21)
 	is.EqualValues(21, atomic.LoadInt64(&counter1))
 	is.EqualValues(21, atomic.LoadInt64(&counter2))
 	is.EqualValues(21, atomic.LoadInt64(&counter3))
 	is.EqualValues(0, atomic.LoadInt64(&counter4))
+	is.EqualValues(0, atomic.LoadInt64(&counter5))
 
 	subscriber4.Next(21)
 	is.EqualValues(21, atomic.LoadInt64(&counter1))
 	is.EqualValues(21, atomic.LoadInt64(&counter2))
 	is.EqualValues(21, atomic.LoadInt64(&counter3))
 	is.EqualValues(21, atomic.LoadInt64(&counter4))
+	is.EqualValues(0, atomic.LoadInt64(&counter5))
+
+	subscriber5.Next(21)
+	is.EqualValues(21, atomic.LoadInt64(&counter1))
+	is.EqualValues(21, atomic.LoadInt64(&counter2))
+	is.EqualValues(21, atomic.LoadInt64(&counter3))
+	is.EqualValues(21, atomic.LoadInt64(&counter4))
+	is.EqualValues(21, atomic.LoadInt64(&counter5))
 
 	subscriber1.Next(21)
 	is.EqualValues(42, atomic.LoadInt64(&counter1))
 	is.EqualValues(21, atomic.LoadInt64(&counter2))
 	is.EqualValues(21, atomic.LoadInt64(&counter3))
 	is.EqualValues(21, atomic.LoadInt64(&counter4))
+	is.EqualValues(21, atomic.LoadInt64(&counter5))
 
 	subscriber2.Next(21)
 	is.EqualValues(42, atomic.LoadInt64(&counter1))
 	is.EqualValues(42, atomic.LoadInt64(&counter2))
 	is.EqualValues(21, atomic.LoadInt64(&counter3))
 	is.EqualValues(21, atomic.LoadInt64(&counter4))
+	is.EqualValues(21, atomic.LoadInt64(&counter5))
 
 	subscriber3.Next(21)
 	is.EqualValues(42, atomic.LoadInt64(&counter1))
 	is.EqualValues(42, atomic.LoadInt64(&counter2))
 	is.EqualValues(42, atomic.LoadInt64(&counter3))
 	is.EqualValues(21, atomic.LoadInt64(&counter4))
+	is.EqualValues(21, atomic.LoadInt64(&counter5))
 
 	subscriber4.Next(21)
 	is.EqualValues(42, atomic.LoadInt64(&counter1))
 	is.EqualValues(42, atomic.LoadInt64(&counter2))
 	is.EqualValues(42, atomic.LoadInt64(&counter3))
 	is.EqualValues(42, atomic.LoadInt64(&counter4))
+	is.EqualValues(21, atomic.LoadInt64(&counter5))
+
+	subscriber5.Next(21)
+	is.EqualValues(42, atomic.LoadInt64(&counter1))
+	is.EqualValues(42, atomic.LoadInt64(&counter2))
+	is.EqualValues(42, atomic.LoadInt64(&counter3))
+	is.EqualValues(42, atomic.LoadInt64(&counter4))
+	is.EqualValues(42, atomic.LoadInt64(&counter5))
 }
 
 func TestSubscriberError(t *testing.T) {
@@ -236,6 +284,7 @@ func TestSubscriberError(t *testing.T) {
 	var counter2 int64
 	var counter3 int64
 	var counter4 int64
+	var counter5 int64
 
 	observer1 := NewObserver(
 		func(value int) { atomic.AddInt64(&counter1, int64(value)) },
@@ -257,45 +306,58 @@ func TestSubscriberError(t *testing.T) {
 		func(err error) { atomic.AddInt64(&counter4, int64(1)) },
 		func() {},
 	)
+	observer5 := NewObserver(
+		func(value int) { atomic.AddInt64(&counter5, int64(value)) },
+		func(err error) { atomic.AddInt64(&counter5, int64(1)) },
+		func() {},
+	)
 
 	subscriber1, ok1 := NewSubscriber(observer1).(*subscriberImpl[int])
 	subscriber2, ok2 := NewSafeSubscriber(observer2).(*subscriberImpl[int])
 	subscriber3, ok3 := NewUnsafeSubscriber(observer3).(*subscriberImpl[int])
 	subscriber4, ok4 := NewEventuallySafeSubscriber(observer4).(*subscriberImpl[int])
+	subscriber5, ok5 := NewSingleProducerSubscriber(observer5).(*subscriberImpl[int])
 
 	is.True(ok1)
 	is.True(ok2)
 	is.True(ok3)
 	is.True(ok4)
+	is.True(ok5)
 
 	subscriber1.Next(21)
 	subscriber2.Next(21)
 	subscriber3.Next(21)
 	subscriber4.Next(21)
+	subscriber5.Next(21)
 	is.EqualValues(21, atomic.LoadInt64(&counter1))
 	is.EqualValues(21, atomic.LoadInt64(&counter2))
 	is.EqualValues(21, atomic.LoadInt64(&counter3))
 	is.EqualValues(21, atomic.LoadInt64(&counter4))
+	is.EqualValues(21, atomic.LoadInt64(&counter5))
 
 	// trigger error
 	subscriber1.Error(assert.AnError)
 	subscriber2.Error(assert.AnError)
 	subscriber3.Error(assert.AnError)
 	subscriber4.Error(assert.AnError)
+	subscriber5.Error(assert.AnError)
 	is.EqualValues(22, atomic.LoadInt64(&counter1))
 	is.EqualValues(22, atomic.LoadInt64(&counter2))
 	is.EqualValues(22, atomic.LoadInt64(&counter3))
 	is.EqualValues(22, atomic.LoadInt64(&counter4))
+	is.EqualValues(22, atomic.LoadInt64(&counter5))
 
 	// send a new message
 	subscriber1.Next(21)
 	subscriber2.Next(21)
 	subscriber3.Next(21)
 	subscriber4.Next(21)
+	subscriber5.Next(21)
 	is.EqualValues(22, atomic.LoadInt64(&counter1))
 	is.EqualValues(22, atomic.LoadInt64(&counter2))
 	is.EqualValues(22, atomic.LoadInt64(&counter3))
 	is.EqualValues(22, atomic.LoadInt64(&counter4))
+	is.EqualValues(22, atomic.LoadInt64(&counter5))
 }
 
 func TestSubscriberComplete(t *testing.T) {
@@ -306,6 +368,7 @@ func TestSubscriberComplete(t *testing.T) {
 	var counter2 int64
 	var counter3 int64
 	var counter4 int64
+	var counter5 int64
 
 	observer1 := NewObserver(
 		func(value int) { atomic.AddInt64(&counter1, int64(value)) },
@@ -327,45 +390,58 @@ func TestSubscriberComplete(t *testing.T) {
 		func(err error) {},
 		func() { atomic.AddInt64(&counter4, 1) },
 	)
+	observer5 := NewObserver(
+		func(value int) { atomic.AddInt64(&counter5, int64(value)) },
+		func(err error) {},
+		func() { atomic.AddInt64(&counter5, 1) },
+	)
 
 	subscriber1, ok1 := NewSubscriber(observer1).(*subscriberImpl[int])
 	subscriber2, ok2 := NewSafeSubscriber(observer2).(*subscriberImpl[int])
 	subscriber3, ok3 := NewUnsafeSubscriber(observer3).(*subscriberImpl[int])
 	subscriber4, ok4 := NewEventuallySafeSubscriber(observer4).(*subscriberImpl[int])
+	subscriber5, ok5 := NewSingleProducerSubscriber(observer5).(*subscriberImpl[int])
 
 	is.True(ok1)
 	is.True(ok2)
 	is.True(ok3)
 	is.True(ok4)
+	is.True(ok5)
 
 	subscriber1.Next(21)
 	subscriber2.Next(21)
 	subscriber3.Next(21)
 	subscriber4.Next(21)
+	subscriber5.Next(21)
 	is.EqualValues(21, atomic.LoadInt64(&counter1))
 	is.EqualValues(21, atomic.LoadInt64(&counter2))
 	is.EqualValues(21, atomic.LoadInt64(&counter3))
 	is.EqualValues(21, atomic.LoadInt64(&counter4))
+	is.EqualValues(21, atomic.LoadInt64(&counter5))
 
 	// trigger complete
 	subscriber1.Complete()
 	subscriber2.Complete()
 	subscriber3.Complete()
 	subscriber4.Complete()
+	subscriber5.Complete()
 	is.EqualValues(22, atomic.LoadInt64(&counter1))
 	is.EqualValues(22, atomic.LoadInt64(&counter2))
 	is.EqualValues(22, atomic.LoadInt64(&counter3))
 	is.EqualValues(22, atomic.LoadInt64(&counter4))
+	is.EqualValues(22, atomic.LoadInt64(&counter5))
 
 	// send a new message
 	subscriber1.Next(21)
 	subscriber2.Next(21)
 	subscriber3.Next(21)
 	subscriber4.Next(21)
+	subscriber5.Next(21)
 	is.EqualValues(22, atomic.LoadInt64(&counter1))
 	is.EqualValues(22, atomic.LoadInt64(&counter2))
 	is.EqualValues(22, atomic.LoadInt64(&counter3))
 	is.EqualValues(22, atomic.LoadInt64(&counter4))
+	is.EqualValues(22, atomic.LoadInt64(&counter5))
 }
 
 func TestSubscriberWithContext(t *testing.T) {
@@ -437,6 +513,137 @@ func TestSubscriberWithContext(t *testing.T) {
 	// Test ErrorWithContext
 	subscriber2.ErrorWithContext(ctx, assert.AnError)
 	is.Equal(assert.AnError, receivedError)
+}
+
+// it uses a helper to serialize overrides but intentionally does not call
+// t.Parallel() to avoid races on the global variable.
+//
+//nolint:paralleltest // this test mutates the global `OnDroppedNotification` hook;
+func TestLocklessDroppedNotification(t *testing.T) {
+	// Do NOT run this test in parallel. It mutates the global
+	// `OnDroppedNotification` hook which may race with other tests
+	// that read or call the hook. Keep the existing defer that
+	// restores the previous handler so the hook is reset for later
+	// tests.
+	is := assert.New(t)
+
+	// Capture dropped notifications using the helper which serializes
+	// overrides of the global `OnDroppedNotification` hook and restores it
+	// after the inner function returns.
+	var seen string
+	WithDroppedNotification(t, func(ctx context.Context, notification fmt.Stringer) {
+		seen = notification.String()
+	}, func() {
+		observer := NewObserver(
+			func(value int) {},
+			func(err error) {},
+			func() {},
+		)
+
+		subscriber, ok := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+		is.True(ok)
+
+		// Mark as completed so further Next() should be dropped
+		subscriber.Complete()
+
+		subscriber.Next(42)
+
+		is.NotEmpty(seen)
+		is.Contains(seen, "Next(42)")
+	})
+}
+
+// Stress test for the single-producer fast path. This exercises the lockless
+// code path under a tight sequential loop to ensure correctness and to make it
+// easy to run under the race detector in CI.
+func TestSingleProducerStress(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	var counter int64
+	observer := NewObserver(
+		func(value int) { atomic.AddInt64(&counter, int64(value)) },
+		func(err error) {},
+		func() {},
+	)
+
+	subscriber, ok := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+	is.True(ok)
+
+	const iterations = 100000
+	for i := 0; i < iterations; i++ {
+		subscriber.Next(1)
+	}
+
+	is.Equal(int64(iterations), atomic.LoadInt64(&counter))
+}
+
+// TestSingleProducerContextCancellation ensures the single-producer (lockless)
+// fast path forwards the provided context to the destination observer and that
+// a cancelled context is visible to the observer callback.
+func TestSingleProducerContextCancellation(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	var sawCanceled bool
+
+	observer := NewObserverWithContext(
+		func(ctx context.Context, value int) {
+			if ctx.Err() == context.Canceled {
+				sawCanceled = true
+			}
+		},
+		func(ctx context.Context, err error) {},
+		func(ctx context.Context) {},
+	)
+
+	subscriber, ok := NewSingleProducerSubscriber(observer).(*subscriberImpl[int])
+	is.True(ok)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	subscriber.NextWithContext(ctx, 42)
+
+	is.True(sawCanceled)
+}
+
+// Concurrent stress test for the safe subscriber. Spawns multiple goroutines
+// concurrently calling Next and validates the final accumulated value.
+func TestSafeSubscriberConcurrentStress(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	var counter int64
+	observer := NewObserver(
+		func(value int) { atomic.AddInt64(&counter, int64(value)) },
+		func(err error) {},
+		func() {},
+	)
+
+	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
+	is.True(ok)
+
+	const goroutines = 8
+	const per = 10000
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	for g := 0; g < goroutines; g++ {
+		go func() {
+			for i := 0; i < per; i++ {
+				subscriber.Next(1)
+			}
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	expected := int64(goroutines * per)
+	is.Equal(expected, atomic.LoadInt64(&counter))
 }
 
 func TestSubscriberIsClosed(t *testing.T) {
