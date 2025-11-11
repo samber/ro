@@ -489,9 +489,9 @@ func precisionRound(mode precisionRoundMode, places int) func(Observable[float64
 	var roundWithSmallFactor func(float64) float64
 
 	if places > 0 {
-		roundWithBigFactor = makeRoundWithBigFactor(mode, places, factor)
+		roundWithBigFactor = makeRoundWithFactor(mode, places, factor)
 	} else if places < 0 {
-		roundWithSmallFactor = makeRoundWithSmallFactor(mode, places, factor)
+		roundWithSmallFactor = makeRoundWithFactor(mode, places, factor)
 	}
 
 	return func(source Observable[float64]) Observable[float64] {
@@ -654,7 +654,7 @@ func roundWithLargeNegativePrecision(mode precisionRoundMode, magnitude, origina
 	}
 }
 
-func makeRoundWithBigFactor(mode precisionRoundMode, places int, factor float64) func(float64) float64 {
+func makeRoundWithFactor(mode precisionRoundMode, places int, factor float64) func(float64) float64 {
 	bigFactor := new(big.Float).SetPrec(256).SetFloat64(factor)
 	return func(value float64) float64 {
 		if math.IsNaN(value) || math.IsInf(value, 0) {
@@ -666,32 +666,6 @@ func makeRoundWithBigFactor(mode precisionRoundMode, places int, factor float64)
 
 		rounded := mode.bigRound(scaled)
 		rounded.Quo(rounded, bigFactor)
-
-		result, _ := rounded.Float64()
-		if math.IsInf(result, 0) || math.IsNaN(result) {
-			if inf, ok := mode.fallbackInfinity(places, value); ok {
-				return inf
-			}
-
-			return mode.round(value)
-		}
-
-		return result
-	}
-}
-
-func makeRoundWithSmallFactor(mode precisionRoundMode, places int, factor float64) func(float64) float64 {
-	smallFactor := new(big.Float).SetPrec(256).SetFloat64(factor)
-	return func(value float64) float64 {
-		if math.IsNaN(value) || math.IsInf(value, 0) {
-			return mode.round(value)
-		}
-
-		scaled := new(big.Float).SetPrec(256).SetFloat64(value)
-		scaled.Mul(scaled, smallFactor)
-
-		rounded := mode.bigRound(scaled)
-		rounded.Quo(rounded, smallFactor)
 
 		result, _ := rounded.Float64()
 		if math.IsInf(result, 0) || math.IsNaN(result) {
