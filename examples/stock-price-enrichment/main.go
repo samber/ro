@@ -24,7 +24,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/samber/ro"
-	roio "github.com/samber/ro/plugins/io"
+	rostdio "github.com/samber/ro/plugins/stdio"
 	rowebsocketclient "github.com/samber/ro/plugins/websocket/client"
 )
 
@@ -154,7 +154,7 @@ func main() {
 
 	downstream := downstreamPipeline(wsSubject.AsObservable())
 	upstream := ro.Pipe1(
-		roio.NewPrompt("Subscribe to a stock symbol: "),
+		rostdio.NewPrompt("Subscribe to a stock symbol: "),
 		ro.Map(func(value []byte) Subscription {
 			return Subscription{
 				Type:   "subscribe",

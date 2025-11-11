@@ -145,9 +145,8 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - `Clamp` - Clamp values within bounds
 - `Abs` - Emit absolute values
 - `Round` - Round float values
-- `Floor` - Emit floor of values
-- `FloorWithPrecision` - Floor values while keeping specified decimal precision
-- `Ceil` - Emit ceiling of values
+- `Floor` / `FloorWithPrecision` - Emit floor of values (optionally with precision)
+- `Ceil` / `CeilWithPrecision` - Emit ceiling of values (optionally with precision)
 - `Trunc` - Emit truncated values
 - `Reduce` - Reduce to single value with accumulator
 

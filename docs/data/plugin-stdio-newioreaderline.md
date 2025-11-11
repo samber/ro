@@ -1,9 +1,9 @@
 ---
 name: NewIOReaderLine
 slug: newioreaderline
-sourceRef: plugins/io/source.go#L54
+sourceRef: plugins/stdio/source.go#L54
 type: plugin
-category: io
+category: stdio
 signatures:
   - "func NewIOReaderLine(reader io.Reader)"
 playUrl: https://go.dev/play/p/m9xsZX9z-dP
@@ -22,11 +22,11 @@ import (
     "strings"
 
     "github.com/samber/ro"
-    roio "github.com/samber/ro/plugins/io"
+    rostdio "github.com/samber/ro/plugins/stdio"
 )
 
 data := strings.NewReader("line1\nline2\nline3")
-obs := roio.NewIOReaderLine(data)
+obs := rostdio.NewIOReaderLine(data)
 
 sub := obs.Subscribe(ro.PrintObserver[[]byte]())
 defer sub.Unsubscribe()

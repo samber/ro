@@ -17,10 +17,27 @@ package ro
 import (
 	"context"
 	"math"
+	"math/big"
 
 	"github.com/samber/lo"
 	"github.com/samber/ro/internal/constraints"
 )
+
+// maxPow10Chunk is the largest decimal exponent n for which 10^n fits in a
+// float64 (IEEE-754). math.Pow10(308) == 1e308 is finite; math.Pow10(309)
+// overflows to +Inf. The code uses math.Pow10(step) and then converts that
+// finite float64 into a big.Float when constructing chunk factors. Keeping
+// the step ≤ 308 prevents creating +Inf/NaN from math.Pow10 before moving to
+// big.Float arithmetic.
+const maxPow10Chunk = 308
+
+// maxPow10ChunkCount caps the number of 308-digit chunks we are willing to
+// process when emulating arbitrary-precision ceil operations. 32 chunks
+// (32 * 308 ≈ 9856 decimal digits) keep allocations bounded while still
+// covering far more precision than realistic callers require. If the required
+// chunk count exceeds this value the implementation falls back to a safe
+// no-op or infinite-precision handler to avoid runaway allocations.
+const maxPow10ChunkCount = 32
 
 // Average calculates the average of the values emitted by the source Observable.
 // It emits the average when the source completes. If the source is empty, it emits NaN.
@@ -342,6 +359,359 @@ func Ceil() func(Observable[float64]) Observable[float64] {
 
 			return sub.Unsubscribe
 		})
+	}
+}
+
+// CeilWithPrecision emits the ceiling of the values emitted by the source Observable.
+// It uses the provided decimal precision. Positive precisions apply the ceiling to the
+// specified number of digits to the right of the decimal point, while negative
+// precisions round to powers of ten.
+func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64] {
+	if places < 0 {
+		if places == math.MinInt {
+			return ceilWithInfiniteNegativePrecision()
+		}
+
+		negPlaces := -places
+		if negPlaces < 0 {
+			return ceilWithInfiniteNegativePrecision()
+		}
+
+		if negPlaces > maxPow10Chunk {
+			return ceilWithLargeNegativePrecision(negPlaces)
+		}
+	}
+
+	if places > maxPow10Chunk {
+		return ceilWithLargePositivePrecision(places)
+	}
+
+	factor := math.Pow10(places)
+
+	if factor == 0 {
+		return Ceil()
+	}
+
+	if places > 0 && math.IsInf(factor, 0) {
+		return ceilWithLargePositivePrecision(places)
+	}
+
+	inverseFactor := 1 / factor
+	if math.IsInf(inverseFactor, 0) {
+		if places < 0 {
+			negPlaces := -places
+			if negPlaces < 0 {
+				return ceilWithInfiniteNegativePrecision()
+			}
+
+			return ceilWithLargeNegativePrecision(negPlaces)
+		}
+
+		return Ceil()
+	}
+
+	var ceilWithBigFactor func(float64) float64
+	var ceilWithSmallFactor func(float64) float64
+
+	if places > 0 {
+		ceilWithBigFactor = makeCeilWithBigFactor(factor)
+	} else if places < 0 {
+		ceilWithSmallFactor = makeCeilWithSmallFactor(factor)
+	}
+
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					makeCeilNext(destination, places, factor, inverseFactor, ceilWithBigFactor, ceilWithSmallFactor),
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+func ceilWithInfiniteNegativePrecision() func(Observable[float64]) Observable[float64] {
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, math.Ceil(value))
+							return
+						}
+
+						if value > 0 {
+							destination.NextWithContext(ctx, math.Inf(1))
+							return
+						}
+
+						destination.NextWithContext(ctx, 0)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observable[float64] {
+	if places >= math.MaxInt-(maxPow10Chunk-1) {
+		return func(source Observable[float64]) Observable[float64] {
+			return source
+		}
+	}
+
+	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
+	if chunkCount > maxPow10ChunkCount {
+		return func(source Observable[float64]) Observable[float64] {
+			return source
+		}
+	}
+	chunkFactors := make([]*big.Float, 0, chunkCount)
+
+	for remaining := places; remaining > 0; {
+		step := remaining
+		if step > maxPow10Chunk {
+			step = maxPow10Chunk
+		}
+
+		factor := math.Pow10(step)
+		chunkFactors = append(chunkFactors, new(big.Float).SetPrec(256).SetFloat64(factor))
+		remaining -= step
+	}
+
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, math.Ceil(value))
+							return
+						}
+
+						scaled := new(big.Float).SetPrec(256).SetFloat64(value)
+						for _, factor := range chunkFactors {
+							scaled.Mul(scaled, factor)
+						}
+
+						ceiled := ceilBigFloat(scaled)
+
+						for i := len(chunkFactors) - 1; i >= 0; i-- {
+							ceiled.Quo(ceiled, chunkFactors[i])
+						}
+
+						result, _ := ceiled.Float64()
+						if math.IsInf(result, 0) || math.IsNaN(result) {
+							destination.NextWithContext(ctx, math.Ceil(value))
+							return
+						}
+
+						destination.NextWithContext(ctx, result)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+func ceilWithLargeNegativePrecision(places int) func(Observable[float64]) Observable[float64] {
+	if places >= math.MaxInt-(maxPow10Chunk-1) {
+		return ceilWithInfiniteNegativePrecision()
+	}
+
+	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
+	if chunkCount > maxPow10ChunkCount {
+		return ceilWithInfiniteNegativePrecision()
+	}
+	chunkFactors := make([]*big.Float, 0, chunkCount)
+
+	for remaining := places; remaining > 0; {
+		step := remaining
+		if step > maxPow10Chunk {
+			step = maxPow10Chunk
+		}
+
+		factor := math.Pow10(step)
+		chunkFactors = append(chunkFactors, new(big.Float).SetPrec(256).SetFloat64(factor))
+		remaining -= step
+	}
+
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, math.Ceil(value))
+							return
+						}
+
+						scaled := new(big.Float).SetPrec(256).SetFloat64(value)
+						for _, factor := range chunkFactors {
+							scaled.Quo(scaled, factor)
+						}
+
+						ceiled := ceilBigFloat(scaled)
+
+						for i := len(chunkFactors) - 1; i >= 0; i-- {
+							ceiled.Mul(ceiled, chunkFactors[i])
+						}
+
+						result, _ := ceiled.Float64()
+						destination.NextWithContext(ctx, result)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+func ceilBigFloat(x *big.Float) *big.Float {
+	prec := x.Prec()
+
+	integer := new(big.Int)
+	x.Int(integer)
+
+	result := new(big.Float).SetPrec(prec).SetInt(integer)
+
+	if x.Sign() > 0 {
+		fractional := new(big.Float).SetPrec(prec)
+		fractional.Sub(x, result)
+		if fractional.Sign() > 0 {
+			integer.Add(integer, big.NewInt(1))
+			result.SetInt(integer)
+		}
+	}
+
+	return result
+}
+
+// helper: create a ceiler that uses a big.Float factor (used for positive places)
+func makeCeilWithBigFactor(factor float64) func(float64) float64 {
+	bigFactor := new(big.Float).SetPrec(256).SetFloat64(factor)
+	return func(value float64) float64 {
+		if math.IsNaN(value) || math.IsInf(value, 0) {
+			return math.Ceil(value)
+		}
+
+		scaled := new(big.Float).SetPrec(256).SetFloat64(value)
+		scaled.Mul(scaled, bigFactor)
+
+		ceiled := ceilBigFloat(scaled)
+		ceiled.Quo(ceiled, bigFactor)
+
+		result, _ := ceiled.Float64()
+		if math.IsInf(result, 0) || math.IsNaN(result) {
+			return math.Ceil(value)
+		}
+
+		return result
+	}
+}
+
+// helper: create a ceiler that uses a big.Float factor (used for negative places)
+func makeCeilWithSmallFactor(factor float64) func(float64) float64 {
+	smallFactor := new(big.Float).SetPrec(256).SetFloat64(factor)
+	return func(value float64) float64 {
+		if math.IsNaN(value) || math.IsInf(value, 0) {
+			return math.Ceil(value)
+		}
+
+		scaled := new(big.Float).SetPrec(256).SetFloat64(value)
+		scaled.Mul(scaled, smallFactor)
+
+		ceiled := ceilBigFloat(scaled)
+		ceiled.Quo(ceiled, smallFactor)
+
+		result, _ := ceiled.Float64()
+		if math.IsInf(result, 0) || math.IsNaN(result) {
+			if value > 0 {
+				return math.Inf(1)
+			}
+
+			return math.Ceil(value)
+		}
+
+		return result
+	}
+}
+
+// makeCeilNext returns a Next handler implementing CeilWithPrecision's core
+// logic. Extracting it here reduces cyclomatic complexity of
+// CeilWithPrecision while preserving behavior.
+func makeCeilNext(destination Observer[float64], places int, factor, inverseFactor float64, ceilWithBigFactor, ceilWithSmallFactor func(float64) float64) func(ctx context.Context, value float64) {
+	return func(ctx context.Context, value float64) {
+		scaled := value * factor
+		if math.IsInf(scaled, 0) {
+			handleInfScaled(ctx, destination, value, ceilWithBigFactor)
+			return
+		}
+
+		if places < 0 && scaled == 0 && value > 0 && !math.IsNaN(value) && !math.IsInf(value, 0) {
+			handleUnderflow(ctx, destination, value, ceilWithSmallFactor)
+			return
+		}
+
+		ceiled := math.Ceil(scaled)
+		result := ceiled * inverseFactor
+		if math.IsInf(result, 0) || math.IsNaN(result) {
+			handleResultInfOrNaN(ctx, destination, places, value, ceilWithSmallFactor, ceilWithBigFactor)
+			return
+		}
+
+		destination.NextWithContext(ctx, result)
+	}
+}
+
+func handleInfScaled(ctx context.Context, destination Observer[float64], value float64, ceilWithBigFactor func(float64) float64) {
+	if ceilWithBigFactor != nil {
+		destination.NextWithContext(ctx, ceilWithBigFactor(value))
+	} else {
+		destination.NextWithContext(ctx, math.Ceil(value))
+	}
+}
+
+func handleUnderflow(ctx context.Context, destination Observer[float64], value float64, ceilWithSmallFactor func(float64) float64) {
+	if ceilWithSmallFactor != nil {
+		destination.NextWithContext(ctx, ceilWithSmallFactor(value))
+	} else {
+		destination.NextWithContext(ctx, math.Ceil(value))
+	}
+}
+
+func handleResultInfOrNaN(ctx context.Context, destination Observer[float64], places int, value float64, ceilWithSmallFactor, ceilWithBigFactor func(float64) float64) {
+	switch {
+	case places < 0 && !math.IsNaN(value) && !math.IsInf(value, 0) && value > 0:
+		if ceilWithSmallFactor != nil {
+			destination.NextWithContext(ctx, ceilWithSmallFactor(value))
+		} else {
+			destination.NextWithContext(ctx, math.Inf(1))
+		}
+	case ceilWithBigFactor != nil:
+		destination.NextWithContext(ctx, ceilWithBigFactor(value))
+	default:
+		destination.NextWithContext(ctx, math.Ceil(value))
 	}
 }
 

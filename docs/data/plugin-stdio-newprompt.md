@@ -1,9 +1,9 @@
 ---
 name: NewPrompt
 slug: newprompt
-sourceRef: plugins/io/source.go#L95
+sourceRef: plugins/stdio/source.go#L95
 type: plugin
-category: io
+category: stdio
 signatures:
   - "func NewPrompt(prompt string)"
 playUrl: ""
@@ -20,10 +20,10 @@ Creates an observable that prompts the user for input.
 ```go
 import (
     "github.com/samber/ro"
-    roio "github.com/samber/ro/plugins/io"
+    rostdio "github.com/samber/ro/plugins/stdio"
 )
 
-obs := roio.NewPrompt("Enter your name: ")
+obs := rostdio.NewPrompt("Enter your name: ")
 
 sub := obs.Subscribe(ro.NewObserver(
     func(input []byte) {

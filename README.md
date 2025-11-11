@@ -43,7 +43,7 @@ Reactive Programming is focused on handling asynchronous data streams where valu
 
 ```go
 observable := ro.Pipe(
-    ro.RangeWithInterval(0, 10, 1*time.Second),
+    ro.RangeWithInterval(0, 5, 1*time.Second),
     ro.Filter(func(x int) bool {
         return x%2 == 0
     }),
@@ -53,16 +53,22 @@ observable := ro.Pipe(
 )
 
 // Start consuming on subscription
-observable.Subscribe(ro.OnNext(func(s string) {
-    fmt.Println(s)
-}))
-
+observable.Subscribe(ro.NewObserver(
+    func(s string) { fmt.Println(s) },
+    func(err error) { fmt.Println(err.Error()) },
+    func() { fmt.Println("Completed!") }
+))
 // Output:
 //   "even-0"
 //   "even-2"
 //   "even-4"
-//   "even-6"
-//   "even-8"
+//   "Completed!"
+
+// or:
+
+values, err := ro.Collect(observable)
+// []string{"even-0", "even-2", "even-4"}
+// <nil>
 ```
 
 Now you discovered the paradigm, follow the documentation and turn reactive: [🚀 Getting started](https://ro.samber.dev/docs/getting-started)
@@ -187,6 +193,6 @@ Give a ⭐️ if this project helped you!
 
 Copyright © 2025 [Samuel Berthe](https://github.com/samber).
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
 
 **Note**: The `ee/` directory contains the Enterprise Edition of the library, which is subject to a custom license. Please refer to the [ee/LICENSE.md](ee/LICENSE.md) file for the specific terms and conditions applicable to the Enterprise Edition.
