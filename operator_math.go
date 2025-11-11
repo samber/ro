@@ -654,6 +654,16 @@ func roundWithLargeNegativePrecision(mode precisionRoundMode, magnitude, origina
 	}
 }
 
+// makeRoundWithFactor returns a function that performs precision-aware
+// rounding using arbitrary-precision arithmetic. The returned function:
+//   - scales the input by `factor` using a high-precision big.Float,
+//   - applies the mode.bigRound (ceil/floor) to the scaled value,
+//   - unscales the result back to float64 and applies fallback handling
+//     for Inf/NaN outcomes.
+//
+// This helper is used when straightforward float64 scaling would overflow or
+// lose precision; centralizing the logic avoids duplication between the
+// big/small-factor cases.
 func makeRoundWithFactor(mode precisionRoundMode, places int, factor float64) func(float64) float64 {
 	bigFactor := new(big.Float).SetPrec(256).SetFloat64(factor)
 	return func(value float64) float64 {
