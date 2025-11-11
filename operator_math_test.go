@@ -271,6 +271,23 @@ func TestOperatorMathFloorWithPrecision(t *testing.T) {
 	is.Equal(0.0, values[2])
 }
 
+func TestOperatorMathFloorWithPrecisionZeroEqualsFloor(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	valuesFloor, err := Collect(
+		Floor()(Just(1.9, -1.9, 2.0, -2.0)),
+	)
+	is.NoError(err)
+
+	valuesWithPrecisionZero, err := Collect(
+		FloorWithPrecision(0)(Just(1.9, -1.9, 2.0, -2.0)),
+	)
+	is.NoError(err)
+
+	is.Equal(valuesFloor, valuesWithPrecisionZero)
+}
+
 func TestOperatorMathFloorWithPrecisionLargeChunkFallback(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)

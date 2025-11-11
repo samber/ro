@@ -291,10 +291,20 @@ func Floor() func(Observable[float64]) Observable[float64] {
 	}
 }
 
-// FloorWithPrecision emits the floored values with decimal precision applied before flooring.
-// It supports both large positive and negative precisions, mirroring CeilWithPrecision semantics.
-func FloorWithPrecision(precision int) func(Observable[float64]) Observable[float64] {
-	return precisionRound(floorPrecisionRoundMode(), precision)
+// FloorWithPrecision emits the floored values with decimal precision applied before
+// flooring. The `places` parameter controls the decimal precision:
+//   - positive `places` applies flooring to that many digits to the right of the
+//     decimal point (e.g. places=2 turns 1.234 -> 1.23),
+//   - zero behaves like `Floor()` (floor to integer),
+//   - negative `places` floors to powers of ten (e.g. places=-1 turns 123.45 -> 120).
+//
+// For very large precision magnitudes the operator uses chunked big.Float
+// arithmetic to avoid overflow. If the requested precision exceeds internal
+// chunking caps the implementation will intentionally return the original
+// source observable (no-op) to avoid unbounded allocations; callers should
+// avoid extremely large `places` values for performance reasons.
+func FloorWithPrecision(places int) func(Observable[float64]) Observable[float64] {
+	return precisionRound(floorPrecisionRoundMode(), places)
 }
 
 // Ceil emits the ceiling of the values emitted by the source Observable.
@@ -502,6 +512,9 @@ func precisionRound(mode precisionRoundMode, places int) func(Observable[float64
 
 func roundWithLargePositivePrecision(mode precisionRoundMode, places int) func(Observable[float64]) Observable[float64] {
 	if places >= math.MaxInt-(maxPow10Chunk-1) {
+		// No-op: requested precision is so large that computing chunk factors
+		// would overflow integer arithmetic. Return the original source to
+		// avoid unbounded allocations or undefined behavior.
 		return func(source Observable[float64]) Observable[float64] {
 			return source
 		}
@@ -509,6 +522,9 @@ func roundWithLargePositivePrecision(mode precisionRoundMode, places int) func(O
 
 	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
 	if chunkCount > maxPow10ChunkCount {
+		// No-op: the requested precision requires more chunks than the
+		// configured cap (maxPow10ChunkCount). Returning the original source
+		// avoids creating huge allocations for impractically large precisions.
 		return func(source Observable[float64]) Observable[float64] {
 			return source
 		}
