@@ -571,7 +571,7 @@ func roundWithLargePositivePrecision(mode precisionRoundMode, places int) func(O
 	}
 }
 
-func roundWithLargeNegativePrecision(mode precisionRoundMode, magnitude int, originalPlaces int) func(Observable[float64]) Observable[float64] {
+func roundWithLargeNegativePrecision(mode precisionRoundMode, magnitude, originalPlaces int) func(Observable[float64]) Observable[float64] {
 	if magnitude >= math.MaxInt-(maxPow10Chunk-1) {
 		return mode.infiniteNegativePrecision()
 	}
@@ -716,7 +716,7 @@ func makePrecisionRoundNext(destination Observer[float64], mode precisionRoundMo
 	}
 }
 
-func handleInfScaled(ctx context.Context, destination Observer[float64], value float64, roundWithBigFactor func(float64) float64, baseRound func(float64) float64) {
+func handleInfScaled(ctx context.Context, destination Observer[float64], value float64, roundWithBigFactor, baseRound func(float64) float64) {
 	if roundWithBigFactor != nil {
 		destination.NextWithContext(ctx, roundWithBigFactor(value))
 	} else {
@@ -724,7 +724,7 @@ func handleInfScaled(ctx context.Context, destination Observer[float64], value f
 	}
 }
 
-func handleUnderflow(ctx context.Context, destination Observer[float64], value float64, roundWithSmallFactor func(float64) float64, baseRound func(float64) float64) {
+func handleUnderflow(ctx context.Context, destination Observer[float64], value float64, roundWithSmallFactor, baseRound func(float64) float64) {
 	if roundWithSmallFactor != nil {
 		destination.NextWithContext(ctx, roundWithSmallFactor(value))
 	} else {
