@@ -200,6 +200,50 @@ ro.Just(1, 2, 3, 4).Subscribe(observer)
 // Recovered error: something went wrong!
 ```
 
+### Opting Out for Maximum Throughput
+
+:::warning Performance vs. Safety
+
+Disabling panic capture removes the recovery overhead but will let panics crash your stream. Only opt out in trusted, performance-critical pipelines.
+
+:::
+
+If you are building high-throughput pipelines, you can opt-out per-subscription. The library provides a small helper to disable panic capture on the subscription context. Use it when you want to measure pure hot-path throughput or when you intentionally accept panics to propagate.
+
+```go
+// Create a context that disables observer panic capture for the subscription.
+ctx := ro.WithObserverPanicCaptureDisabled(context.Background())
+
+sum := int64(0)
+pipeline := ro.Pipe2(
+    ro.Range(0, 1_000_000),
+    ro.Map(func(v int64) int64 { return v + 1 }),
+    ro.Filter(func(v int64) bool { return v%2 == 0 }),
+)
+
+// SubscribeWithContext will pass the context to the subscription and
+// downstream notifications — the opt-out avoids per-callback recover wrappers.
+pipeline.SubscribeWithContext(ctx, ro.NewObserver(
+    func(v int64) { sum += v },
+    func(err error) { panic(err) },
+    func() {},
+))
+```
+
+### Panic capture
+
+Observers capture panics by default. If you need panics to propagate (for
+benchmarking or performance-sensitive workloads), either construct an unsafe
+observer with `NewObserverUnsafe` / `NewObserverWithContextUnsafe`, or
+disable capture for a specific subscription by passing a context derived
+with `WithObserverPanicCaptureDisabled(ctx)` to `SubscribeWithContext`:
+
+```go
+// Disable capture only for this subscription
+ctx := ro.WithObserverPanicCaptureDisabled(context.Background())
+pipeline.SubscribeWithContext(ctx, observer)
+```
+
 ### State After Error
 
 Once an Observer receives an error, it rejects further notifications:

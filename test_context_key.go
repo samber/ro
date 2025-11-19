@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package rozap
+package ro
 
-import (
-	"testing"
-)
+// ctxKey is an unexported type used for context keys in tests to avoid
+// using a basic type (like string) directly as a context key which
+// triggers linters such as revive's context-keys-type rule.
+type ctxKey string
 
-func Test(t *testing.T) {
-	// @TODO: implement
-}
+// testCtxKey is the key used by tests that need to attach a value to a
+// context and later retrieve it. Keep it unexported and typed.
+const testCtxKey ctxKey = "test"

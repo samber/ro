@@ -24,6 +24,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Observers capture panics by default. Tests that need panics to propagate
+// should either use the unsafe observer constructors (e.g. NewObserverUnsafe)
+// or opt-out per-subscription via `WithObserverPanicCaptureDisabled(ctx)`.
+
 func TestObserverInternalOk(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
@@ -708,6 +712,46 @@ func TestObserverPanicHandling(t *testing.T) {
 	// After panic in Complete, the observer should still be closed
 	is.True(observer3.IsClosed())
 	is.True(observer3.IsCompleted())
+}
+
+func TestObserverDisablePanicCapture(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Use the unsafe constructor so panics propagate.
+	observer := NewUnsafeObserver(
+		func(value int) { panic("test panic") },
+		func(err error) {},
+		func() {},
+	)
+
+	is.PanicsWithValue("test panic", func() {
+		observer.Next(42)
+	})
+}
+
+func TestObserverDisablePanicCaptureInUnsafePipeline(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+	// Opt-out on the subscription context so panics from operators propagate.
+	observable := Pipe1(
+		Just(1),
+		Map(func(value int) int {
+			if value == 1 {
+				panic("map panic")
+			}
+
+			return value
+		}),
+	)
+
+	is.PanicsWithValue("map panic", func() {
+		observable.SubscribeWithContext(WithObserverPanicCaptureDisabled(context.Background()), NewObserver(
+			func(value int) {},
+			func(err error) { t.Fatalf("unexpected error: %v", err) },
+			func() {},
+		))
+	})
 }
 
 func TestObserverMixedOperations(t *testing.T) {

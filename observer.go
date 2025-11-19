@@ -22,6 +22,34 @@ import (
 	"github.com/samber/lo"
 )
 
+// Context key used to opt-out of observer panic capture for a specific
+// subscription. Use the helper WithObserverPanicCaptureDisabled to set this
+// value on a subscription's context. The key type is unexported to avoid
+// collisions with user-defined context keys.
+type observerPanicCaptureDisabledKeyType struct{}
+
+var observerPanicCaptureDisabledKey observerPanicCaptureDisabledKeyType
+
+// WithObserverPanicCaptureDisabled returns a derived context that disables
+// wrapping observer callbacks with panic-capture for the subscription that
+// uses this context. This is intended for benchmarking or performance-\
+// sensitive pipelines; by default the library keeps panic-capture enabled.
+func WithObserverPanicCaptureDisabled(ctx context.Context) context.Context {
+	return context.WithValue(ctx, observerPanicCaptureDisabledKey, true)
+}
+
+func isObserverPanicCaptureDisabled(ctx context.Context) bool {
+	v := ctx.Value(observerPanicCaptureDisabledKey)
+	b, ok := v.(bool)
+	return ok && b
+}
+
+// Observers capture panics by default. If you need panics to propagate (for
+// benchmarking or ultra-low-latency pipelines), either construct an unsafe
+// observer with `NewObserverUnsafe` / `NewObserverWithContextUnsafe`, or
+// disable capture for a specific subscription by passing a context derived
+// with `WithObserverPanicCaptureDisabled(ctx)` to `SubscribeWithContext`.
+
 // Observer is the consumer of an Observable. It receives notifications: Next,
 // Error, and Complete. Observers are safe for concurrent calls to Next,
 // Error, and Complete. It is the responsibility of the Observer to ensure
@@ -66,7 +94,8 @@ var _ Observer[int] = (*observerImpl[int])(nil)
 // is provided.
 func NewObserver[T any](onNext func(value T), onError func(err error), onComplete func()) Observer[T] {
 	return &observerImpl[T]{
-		status: 0,
+		status:        0,
+		capturePanics: true,
 		onNext: func(ctx context.Context, value T) {
 			onNext(value)
 		},
@@ -83,10 +112,43 @@ func NewObserver[T any](onNext func(value T), onError func(err error), onComplet
 // is provided to each callback.
 func NewObserverWithContext[T any](onNext func(ctx context.Context, value T), onError func(ctx context.Context, err error), onComplete func(ctx context.Context)) Observer[T] {
 	return &observerImpl[T]{
-		status:     0,
-		onNext:     onNext,
-		onError:    onError,
-		onComplete: onComplete,
+		status:        0,
+		capturePanics: true,
+		onNext:        onNext,
+		onError:       onError,
+		onComplete:    onComplete,
+	}
+}
+
+// NewUnsafeObserver creates a new Observer that does NOT wrap callbacks with
+// panic-recovery. Use this only in performance-sensitive paths where callers
+// guarantee no panics or want panics to propagate to the caller. This mirrors
+// the repository's "unsafe" naming for performance-optimized constructors.
+func NewUnsafeObserver[T any](onNext func(value T), onError func(err error), onComplete func()) Observer[T] {
+	return &observerImpl[T]{
+		status:        0,
+		capturePanics: false,
+		onNext: func(ctx context.Context, value T) {
+			onNext(value)
+		},
+		onError: func(ctx context.Context, err error) {
+			onError(err)
+		},
+		onComplete: func(ctx context.Context) {
+			onComplete()
+		},
+	}
+}
+
+// NewObserverWithContextUnsafe creates a new Observer that does NOT wrap
+// callbacks with panic-recovery and receives a context in callbacks.
+func NewObserverWithContextUnsafe[T any](onNext func(ctx context.Context, value T), onError func(ctx context.Context, err error), onComplete func(ctx context.Context)) Observer[T] {
+	return &observerImpl[T]{
+		status:        0,
+		capturePanics: false,
+		onNext:        onNext,
+		onError:       onError,
+		onComplete:    onComplete,
 	}
 }
 
@@ -94,10 +156,11 @@ type observerImpl[T any] struct {
 	// 0: active
 	// 1: errored
 	// 2: completed
-	status     int32
-	onNext     func(context.Context, T)
-	onError    func(context.Context, error) // @TODO: add a default onError that log the error ?
-	onComplete func(context.Context)
+	status        int32
+	capturePanics bool
+	onNext        func(context.Context, T)
+	onError       func(context.Context, error) // @TODO: add a default onError that log the error ?
+	onComplete    func(context.Context)
 }
 
 func (o *observerImpl[T]) Next(value T) {
@@ -140,6 +203,13 @@ func (o *observerImpl[T]) CompleteWithContext(ctx context.Context) {
 }
 
 func (o *observerImpl[T]) tryNext(ctx context.Context, value T) {
+	// Preserve existing behavior for callers that use this method directly.
+	// This method still checks the context-based opt-out on each call.
+	if !o.capturePanics || isObserverPanicCaptureDisabled(ctx) {
+		o.onNext(ctx, value)
+		return
+	}
+
 	lo.TryCatchWithErrorValue(
 		func() error {
 			o.onNext(ctx, value)
@@ -157,7 +227,62 @@ func (o *observerImpl[T]) tryNext(ctx context.Context, value T) {
 	)
 }
 
+// tryNextWithCapture is similar to tryNext but uses the provided `capture` flag
+// instead of consulting the subscription context. This allows callers that
+// already computed the effective panic-capture policy at subscription time to
+// avoid a context lookup on the hot path.
+func (o *observerImpl[T]) tryNextWithCapture(ctx context.Context, value T, capture bool) {
+	if !capture {
+		o.onNext(ctx, value)
+		return
+	}
+
+	lo.TryCatchWithErrorValue(
+		func() error {
+			o.onNext(ctx, value)
+			return nil
+		},
+		func(e any) {
+			err := newObserverError(recoverValueToError(e))
+
+			if o.onError == nil {
+				OnUnhandledError(ctx, err)
+			} else {
+				// Use tryErrorWithCapture to ensure consistent panic handling.
+				o.tryErrorWithCapture(ctx, err, capture)
+			}
+		},
+	)
+}
+
 func (o *observerImpl[T]) tryError(ctx context.Context, err error) {
+	if !o.capturePanics || isObserverPanicCaptureDisabled(ctx) {
+		o.onError(ctx, err)
+		return
+	}
+
+	lo.TryCatchWithErrorValue(
+		func() error {
+			o.onError(ctx, err)
+			return nil
+		},
+		func(e any) {
+			err := newObserverError(recoverValueToError(e))
+			OnUnhandledError(ctx, err)
+		},
+	)
+}
+
+// tryErrorWithCapture behaves like tryError but takes a precomputed capture flag
+// rather than checking the subscription context. This avoids one context lookup
+// on the hot notification path when the capture policy is known at
+// subscription time.
+func (o *observerImpl[T]) tryErrorWithCapture(ctx context.Context, err error, capture bool) {
+	if !capture {
+		o.onError(ctx, err)
+		return
+	}
+
 	lo.TryCatchWithErrorValue(
 		func() error {
 			o.onError(ctx, err)
@@ -171,6 +296,31 @@ func (o *observerImpl[T]) tryError(ctx context.Context, err error) {
 }
 
 func (o *observerImpl[T]) tryComplete(ctx context.Context) {
+	if !o.capturePanics || isObserverPanicCaptureDisabled(ctx) {
+		o.onComplete(ctx)
+		return
+	}
+
+	lo.TryCatchWithErrorValue(
+		func() error {
+			o.onComplete(ctx)
+			return nil
+		},
+		func(e any) {
+			err := newObserverError(recoverValueToError(e))
+			OnUnhandledError(ctx, err)
+		},
+	)
+}
+
+// tryCompleteWithCapture behaves like tryComplete but uses the provided capture
+// flag instead of consulting the context.
+func (o *observerImpl[T]) tryCompleteWithCapture(ctx context.Context, capture bool) {
+	if !capture {
+		o.onComplete(ctx)
+		return
+	}
+
 	lo.TryCatchWithErrorValue(
 		func() error {
 			o.onComplete(ctx)
