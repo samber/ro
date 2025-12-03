@@ -1,5 +1,5 @@
 
-# ro - Reactive programming for Go
+# ro - Streams & reactive programming for Go
 
 [![tag](https://img.shields.io/github/tag/samber/ro.svg)](https://github.com/samber/ro/releases)
 ![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.18-%23007d9c)
