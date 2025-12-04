@@ -106,7 +106,7 @@ export default function Home(): JSX.Element {
   return (
     <Layout
       title={`🌊 ${siteConfig.title}: ${siteConfig.tagline}`}
-      description="Reactive programming for Go">
+      description="Streams and reactive programming for Go">
       <HomepageHeader />
       <main>
         <HomepageFeatures />
