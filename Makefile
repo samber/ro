@@ -54,3 +54,10 @@ weight:
 
 doc:
 	cd docs && npm install && npm start
+
+bench-1m:
+	@echo "Generating 1M fixture for examples/billion-rows-benchmark..."
+	@mkdir -p examples/billion-rows-benchmark/fixtures
+	@./examples/billion-rows-benchmark/scripts/expand_fixture.sh examples/billion-rows-benchmark/fixtures/sample.csv examples/billion-rows-benchmark/fixtures/1m.csv 1000000
+	@echo "Running 1M benchmark (may take a while)..."
+	FIXTURE_PATH=$(CURDIR)/examples/billion-rows-benchmark/fixtures/1m.csv go test -run=^$ -bench BenchmarkMillionRowChallenge -benchmem ./examples/billion-rows-benchmark
