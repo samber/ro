@@ -178,6 +178,13 @@ func IntervalWithInitial(initial, interval time.Duration) Observable[int64] {
 // descending order. The step is 1.
 // Play: https://go.dev/play/p/5XAXfNrtJm2
 func Range(start, end int64) Observable[int64] {
+	return RangeWithMode(start, end, ConcurrencyModeSingleProducer)
+}
+
+// RangeWithMode creates an Observable that emits a range of integers using the
+// provided concurrency mode. The semantics match `Range` but allow callers to
+// opt into a specific `ConcurrencyMode` for testing or specialised pipelines.
+func RangeWithMode(start, end int64, mode ConcurrencyMode) Observable[int64] {
 	sign := int64(1)
 
 	if start == end {
@@ -186,7 +193,7 @@ func Range(start, end int64) Observable[int64] {
 		sign = -1
 	}
 
-	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
+	return NewObservableWithConcurrencyMode(func(ctx context.Context, destination Observer[int64]) Teardown {
 		cursor := start
 
 		for cursor*sign < end*sign {
@@ -197,7 +204,7 @@ func Range(start, end int64) Observable[int64] {
 		destination.CompleteWithContext(ctx)
 
 		return nil
-	})
+	}, mode)
 }
 
 // RangeWithStep creates an Observable that emits a range of floats.
@@ -220,7 +227,7 @@ func RangeWithStep(start, end, step float64) Observable[float64] {
 		panic(ErrRangeWithStepWrongStep)
 	}
 
-	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[float64]) Teardown {
+	return NewObservableWithConcurrencyMode(func(ctx context.Context, destination Observer[float64]) Teardown {
 		cursor := start
 
 		for cursor*sign < end*sign {
@@ -231,7 +238,7 @@ func RangeWithStep(start, end, step float64) Observable[float64] {
 		destination.CompleteWithContext(ctx)
 
 		return nil
-	})
+	}, ConcurrencyModeSingleProducer)
 }
 
 // RangeWithInterval creates an Observable that emits a range of integers.
