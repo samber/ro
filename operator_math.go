@@ -291,6 +291,22 @@ func Floor() func(Observable[float64]) Observable[float64] {
 	}
 }
 
+// FloorWithPrecision emits the floored values with decimal precision applied before
+// flooring. The `places` parameter controls the decimal precision:
+//   - positive `places` applies flooring to that many digits to the right of the
+//     decimal point (e.g. places=2 turns 1.234 -> 1.23),
+//   - zero behaves like `Floor()` (floor to integer),
+//   - negative `places` floors to powers of ten (e.g. places=-1 turns 123.45 -> 120).
+//
+// For very large precision magnitudes the operator uses chunked big.Float
+// arithmetic to avoid overflow. If the requested precision exceeds internal
+// chunking caps the implementation will intentionally return the original
+// source observable (no-op) to avoid unbounded allocations; callers should
+// avoid extremely large `places` values for performance reasons.
+func FloorWithPrecision(places int) func(Observable[float64]) Observable[float64] {
+	return precisionRound(floorPrecisionRoundMode(), places)
+}
+
 // Ceil emits the ceiling of the values emitted by the source Observable.
 // Play: https://go.dev/play/p/BlpeIki-oMG
 func Ceil() func(Observable[float64]) Observable[float64] {
@@ -317,72 +333,7 @@ func Ceil() func(Observable[float64]) Observable[float64] {
 // specified number of digits to the right of the decimal point, while negative
 // precisions round to powers of ten.
 func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64] {
-	if places < 0 {
-		if places == math.MinInt {
-			return ceilWithInfiniteNegativePrecision()
-		}
-
-		negPlaces := -places
-		if negPlaces < 0 {
-			return ceilWithInfiniteNegativePrecision()
-		}
-
-		if negPlaces > maxPow10Chunk {
-			return ceilWithLargeNegativePrecision(negPlaces)
-		}
-	}
-
-	if places > maxPow10Chunk {
-		return ceilWithLargePositivePrecision(places)
-	}
-
-	factor := math.Pow10(places)
-
-	if factor == 0 {
-		return Ceil()
-	}
-
-	if places > 0 && math.IsInf(factor, 0) {
-		return ceilWithLargePositivePrecision(places)
-	}
-
-	inverseFactor := 1 / factor
-	if math.IsInf(inverseFactor, 0) {
-		if places < 0 {
-			negPlaces := -places
-			if negPlaces < 0 {
-				return ceilWithInfiniteNegativePrecision()
-			}
-
-			return ceilWithLargeNegativePrecision(negPlaces)
-		}
-
-		return Ceil()
-	}
-
-	var ceilWithBigFactor func(float64) float64
-	var ceilWithSmallFactor func(float64) float64
-
-	if places > 0 {
-		ceilWithBigFactor = makeCeilWithBigFactor(factor)
-	} else if places < 0 {
-		ceilWithSmallFactor = makeCeilWithSmallFactor(factor)
-	}
-
-	return func(source Observable[float64]) Observable[float64] {
-		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					makeCeilNext(destination, places, factor, inverseFactor, ceilWithBigFactor, ceilWithSmallFactor),
-					destination.ErrorWithContext,
-					destination.CompleteWithContext,
-				),
-			)
-
-			return sub.Unsubscribe
-		})
-	}
+	return precisionRound(ceilPrecisionRoundMode(), places)
 }
 
 func ceilWithInfiniteNegativePrecision() func(Observable[float64]) Observable[float64] {
@@ -414,8 +365,156 @@ func ceilWithInfiniteNegativePrecision() func(Observable[float64]) Observable[fl
 	}
 }
 
-func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observable[float64] {
+func floorWithInfiniteNegativePrecision() func(Observable[float64]) Observable[float64] {
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, math.Floor(value))
+							return
+						}
+
+						if value < 0 {
+							destination.NextWithContext(ctx, math.Inf(-1))
+							return
+						}
+
+						destination.NextWithContext(ctx, 0)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+type precisionRoundMode struct {
+	round                     func(float64) float64
+	bigRound                  func(*big.Float) *big.Float
+	shouldUseSmallFactor      func(places int, scaled, value float64) bool
+	fallbackInfinity          func(places int, value float64) (float64, bool)
+	infiniteNegativePrecision func() func(Observable[float64]) Observable[float64]
+	simpleOperator            func() func(Observable[float64]) Observable[float64]
+}
+
+func floorPrecisionRoundMode() precisionRoundMode {
+	return precisionRoundMode{
+		round:    math.Floor,
+		bigRound: floorBigFloat,
+		shouldUseSmallFactor: func(places int, scaled, value float64) bool {
+			return places < 0 && scaled == 0 && value < 0 && !math.IsNaN(value) && !math.IsInf(value, 0)
+		},
+		fallbackInfinity: func(places int, value float64) (float64, bool) {
+			if places < 0 && !math.IsNaN(value) && !math.IsInf(value, 0) && value < 0 {
+				return math.Inf(-1), true
+			}
+
+			return 0, false
+		},
+		infiniteNegativePrecision: floorWithInfiniteNegativePrecision,
+		simpleOperator:            Floor,
+	}
+}
+
+func ceilPrecisionRoundMode() precisionRoundMode {
+	return precisionRoundMode{
+		round:    math.Ceil,
+		bigRound: ceilBigFloat,
+		shouldUseSmallFactor: func(places int, scaled, value float64) bool {
+			return places < 0 && scaled == 0 && value > 0 && !math.IsNaN(value) && !math.IsInf(value, 0)
+		},
+		fallbackInfinity: func(places int, value float64) (float64, bool) {
+			if places < 0 && !math.IsNaN(value) && !math.IsInf(value, 0) && value > 0 {
+				return math.Inf(1), true
+			}
+
+			return 0, false
+		},
+		infiniteNegativePrecision: ceilWithInfiniteNegativePrecision,
+		simpleOperator:            Ceil,
+	}
+}
+
+func precisionRound(mode precisionRoundMode, places int) func(Observable[float64]) Observable[float64] {
+	if places < 0 {
+		if places == math.MinInt {
+			return mode.infiniteNegativePrecision()
+		}
+
+		negPlaces := -places
+		if negPlaces < 0 {
+			return mode.infiniteNegativePrecision()
+		}
+
+		if negPlaces > maxPow10Chunk {
+			return roundWithLargeNegativePrecision(mode, negPlaces, places)
+		}
+	}
+
+	if places > maxPow10Chunk {
+		return roundWithLargePositivePrecision(mode, places)
+	}
+
+	factor := math.Pow10(places)
+
+	if factor == 0 {
+		return mode.simpleOperator()
+	}
+
+	if places > 0 && math.IsInf(factor, 0) {
+		return roundWithLargePositivePrecision(mode, places)
+	}
+
+	inverseFactor := 1 / factor
+	if math.IsInf(inverseFactor, 0) {
+		if places < 0 {
+			negPlaces := -places
+			if negPlaces < 0 {
+				return mode.infiniteNegativePrecision()
+			}
+
+			return roundWithLargeNegativePrecision(mode, negPlaces, places)
+		}
+
+		return mode.simpleOperator()
+	}
+
+	var roundWithBigFactor func(float64) float64
+	var roundWithSmallFactor func(float64) float64
+
+	if places > 0 {
+		roundWithBigFactor = makeRoundWithFactor(mode, places, factor)
+	} else if places < 0 {
+		roundWithSmallFactor = makeRoundWithFactor(mode, places, factor)
+	}
+
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					makePrecisionRoundNext(destination, mode, places, factor, inverseFactor, roundWithBigFactor, roundWithSmallFactor),
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+func roundWithLargePositivePrecision(mode precisionRoundMode, places int) func(Observable[float64]) Observable[float64] {
 	if places >= math.MaxInt-(maxPow10Chunk-1) {
+		// No-op: requested precision is so large that computing chunk factors
+		// would overflow integer arithmetic. Return the original source to
+		// avoid unbounded allocations or undefined behavior.
 		return func(source Observable[float64]) Observable[float64] {
 			return source
 		}
@@ -423,6 +522,9 @@ func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observ
 
 	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
 	if chunkCount > maxPow10ChunkCount {
+		// No-op: the requested precision requires more chunks than the
+		// configured cap (maxPow10ChunkCount). Returning the original source
+		// avoids creating huge allocations for impractically large precisions.
 		return func(source Observable[float64]) Observable[float64] {
 			return source
 		}
@@ -447,7 +549,7 @@ func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observ
 				NewObserverWithContext(
 					func(ctx context.Context, value float64) {
 						if math.IsNaN(value) || math.IsInf(value, 0) {
-							destination.NextWithContext(ctx, math.Ceil(value))
+							destination.NextWithContext(ctx, mode.round(value))
 							return
 						}
 
@@ -456,15 +558,20 @@ func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observ
 							scaled.Mul(scaled, factor)
 						}
 
-						ceiled := ceilBigFloat(scaled)
+						rounded := mode.bigRound(scaled)
 
 						for i := len(chunkFactors) - 1; i >= 0; i-- {
-							ceiled.Quo(ceiled, chunkFactors[i])
+							rounded.Quo(rounded, chunkFactors[i])
 						}
 
-						result, _ := ceiled.Float64()
+						result, _ := rounded.Float64()
 						if math.IsInf(result, 0) || math.IsNaN(result) {
-							destination.NextWithContext(ctx, math.Ceil(value))
+							if inf, ok := mode.fallbackInfinity(places, value); ok {
+								destination.NextWithContext(ctx, inf)
+								return
+							}
+
+							destination.NextWithContext(ctx, mode.round(value))
 							return
 						}
 
@@ -480,18 +587,18 @@ func ceilWithLargePositivePrecision(places int) func(Observable[float64]) Observ
 	}
 }
 
-func ceilWithLargeNegativePrecision(places int) func(Observable[float64]) Observable[float64] {
-	if places >= math.MaxInt-(maxPow10Chunk-1) {
-		return ceilWithInfiniteNegativePrecision()
+func roundWithLargeNegativePrecision(mode precisionRoundMode, magnitude, originalPlaces int) func(Observable[float64]) Observable[float64] {
+	if magnitude >= math.MaxInt-(maxPow10Chunk-1) {
+		return mode.infiniteNegativePrecision()
 	}
 
-	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
+	chunkCount := (magnitude + maxPow10Chunk - 1) / maxPow10Chunk
 	if chunkCount > maxPow10ChunkCount {
-		return ceilWithInfiniteNegativePrecision()
+		return mode.infiniteNegativePrecision()
 	}
 	chunkFactors := make([]*big.Float, 0, chunkCount)
 
-	for remaining := places; remaining > 0; {
+	for remaining := magnitude; remaining > 0; {
 		step := remaining
 		if step > maxPow10Chunk {
 			step = maxPow10Chunk
@@ -509,7 +616,7 @@ func ceilWithLargeNegativePrecision(places int) func(Observable[float64]) Observ
 				NewObserverWithContext(
 					func(ctx context.Context, value float64) {
 						if math.IsNaN(value) || math.IsInf(value, 0) {
-							destination.NextWithContext(ctx, math.Ceil(value))
+							destination.NextWithContext(ctx, mode.round(value))
 							return
 						}
 
@@ -518,13 +625,23 @@ func ceilWithLargeNegativePrecision(places int) func(Observable[float64]) Observ
 							scaled.Quo(scaled, factor)
 						}
 
-						ceiled := ceilBigFloat(scaled)
+						rounded := mode.bigRound(scaled)
 
 						for i := len(chunkFactors) - 1; i >= 0; i-- {
-							ceiled.Mul(ceiled, chunkFactors[i])
+							rounded.Mul(rounded, chunkFactors[i])
 						}
 
-						result, _ := ceiled.Float64()
+						result, _ := rounded.Float64()
+						if math.IsInf(result, 0) || math.IsNaN(result) {
+							if inf, ok := mode.fallbackInfinity(originalPlaces, value); ok {
+								destination.NextWithContext(ctx, inf)
+								return
+							}
+
+							destination.NextWithContext(ctx, mode.round(value))
+							return
+						}
+
 						destination.NextWithContext(ctx, result)
 					},
 					destination.ErrorWithContext,
@@ -535,6 +652,103 @@ func ceilWithLargeNegativePrecision(places int) func(Observable[float64]) Observ
 			return sub.Unsubscribe
 		})
 	}
+}
+
+// makeRoundWithFactor returns a function that performs precision-aware
+// rounding using arbitrary-precision arithmetic. The returned function:
+//   - scales the input by `factor` using a high-precision big.Float,
+//   - applies the mode.bigRound (ceil/floor) to the scaled value,
+//   - unscales the result back to float64 and applies fallback handling
+//     for Inf/NaN outcomes.
+//
+// This helper is used when straightforward float64 scaling would overflow or
+// lose precision; centralizing the logic avoids duplication between the
+// big/small-factor cases.
+func makeRoundWithFactor(mode precisionRoundMode, places int, factor float64) func(float64) float64 {
+	bigFactor := new(big.Float).SetPrec(256).SetFloat64(factor)
+	return func(value float64) float64 {
+		if math.IsNaN(value) || math.IsInf(value, 0) {
+			return mode.round(value)
+		}
+
+		scaled := new(big.Float).SetPrec(256).SetFloat64(value)
+		scaled.Mul(scaled, bigFactor)
+
+		rounded := mode.bigRound(scaled)
+		rounded.Quo(rounded, bigFactor)
+
+		result, _ := rounded.Float64()
+		if math.IsInf(result, 0) || math.IsNaN(result) {
+			if inf, ok := mode.fallbackInfinity(places, value); ok {
+				return inf
+			}
+
+			return mode.round(value)
+		}
+
+		return result
+	}
+}
+
+// makePrecisionRoundNext returns a Next handler implementing the shared
+// precision rounding logic used by CeilWithPrecision and FloorWithPrecision.
+func makePrecisionRoundNext(destination Observer[float64], mode precisionRoundMode, places int, factor, inverseFactor float64, roundWithBigFactor, roundWithSmallFactor func(float64) float64) func(ctx context.Context, value float64) {
+	return func(ctx context.Context, value float64) {
+		scaled := value * factor
+		if math.IsInf(scaled, 0) {
+			handleInfScaled(ctx, destination, value, roundWithBigFactor, mode.round)
+			return
+		}
+
+		if mode.shouldUseSmallFactor != nil && mode.shouldUseSmallFactor(places, scaled, value) {
+			handleUnderflow(ctx, destination, value, roundWithSmallFactor, mode.round)
+			return
+		}
+
+		rounded := mode.round(scaled)
+		result := rounded * inverseFactor
+		if math.IsInf(result, 0) || math.IsNaN(result) {
+			handleResultInfOrNaN(ctx, destination, mode, places, value, roundWithSmallFactor, roundWithBigFactor)
+			return
+		}
+
+		destination.NextWithContext(ctx, result)
+	}
+}
+
+func handleInfScaled(ctx context.Context, destination Observer[float64], value float64, roundWithBigFactor, baseRound func(float64) float64) {
+	if roundWithBigFactor != nil {
+		destination.NextWithContext(ctx, roundWithBigFactor(value))
+	} else {
+		destination.NextWithContext(ctx, baseRound(value))
+	}
+}
+
+func handleUnderflow(ctx context.Context, destination Observer[float64], value float64, roundWithSmallFactor, baseRound func(float64) float64) {
+	if roundWithSmallFactor != nil {
+		destination.NextWithContext(ctx, roundWithSmallFactor(value))
+	} else {
+		destination.NextWithContext(ctx, baseRound(value))
+	}
+}
+
+func handleResultInfOrNaN(ctx context.Context, destination Observer[float64], mode precisionRoundMode, places int, value float64, roundWithSmallFactor, roundWithBigFactor func(float64) float64) {
+	if inf, ok := mode.fallbackInfinity(places, value); ok {
+		if roundWithSmallFactor != nil {
+			destination.NextWithContext(ctx, roundWithSmallFactor(value))
+			return
+		}
+
+		destination.NextWithContext(ctx, inf)
+		return
+	}
+
+	if roundWithBigFactor != nil {
+		destination.NextWithContext(ctx, roundWithBigFactor(value))
+		return
+	}
+
+	destination.NextWithContext(ctx, mode.round(value))
 }
 
 func ceilBigFloat(x *big.Float) *big.Float {
@@ -557,112 +771,24 @@ func ceilBigFloat(x *big.Float) *big.Float {
 	return result
 }
 
-// helper: create a ceiler that uses a big.Float factor (used for positive places)
-func makeCeilWithBigFactor(factor float64) func(float64) float64 {
-	bigFactor := new(big.Float).SetPrec(256).SetFloat64(factor)
-	return func(value float64) float64 {
-		if math.IsNaN(value) || math.IsInf(value, 0) {
-			return math.Ceil(value)
+func floorBigFloat(x *big.Float) *big.Float {
+	prec := x.Prec()
+
+	integer := new(big.Int)
+	x.Int(integer)
+
+	result := new(big.Float).SetPrec(prec).SetInt(integer)
+
+	if x.Sign() < 0 {
+		fractional := new(big.Float).SetPrec(prec)
+		fractional.Sub(x, result)
+		if fractional.Sign() != 0 {
+			integer.Sub(integer, big.NewInt(1))
+			result.SetInt(integer)
 		}
-
-		scaled := new(big.Float).SetPrec(256).SetFloat64(value)
-		scaled.Mul(scaled, bigFactor)
-
-		ceiled := ceilBigFloat(scaled)
-		ceiled.Quo(ceiled, bigFactor)
-
-		result, _ := ceiled.Float64()
-		if math.IsInf(result, 0) || math.IsNaN(result) {
-			return math.Ceil(value)
-		}
-
-		return result
 	}
-}
 
-// helper: create a ceiler that uses a big.Float factor (used for negative places)
-func makeCeilWithSmallFactor(factor float64) func(float64) float64 {
-	smallFactor := new(big.Float).SetPrec(256).SetFloat64(factor)
-	return func(value float64) float64 {
-		if math.IsNaN(value) || math.IsInf(value, 0) {
-			return math.Ceil(value)
-		}
-
-		scaled := new(big.Float).SetPrec(256).SetFloat64(value)
-		scaled.Mul(scaled, smallFactor)
-
-		ceiled := ceilBigFloat(scaled)
-		ceiled.Quo(ceiled, smallFactor)
-
-		result, _ := ceiled.Float64()
-		if math.IsInf(result, 0) || math.IsNaN(result) {
-			if value > 0 {
-				return math.Inf(1)
-			}
-
-			return math.Ceil(value)
-		}
-
-		return result
-	}
-}
-
-// makeCeilNext returns a Next handler implementing CeilWithPrecision's core
-// logic. Extracting it here reduces cyclomatic complexity of
-// CeilWithPrecision while preserving behavior.
-func makeCeilNext(destination Observer[float64], places int, factor, inverseFactor float64, ceilWithBigFactor, ceilWithSmallFactor func(float64) float64) func(ctx context.Context, value float64) {
-	return func(ctx context.Context, value float64) {
-		scaled := value * factor
-		if math.IsInf(scaled, 0) {
-			handleInfScaled(ctx, destination, value, ceilWithBigFactor)
-			return
-		}
-
-		if places < 0 && scaled == 0 && value > 0 && !math.IsNaN(value) && !math.IsInf(value, 0) {
-			handleUnderflow(ctx, destination, value, ceilWithSmallFactor)
-			return
-		}
-
-		ceiled := math.Ceil(scaled)
-		result := ceiled * inverseFactor
-		if math.IsInf(result, 0) || math.IsNaN(result) {
-			handleResultInfOrNaN(ctx, destination, places, value, ceilWithSmallFactor, ceilWithBigFactor)
-			return
-		}
-
-		destination.NextWithContext(ctx, result)
-	}
-}
-
-func handleInfScaled(ctx context.Context, destination Observer[float64], value float64, ceilWithBigFactor func(float64) float64) {
-	if ceilWithBigFactor != nil {
-		destination.NextWithContext(ctx, ceilWithBigFactor(value))
-	} else {
-		destination.NextWithContext(ctx, math.Ceil(value))
-	}
-}
-
-func handleUnderflow(ctx context.Context, destination Observer[float64], value float64, ceilWithSmallFactor func(float64) float64) {
-	if ceilWithSmallFactor != nil {
-		destination.NextWithContext(ctx, ceilWithSmallFactor(value))
-	} else {
-		destination.NextWithContext(ctx, math.Ceil(value))
-	}
-}
-
-func handleResultInfOrNaN(ctx context.Context, destination Observer[float64], places int, value float64, ceilWithSmallFactor, ceilWithBigFactor func(float64) float64) {
-	switch {
-	case places < 0 && !math.IsNaN(value) && !math.IsInf(value, 0) && value > 0:
-		if ceilWithSmallFactor != nil {
-			destination.NextWithContext(ctx, ceilWithSmallFactor(value))
-		} else {
-			destination.NextWithContext(ctx, math.Inf(1))
-		}
-	case ceilWithBigFactor != nil:
-		destination.NextWithContext(ctx, ceilWithBigFactor(value))
-	default:
-		destination.NextWithContext(ctx, math.Ceil(value))
-	}
+	return result
 }
 
 // Trunc emits the truncated values emitted by the source Observable.
