@@ -9,9 +9,9 @@ import (
 // Format returns a function that transforms an observable of time.Time values
 // into an observable of strings, formatted according to the provided layout.
 // The layout must be a valid time format string (e.g., "2006-01-02 15:04:05").
-func Format[T ~time.Time](format string) func(destination ro.Observable[T]) ro.Observable[string] {
+func Format(format string) func(destination ro.Observable[time.Time]) ro.Observable[string] {
 	return ro.Map(
-		func(value T) string {
+		func(value time.Time) string {
 			return value.Format(format)
 		},
 	)

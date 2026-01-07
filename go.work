@@ -1,4 +1,4 @@
-go 1.18
+go 1.25.5
 
 //
 // Base library
@@ -23,9 +23,6 @@ use (
 	// ./plugins/ics
 	./plugins/http/client
 	// Commented out because requires go>=1.23
-	// ./plugins/hyperloglog
-	./plugins/stdio
-	// Commented out because requires go>=1.23
 	// ./plugins/iter
 	./plugins/observability/log
 	./plugins/observability/logrus
@@ -48,10 +45,14 @@ use (
 	./plugins/samber/psi
 	./plugins/signal
 	./plugins/sort
+	// Commented out because requires go>=1.23
+	// ./plugins/hyperloglog
+	./plugins/stdio
 	./plugins/strconv
 	./plugins/strings
 	./plugins/template
 	./plugins/testify
+	./plugins/time
 	./plugins/websocket/client
 )
 
@@ -81,3 +82,5 @@ use (
 	./examples/sql-to-csv
 	./examples/stock-price-enrichment
 )
+
+replace github.com/samber/ro v1.0.0 => C:/Users/benja/GoProjects/ro
