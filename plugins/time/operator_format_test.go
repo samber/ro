@@ -47,37 +47,45 @@ var allTimeFormatTests = []timeFormatTest{
 }
 
 func TestFormat(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("Simple test cases", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+		for _, tt := range allTimeFormatTests {
+			values, err := ro.Collect(
+				ro.Pipe1(
+					ro.Just(tt.input),
+					Format(tt.format),
+				),
+			)
+			is.Equal([]string{tt.expected}, values)
+			is.Nil(err)
+		}
+	})
 
-	for _, tt := range allTimeFormatTests {
+	t.Run("Test empty observable", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 		values, err := ro.Collect(
 			ro.Pipe1(
-				ro.Just(tt.input),
-				Format(tt.format),
+				ro.Empty[time.Time](),
+				Format("2006-01-02 15:04:05"),
 			),
 		)
-		is.Equal([]string{tt.expected}, values)
+		is.Equal([]string{}, values)
 		is.Nil(err)
-	}
+	})
 
-	// Test empty observable
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Empty[time.Time](),
-			Format("2006-01-02 15:04:05"),
-		),
-	)
-	is.Equal([]string{}, values)
-	is.Nil(err)
+	t.Run("Test error handling", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Throw[time.Time](assert.AnError),
+				Format("2006-01-02 15:04:05"),
+			),
+		)
+		is.Equal([]string{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
-	// Test error handling
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Throw[time.Time](assert.AnError),
-			Format("2006-01-02 15:04:05"),
-		),
-	)
-	is.Equal([]string{}, values)
-	is.EqualError(err, assert.AnError.Error())
 }

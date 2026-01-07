@@ -29,7 +29,30 @@ type timeParseTest struct {
 	loc      *time.Location
 }
 
-var allTimeParseTest = []timeParseTest{
+var parseTests = []timeParseTest{
+	{
+		expected: time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC),
+		format:   "2006-01-02 15:04:05",
+		input:    "2026-01-07 14:30:00",
+	},
+	{
+		expected: time.Date(2025, time.December, 25, 0, 0, 0, 0, time.UTC),
+		format:   "2006/01/02",
+		input:    "2025/12/25",
+	},
+	{
+		expected: time.Date(0, time.January, 1, 23, 59, 59, 0, time.UTC),
+		format:   "15:04:05",
+		input:    "23:59:59",
+	},
+	{
+		expected: time.Time{},
+		format:   "2006-01-02 15:04:05",
+		input:    "not-a-date",
+	},
+}
+
+var parseInLocationTests = []timeParseTest{
 	{
 		expected: time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC),
 		format:   "2006-01-02 15:04:05",
@@ -55,7 +78,6 @@ var allTimeParseTest = []timeParseTest{
 		loc:      time.UTC,
 	},
 	{
-		// non‑UTC fixed zone example
 		input:  "2026-01-07 14:30:00",
 		format: "2006-01-02 15:04:05",
 		loc:    time.FixedZone("GMT+2", 2*60*60),
@@ -69,7 +91,7 @@ func TestParse(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
-	for _, tt := range allTimeParseTest {
+	for _, tt := range parseTests {
 		values, err := ro.Collect(
 			ro.Pipe1(
 				ro.Just(tt.input),
@@ -106,7 +128,7 @@ func TestParseInLocation(t *testing.T) {
 	is := assert.New(t)
 
 	// success cases
-	for _, tt := range allTimeParseTest {
+	for _, tt := range parseInLocationTests {
 		values, err := ro.Collect(
 			ro.Pipe1(
 				ro.Just(tt.input),
