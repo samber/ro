@@ -2,7 +2,7 @@ module github.com/samber/ro/examples/connectable
 
 go 1.18
 
-require github.com/samber/lo v1.52.0 // indirect
+require github.com/samber/lo v1.44.0
 
 require github.com/samber/ro v0.0.0
 
