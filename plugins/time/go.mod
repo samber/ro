@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/samber/ro v0.2.0
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.8.1
 )
 
 require (

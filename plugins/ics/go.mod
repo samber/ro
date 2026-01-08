@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/arran4/golang-ical v0.3.2
 	github.com/samber/ro v0.0.0
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.8.1
 )
 
 require (
