@@ -23,56 +23,58 @@ import (
 )
 
 func TestInTimeZone_SimpleConversion(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("Simple conversion test cases", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	utc := time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC)
-	paris, _ := time.LoadLocation("Europe/Paris")
+		utc := time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC)
+		paris, _ := time.LoadLocation("Europe/Paris")
 
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Just(utc),
-			InTimeZone(paris),
-		),
-	)
-	is.NoError(err)
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just(utc),
+				InTimeZone(paris),
+			),
+		)
+		is.NoError(err)
 
-	got := values[0]
+		got := values[0]
 
-	// Same instant.
-	is.True(utc.Equal(got))
+		// Same instant.
+		is.True(utc.Equal(got))
 
-	// Different location (zone name / offset).
-	name, _ := got.Zone()
-	is.Equal("CET", name)
-}
+		// Different location (zone name / offset).
+		name, _ := got.Zone()
+		is.Equal("CET", name)
+	})
 
-func TestInTimeZone_EmptyObservable(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("Test Empty observable case", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Empty[time.Time](),
-			InTimeZone(time.UTC),
-		),
-	)
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Empty[time.Time](),
+				InTimeZone(time.UTC),
+			),
+		)
 
-	is.NoError(err)
-	is.Equal([]time.Time{}, values)
-}
+		is.NoError(err)
+		is.Equal([]time.Time{}, values)
+	})
 
-func TestInTimeZone_PropagatesError(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("Test error handling case", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Throw[time.Time](assert.AnError),
-			InTimeZone(time.UTC),
-		),
-	)
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Throw[time.Time](assert.AnError),
+				InTimeZone(time.UTC),
+			),
+		)
 
-	is.Equal([]time.Time{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		is.Equal([]time.Time{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }

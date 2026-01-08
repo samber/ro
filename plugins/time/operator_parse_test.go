@@ -88,60 +88,69 @@ var parseInLocationTests = []timeParseTest{
 }
 
 func TestParse(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("Test Simple cases", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	for _, tt := range parseTests {
+		for _, tt := range parseTests {
+			values, err := ro.Collect(
+				ro.Pipe1(
+					ro.Just(tt.input),
+					Parse[string](tt.format),
+				),
+			)
+			is.Equal([]time.Time{tt.expected}, values)
+			is.Nil(err)
+		}
+	})
+
+	t.Run("Test empty obsersable case", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 		values, err := ro.Collect(
 			ro.Pipe1(
-				ro.Just(tt.input),
-				Parse[string](tt.format),
+				ro.Empty[string](),
+				Parse[string]("2006-01-02 15:04:05"),
 			),
 		)
-		is.Equal([]time.Time{tt.expected}, values)
+		is.Equal([]time.Time{}, values)
 		is.Nil(err)
-	}
+	})
 
-	// Test empty observable
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Empty[string](),
-			Parse[string]("2006-01-02 15:04:05"),
-		),
-	)
-	is.Equal([]time.Time{}, values)
-	is.Nil(err)
-
-	// Test error handling
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Throw[string](assert.AnError),
-			Parse[string]("2006-01-02 15:04:05"),
-		),
-	)
-	is.Equal([]time.Time{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("Test error handling case", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Throw[string](assert.AnError),
+				Parse[string]("2006-01-02 15:04:05"),
+			),
+		)
+		is.Equal([]time.Time{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestParseInLocation(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("Test Simple cases", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// success cases
-	for _, tt := range parseInLocationTests {
-		values, err := ro.Collect(
-			ro.Pipe1(
-				ro.Just(tt.input),
-				ParseInLocation[string](tt.format, tt.loc),
-			),
-		)
+		for _, tt := range parseInLocationTests {
+			values, err := ro.Collect(
+				ro.Pipe1(
+					ro.Just(tt.input),
+					ParseInLocation[string](tt.format, tt.loc),
+				),
+			)
 
-		is.Nil(err)
-		is.Equal([]time.Time{tt.expected}, values)
-	}
-
-	// empty observable
-	{
+			is.Nil(err)
+			is.Equal([]time.Time{tt.expected}, values)
+		}
+	})
+	t.Run("Test empty obsersable case", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 		values, err := ro.Collect(
 			ro.Pipe1(
 				ro.Empty[string](),
@@ -151,10 +160,11 @@ func TestParseInLocation(t *testing.T) {
 
 		is.Nil(err)
 		is.Equal([]time.Time{}, values)
-	}
+	})
 
-	// propagation of upstream error: no values, original error returned
-	{
+	t.Run("Test error handling case", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 		values, err := ro.Collect(
 			ro.Pipe1(
 				ro.Throw[string](assert.AnError),
@@ -164,5 +174,5 @@ func TestParseInLocation(t *testing.T) {
 
 		is.Equal([]time.Time{}, values)
 		is.EqualError(err, assert.AnError.Error())
-	}
+	})
 }
