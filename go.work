@@ -82,5 +82,3 @@ use (
 	./examples/sql-to-csv
 	./examples/stock-price-enrichment
 )
-
-replace github.com/samber/ro v1.0.0 => C:/Users/benja/GoProjects/ro
