@@ -1,6 +1,6 @@
 module github.com/samber/ro/plugins/testify
 
-go 1.23.0
+go 1.18
 
 require (
 	github.com/samber/lo v1.52.0
