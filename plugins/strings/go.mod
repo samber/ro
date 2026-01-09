@@ -1,6 +1,6 @@
 module github.com/samber/ro/plugins/strings
 
-go 1.24.0
+go 1.18
 
 require (
 	github.com/samber/ro v0.0.0
