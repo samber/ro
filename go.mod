@@ -19,4 +19,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/samber/ro => C:/Users/benja/GoProjects/ro
