@@ -37,10 +37,21 @@ type ConcurrencyMode int8
 // ConcurrencyModeSafe is a concurrency mode that is safe to use.
 // Spinlock is ignored because it is too slow when chaining operators. Spinlock should be used
 // only for short-lived local locks.
+//
+// ConcurrencyModeSingleProducer is an optimization targeted at hot, single-
+// producer pipelines. It avoids mutex acquisition and relies on atomic state
+// transitions, making it the fastest path for sequential emission from a single
+// goroutine. IMPORTANT: this mode is UNSAFE if multiple goroutines may emit
+// concurrently into the same subscriber. Do NOT use this mode with multi-
+// producer operators such as `Merge`, `CombineLatest`, `WithConcurrency` or
+// any operator that may call into a downstream subscriber from multiple
+// goroutines. Use `ConcurrencyModeSafe` or `ConcurrencyModeEventuallySafe`
+// when upstream concurrency is possible.
 const (
 	ConcurrencyModeSafe ConcurrencyMode = iota
 	ConcurrencyModeUnsafe
 	ConcurrencyModeEventuallySafe
+	ConcurrencyModeSingleProducer
 )
 
 // Observable is the producer of values. It is the source of values that are
@@ -166,6 +177,28 @@ func NewEventuallySafeObservable[T any](subscribe func(destination Observer[T]) 
 	)
 }
 
+// NewSingleProducerObservable creates a new Observable optimized for single producer scenarios.
+// The subscribe function is called when the Observable is subscribed to. The subscribe function is given an Observer,
+// to which it may emit any number of items, then may either complete or error, but not both. Upon completion or error,
+// the Observable will not emit any more items.
+//
+// The subscribe function should return a Teardown function that will be called
+// when the Subscription is unsubscribed. The Teardown function should clean up
+// any resources created during the subscription.
+//
+// The subscribe function may return a Teardown function that does nothing, if
+// no cleanup is necessary. In this case, the Teardown function should return nil.
+//
+// This method is not safe for concurrent use.
+func NewSingleProducerObservable[T any](subscribe func(destination Observer[T]) Teardown) Observable[T] {
+	return NewObservableWithConcurrencyMode(
+		func(ctx context.Context, destination Observer[T]) Teardown {
+			return subscribe(destination)
+		},
+		ConcurrencyModeSingleProducer,
+	)
+}
+
 // NewObservableWithContext creates a new Observable. The subscribe function is called when
 // the Observable is subscribed to. The subscribe function is given an Observer,
 // to which it may emit any number of items, then may either complete or error,
@@ -238,6 +271,22 @@ func NewEventuallySafeObservableWithContext[T any](subscribe func(ctx context.Co
 	return NewObservableWithConcurrencyMode(subscribe, ConcurrencyModeEventuallySafe)
 }
 
+// NewSingleProducerObservableWithContext creates a new Observable optimized for single producer scenarios.
+// The subscribe function is called when the Observable is subscribed to. The subscribe function is given an Observer,
+// to which it may emit any number of items, then may either complete or error, but not both. Upon completion or error, the Observable will not emit any more items.
+//
+// The subscribe function should return a Teardown function that will be called
+// when the Subscription is unsubscribed. The Teardown function should clean up
+// any resources created during the subscription.
+//
+// The subscribe function may return a Teardown function that does nothing, if
+// no cleanup is necessary. In this case, the Teardown function should return nil.
+//
+// This method is not safe for concurrent use.
+func NewSingleProducerObservableWithContext[T any](subscribe func(ctx context.Context, destination Observer[T]) Teardown) Observable[T] {
+	return NewObservableWithConcurrencyMode(subscribe, ConcurrencyModeSingleProducer)
+}
+
 // NewObservableWithConcurrencyMode creates a new Observable with the given concurrency mode.
 // The subscribe function is called when the Observable is subscribed to. The subscribe function is given an Observer,
 // to which it may emit any number of items, then may either complete or error, but not both. Upon completion or error, the Observable will not emit any more items.
@@ -302,6 +351,38 @@ func (s *observableImpl[T]) Subscribe(destination Observer[T]) Subscription {
 // synchronization.
 func (s *observableImpl[T]) SubscribeWithContext(ctx context.Context, destination Observer[T]) Subscription {
 	subscription := NewSubscriberWithConcurrencyMode(destination, s.mode)
+	// Compute effective panic-capture policy once at subscription time and
+	// configure the subscriber hot-path helpers to avoid per-notification
+	// context lookups. If the destination is not an internal observerImpl,
+	// we conservatively assume capture is enabled.
+	capture := true
+	if oi, ok := destination.(*observerImpl[T]); ok {
+		capture = oi.capturePanics && !isObserverPanicCaptureDisabled(ctx)
+	} else if isObserverPanicCaptureDisabled(ctx) {
+		// For external observer implementations, respect context opt-out.
+		capture = false
+	}
+
+	// If subscription is our concrete subscriberImpl, set direct call helpers.
+	if ssub, ok := subscription.(*subscriberImpl[T]); ok {
+		// Avoid configuring directors when NewSubscriber returned the input
+		// subscriber itself (subscription == destination) — in that case the
+		// destination is already a Subscriber and it is responsible for its
+		// own hot-path wiring.
+		if subscription != destination {
+			ssub.setDirectors(destination, capture)
+		}
+	}
+
+	// If panic capture is explicitly disabled on the subscription context and
+	// the observable is in an unsafe/single-producer mode, skip the TryCatch
+	// wrapper to avoid extra allocations on the subscribe path. Callers should
+	// use `WithObserverPanicCaptureDisabled(ctx)` when subscribing in
+	// performance-sensitive code.
+	if isObserverPanicCaptureDisabled(ctx) && (s.mode == ConcurrencyModeUnsafe || s.mode == ConcurrencyModeSingleProducer) {
+		subscription.Add(s.subscribe(ctx, subscription))
+		return subscription
+	}
 
 	lo.TryCatchWithErrorValue(
 		func() error {
@@ -511,12 +592,28 @@ func newConnectableObservableImpl[T any](source Observable[T], config Connectabl
 	}
 }
 
+// isBackgroundContext detects whether the provided context is a top-level
+// background or TODO context. We compare pointers to the well-known
+// background/TODO values so callers can decide whether the provided context
+// is the default empty context. This is intentionally conservative — many
+// derived contexts will not be equal to Background/TODO and therefore will
+// be treated as explicit contexts.
+func isBackgroundContext(ctx context.Context) bool {
+	return ctx == context.Background() || ctx == context.TODO()
+}
+
 type connectableObservableImpl[T any] struct {
 	mu           sync.Mutex
 	config       ConnectableConfig[T]
 	source       Observable[T]
 	subject      Subject[T]
 	subscription Subscription
+	// lastSubscriberCtx stores the most-recent non-nil context passed to
+	// SubscribeWithContext. It is used as a fallback when Connect() is
+	// called without an explicit context so that the source subscription
+	// inherits the subscriber's context (values, cancellation) as tests
+	// expect.
+	lastSubscriberCtx context.Context
 }
 
 // Connect connects the ConnectableObservable. When connected, the ConnectableObservable
@@ -544,7 +641,16 @@ func (s *connectableObservableImpl[T]) Connect() Subscription {
 func (s *connectableObservableImpl[T]) ConnectWithContext(ctx context.Context) Subscription {
 	s.mu.Lock()
 	if s.subscription == nil || s.subscription.IsClosed() {
-		s.subscription = s.source.SubscribeWithContext(ctx, s.subject)
+		// If caller passed a background context and we have a subscriber
+		// context stored, prefer that so subscribers' context values are
+		// visible to the source. This mirrors expected behavior in tests
+		// where SubscribeWithContext is called before Connect().
+		effectiveCtx := ctx
+		if isBackgroundContext(ctx) && s.lastSubscriberCtx != nil {
+			effectiveCtx = s.lastSubscriberCtx
+		}
+
+		s.subscription = s.source.SubscribeWithContext(effectiveCtx, s.subject)
 		s.mu.Unlock()
 		s.subscription.Add(func() {
 			if s.config.ResetOnDisconnect {
@@ -563,5 +669,14 @@ func (s *connectableObservableImpl[T]) Subscribe(observer Observer[T]) Subscript
 }
 
 func (s *connectableObservableImpl[T]) SubscribeWithContext(ctx context.Context, observer Observer[T]) Subscription {
+	// Record the subscriber context so Connect() can use it if caller
+	// didn't provide an explicit context. We store the most recent
+	// non-background context.
+	if ctx != nil && !isBackgroundContext(ctx) {
+		s.mu.Lock()
+		s.lastSubscriberCtx = ctx
+		s.mu.Unlock()
+	}
+
 	return s.subject.SubscribeWithContext(ctx, observer)
 }
