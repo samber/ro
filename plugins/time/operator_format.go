@@ -20,9 +20,16 @@ import (
 	"github.com/samber/ro"
 )
 
-// Format returns a function that transforms an observable of time.Time values
-// into an observable of strings, formatted according to the provided layout.
-// The layout must be a valid time format string (e.g., "2006-01-02 15:04:05").
+// Format returns an operator that formats each time value using the given layout.
+//
+// Example:
+//
+//	obs := ro.Pipe1(
+//	    ro.Just(time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC)),
+//	    rotime.Format("2006-01-02 15:04:05"),
+//	)
+//
+// The observable then emits: "2026-01-07 14:30:00".
 func Format(format string) func(destination ro.Observable[time.Time]) ro.Observable[string] {
 	return ro.Map(
 		func(value time.Time) string {
@@ -30,9 +37,3 @@ func Format(format string) func(destination ro.Observable[time.Time]) ro.Observa
 		},
 	)
 }
-
-//obs := ro.Pipe(
-//    ro.Just(time.Now()),
-//    rotime.Format("2006-01-02 15:04:05"),
-//)
-// obs now emits the current time as a formatted string, e.g., "2026-01-07 14:30:00"

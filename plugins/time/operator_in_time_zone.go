@@ -20,7 +20,19 @@ import (
 	"github.com/samber/ro"
 )
 
-func InTimeZone(loc *time.Location) func(destination ro.Observable[time.Time]) ro.Observable[time.Time] {
+// In returns an operator that converts each time value to the given location.
+//
+// Example:
+//
+//	loc, _ := time.LoadLocation("Europe/Paris")
+//
+//	obs := ro.Pipe1(
+//	    ro.Just(time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC)),
+//	    rotime.In(loc),
+//	)
+//
+// The observable then emits: time.Date(2026, time.January, 7, 15, 30, 0, 0, loc).
+func In(loc *time.Location) func(destination ro.Observable[time.Time]) ro.Observable[time.Time] {
 	return ro.Map(
 		func(value time.Time) time.Time {
 			return value.In(loc)

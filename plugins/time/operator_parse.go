@@ -20,28 +20,38 @@ import (
 	"github.com/samber/ro"
 )
 
-// Parse returns a function that transforms an observable of string-like values
-// into an observable of time.Time. On parse error, the zero time is emitted.
+// Parse returns an operator that parses time strings using the given layout.
+//
+// Example:
+//
+//	obs := ro.Pipe[string, time.Time](
+//	    ro.Just("2026-01-07 14:30:00"),
+//	    rotime.Parse("2006-01-02 15:04:05"),
+//	)
+//
+// The observable then emits: time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC).
 func Parse[T ~string](layout string) func(ro.Observable[T]) ro.Observable[time.Time] {
-	return ro.Map(
-		func(value T) time.Time {
-			t, err := time.Parse(layout, string(value))
-			if err != nil {
-				return time.Time{}
-			}
-			return t
+	return ro.MapErr(
+		func(value T) (time.Time, error) {
+			return time.Parse(layout, string(value))
 		},
 	)
 }
 
+// ParseInLocation returns an operator that parses time strings in the given location.
+//
+// Example:
+//
+//	obs := ro.Pipe[string, time.Time](
+//	    ro.Just("2026-01-07 14:30:00"),
+//	    rotime.ParseInLocation("2006-01-02 15:04:05", time.UTC),
+//	)
+//
+// The observable then emits: time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC).
 func ParseInLocation[T ~string](layout string, loc *time.Location) func(ro.Observable[T]) ro.Observable[time.Time] {
-	return ro.Map(
-		func(value T) time.Time {
-			t, err := time.ParseInLocation(layout, string(value), loc)
-			if err != nil {
-				return time.Time{}
-			}
-			return t
+	return ro.MapErr(
+		func(value T) (time.Time, error) {
+			return time.ParseInLocation(layout, string(value), loc)
 		},
 	)
 }

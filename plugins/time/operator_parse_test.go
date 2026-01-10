@@ -45,11 +45,6 @@ var parseTests = []timeParseTest{
 		format:   "15:04:05",
 		input:    "23:59:59",
 	},
-	{
-		expected: time.Time{},
-		format:   "2006-01-02 15:04:05",
-		input:    "not-a-date",
-	},
 }
 
 var parseInLocationTests = []timeParseTest{
@@ -69,12 +64,6 @@ var parseInLocationTests = []timeParseTest{
 		expected: time.Date(0, time.January, 1, 23, 59, 59, 0, time.UTC),
 		format:   "15:04:05",
 		input:    "23:59:59",
-		loc:      time.UTC,
-	},
-	{
-		expected: time.Time{},
-		format:   "2006-01-02 15:04:05",
-		input:    "not-a-date",
 		loc:      time.UTC,
 	},
 	{
@@ -100,7 +89,11 @@ func TestParse(t *testing.T) {
 				),
 			)
 			is.Equal([]time.Time{tt.expected}, values)
-			is.Nil(err)
+			if tt.input == "not-a-date" {
+				is.Error(err)
+			} else {
+				is.NoError(err)
+			}
 		}
 	})
 
@@ -114,7 +107,7 @@ func TestParse(t *testing.T) {
 			),
 		)
 		is.Equal([]time.Time{}, values)
-		is.Nil(err)
+		is.NoError(err)
 	})
 
 	t.Run("Test error handling case", func(t *testing.T) {

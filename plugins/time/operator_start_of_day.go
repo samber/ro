@@ -20,7 +20,16 @@ import (
 	"github.com/samber/ro"
 )
 
-// StartOfDay truncates the time to the beginning of its day in the local time zone.
+// StartOfDay returns an operator that truncates each time value to the start of its day.
+//
+// Example:
+//
+//	obs := ro.Pipe1(
+//	    ro.Just(time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC)),
+//	    rotime.StartOfDay(),
+//	)
+//
+// The observable then emits: time.Date(2026, time.January, 7, 0, 0, 0, 0, time.UTC).
 func StartOfDay() func(ro.Observable[time.Time]) ro.Observable[time.Time] {
 	return ro.Map(
 		func(value time.Time) time.Time {

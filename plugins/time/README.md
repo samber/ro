@@ -78,7 +78,7 @@ observable := ro.Pipe1(
 // Completed
 ```
 
-### InTimeZone
+### In
 
 Transform an observable time.Time into a string, formatted according to the provided layout.
 
@@ -92,7 +92,7 @@ observable := ro.Pipe1(
     ro.Just(
        time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC),
     ),
-    rotime.InTimeZone(time.LoadLocation("Europe/Paris")),
+    rotime.In(time.LoadLocation("Europe/Paris")),
 )
 
 // Output:

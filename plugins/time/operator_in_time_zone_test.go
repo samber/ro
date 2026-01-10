@@ -33,7 +33,7 @@ func TestInTimeZone_SimpleConversion(t *testing.T) {
 		values, err := ro.Collect(
 			ro.Pipe1(
 				ro.Just(utc),
-				InTimeZone(paris),
+				In(paris),
 			),
 		)
 		is.NoError(err)
@@ -55,7 +55,7 @@ func TestInTimeZone_SimpleConversion(t *testing.T) {
 		values, err := ro.Collect(
 			ro.Pipe1(
 				ro.Empty[time.Time](),
-				InTimeZone(time.UTC),
+				In(time.UTC),
 			),
 		)
 
@@ -70,7 +70,7 @@ func TestInTimeZone_SimpleConversion(t *testing.T) {
 		values, err := ro.Collect(
 			ro.Pipe1(
 				ro.Throw[time.Time](assert.AnError),
-				InTimeZone(time.UTC),
+				In(time.UTC),
 			),
 		)
 

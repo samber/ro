@@ -20,14 +20,16 @@ import (
 	"github.com/samber/ro"
 )
 
-// obs := ro.Pipe[time.Time, time.Time](
-// 	ro.Just(time.Now()),
-// 	rotime.Add(2*time.Hour),
-// )
-// // Next: time.Now().Add(2 * time.Hour)
-
-// // can do the same for sub
-
+// Add returns an operator that adds a fixed duration to each time value.
+//
+// Example:
+//
+//	obs := ro.Pipe1(
+//	    ro.Just(time.Now()),
+//	    rotime.Add(2*time.Hour),
+//	)
+//
+// The observable then emits: time.Now().Add(2 * time.Hour).
 func Add(d time.Duration) func(destination ro.Observable[time.Time]) ro.Observable[time.Time] {
 	return ro.Map(
 		func(value time.Time) time.Time {
@@ -36,6 +38,16 @@ func Add(d time.Duration) func(destination ro.Observable[time.Time]) ro.Observab
 	)
 }
 
+// AddDate returns an operator that adds a date offset (years, months, days) to each time value.
+//
+// Example:
+//
+//	obs := ro.Pipe1(
+//	    ro.Just(time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC)),
+//	    rotime.AddDate(0, 1, 0),
+//	)
+//
+// The observable then emits: time.Date(2026, time.February, 7, 14, 30, 0, 0, time.UTC).
 func AddDate(years int, months int, days int) func(destination ro.Observable[time.Time]) ro.Observable[time.Time] {
 	return ro.Map(
 		func(value time.Time) time.Time {
