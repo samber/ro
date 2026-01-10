@@ -202,6 +202,7 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - **bytes** - Byte slice manipulation operators
 - **strings** - String manipulation operators (Capitalize, CamelCase, SnakeCase, etc.)
 - **sort** - Sorting operators
+- **time** - Time manipulation
 
 ### Encoding & Serialization
 - **encoding/json** - JSON marshaling and unmarshaling

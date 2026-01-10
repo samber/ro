@@ -52,6 +52,7 @@ use (
 	./plugins/strings
 	./plugins/template
 	./plugins/testify
+	./plugins/time
 	./plugins/websocket/client
 )
 
