@@ -1,11 +1,11 @@
 module github.com/samber/ro/plugins/bytes
 
-go 1.18
+go 1.24.0
 
 require (
 	github.com/samber/ro v0.0.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/text v0.22.0
+	golang.org/x/text v0.34.0
 )
 
 require (
