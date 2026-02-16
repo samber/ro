@@ -28,7 +28,6 @@ var _ Subject[int] = (*asyncSubjectImpl[int])(nil)
 // The emitted value or error is stored for future subscriptions. 0 or 1 value is emitted.
 func NewAsyncSubject[T any]() Subject[T] {
 	return &asyncSubjectImpl[T]{
-		mu:     sync.Mutex{},
 		status: 0,
 
 		observers:     sync.Map{},
@@ -41,7 +40,6 @@ func NewAsyncSubject[T any]() Subject[T] {
 }
 
 type asyncSubjectImpl[T any] struct {
-	mu     sync.Mutex // sync.RWMutex would be better, but it is too slow for high-volume subjects
 	status Kind
 
 	observers     sync.Map
@@ -60,9 +58,6 @@ func (s *asyncSubjectImpl[T]) Subscribe(destination Observer[T]) Subscription {
 // Implements Observable.
 func (s *asyncSubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Context, destination Observer[T]) Subscription {
 	subscription := NewSubscriber(destination)
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	switch s.status {
 	case KindNext:
@@ -104,16 +99,12 @@ func (s *asyncSubjectImpl[T]) Next(value T) {
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
-	s.mu.Lock()
-
 	if s.status == KindNext {
 		s.hasValue = true
 		s.value = lo.T2(ctx, value) // A previous value might be erased. It won't be forwarded to `OnDroppedNotification`.
 	} else {
 		OnDroppedNotification(ctx, NewNotificationNext(value))
 	}
-
-	s.mu.Unlock()
 }
 
 // Implements Observer.
@@ -123,8 +114,6 @@ func (s *asyncSubjectImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error) {
-	s.mu.Lock()
-
 	if s.status == KindNext {
 		s.err = lo.T2(ctx, err)
 		s.status = KindError
@@ -133,7 +122,6 @@ func (s *asyncSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error) {
 		OnDroppedNotification(ctx, NewNotificationError[T](err))
 	}
 
-	s.mu.Unlock()
 	s.unsubscribeAll()
 }
 
@@ -144,8 +132,6 @@ func (s *asyncSubjectImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
-	s.mu.Lock()
-
 	if s.status == KindNext {
 		s.status = KindComplete
 		if s.hasValue {
@@ -157,7 +143,6 @@ func (s *asyncSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
 		OnDroppedNotification(ctx, NewNotificationComplete[T]())
 	}
 
-	s.mu.Unlock()
 	s.unsubscribeAll()
 }
 
@@ -185,25 +170,16 @@ func (s *asyncSubjectImpl[T]) CountObservers() int {
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) IsClosed() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	return s.status != KindNext
 }
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) HasThrown() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	return s.status == KindError
 }
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) IsCompleted() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	return s.status == KindComplete
 }
 
