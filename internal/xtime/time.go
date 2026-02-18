@@ -16,7 +16,7 @@ package xtime
 
 import (
 	"time"
-	// _ "unsafe" // required for runtime.nanotime
+	// _ "unsafe" // required for runtime.nanotime.
 )
 
 // Using go:linkname is against the Go rules. There is another way to measure the
