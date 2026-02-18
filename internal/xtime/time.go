@@ -19,7 +19,7 @@ import (
 	// _ "unsafe" // required for runtime.nanotime
 )
 
-// Using go:linkname is against the Go rules. There is another way to mesure the
+// Using go:linkname is against the Go rules. There is another way to measure the
 // duration with monotonic time: using time.Since(startTime) where startTime is
 // the program start time.
 // This method is 1ns slower than calling nanotime(), which is not a big deal, but
