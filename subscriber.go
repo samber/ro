@@ -89,6 +89,18 @@ func NewEventuallySafeSubscriber[T any](destination Observer[T]) Subscriber[T] {
 	return NewSubscriberWithConcurrencyMode(destination, ConcurrencyModeEventuallySafe)
 }
 
+// NewSingleProducerSubscriber creates a new Subscriber optimized for single producer scenarios.
+// If the Observer is already a Subscriber, it is returned as is. Otherwise, a new Subscriber
+// is created that wraps the Observer.
+//
+// The returned Subscriber will unsubscribe from the destination Observer when
+// Unsubscribe() is called.
+//
+// This method is not safe for concurrent producers.
+func NewSingleProducerSubscriber[T any](destination Observer[T]) Subscriber[T] {
+	return NewSubscriberWithConcurrencyMode(destination, ConcurrencyModeSingleProducer)
+}
+
 // NewSubscriberWithConcurrencyMode creates a new Subscriber from an Observer. If the Observer
 // is already a Subscriber, it is returned as is. Otherwise, a new Subscriber
 // is created that wraps the Observer.
@@ -102,11 +114,23 @@ func NewSubscriberWithConcurrencyMode[T any](destination Observer[T], mode Concu
 	// only for short-lived local locks.
 	switch mode {
 	case ConcurrencyModeSafe:
-		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureBlock, destination)
+		// Fully synchronized subscriber that uses a real mutex implementation.
+		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureBlock, destination, false)
 	case ConcurrencyModeUnsafe:
-		return newSubscriberImpl(mode, xsync.NewMutexWithoutLock(), BackpressureBlock, destination)
+		// Unsafe mode: uses a no-op mutex object. Method calls to Lock/Unlock will be executed
+		// but they are no-ops; this preserves the same call-site shape as the safe variant while
+		// avoiding actual synchronization overhead.
+		return newSubscriberImpl(mode, xsync.NewMutexWithoutLock(), BackpressureBlock, destination, false)
 	case ConcurrencyModeEventuallySafe:
-		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureDrop, destination)
+		// Safe with backpressure drop: uses a real mutex but drops values when the lock cannot
+		// be acquired immediately.
+		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureDrop, destination, false)
+	case ConcurrencyModeSingleProducer:
+		// Single-producer optimized: uses the lockless fast path (mu == nil, lockless == true).
+		// This avoids any Lock/Unlock calls on the hot path and relies on atomics for status
+		// checks. It is intentionally different from ConcurrencyModeUnsafe which still calls
+		// no-op Lock/Unlock methods (and therefore incurs a method call per notification).
+		return newSubscriberImpl(mode, nil, BackpressureBlock, destination, true)
 	default:
 		panic("invalid concurrency mode")
 	}
@@ -114,11 +138,18 @@ func NewSubscriberWithConcurrencyMode[T any](destination Observer[T], mode Concu
 
 // newSubscriberImpl creates a new subscriber implementation with the specified
 // synchronization behavior and destination observer.
-func newSubscriberImpl[T any](mode ConcurrencyMode, mu xsync.Mutex, backpressure Backpressure, destination Observer[T]) Subscriber[T] {
+func newSubscriberImpl[T any](mode ConcurrencyMode, mu xsync.Mutex, backpressure Backpressure, destination Observer[T], lockless bool) Subscriber[T] {
 	// Protect against multiple encapsulation layers.
 	if subscriber, ok := destination.(Subscriber[T]); ok {
 		return subscriber
 	}
+
+	// Note: `mu == nil` combined with `lockless == true` enables the fast-path used by
+	// `ConcurrencyModeSingleProducer` where the subscriber avoids calling Lock/Unlock on each
+	// notification and instead uses atomic status checks. `xsync.NewMutexWithoutLock()` is a
+	// no-op mutex implementation used by `ConcurrencyModeUnsafe` — its Lock/Unlock methods are
+	// still invoked but do nothing. We keep both variants to make the performance trade-offs
+	// explicit and measurable.
 
 	subscriber := &subscriberImpl[T]{
 		status:       0, // KindNext
@@ -129,6 +160,7 @@ func newSubscriberImpl[T any](mode ConcurrencyMode, mu xsync.Mutex, backpressure
 
 		Subscription: NewSubscription(nil),
 		mode:         mode,
+		lockless:     lockless,
 	}
 
 	if subscription, ok := destination.(Subscription); ok {
@@ -164,7 +196,15 @@ type subscriberImpl[T any] struct {
 
 	Subscription
 
-	mode ConcurrencyMode
+	mode     ConcurrencyMode
+	lockless bool
+	// Per-subscription direct call helpers. When non-nil these are used in the
+	// hot path to call the destination without additional interface dispatch
+	// or context lookups. They are set once at subscription time by the
+	// Observable (see observable.SubscribeWithContext).
+	nextDirect     func(context.Context, T)
+	errorDirect    func(context.Context, error)
+	completeDirect func(context.Context)
 }
 
 // Implements Observer.
@@ -178,6 +218,22 @@ func (s *subscriberImpl[T]) NextWithContext(ctx context.Context, v T) {
 		return
 	}
 
+	if s.lockless {
+		// Fast-path: if status indicates not-next, drop the notification.
+		if atomic.LoadInt32(&s.status) != 0 {
+			OnDroppedNotification(ctx, NewNotificationNext(v))
+			return
+		}
+
+		if s.nextDirect != nil {
+			s.nextDirect(ctx, v)
+		} else {
+			s.destination.NextWithContext(ctx, v)
+		}
+
+		return
+	}
+
 	if s.backpressure == BackpressureDrop {
 		if !s.mu.TryLock() {
 			OnDroppedNotification(ctx, NewNotificationNext(v))
@@ -187,10 +243,17 @@ func (s *subscriberImpl[T]) NextWithContext(ctx context.Context, v T) {
 		s.mu.Lock()
 	}
 
-	if atomic.LoadInt32(&s.status) == 0 {
-		s.destination.NextWithContext(ctx, v)
-	} else {
+	// If already in non-next state, drop the notification and return early.
+	if atomic.LoadInt32(&s.status) != 0 {
+		s.mu.Unlock()
 		OnDroppedNotification(ctx, NewNotificationNext(v))
+		return
+	}
+
+	if s.nextDirect != nil {
+		s.nextDirect(ctx, v)
+	} else {
+		s.destination.NextWithContext(ctx, v)
 	}
 
 	s.mu.Unlock()
@@ -203,14 +266,46 @@ func (s *subscriberImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *subscriberImpl[T]) ErrorWithContext(ctx context.Context, err error) {
-	s.mu.Lock()
+	if s.lockless {
+		// Fast-path: attempt to move to error state; if CAS fails, drop.
+		if !atomic.CompareAndSwapInt32(&s.status, 0, 1) {
+			OnDroppedNotification(ctx, NewNotificationError[T](err))
+			s.unsubscribe()
+			return
+		}
 
-	if atomic.CompareAndSwapInt32(&s.status, 0, 1) {
-		if s.destination != nil {
+		// If no destination, nothing to do beyond unsubscribing.
+		if s.destination == nil {
+			s.unsubscribe()
+			return
+		}
+
+		if s.errorDirect != nil {
+			s.errorDirect(ctx, err)
+		} else {
 			s.destination.ErrorWithContext(ctx, err)
 		}
-	} else {
+
+		s.unsubscribe()
+		return
+	}
+
+	s.mu.Lock()
+
+	// If CAS to error fails, drop and return early.
+	if !atomic.CompareAndSwapInt32(&s.status, 0, 1) {
+		s.mu.Unlock()
 		OnDroppedNotification(ctx, NewNotificationError[T](err))
+		s.unsubscribe()
+		return
+	}
+
+	if s.destination != nil {
+		if s.errorDirect != nil {
+			s.errorDirect(ctx, err)
+		} else {
+			s.destination.ErrorWithContext(ctx, err)
+		}
 	}
 
 	s.mu.Unlock()
@@ -225,14 +320,46 @@ func (s *subscriberImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *subscriberImpl[T]) CompleteWithContext(ctx context.Context) {
-	s.mu.Lock()
+	if s.lockless {
+		// Fast-path: attempt to move to complete state; if CAS fails, drop.
+		if !atomic.CompareAndSwapInt32(&s.status, 0, 2) {
+			OnDroppedNotification(ctx, NewNotificationComplete[T]())
+			s.unsubscribe()
+			return
+		}
 
-	if atomic.CompareAndSwapInt32(&s.status, 0, 2) {
-		if s.destination != nil {
+		// If no destination, nothing to do beyond unsubscribing.
+		if s.destination == nil {
+			s.unsubscribe()
+			return
+		}
+
+		if s.completeDirect != nil {
+			s.completeDirect(ctx)
+		} else {
 			s.destination.CompleteWithContext(ctx)
 		}
-	} else {
+
+		s.unsubscribe()
+		return
+	}
+
+	s.mu.Lock()
+
+	// If CAS to complete fails, drop and return early.
+	if !atomic.CompareAndSwapInt32(&s.status, 0, 2) {
+		s.mu.Unlock()
 		OnDroppedNotification(ctx, NewNotificationComplete[T]())
+		s.unsubscribe()
+		return
+	}
+
+	if s.destination != nil {
+		if s.completeDirect != nil {
+			s.completeDirect(ctx)
+		} else {
+			s.destination.CompleteWithContext(ctx)
+		}
 	}
 
 	s.mu.Unlock()
@@ -265,4 +392,31 @@ func (s *subscriberImpl[T]) Unsubscribe() {
 func (s *subscriberImpl[T]) unsubscribe() {
 	// s.Subscription.Unsubscribe() is protected against concurrent calls.
 	s.Subscription.Unsubscribe()
+}
+
+// setDirectors configures per-subscription direct call helpers based on the
+// concrete destination type and the precomputed capture flag. This avoids
+// per-notification context lookups and type assertions on the hot path.
+func (s *subscriberImpl[T]) setDirectors(destination Observer[T], capture bool) {
+	// Default to interface-based calls.
+	s.nextDirect = func(ctx context.Context, v T) { destination.NextWithContext(ctx, v) }
+	s.errorDirect = func(ctx context.Context, err error) { destination.ErrorWithContext(ctx, err) }
+	s.completeDirect = func(ctx context.Context) { destination.CompleteWithContext(ctx) }
+
+	// If destination is an *observerImpl[T], we can configure per-subscription
+	// direct call helpers. When capture==true we create one-off wrappers that
+	// call internal helpers that accept a precomputed capture flag and therefore
+	// avoid context lookups.
+	if oi, ok := destination.(*observerImpl[T]); ok {
+		if !capture {
+			// No panic capture: call internal methods directly.
+			s.nextDirect = func(ctx context.Context, v T) { oi.onNext(ctx, v) }
+			s.errorDirect = func(ctx context.Context, err error) { oi.onError(ctx, err) }
+			s.completeDirect = func(ctx context.Context) { oi.onComplete(ctx) }
+			return
+		}
+		s.nextDirect = func(ctx context.Context, v T) { oi.tryNextWithCapture(ctx, v, capture) }
+		s.errorDirect = func(ctx context.Context, err error) { oi.tryErrorWithCapture(ctx, err, capture) }
+		s.completeDirect = func(ctx context.Context) { oi.tryCompleteWithCapture(ctx, capture) }
+	}
 }
