@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -207,6 +208,39 @@ func ExampleMergeWith2_error() {
 	// Next: 2
 	// Next: 3
 	// Error: assert.AnError general error for testing
+}
+
+func ExampleFloorWithPrecision() {
+	observable := Pipe1(
+		Just(3.14159, 2.71828, -1.2345),
+		FloorWithPrecision(2),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[float64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 3.14
+	// Next: 2.71
+	// Next: -1.24
+	// Completed
+}
+
+func ExampleFloorWithPrecision_smallNumbers() {
+	observable := Pipe1(
+		Just(0.000123, -0.000987, math.Inf(1), math.NaN()),
+		FloorWithPrecision(4),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[float64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 0.0001
+	// Next: -0.001
+	// Next: +Inf
+	// Next: NaN
+	// Completed
 }
 
 func ExampleMergeWith3_ok() {
