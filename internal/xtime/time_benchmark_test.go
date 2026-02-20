@@ -18,6 +18,7 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	_ "unsafe" // required for runtime.nanotime
 )
 
 //
@@ -25,7 +26,10 @@ import (
 // For example: time.Now() vs syscall.Gettimeofday(), or std linked list vs custom.
 //
 
-var startTime = time.Now()
+var benchStartTime = time.Now()
+
+//go:linkname nanotime runtime.nanotime
+func nanotime() int64
 
 // go test -benchmem -benchtime=100000000x -bench=Time ./bench/.
 func BenchmarkDevelTime(b *testing.B) {
@@ -50,10 +54,10 @@ func BenchmarkDevelTime(b *testing.B) {
 		}
 	})
 
-	// time.Since(startTime) uses monotonic time
+	// time.Since(benchStartTime) uses monotonic time
 	b.Run("TimeRuntimeMonotonicTimeSince", func(b *testing.B) {
 		for n := 0; n < b.N; n++ {
-			_ = time.Since(startTime).Nanoseconds()
+			_ = time.Since(benchStartTime).Nanoseconds()
 		}
 	})
 }
