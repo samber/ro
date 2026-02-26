@@ -297,7 +297,7 @@ func TestReduceSumInt8x64(t *testing.T) {
 				}
 				return v
 			}(),
-			expected: -128, // 10*32 = 320 wraps to 64
+			expected: 64, // 10*32 = 320 wraps to 64 in int8
 		},
 
 		// Boundary values
@@ -3177,7 +3177,7 @@ func TestMaxFloat64x8(t *testing.T) {
 			name:      "positive threshold",
 			input:     []float64{-5.0, -3.0, 0.0, 3.0, 5.0, -10.0, 10.0, 0.0},
 			threshold: 2.0,
-			expected:  []float64{2.0, 2.0, 2.0, 3.0, 5.0, 2.0, 2.0, 2.0},
+			expected:  []float64{-5.0, -3.0, 0.0, 2.0, 2.0, -10.0, 2.0, 0.0},
 		},
 	}
 
@@ -4872,7 +4872,7 @@ func TestAddUint16x32(t *testing.T) {
 			expected: func() []uint16 {
 				v := make([]uint16, 32)
 				for i := range v {
-					v[i] = 4528 // 70000 % 65536 = 4528
+					v[i] = 4464 // 50000 + 20000 = 70000; 70000 % 65536 = 4464
 				}
 				return v
 			}(),
@@ -7243,7 +7243,7 @@ func TestReduceMaxInt64x2(t *testing.T) {
 			setupVec: func() *archsimd.Int64x2 {
 				vec := archsimd.Int64x2{}
 				for i := 0; i < 2; i++ {
-					vec = vec.SetElem(uint8(i), int64(int64(i)*1000000-1500000))
+					vec = vec.SetElem(uint8(i), int64((int64(i)*2-1)*500000))
 				}
 				return &vec
 			},

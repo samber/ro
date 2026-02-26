@@ -4,6 +4,7 @@ package simd
 
 import (
 	"context"
+	"math"
 	"simd/archsimd"
 
 	"github.com/samber/ro"
@@ -475,6 +476,10 @@ func ReduceMinFloat32x16[T ~float32]() func(ro.Observable[*archsimd.Float32x16])
 						accumulation.Store(&buf)
 						result := buf[0]
 						for i := uint(1); i < lanes; i++ {
+							if math.IsNaN(float64(buf[i])) {
+								result = buf[i]
+								break
+							}
 							if buf[i] < result {
 								result = buf[i]
 							}
@@ -523,6 +528,10 @@ func ReduceMaxFloat32x16[T ~float32]() func(ro.Observable[*archsimd.Float32x16])
 						accumulation.Store(&buf)
 						result := buf[0]
 						for i := uint(1); i < lanes; i++ {
+							if math.IsNaN(float64(buf[i])) {
+								result = buf[i]
+								break
+							}
 							if buf[i] > result {
 								result = buf[i]
 							}
@@ -2953,9 +2962,7 @@ func ReduceMinFloat64x8[T ~float64]() func(ro.Observable[*archsimd.Float64x8]) r
 						accumulation.Store(&buf)
 						result := buf[0]
 						for i := uint(1); i < lanes; i++ {
-							if buf[i] < result {
-								result = buf[i]
-							}
+							result = math.Min(result, buf[i])
 						}
 
 						destination.NextWithContext(ctx, T(result))
@@ -3001,9 +3008,7 @@ func ReduceMaxFloat64x8[T ~float64]() func(ro.Observable[*archsimd.Float64x8]) r
 						accumulation.Store(&buf)
 						result := buf[0]
 						for i := uint(1); i < lanes; i++ {
-							if buf[i] > result {
-								result = buf[i]
-							}
+							result = math.Max(result, buf[i])
 						}
 
 						destination.NextWithContext(ctx, T(result))
