@@ -4,6 +4,10 @@ on:
   push:
   # pull_request:
 
+env:
+  GOEXPERIMENT: simd
+  GOWORK: off
+
 jobs:
   test-simd:
     # GitHub hosted runners run on several architectures.
@@ -34,4 +38,4 @@ jobs:
       - name: Benchmark
         run: |
           cd plugins/exp/simd/
-          GOEXPERIMENT=simd go test -run=^Benchmark -benchmem -bench ./...
+          GOWORK=off GOEXPERIMENT=simd go test -run=^Benchmark -benchmem -bench ./...

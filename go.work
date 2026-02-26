@@ -1,4 +1,4 @@
-go 1.26
+go 1.18
 
 //
 // Base library
@@ -17,7 +17,7 @@ use (
 	./plugins/encoding/gob
 	./plugins/encoding/json
 	// Commented out because requires go>=1.26
-	./plugins/exp/simd
+	// ./plugins/exp/simd
 	// Commented out because requires go>=1.25
 	// ./plugins/encoding/json/v2
 	./plugins/fsnotify
