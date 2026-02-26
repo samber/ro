@@ -12,7 +12,7 @@
 //
 // The package automatically detects available CPU features at package initialization
 // and dispatches to the most efficient implementation:
-//   - SSE (AVX): 128-bit vectors, 16 int8 lanes, 4 float32 lanes
+//   - AVX: 128-bit vectors, 16 int8 lanes, 4 float32 lanes
 //   - AVX2: 256-bit vectors, 32 int8 lanes, 8 float32 lanes
 //   - AVX-512: 512-bit vectors, 64 int8 lanes, 16 float32 lanes
 //

@@ -10,7 +10,7 @@ import (
 	"github.com/samber/ro"
 )
 
-// SSE ScalarTo/ToScalar variants (128-bit vectors)
+// AVX ScalarTo/ToScalar variants (128-bit vectors)
 
 // Int8x16 variants
 

@@ -119,7 +119,7 @@ The `ro` library provides a rich ecosystem of plugins for various use cases:
 - **Strings** (`plugins/strings`) - String manipulation operators
 - **Sort** (`plugins/sort`) - Sorting operators
 - **Type Conversion** (`plugins/strconv`) - String conversion operators
-- **SIMD** ('`plugins/exp/simd`) - SIMD-accelerated transformations
+- **SIMD** (`plugins/exp/simd`) - SIMD-accelerated transformations
 
 ### Encoding & Serialization
 - **JSON** (`plugins/encoding/json`) - JSON marshaling and unmarshaling

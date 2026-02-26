@@ -6992,7 +6992,7 @@ func TestReduceMaxUint64x4(t *testing.T) {
 }
 
 // ==================== Int64x2 and Uint64x2 Min/Max/Clamp tests ====================
-// NOTE: These operations require AVX-512 because SSE/AVX2 don't have 64-bit integer comparison instructions
+// NOTE: These operations require AVX-512 because AVX and AVX2 don't have 64-bit integer comparison instructions
 
 func TestClampInt64x2(t *testing.T) {
 	requireAVX512(t)

@@ -1,7 +1,7 @@
 ---
 name: SIMDToScalar
 slug: simdtoscalar
-sourceRef: plugins/exp/simd/conversion_sse.go
+sourceRef: plugins/exp/simd/conversion_avx.go
 type: plugin
 category: simd
 signatures:
@@ -108,9 +108,9 @@ defer sub.Unsubscribe()
 // Completed
 ```
 
-## SSE variants (128-bit vectors)
+## AVX variants (128-bit vectors)
 
-Available on all x86_64 CPUs with SSE support (basically all modern x86_64 CPUs).
+Available on all x86_64 CPUs with AVX support (basically all modern x86_64 CPUs).
 
 - Float32x4ToScalar
 - Float64x2ToScalar

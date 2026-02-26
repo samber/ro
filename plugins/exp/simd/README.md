@@ -19,7 +19,7 @@ The package automatically detects available CPU features at runtime and dispatch
 | Instruction Set | Vector Width | Lanes (int8) | Lanes (float32) | Detection               |
 | --------------- | ------------ | ------------ | --------------- | ----------------------- |
 | None (fallback) | N/A          | 1            | 1               | Default                 |
-| SSE (AVX)       | 128-bit      | 16           | 4               | `archsimd.X86.AVX()`    |
+| AVX             | 128-bit      | 16           | 4               | `archsimd.X86.AVX()`    |
 | AVX2            | 256-bit      | 32           | 8               | `archsimd.X86.AVX2()`   |
 | AVX-512         | 512-bit      | 64           | 16              | `archsimd.X86.AVX512()` |
 
@@ -152,7 +152,7 @@ SIMD operations provide significant speedup for:
 - **Parallel-friendly patterns**: Element-wise operations
 
 Performance improvements scale with:
-1. **Vector width**: AVX-512 (512-bit) > AVX2 (256-bit) > SSE (128-bit)
+1. **Vector width**: AVX-512 (512-bit) > AVX2 (256-bit) > AVX (128-bit)
 2. **Element size**: `int8` (64 lanes) > `float32` (16 lanes) > `float64` (8 lanes)
 
 ### Example Benchmarks
@@ -224,25 +224,29 @@ On systems without SIMD support or non-AMD64 architectures, all operators fall b
 
 ## Testing
 
-Run tests with SIMD experiment enabled:
+Run tests with SIMD experiment enabled and Go workspace disabled:
 
 ```bash
-GOEXPERIMENT=simd go test ./plugins/exp/simd/...
+export GOWORK=off
+export GOEXPERIMENT=simd
+go test ./plugins/exp/simd/...
 ```
 
 Run benchmarks:
 
 ```bash
-GOEXPERIMENT=simd go test -bench=. ./plugins/exp/simd/...
+export GOWORK=off
+export GOEXPERIMENT=simd
+go test -bench=. ./plugins/exp/simd/...
 ```
 
 ### Test Files
 
 - `simd_test.go` - Core operator tests
-- `math_sse_test.go` - SSE-specific math tests
+- `math_avx_test.go` - AVX-specific math tests
 - `math_avx2_test.go` - AVX2-specific math tests
 - `math_avx512_test.go` - AVX-512-specific math tests
-- `conversion_sse_test.go` - SSE conversion operator tests
+- `conversion_avx_test.go` - AVX conversion operator tests
 - `conversion_avx2_test.go` - AVX2 conversion operator tests
 - `conversion_avx512_test.go` - AVX-512 conversion operator tests
 - `math_bench_test.go` - Performance benchmarks
@@ -253,7 +257,8 @@ GOEXPERIMENT=simd go test -bench=. ./plugins/exp/simd/...
 Build your application with SIMD support:
 
 ```bash
-GOEXPERIMENT=simd go build ./...
+export GOEXPERIMENT=simd
+go build ./...
 ```
 
 For Windows:
@@ -269,10 +274,10 @@ plugins/exp/simd/
 ├── go.mod                       # Module definition with SIMD dependency
 ├── simd.go                      # Fallback for non-amd64 systems
 ├── cpu_amd64.go                 # CPU feature detection
-├── math_sse.go                  # SSE implementations (128-bit)
+├── math_avx.go                  # AVX implementations (128-bit)
 ├── math_avx2.go                 # AVX2 implementations (256-bit)
 ├── math_avx512.go               # AVX-512 implementations (512-bit)
-├── conversion_sse.go            # SSE conversion operators
+├── conversion_avx.go            # AVX conversion operators
 ├── conversion_avx2.go           # AVX2 conversion operators
 ├── conversion_avx512.go         # AVX-512 conversion operators
 ├── *test.go                     # Test and benchmark files

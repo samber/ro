@@ -3018,7 +3018,7 @@ func ReduceMaxFloat64x8[T ~float64]() func(ro.Observable[*archsimd.Float64x8]) r
 }
 
 // ==================== Int64x2 and Uint64x2 Min/Max/Clamp functions ====================
-// NOTE: These operations require AVX-512 because SSE/AVX2 don't have 64-bit integer comparison instructions
+// NOTE: These operations require AVX-512 because AVX and AVX2 don't have 64-bit integer comparison instructions
 
 // ClampInt64x2 clamps each element of int64x2 vectors between min and max values.
 // Values outside the range are clamped to the nearest valid value.

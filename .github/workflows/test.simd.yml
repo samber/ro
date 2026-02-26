@@ -2,7 +2,13 @@ name: Tests (SIMD)
 
 on:
   push:
-  # pull_request:
+    branches:
+      - main
+    paths:
+      - 'plugins/exp/simd/**'
+  pull_request:
+    paths:
+      - 'plugins/exp/simd/**'
 
 env:
   GOEXPERIMENT: simd

@@ -14,6 +14,7 @@ import (
 // ==================== ScalarToInt8x16 ====================
 
 func TestScalarToInt8x16(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name            string
 		input           []int8
@@ -118,6 +119,7 @@ func TestScalarToInt8x16(t *testing.T) {
 // ==================== Round-trip Tests (ScalarTo -> ToScalar) ====================
 
 func TestRoundTripInt8x16(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name  string
 		input []int8
@@ -156,6 +158,7 @@ func TestRoundTripInt8x16(t *testing.T) {
 }
 
 func TestRoundTripInt16x8(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name  string
 		input []int16
@@ -189,6 +192,7 @@ func TestRoundTripInt16x8(t *testing.T) {
 }
 
 func TestRoundTripInt32x4(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name  string
 		input []int32
@@ -222,6 +226,7 @@ func TestRoundTripInt32x4(t *testing.T) {
 }
 
 func TestRoundTripInt64x2(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name  string
 		input []int64
@@ -257,6 +262,7 @@ func TestRoundTripInt64x2(t *testing.T) {
 // ==================== Int8x16ToScalar (Content Verification) ====================
 
 func TestInt8x16ToScalar(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []int8
@@ -325,6 +331,7 @@ func TestInt8x16ToScalar(t *testing.T) {
 // ==================== Float32 Round-trip ====================
 
 func TestRoundTripFloat32x4(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []float32
@@ -357,6 +364,7 @@ func TestRoundTripFloat32x4(t *testing.T) {
 }
 
 func TestRoundTripFloat64x2(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []float64
@@ -388,6 +396,7 @@ func TestRoundTripFloat64x2(t *testing.T) {
 // ==================== Uint Type Round-trip Tests ====================
 
 func TestRoundTripUint8x16(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []uint8
@@ -416,6 +425,7 @@ func TestRoundTripUint8x16(t *testing.T) {
 }
 
 func TestRoundTripUint16x8(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []uint16
@@ -443,6 +453,7 @@ func TestRoundTripUint16x8(t *testing.T) {
 }
 
 func TestRoundTripUint32x4(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []uint32
@@ -470,6 +481,7 @@ func TestRoundTripUint32x4(t *testing.T) {
 }
 
 func TestRoundTripUint64x2(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []uint64
@@ -499,6 +511,7 @@ func TestRoundTripUint64x2(t *testing.T) {
 // ==================== Individual ScalarTo Tests ====================
 
 func TestScalarToInt16x8(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name            string
 		input           []int16
@@ -557,6 +570,7 @@ func TestScalarToInt16x8(t *testing.T) {
 }
 
 func TestScalarToInt32x4(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name            string
 		input           []int32
@@ -615,6 +629,7 @@ func TestScalarToInt32x4(t *testing.T) {
 }
 
 func TestScalarToInt64x2(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name            string
 		input           []int64
@@ -668,6 +683,7 @@ func TestScalarToInt64x2(t *testing.T) {
 }
 
 func TestScalarToFloat32x4(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name            string
 		input           []float32
@@ -721,6 +737,7 @@ func TestScalarToFloat32x4(t *testing.T) {
 }
 
 func TestScalarToFloat64x2(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name            string
 		input           []float64
@@ -769,6 +786,7 @@ func TestScalarToFloat64x2(t *testing.T) {
 }
 
 func TestScalarToUint8x16(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name            string
 		input           []uint8
@@ -822,6 +840,7 @@ func TestScalarToUint8x16(t *testing.T) {
 }
 
 func TestScalarToUint16x8(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name            string
 		input           []uint16
@@ -875,6 +894,7 @@ func TestScalarToUint16x8(t *testing.T) {
 }
 
 func TestScalarToUint32x4(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name            string
 		input           []uint32
@@ -928,6 +948,7 @@ func TestScalarToUint32x4(t *testing.T) {
 }
 
 func TestScalarToUint64x2(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name            string
 		input           []uint64
@@ -978,6 +999,7 @@ func TestScalarToUint64x2(t *testing.T) {
 // ==================== Individual ToScalar Tests ====================
 
 func TestInt16x8ToScalar(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []int16
@@ -1037,6 +1059,7 @@ func TestInt16x8ToScalar(t *testing.T) {
 }
 
 func TestInt32x4ToScalar(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []int32
@@ -1088,6 +1111,7 @@ func TestInt32x4ToScalar(t *testing.T) {
 }
 
 func TestInt64x2ToScalar(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []int64
@@ -1143,6 +1167,7 @@ func TestInt64x2ToScalar(t *testing.T) {
 }
 
 func TestFloat32x4ToScalar(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []float32
@@ -1204,6 +1229,7 @@ func TestFloat32x4ToScalar(t *testing.T) {
 }
 
 func TestFloat64x2ToScalar(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []float64
@@ -1261,6 +1287,7 @@ func TestFloat64x2ToScalar(t *testing.T) {
 }
 
 func TestUint8x16ToScalar(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []uint8
@@ -1312,6 +1339,7 @@ func TestUint8x16ToScalar(t *testing.T) {
 }
 
 func TestUint16x8ToScalar(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []uint16
@@ -1363,6 +1391,7 @@ func TestUint16x8ToScalar(t *testing.T) {
 }
 
 func TestUint32x4ToScalar(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []uint32
@@ -1414,6 +1443,7 @@ func TestUint32x4ToScalar(t *testing.T) {
 }
 
 func TestUint64x2ToScalar(t *testing.T) {
+	requireAVX(t)
 	testCases := []struct {
 		name     string
 		input    []uint64

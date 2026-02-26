@@ -16,6 +16,7 @@ import (
 
 func TestReduceSumInt8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -135,6 +136,7 @@ func TestReduceSumInt8x16(t *testing.T) {
 
 func TestReduceMinInt8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -210,6 +212,7 @@ func TestReduceMinInt8x16(t *testing.T) {
 
 func TestReduceMaxInt8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -287,6 +290,7 @@ func TestReduceMaxInt8x16(t *testing.T) {
 
 func TestAddInt8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -367,6 +371,7 @@ func TestAddInt8x16(t *testing.T) {
 
 func TestSubInt8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name       string
@@ -435,6 +440,7 @@ func TestSubInt8x16(t *testing.T) {
 
 func TestClampInt8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -532,6 +538,7 @@ func TestClampInt8x16(t *testing.T) {
 
 func TestMinInt8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -600,6 +607,7 @@ func TestMinInt8x16(t *testing.T) {
 
 func TestMaxInt8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -670,6 +678,7 @@ func TestMaxInt8x16(t *testing.T) {
 
 func TestReduceSumInt16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -731,6 +740,7 @@ func TestReduceSumInt16x8(t *testing.T) {
 
 func TestSubInt16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name       string
@@ -799,6 +809,7 @@ func TestSubInt16x8(t *testing.T) {
 
 func TestClampInt16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -895,6 +906,7 @@ func TestClampInt16x8(t *testing.T) {
 
 func TestMinInt16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -963,6 +975,7 @@ func TestMinInt16x8(t *testing.T) {
 
 func TestMaxInt16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -1025,6 +1038,7 @@ func TestMaxInt16x8(t *testing.T) {
 
 func TestReduceMinInt16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -1089,6 +1103,7 @@ func TestReduceMinInt16x8(t *testing.T) {
 
 func TestReduceMaxInt16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -1153,6 +1168,7 @@ func TestReduceMaxInt16x8(t *testing.T) {
 
 func TestAddInt16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -1229,6 +1245,7 @@ func TestAddInt16x8(t *testing.T) {
 
 func TestReduceSumInt32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -1285,6 +1302,7 @@ func TestReduceSumInt32x4(t *testing.T) {
 
 func TestAddInt32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -1359,6 +1377,7 @@ func TestAddInt32x4(t *testing.T) {
 
 func TestSubInt32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name       string
@@ -1427,6 +1446,7 @@ func TestSubInt32x4(t *testing.T) {
 
 func TestClampInt32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -1510,6 +1530,7 @@ func TestClampInt32x4(t *testing.T) {
 
 func TestMinInt32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -1572,6 +1593,7 @@ func TestMinInt32x4(t *testing.T) {
 
 func TestMaxInt32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -1634,6 +1656,7 @@ func TestMaxInt32x4(t *testing.T) {
 
 func TestReduceMinInt32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -1698,6 +1721,7 @@ func TestReduceMinInt32x4(t *testing.T) {
 
 func TestReduceMaxInt32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -1764,6 +1788,7 @@ func TestReduceMaxInt32x4(t *testing.T) {
 
 func TestReduceSumInt64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -1820,6 +1845,7 @@ func TestReduceSumInt64x2(t *testing.T) {
 
 func TestAddInt64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -1882,6 +1908,7 @@ func TestAddInt64x2(t *testing.T) {
 
 func TestSubInt64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name       string
@@ -1946,6 +1973,7 @@ func TestSubInt64x2(t *testing.T) {
 
 func TestReduceSumUint8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -2002,6 +2030,7 @@ func TestReduceSumUint8x16(t *testing.T) {
 
 func TestAddUint8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -2070,6 +2099,7 @@ func TestAddUint8x16(t *testing.T) {
 
 func TestSubUint8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name       string
@@ -2138,6 +2168,7 @@ func TestSubUint8x16(t *testing.T) {
 
 func TestClampUint8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -2221,6 +2252,7 @@ func TestClampUint8x16(t *testing.T) {
 
 func TestMinUint8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -2277,6 +2309,7 @@ func TestMinUint8x16(t *testing.T) {
 
 func TestMaxUint8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -2333,6 +2366,7 @@ func TestMaxUint8x16(t *testing.T) {
 
 func TestReduceMinUint8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -2384,6 +2418,7 @@ func TestReduceMinUint8x16(t *testing.T) {
 
 func TestReduceMaxUint8x16(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -2437,6 +2472,7 @@ func TestReduceMaxUint8x16(t *testing.T) {
 
 func TestReduceSumUint16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -2488,6 +2524,7 @@ func TestReduceSumUint16x8(t *testing.T) {
 
 func TestAddUint16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -2544,6 +2581,7 @@ func TestAddUint16x8(t *testing.T) {
 
 func TestSubUint16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name       string
@@ -2594,6 +2632,7 @@ func TestSubUint16x8(t *testing.T) {
 
 func TestClampUint16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -2663,6 +2702,7 @@ func TestClampUint16x8(t *testing.T) {
 
 func TestMinUint16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -2713,6 +2753,7 @@ func TestMinUint16x8(t *testing.T) {
 
 func TestMaxUint16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -2763,6 +2804,7 @@ func TestMaxUint16x8(t *testing.T) {
 
 func TestReduceMinUint16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -2814,6 +2856,7 @@ func TestReduceMinUint16x8(t *testing.T) {
 
 func TestReduceMaxUint16x8(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -2867,6 +2910,7 @@ func TestReduceMaxUint16x8(t *testing.T) {
 
 func TestReduceSumUint32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -2913,6 +2957,7 @@ func TestReduceSumUint32x4(t *testing.T) {
 
 func TestAddUint32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -2963,6 +3008,7 @@ func TestAddUint32x4(t *testing.T) {
 
 func TestSubUint32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name       string
@@ -3013,6 +3059,7 @@ func TestSubUint32x4(t *testing.T) {
 
 func TestClampUint32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -3082,6 +3129,7 @@ func TestClampUint32x4(t *testing.T) {
 
 func TestMinUint32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -3132,6 +3180,7 @@ func TestMinUint32x4(t *testing.T) {
 
 func TestMaxUint32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -3182,6 +3231,7 @@ func TestMaxUint32x4(t *testing.T) {
 
 func TestReduceMinUint32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -3233,6 +3283,7 @@ func TestReduceMinUint32x4(t *testing.T) {
 
 func TestReduceMaxUint32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -3286,6 +3337,7 @@ func TestReduceMaxUint32x4(t *testing.T) {
 
 func TestReduceSumUint64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -3332,6 +3384,7 @@ func TestReduceSumUint64x2(t *testing.T) {
 
 func TestAddUint64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -3382,6 +3435,7 @@ func TestAddUint64x2(t *testing.T) {
 
 func TestSubUint64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name       string
@@ -3434,6 +3488,7 @@ func TestSubUint64x2(t *testing.T) {
 
 func TestReduceSumFloat32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -3508,6 +3563,7 @@ func TestReduceSumFloat32x4(t *testing.T) {
 
 func TestAddFloat32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -3566,6 +3622,7 @@ func TestAddFloat32x4(t *testing.T) {
 
 func TestSubFloat32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name       string
@@ -3624,6 +3681,7 @@ func TestSubFloat32x4(t *testing.T) {
 
 func TestClampFloat32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -3702,6 +3760,7 @@ func TestClampFloat32x4(t *testing.T) {
 
 func TestMinFloat32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -3754,6 +3813,7 @@ func TestMinFloat32x4(t *testing.T) {
 
 func TestMaxFloat32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -3806,6 +3866,7 @@ func TestMaxFloat32x4(t *testing.T) {
 
 func TestReduceMinFloat32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -3874,6 +3935,7 @@ func TestReduceMinFloat32x4(t *testing.T) {
 
 func TestReduceMaxFloat32x4(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -3944,6 +4006,7 @@ func TestReduceMaxFloat32x4(t *testing.T) {
 
 func TestReduceSumFloat64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -4018,6 +4081,7 @@ func TestReduceSumFloat64x2(t *testing.T) {
 
 func TestAddFloat64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -4070,6 +4134,7 @@ func TestAddFloat64x2(t *testing.T) {
 
 func TestSubFloat64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name       string
@@ -4122,6 +4187,7 @@ func TestSubFloat64x2(t *testing.T) {
 
 func TestClampFloat64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -4193,6 +4259,7 @@ func TestClampFloat64x2(t *testing.T) {
 
 func TestMinFloat64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -4245,6 +4312,7 @@ func TestMinFloat64x2(t *testing.T) {
 
 func TestMaxFloat64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name      string
@@ -4297,6 +4365,7 @@ func TestMaxFloat64x2(t *testing.T) {
 
 func TestReduceMinFloat64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string
@@ -4365,6 +4434,7 @@ func TestReduceMinFloat64x2(t *testing.T) {
 
 func TestReduceMaxFloat64x2(t *testing.T) {
 	t.Parallel()
+	requireAVX(t)
 
 	testCases := []struct {
 		name     string

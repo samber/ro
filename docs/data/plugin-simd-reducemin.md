@@ -1,7 +1,7 @@
 ---
 name: ReduceMin
 slug: reducemin
-sourceRef: plugins/exp/simd/math_sse.go
+sourceRef: plugins/exp/simd/math_avx.go
 type: plugin
 category: simd
 signatures:
@@ -107,9 +107,9 @@ defer sub.Unsubscribe()
 // Completed
 ```
 
-## SSE variants (128-bit vectors)
+## AVX variants (128-bit vectors)
 
-Available on all x86_64 CPUs with SSE support (basically all modern x86_64 CPUs).
+Available on all x86_64 CPUs with AVX support (basically all modern x86_64 CPUs).
 
 - ReduceMinFloat32x4
 - ReduceMinFloat64x2

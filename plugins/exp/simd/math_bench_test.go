@@ -12,7 +12,7 @@ import (
 
 // Benchmark suite for SIMD math operations.
 // These benchmarks measure the performance of Sum, Min, Max, Add, Sub, and Clamp
-// operations across different SIMD implementations (SSE, AVX2, AVX512) and data sizes.
+// operations across different SIMD implementations (AVX, AVX2, AVX512) and data sizes.
 
 // Benchmark sizes to demonstrate performance characteristics at different scales
 var benchmarkSizes = []struct {
@@ -130,7 +130,8 @@ func BenchmarkReduceSumInt8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt8x16[int8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -176,7 +177,8 @@ func BenchmarkReduceMinInt8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt8x16[int8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -222,7 +224,8 @@ func BenchmarkReduceMaxInt8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt8x16[int8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -268,7 +271,8 @@ func BenchmarkAddInt8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt8x16[int8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -314,7 +318,8 @@ func BenchmarkSubInt8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt8x16[int8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -369,7 +374,8 @@ func BenchmarkClampInt8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt8x16[int8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -419,7 +425,8 @@ func BenchmarkReduceMinInt16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt16x8[int16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -465,7 +472,8 @@ func BenchmarkReduceMaxInt16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt16x8[int16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -511,7 +519,8 @@ func BenchmarkReduceSumInt16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt16x8[int16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -557,7 +566,8 @@ func BenchmarkAddInt16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt16x8[int16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -603,7 +613,8 @@ func BenchmarkSubInt16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt16x8[int16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -658,7 +669,8 @@ func BenchmarkClampInt16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt16x8[int16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -708,7 +720,8 @@ func BenchmarkReduceMinInt32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt32x4[int32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -754,7 +767,8 @@ func BenchmarkReduceMaxInt32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt32x4[int32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -800,7 +814,8 @@ func BenchmarkReduceSumInt32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt32x4[int32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -846,7 +861,8 @@ func BenchmarkAddInt32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt32x4[int32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -892,7 +908,8 @@ func BenchmarkSubInt32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt32x4[int32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -947,7 +964,8 @@ func BenchmarkClampInt32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt32x4[int32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1091,7 +1109,8 @@ func BenchmarkReduceSumInt64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt64x2[int64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1137,7 +1156,8 @@ func BenchmarkAddInt64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt64x2[int64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1183,7 +1203,8 @@ func BenchmarkSubInt64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToInt64x2[int64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1289,7 +1310,8 @@ func BenchmarkReduceMinFloat32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat32x4[float32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1335,7 +1357,8 @@ func BenchmarkReduceMaxFloat32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat32x4[float32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1381,7 +1404,8 @@ func BenchmarkReduceSumFloat32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat32x4[float32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1427,7 +1451,8 @@ func BenchmarkAddFloat32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat32x4[float32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1473,7 +1498,8 @@ func BenchmarkSubFloat32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat32x4[float32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1528,7 +1554,8 @@ func BenchmarkClampFloat32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat32x4[float32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1578,7 +1605,8 @@ func BenchmarkReduceMinFloat64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat64x2[float64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1624,7 +1652,8 @@ func BenchmarkReduceMaxFloat64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat64x2[float64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1670,7 +1699,8 @@ func BenchmarkReduceSumFloat64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat64x2[float64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1716,7 +1746,8 @@ func BenchmarkAddFloat64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat64x2[float64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1762,7 +1793,8 @@ func BenchmarkSubFloat64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat64x2[float64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1817,7 +1849,8 @@ func BenchmarkClampFloat64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToFloat64x2[float64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1867,7 +1900,8 @@ func BenchmarkReduceMinUint8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint8x16[uint8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1913,7 +1947,8 @@ func BenchmarkReduceMaxUint8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint8x16[uint8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -1959,7 +1994,8 @@ func BenchmarkReduceSumUint8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint8x16[uint8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2005,7 +2041,8 @@ func BenchmarkAddUint8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint8x16[uint8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2056,7 +2093,8 @@ func BenchmarkSubUint8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint8x16[uint8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2111,7 +2149,8 @@ func BenchmarkClampUint8(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x16", func(b *testing.B) {
+			b.Run("AVX-x16", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint8x16[uint8]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2157,7 +2196,8 @@ func BenchmarkReduceMinUint16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint16x8[uint16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2203,7 +2243,8 @@ func BenchmarkReduceMaxUint16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint16x8[uint16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2249,7 +2290,8 @@ func BenchmarkReduceSumUint16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint16x8[uint16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2295,7 +2337,8 @@ func BenchmarkAddUint16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint16x8[uint16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2346,7 +2389,8 @@ func BenchmarkSubUint16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint16x8[uint16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2401,7 +2445,8 @@ func BenchmarkClampUint16(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x8", func(b *testing.B) {
+			b.Run("AVX-x8", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint16x8[uint16]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2447,7 +2492,8 @@ func BenchmarkReduceMinUint32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint32x4[uint32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2493,7 +2539,8 @@ func BenchmarkReduceMaxUint32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint32x4[uint32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2539,7 +2586,8 @@ func BenchmarkReduceSumUint32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint32x4[uint32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2585,7 +2633,8 @@ func BenchmarkAddUint32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint32x4[uint32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2636,7 +2685,8 @@ func BenchmarkSubUint32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint32x4[uint32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2691,7 +2741,8 @@ func BenchmarkClampUint32(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x4", func(b *testing.B) {
+			b.Run("AVX-x4", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint32x4[uint32]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2831,7 +2882,8 @@ func BenchmarkReduceSumUint64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint64x2[uint64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2877,7 +2929,8 @@ func BenchmarkAddUint64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint64x2[uint64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -2928,7 +2981,8 @@ func BenchmarkSubUint64(b *testing.B) {
 				}
 			})
 
-			b.Run("SSE-x2", func(b *testing.B) {
+			b.Run("AVX-x2", func(b *testing.B) {
+				requireAVX(b)
 				obs := ScalarToUint64x2[uint64]()(ro.Just(data...))
 				b.ReportAllocs()
 				b.ResetTimer()
