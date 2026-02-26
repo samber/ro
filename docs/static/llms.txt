@@ -251,6 +251,9 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - **samber/psi** - Starvation notifier
 - **testify** - Testing utilities
 
+### Experimental
+- **exp/simd** - SIMD-accelerated math operators (Add, Sub, Min, Max, Clamp, ReduceSum, ReduceMin, ReduceMax)
+
 ## Examples
 
 ### HTTP Requests with Error Handling
