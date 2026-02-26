@@ -349,7 +349,7 @@ func TestReduceSumInt8x64(t *testing.T) {
 				}
 				return v
 			}(),
-			expected: -96, // 100*64 = 6400, 6400 % 256 = 160, 160-256 = -96
+			expected: 0, // 100*64 = 6400, 6400 % 256 = 0 (two's complement wrap)
 		},
 		{
 			name: "underflow wraps (-100)",
@@ -360,7 +360,7 @@ func TestReduceSumInt8x64(t *testing.T) {
 				}
 				return v
 			}(),
-			expected: 96, // -100*64 = -6400, -6400 % 256 = 96
+			expected: 0, // -100*64 = -6400, -6400 % 256 = 0 (two's complement wrap)
 		},
 
 		// Large inputs
