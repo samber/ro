@@ -2,9 +2,12 @@ MODULES=$(shell go list -m)
 
 build:
 	go build -v ${MODULES} ./...
+	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && GOWORK=off GOEXPERIMENT=simd go build -v ./...; fi
 
 test:
 	go test -race ${MODULES} ./...
+	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && GOWORK=off GOEXPERIMENT=simd go test -race ./...; fi
+
 watch-test:
 	reflex -t 50ms -s -- sh -c 'gotest -timeout 300s -race ${MODULES} ./...'
 
@@ -34,10 +37,12 @@ tools:
 
 lint:
 	golangci-lint run --timeout 60s --max-same-issues 50 ./...
+	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && GOWORK=off GOEXPERIMENT=simd golangci-lint run --timeout 60s --max-same-issues 50 ./...; fi
 	headercheck --config ./licenses/headercheck.yaml .
 	# mdsf verify --debug --log-level warn docs/
 lint-fix:
 	golangci-lint run --timeout 60s --max-same-issues 50 --fix ./...
+	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && GOWORK=off GOEXPERIMENT=simd golangci-lint run --timeout 60s --max-same-issues 50 --fix ./...; fi
 	headercheck --config ./licenses/headercheck.yaml --fix .
 	# mdsf format --debug --log-level warn docs/
 

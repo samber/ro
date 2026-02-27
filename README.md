@@ -78,6 +78,19 @@ values, err := ro.Collect(observable)
 
 Now you discovered the paradigm, follow the documentation and turn reactive: [🚀 Getting started](https://ro.samber.dev/docs/getting-started)
 
+
+## 🚀 Install
+
+```sh
+go get github.com/samber/ro
+```
+
+This library is v0 and follows SemVer strictly.
+
+Some breaking changes might be made to exported APIs before v1.0.0. Experimental packages under `exp/` are considered as unstable.
+
+This library has minimal dependencies outside the Go standard library.
+
 ## Core package
 
 [Full documentation here](https://ro.samber.dev/docs/operator).
@@ -106,6 +119,7 @@ The `ro` library provides a rich ecosystem of plugins for various use cases:
 - **Strings** (`plugins/strings`) - String manipulation operators
 - **Sort** (`plugins/sort`) - Sorting operators
 - **Type Conversion** (`plugins/strconv`) - String conversion operators
+- **SIMD** (`plugins/exp/simd`) - SIMD-accelerated transformations
 
 ### Encoding & Serialization
 - **JSON** (`plugins/encoding/json`) - JSON marshaling and unmarshaling

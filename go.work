@@ -16,6 +16,8 @@ use (
 	./plugins/encoding/csv
 	./plugins/encoding/gob
 	./plugins/encoding/json
+	// Commented out because requires go>=1.26
+	// ./plugins/exp/simd
 	// Commented out because requires go>=1.25
 	// ./plugins/encoding/json/v2
 	./plugins/fsnotify

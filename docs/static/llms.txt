@@ -204,6 +204,7 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - **strings** - String manipulation operators (Capitalize, CamelCase, SnakeCase, etc.)
 - **sort** - Sorting operators
 - **time** - Time manipulation
+- **exp/simd** - SIMD-accelerated math operators (Add, Sub, Min, Max, Clamp...)
 
 ### Encoding & Serialization
 - **encoding/json** - JSON marshaling and unmarshaling
