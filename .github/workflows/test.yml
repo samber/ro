@@ -2,6 +2,8 @@ name: Tests
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 jobs:
@@ -19,7 +21,8 @@ jobs:
           - "1.23"
           - "1.24"
           - "1.25"
-          - "1.x"
+          - "1.26"
+          - "stable"
 
     steps:
       - uses: actions/checkout@v6
@@ -43,7 +46,7 @@ jobs:
 
       - name: Test coverage
         run: make coverage
-        if: matrix.go == '1.18'
+        if: matrix.go == 'stable'
 
       - name: Codecov
         uses: codecov/codecov-action@v5
@@ -51,4 +54,4 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
           verbose: true
-        if: matrix.go == '1.18'
+        if: matrix.go == 'stable'

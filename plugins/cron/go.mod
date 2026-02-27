@@ -3,7 +3,7 @@ module github.com/samber/ro/plugins/cron
 go 1.24.0
 
 require (
-	github.com/go-co-op/gocron/v2 v2.19.0
+	github.com/go-co-op/gocron/v2 v2.19.1
 	github.com/samber/ro v0.0.0
 	github.com/stretchr/testify v1.11.1
 )

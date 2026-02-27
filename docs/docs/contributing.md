@@ -180,3 +180,15 @@ Add your plugin or operator to `docs/static/llms.txt`.
 Create a [Go Playground](https://go.dev/play/) demonstration for each operator, allowing developers to quickly experiment and understand behavior without setting up a local environment.
 
 Please add an example of your operator in the file named `ro_example_test.go`. It will be visible in Godoc website: https://pkg.go.dev/github.com/samber/ro
+
+## Other conventions
+
+### Naming
+
+1- If a callback returns a single bool then it should probably be called "predicate".
+2- If a callback is used to change a collection element into something else then it should probably be called "transform".
+3- If a callback returns nothing (void) then it should probably be called "callback".
+
+### Types
+
+1- Generic functions must preserve the underlying type of collections so that the returned values maintain the same type as the input. See [#365](https://github.com/samber/lo/pull/365/files).
