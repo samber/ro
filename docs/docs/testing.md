@@ -34,7 +34,7 @@ import (
 func TestObservable(t *testing.T) {
     observable := ro.Just(1, 2, 3)
 
-    rorotesting.Assert[int](t).
+    rotesting.Assert[int](t).
         Source(observable).
         ExpectNext(1).
         ExpectNext(2).
