@@ -1,6 +1,6 @@
 //go:build go1.26 && goexperiment.simd && amd64
 
-package simd
+package rosimd
 
 import (
 	"simd/archsimd"

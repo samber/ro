@@ -51,17 +51,17 @@ Add or subtract a constant value from each element:
 // Add 10 to each int32 value
 result := ro.Pipe(
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8),
-    simd.ScalarToInt32x4[int32](),
-    simd.AddInt32x4[int32](10),
-    simd.Int32x4ToScalar[int32](),
+    rosimd.ScalarToInt32x4[int32](),
+    rosimd.AddInt32x4[int32](10),
+    rosimd.Int32x4ToScalar[int32](),
 ).Collect() // [11, 12, 13, 14, 15, 16, 17, 18]
 
 // Subtract 5 from each float32 value
 result := ro.Pipe(
     ro.Just(1.5, 2.5, 3.5, 4.5),
-    simd.ScalarToFloat32x4[float32](),
-    simd.SubFloat32x4[float32](5.0),
-    simd.Float32x4ToScalar[float32](),
+    rosimd.ScalarToFloat32x4[float32](),
+    rosimd.SubFloat32x4[float32](5.0),
+    rosimd.Float32x4ToScalar[float32](),
 ).Collect() // [-3.5, -2.5, -1.5, -0.5]
 ```
 
@@ -73,9 +73,9 @@ Clamp values to a range:
 // Clamp int8 values between 0 and 100
 result := ro.Pipe(
     ro.Just(-5, 50, 150, -10, 200),
-    simd.ScalarToInt8x16[int8](),
-    simd.ClampInt8x16[int8](0, 100),
-    simd.Int8x16ToScalar[int8](),
+    rosimd.ScalarToInt8x16[int8](),
+    rosimd.ClampInt8x16[int8](0, 100),
+    rosimd.Int8x16ToScalar[int8](),
 ).Collect() // [0, 50, 100, 0, 100, ...]
 ```
 
@@ -85,17 +85,17 @@ Apply minimum/maximum constraints:
 // Ensure no value is below -10
 result := ro.Pipe(
     ro.Just(-20, -5, 10, -30),
-    simd.ScalarToInt32x4[int32](),
-    simd.MinInt32x4[int32](-10),
-    simd.Int32x4ToScalar[int32](),
+    rosimd.ScalarToInt32x4[int32](),
+    rosimd.MinInt32x4[int32](-10),
+    rosimd.Int32x4ToScalar[int32](),
 ).Collect() // [-10, -5, 10, -10]
 
 // Ensure no value is above 100
 result := ro.Pipe(
     ro.Just(50, 100, 150, 200),
-    simd.ScalarToInt32x4[int32](),
-    simd.MaxInt32x4[int32](100),
-    simd.Int32x4ToScalar[int32](),
+    rosimd.ScalarToInt32x4[int32](),
+    rosimd.MaxInt32x4[int32](100),
+    rosimd.Int32x4ToScalar[int32](),
 ).Collect() // [50, 100, 100, 100]
 ```
 
@@ -107,22 +107,22 @@ Compute aggregates efficiently:
 // Sum all int32 values
 sum := ro.Pipe(
     ro.Just(1, 2, 3, 4, 5, 6, 7, 8),
-    simd.ScalarToInt32x4[int32](),
-    simd.ReduceSumInt32x4[int32](),
+    rosimd.ScalarToInt32x4[int32](),
+    rosimd.ReduceSumInt32x4[int32](),
 ).Collect() // 36
 
 // Find minimum float64 value
 min := ro.Pipe(
     ro.Just(1.5, 0.5, 2.5, 3.0),
-    simd.ScalarToFloat64x2[float64](),
-    simd.ReduceMinFloat64x2[float64](),
+    rosimd.ScalarToFloat64x2[float64](),
+    rosimd.ReduceMinFloat64x2[float64](),
 ).Collect() // 0.5
 
 // Find maximum int8 value
 max := ro.Pipe(
     ro.Just(10, 20, 15, 5, 25, 30, 12, 18, 8, 22, 14, 16, 3, 28, 7, 19),
-    simd.ScalarToInt8x16[int8](),
-    simd.ReduceMaxInt8x16[int8](),
+    rosimd.ScalarToInt8x16[int8](),
+    rosimd.ReduceMaxInt8x16[int8](),
 ).Collect() // 30
 ```
 
@@ -193,13 +193,13 @@ The package includes `ScalarTo[Type]x[N]` and `[Type]x[N]ToScalar` operators for
 // Convert scalar stream to Int8x16 vectors
 vectors := ro.Pipe(
     ro.Just(1, 2, ..., 16, 17, 18, ...),
-    simd.ScalarToInt8x16[int8](),
+    rosimd.ScalarToInt8x16[int8](),
 )
 
 // Convert Int8x16 vectors back to scalars
 scalars := ro.Pipe(
     vectors,
-    simd.Int8x16ToScalar[int8](),
+    rosimd.Int8x16ToScalar[int8](),
 )
 ```
 

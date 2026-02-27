@@ -1,4 +1,4 @@
-// Package simd provides SIMD-accelerated mathematical operators for the ro reactive
+// Package rosimd provides SIMD-accelerated mathematical operators for the ro reactive
 // observables library. It leverages Go's experimental SIMD support for high-performance
 // data processing on AMD64 processors.
 //
@@ -34,9 +34,9 @@
 //	// Add 10 to each int32 value
 //	result := ro.Pipe(
 //	    ro.Just(1, 2, 3, 4, 5, 6, 7, 8),
-//	    simd.ScalarToInt32x4[int32](),
-//	    simd.AddInt32x4[int32](10),
-//	    simd.Int32x4ToScalar[int32](),
+//	    rosimd.ScalarToInt32x4[int32](),
+//	    rosimd.AddInt32x4[int32](10),
+//	    rosimd.Int32x4ToScalar[int32](),
 //	)
 //
 // # Fallback Behavior
@@ -45,6 +45,6 @@
 // back to equivalent ro.Map and ro.Reduce implementations, ensuring correctness
 // everywhere while maximizing performance on supported hardware.
 
-package simd
+package rosimd
 
 // Empty file to satisfy the build constraint for non-supported architectures.
