@@ -515,7 +515,7 @@ func TestClampInt8x16(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampInt8x16[int8](tc.min, tc.max)(ro.Empty[*archsimd.Int8x16]())
 				})
 				return
@@ -883,7 +883,7 @@ func TestClampInt16x8(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampInt16x8[int16](tc.min, tc.max)(ro.Empty[*archsimd.Int16x8]())
 				})
 				return
@@ -1507,7 +1507,7 @@ func TestClampInt32x4(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampInt32x4[int32](tc.min, tc.max)(ro.Empty[*archsimd.Int32x4]())
 				})
 				return
@@ -1996,8 +1996,8 @@ func TestReduceSumUint8x16(t *testing.T) {
 			expected: 16,
 		},
 		{
-			name: "overflow wraps",
-			input: []uint8{20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20},
+			name:     "overflow wraps",
+			input:    []uint8{20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20},
 			expected: 64, // 320 % 256
 		},
 		{
@@ -2229,7 +2229,7 @@ func TestClampUint8x16(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampUint8x16[uint8](tc.min, tc.max)(ro.Empty[*archsimd.Uint8x16]())
 				})
 				return
@@ -2379,8 +2379,8 @@ func TestReduceMinUint8x16(t *testing.T) {
 			expected: 0,
 		},
 		{
-			name: "all same",
-			input: []uint8{42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42},
+			name:     "all same",
+			input:    []uint8{42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42},
 			expected: 42,
 		},
 		{
@@ -2431,8 +2431,8 @@ func TestReduceMaxUint8x16(t *testing.T) {
 			expected: 150,
 		},
 		{
-			name: "all same",
-			input: []uint8{42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42},
+			name:     "all same",
+			input:    []uint8{42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42},
 			expected: 42,
 		},
 		{
@@ -2679,7 +2679,7 @@ func TestClampUint16x8(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampUint16x8[uint16](tc.min, tc.max)(ro.Empty[*archsimd.Uint16x8]())
 				})
 				return
@@ -3106,7 +3106,7 @@ func TestClampUint32x4(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampUint32x4[uint32](tc.min, tc.max)(ro.Empty[*archsimd.Uint32x4]())
 				})
 				return
@@ -3735,7 +3735,7 @@ func TestClampFloat32x4(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampFloat32x4[float32](tc.min, tc.max)(ro.Empty[*archsimd.Float32x4]())
 				})
 				return
@@ -4234,7 +4234,7 @@ func TestClampFloat64x2(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampFloat64x2[float64](tc.min, tc.max)(ro.Empty[*archsimd.Float64x2]())
 				})
 				return

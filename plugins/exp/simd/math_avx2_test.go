@@ -495,7 +495,7 @@ func TestClampInt8x32(t *testing.T) {
 	// Test panic behavior
 	t.Run("panic on min > max", func(t *testing.T) {
 		is := assert.New(t)
-		is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+		is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 			_ = ClampInt8x32[int8](100, 50)(ro.Empty[*archsimd.Int8x32]())
 		})
 	})
@@ -1268,15 +1268,15 @@ func TestAddInt16x16(t *testing.T) {
 			}(),
 		},
 		{
-			name: "mixed positive and negative",
-			input: []int16{-100, 200, -300, 400, -500, 600, -700, 800, 100, -200, 300, -400, 500, -600, 700, -800},
-			addend: 50,
+			name:     "mixed positive and negative",
+			input:    []int16{-100, 200, -300, 400, -500, 600, -700, 800, 100, -200, 300, -400, 500, -600, 700, -800},
+			addend:   50,
 			expected: []int16{-50, 250, -250, 450, -450, 650, -650, 850, 150, -150, 350, -350, 550, -550, 750, -750},
 		},
 		{
-			name: "boundary values",
-			input: []int16{32767, -32768, 32767, -32768, 32767, -32768, 32767, -32768, 0, 0, 0, 0, 0, 0, 0, 0},
-			addend: 1,
+			name:     "boundary values",
+			input:    []int16{32767, -32768, 32767, -32768, 32767, -32768, 32767, -32768, 0, 0, 0, 0, 0, 0, 0, 0},
+			addend:   1,
 			expected: []int16{-32768, -32767, -32768, -32767, -32768, -32767, -32768, -32767, 1, 1, 1, 1, 1, 1, 1, 1},
 		},
 	}
@@ -1380,10 +1380,10 @@ func TestSubInt16x16(t *testing.T) {
 			}(),
 		},
 		{
-			name: "boundary values",
-			input: []int16{-32768, 32767, -32768, 32767, -32768, 32767, -32768, 32767, 0, 0, 0, 0, 0, 0, 0, 0},
+			name:       "boundary values",
+			input:      []int16{-32768, 32767, -32768, 32767, -32768, 32767, -32768, 32767, 0, 0, 0, 0, 0, 0, 0, 0},
 			subtrahend: 1,
-			expected: []int16{32767, 32766, 32767, 32766, 32767, 32766, 32767, 32766, -1, -1, -1, -1, -1, -1, -1, -1},
+			expected:   []int16{32767, 32766, 32767, 32766, 32767, 32766, 32767, 32766, -1, -1, -1, -1, -1, -1, -1, -1},
 		},
 	}
 
@@ -1521,7 +1521,7 @@ func TestClampInt16x16(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampInt16x16[int16](tc.min, tc.max)(ro.Empty[*archsimd.Int16x16]())
 				})
 				return
@@ -1607,10 +1607,10 @@ func TestMinInt16x16(t *testing.T) {
 			}(),
 		},
 		{
-			name: "negative threshold",
-			input: []int16{-500, -400, -300, -200, -100, 0, 100, 200, 300, 400, 500, -100, -200, -300, -400, -500},
+			name:      "negative threshold",
+			input:     []int16{-500, -400, -300, -200, -100, 0, 100, 200, 300, 400, 500, -100, -200, -300, -400, -500},
 			threshold: -250,
-			expected: []int16{-250, -250, -250, -200, -100, 0, 100, 200, 300, 400, 500, -100, -200, -250, -250, -250},
+			expected:  []int16{-250, -250, -250, -200, -100, 0, 100, 200, 300, 400, 500, -100, -200, -250, -250, -250},
 		},
 	}
 
@@ -1700,10 +1700,10 @@ func TestMaxInt16x16(t *testing.T) {
 			}(),
 		},
 		{
-			name: "positive threshold",
-			input: []int16{-500, -400, -300, -200, -100, 0, 100, 200, 300, 400, 500, -100, -200, -300, -400, -500},
+			name:      "positive threshold",
+			input:     []int16{-500, -400, -300, -200, -100, 0, 100, 200, 300, 400, 500, -100, -200, -300, -400, -500},
 			threshold: 50,
-			expected: []int16{-500, -400, -300, -200, -100, 0, 50, 50, 50, 50, 50, -100, -200, -300, -400, -500},
+			expected:  []int16{-500, -400, -300, -200, -100, 0, 50, 50, 50, 50, 50, -100, -200, -300, -400, -500},
 		},
 	}
 
@@ -1766,13 +1766,13 @@ func TestReduceMinInt16x16(t *testing.T) {
 			expected: -16,
 		},
 		{
-			name: "boundary values",
-			input: []int16{32767, -32768, 100, -100, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8},
+			name:     "boundary values",
+			input:    []int16{32767, -32768, 100, -100, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8},
 			expected: -32768,
 		},
 		{
-			name: "single element range",
-			input: []int16{42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42},
+			name:     "single element range",
+			input:    []int16{42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42},
 			expected: 42,
 		},
 	}
@@ -1834,13 +1834,13 @@ func TestReduceMaxInt16x16(t *testing.T) {
 			expected: 16,
 		},
 		{
-			name: "boundary values",
-			input: []int16{-32768, 32767, -100, 100, 0, 0, 0, 0, -1, -2, -3, -4, -5, -6, -7, -8},
+			name:     "boundary values",
+			input:    []int16{-32768, 32767, -100, 100, 0, 0, 0, 0, -1, -2, -3, -4, -5, -6, -7, -8},
 			expected: 32767,
 		},
 		{
-			name: "single element range",
-			input: []int16{-42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42},
+			name:     "single element range",
+			input:    []int16{-42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42, -42},
 			expected: -42,
 		},
 	}
@@ -2223,7 +2223,7 @@ func TestClampUint8x32(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampUint8x32[uint8](tc.min, tc.max)(ro.Empty[*archsimd.Uint8x32]())
 				})
 				return
@@ -2878,7 +2878,7 @@ func TestClampUint16x16(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampUint16x16[uint16](tc.min, tc.max)(ro.Empty[*archsimd.Uint16x16]())
 				})
 				return
@@ -3507,7 +3507,7 @@ func TestClampUint32x8(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampUint32x8[uint32](tc.min, tc.max)(ro.Empty[*archsimd.Uint32x8]())
 				})
 				return
@@ -4201,7 +4201,7 @@ func TestClampFloat32x8(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampFloat32x8[float32](tc.min, tc.max)(ro.Empty[*archsimd.Float32x8]())
 				})
 				return
@@ -4830,7 +4830,7 @@ func TestClampFloat64x4(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampFloat64x4[float64](tc.min, tc.max)(ro.Empty[*archsimd.Float64x4]())
 				})
 				return
@@ -5543,7 +5543,7 @@ func TestClampInt32x8(t *testing.T) {
 			is := assert.New(t)
 
 			if tc.wantPanic {
-				is.PanicsWithError("simd.Clamp: lower must be less than or equal to upper", func() {
+				is.PanicsWithError("rosimd.Clamp: lower must be less than or equal to upper", func() {
 					_ = ClampInt32x8[int32](tc.min, tc.max)(ro.Empty[*archsimd.Int32x8]())
 				})
 				return
