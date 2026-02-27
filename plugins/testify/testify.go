@@ -20,7 +20,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/samber/ro"
-	"github.com/samber/ro/testing"
+	rotesting "github.com/samber/ro/testing"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,7 +39,7 @@ type testifyAssertion[T any] struct {
 // observable sequence.
 //
 // Inspired by Flux.
-func Testify[T any](is *assert.Assertions) testing.AssertSpec[T] {
+func Testify[T any](is *assert.Assertions) rotesting.AssertSpec[T] {
 	return &testify[T]{
 		is:         is,
 		assertions: []testifyAssertion[T]{},
@@ -66,7 +66,7 @@ func (t *testify[T]) hasErrorOrCompletionNotification() bool {
 }
 
 // Source sets the source observable for the test.
-func (t *testify[T]) Source(source ro.Observable[T]) testing.AssertSpec[T] {
+func (t *testify[T]) Source(source ro.Observable[T]) rotesting.AssertSpec[T] {
 	t.source = source
 	return t
 }
@@ -74,7 +74,7 @@ func (t *testify[T]) Source(source ro.Observable[T]) testing.AssertSpec[T] {
 // ExpectNext expects the next value to be emitted by the source observable.
 // It fails the test if the next value is not emitted. If the source observable
 // emits an error or completes, it fails the test.
-func (t *testify[T]) ExpectNext(value T, msgAndArgs ...any) testing.AssertSpec[T] {
+func (t *testify[T]) ExpectNext(value T, msgAndArgs ...any) rotesting.AssertSpec[T] {
 	assertion := testifyAssertion[T]{
 		notification: ro.NewNotificationNext(value),
 		msgAndArgs:   msgAndArgs,
@@ -86,7 +86,7 @@ func (t *testify[T]) ExpectNext(value T, msgAndArgs ...any) testing.AssertSpec[T
 // ExpectNextSeq expects the next values to be emitted by the source observable.
 // It fails the test if the next values are not emitted. If the source observable
 // emits an error or completes, it fails the test.
-func (t *testify[T]) ExpectNextSeq(values ...T) testing.AssertSpec[T] {
+func (t *testify[T]) ExpectNextSeq(values ...T) rotesting.AssertSpec[T] {
 	for i := range values {
 		assertion := testifyAssertion[T]{
 			notification: ro.NewNotificationNext(values[i]),
@@ -101,7 +101,7 @@ func (t *testify[T]) ExpectNextSeq(values ...T) testing.AssertSpec[T] {
 // if the source observable emits a value or completes. If the source observable
 // emits an error, it compares the error with the expected error. If the error
 // is not equal to the expected error, it fails the test.
-func (t *testify[T]) ExpectError(err error, msgAndArgs ...any) testing.AssertSpec[T] {
+func (t *testify[T]) ExpectError(err error, msgAndArgs ...any) rotesting.AssertSpec[T] {
 	if t.hasErrorOrCompletionNotification() {
 		t.is.Fail("cannot have multiple error or completion notifications")
 	}
@@ -116,7 +116,7 @@ func (t *testify[T]) ExpectError(err error, msgAndArgs ...any) testing.AssertSpe
 
 // ExpectComplete expects the source observable to complete. It fails the test
 // if the source observable emits a value or an error.
-func (t *testify[T]) ExpectComplete(msgAndArgs ...any) testing.AssertSpec[T] {
+func (t *testify[T]) ExpectComplete(msgAndArgs ...any) rotesting.AssertSpec[T] {
 	if t.hasErrorOrCompletionNotification() {
 		t.is.Fail("cannot have multiple error or completion notifications")
 	}

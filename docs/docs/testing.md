@@ -15,7 +15,7 @@ The testing framework is designed to be intuitive and expressive, allowing you t
 The testing functionality is available in the `/testing` package:
 
 ```go
-import "github.com/samber/ro/testing"
+import rotesting "github.com/samber/ro/testing"
 ```
 
 ## Basic Usage
@@ -28,13 +28,13 @@ The fluent API makes it easy to verify exact sequences of values. Each expectati
 import (
     "testing"
     "github.com/samber/ro"
-    "github.com/samber/ro/testing"
+    rotesting "github.com/samber/ro/testing"
 )
 
 func TestObservable(t *testing.T) {
     observable := ro.Just(1, 2, 3)
 
-    testing.Assert[int](t).
+    rorotesting.Assert[int](t).
         Source(observable).
         ExpectNext(1).
         ExpectNext(2).
@@ -66,7 +66,7 @@ var pipeline = ro.PipeOp3(
 func TestObservable(t *testing.T) {
     observable := pipeline(ro.Just(1, 2, 3, 4))
 
-    testing.Assert[string](t).
+    rotesting.Assert[string](t).
         Source(observable).
         ExpectNext("processed-1").
         ExpectNext("processed-3").
@@ -83,7 +83,7 @@ Test error scenarios by creating observables that emit specific errors and verif
 func TestObservableError(t *testing.T) {
     observable := ro.Throw[string](errors.New("something went wrong"))
 
-    testing.Assert[string](t).
+    rotesting.Assert[string](t).
         Source(observable).
         ExpectError(errors.New("something went wrong")).
         Verify()
@@ -98,7 +98,7 @@ Use `ExpectNextSeq()` to verify multiple values at once. This is more concise th
 func TestObservableSequence(t *testing.T) {
     observable := ro.Range(1, 5)
 
-    testing.Assert[int](t).
+    rotesting.Assert[int](t).
         Source(observable).
         ExpectNextSeq(1, 2, 3, 4, 5).
         ExpectComplete().
@@ -163,7 +163,7 @@ func TestObservableWithContext(t *testing.T) {
         ro.Take(3),
     )
 
-    testing.Assert[int](t).
+    rotesting.Assert[int](t).
         Source(observable).
         ExpectNextSeq(0, 1, 2).
         ExpectComplete().
@@ -179,7 +179,7 @@ Custom error messages make test failures easier to debug. When assertions fail, 
 func TestObservableWithCustomMessages(t *testing.T) {
     observable := ro.Just("hello", "world")
 
-    testing.Assert[string](t).
+    rotesting.Assert[string](t).
         Source(observable).
         ExpectNext("hello", "expected first value to be 'hello'").
         ExpectNext("world", "expected second value to be 'world'").
@@ -203,7 +203,7 @@ func TestHotObservable(t *testing.T) {
         subject.Complete()
     }()
 
-    testing.Assert[int](t).
+    rotesting.Assert[int](t).
         Source(subject).
         ExpectNextSeq(1, 2).
         ExpectComplete().
