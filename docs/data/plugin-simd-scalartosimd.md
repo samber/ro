@@ -76,8 +76,11 @@ Converts streams of scalar values into SIMD vectors. Each variant buffers a spec
 
 ```go
 import (
+    "fmt"
+
     "github.com/samber/ro"
     rosimd "github.com/samber/ro/plugins/exp/simd"
+    "simd/archsimd"
 )
 
 obs := ro.Pipe[int8, *archsimd.Int8x16](

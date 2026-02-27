@@ -79,6 +79,8 @@ Ensures all lanes in SIMD vectors are at least the specified minimum value using
 
 ```go
 import (
+    "fmt"
+
     "github.com/samber/ro"
     rosimd "github.com/samber/ro/plugins/exp/simd"
 )

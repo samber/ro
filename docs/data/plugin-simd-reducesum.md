@@ -77,6 +77,8 @@ Accumulates the sum of all lanes across SIMD vectors and emits a single scalar v
 
 ```go
 import (
+    "fmt"
+
     "github.com/samber/ro"
     rosimd "github.com/samber/ro/plugins/exp/simd"
 )

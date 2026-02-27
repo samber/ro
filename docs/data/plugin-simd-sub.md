@@ -79,6 +79,8 @@ Subtracts a scalar number from all lanes in SIMD vectors using SIMD instructions
 
 ```go
 import (
+    "fmt"
+
     "github.com/samber/ro"
     rosimd "github.com/samber/ro/plugins/exp/simd"
 )

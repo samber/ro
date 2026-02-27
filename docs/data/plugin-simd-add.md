@@ -79,6 +79,8 @@ Adds a scalar number to all lanes in SIMD vectors using SIMD instructions for pa
 
 ```go
 import (
+    "fmt"
+
     "github.com/samber/ro"
     rosimd "github.com/samber/ro/plugins/exp/simd"
 )

@@ -79,6 +79,8 @@ Clamps all lanes in SIMD vectors to a specified range [minValue, maxValue] using
 
 ```go
 import (
+    "fmt"
+
     "github.com/samber/ro"
     rosimd "github.com/samber/ro/plugins/exp/simd"
 )

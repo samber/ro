@@ -77,6 +77,8 @@ Finds the minimum value across all lanes of SIMD vectors and emits a single scal
 
 ```go
 import (
+    "fmt"
+
     "github.com/samber/ro"
     rosimd "github.com/samber/ro/plugins/exp/simd"
 )

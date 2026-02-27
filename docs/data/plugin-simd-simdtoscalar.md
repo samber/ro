@@ -76,6 +76,8 @@ Converts SIMD vectors back into streams of scalar values. Each SIMD vector emits
 
 ```go
 import (
+    "fmt"
+
     "github.com/samber/ro"
     rosimd "github.com/samber/ro/plugins/exp/simd"
 )
