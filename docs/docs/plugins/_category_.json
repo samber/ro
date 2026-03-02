@@ -1,8 +1,0 @@
-{
-  "label": "📦 Plugins",
-  "position": 40,
-  "link": {
-    "type": "generated-index",
-    "description": "Extend your reactive pipelines"
-  }
-}
