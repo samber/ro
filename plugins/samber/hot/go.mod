@@ -6,7 +6,7 @@ toolchain go1.24.3
 
 require (
 	github.com/samber/hot v0.8.0
-	github.com/samber/lo v1.51.0
+	github.com/samber/lo v1.53.0
 	github.com/samber/ro v0.0.0
 )
 

@@ -2,7 +2,7 @@ module github.com/samber/ro/examples/sql-to-csv
 
 go 1.18
 
-require github.com/samber/lo v1.51.0
+require github.com/samber/lo v1.53.0
 
 require github.com/samber/ro v0.0.0
 

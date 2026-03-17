@@ -2,10 +2,10 @@ module github.com/samber/ro/examples/ics-to-csv
 
 go 1.20
 
-require github.com/samber/lo v1.52.0 // indirect
+require github.com/samber/lo v1.53.0
 
 require (
-	github.com/arran4/golang-ical v0.3.2
+	github.com/arran4/golang-ical v0.3.4
 	github.com/samber/ro v0.0.0
 	github.com/samber/ro/plugins/encoding/csv v0.0.0
 	github.com/samber/ro/plugins/ics v0.0.0-00010101000000-000000000000

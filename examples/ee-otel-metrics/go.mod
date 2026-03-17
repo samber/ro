@@ -6,7 +6,7 @@ toolchain go1.24
 
 require (
 	github.com/prometheus/client_golang v1.18.0
-	github.com/samber/lo v1.51.0
+	github.com/samber/lo v1.53.0
 	github.com/samber/ro v0.0.0
 	github.com/samber/ro/ee v0.0.0
 	github.com/samber/ro/ee/plugins/otel v0.0.0-00010101000000-000000000000

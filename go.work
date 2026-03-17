@@ -12,6 +12,8 @@ use (
 	./plugins/bytes
 	// Commented out because requires go>=1.24
 	// ./plugins/cron
+	// Commented out because requires go>=1.24
+	// ./plugins/faker
 	./plugins/encoding/base64
 	./plugins/encoding/csv
 	./plugins/encoding/gob
