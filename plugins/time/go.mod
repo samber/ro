@@ -3,7 +3,7 @@ module github.com/samber/ro/plugins/time
 go 1.18
 
 require (
-	github.com/samber/ro v0.2.0
+	github.com/samber/ro v0.3.0
 	github.com/stretchr/testify v1.11.1
 )
 
