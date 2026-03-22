@@ -37,6 +37,7 @@ The purpose of Reactive Programming is to simplify the development of event-driv
 - [samber/lo](https://github.com/samber/lo): A Lodash-style Go library based on Go 1.18+ Generics
 - [samber/do](https://github.com/samber/do): A dependency injection toolkit based on Go 1.18+ Generics
 - [samber/mo](https://github.com/samber/mo): Monads based on Go 1.18+ Generics (Option, Result, Either...)
+- [samber/cc-skills-golang](https://github.com/samber/cc-skills-golang): AI Agent Skills for Golang
 
 What makes it different from **samber/lo**?
 - lo: synchronous helpers across finite sequences (maps, slices...)
