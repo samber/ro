@@ -22,6 +22,12 @@ Make sure you have Go 1.18+ installed. The library uses modern Go features like 
 go get -u github.com/samber/ro
 ```
 
+**AI Agent Skill:**
+
+```bash
+npx skills add https://github.com/samber/cc-skills-golang --skill golang-samber-ro
+```
+
 ## Your First Observable Stream
 
 :::tip Hello World
