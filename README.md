@@ -84,6 +84,9 @@ Now you discovered the paradigm, follow the documentation and turn reactive: [ðŸ
 
 ```sh
 go get github.com/samber/ro
+
+# AI Agent Skill
+npx skills add https://github.com/samber/cc-skills-golang --skill golang-samber-ro
 ```
 
 This library is v0 and follows SemVer strictly.
