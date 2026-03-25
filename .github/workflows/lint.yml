@@ -16,15 +16,10 @@ jobs:
     strategy:
       fail-fast: false
 
-    permissions:
-      # required for codeql analysis
-      security-events: write
-
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
-        with:
-          go-version: 'stable'
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:

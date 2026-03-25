@@ -1,4 +1,4 @@
-name: Security
+name: Security scan
 
 on:
   push:
@@ -9,40 +9,63 @@ on:
     - cron: '0 3 * * 1'
   workflow_dispatch: # Allow manual trigger
 
+permissions:
+  contents: read
+  # required for codeql analysis
+  security-events: write
+
 jobs:
-  analyze:
-    name: analyze
+  govulncheck:
+    name: govulncheck
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-
-    permissions:
-      contents: read
-      # required for codeql analysis
-      security-events: write
-
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
-        with:
-          go-version: 'stable'
 
       - name: govulncheck
         run: govulncheck ./...
 
+  bearer:
+    name: bearer
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v6
       - name: Bearer
         uses: bearer/bearer-action@v2
         with:
           skip-path: 'docs/'
 
+  codeql:
+    name: codeql
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: go
+
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
+
+  trivy-codeql:
+    name: trivy-codeql
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
 
       - name: Run Trivy vulnerability scanner (source code)
         uses: aquasecurity/trivy-action@0.35.0
@@ -61,6 +84,15 @@ jobs:
         with:
           sarif_file: "trivy-results.sarif"
 
+  trivy-logs:
+    name: trivy-logs
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+
       - name: Run Trivy scanner (table output for logs)
         uses: aquasecurity/trivy-action@0.35.0
         if: always()
@@ -72,3 +104,13 @@ jobs:
           severity: "CRITICAL,HIGH,MEDIUM"
           ignore-unfixed: true
           exit-code: "1"
+
+      - name: Run Trivy scanner (license)
+        uses: aquasecurity/trivy-action@0.35.0
+        if: always()
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: license
+          severity: UNKNOWN,HIGH,CRITICAL
+          format: table
