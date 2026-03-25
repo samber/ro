@@ -24,6 +24,9 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
 
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
       - name: govulncheck
         run: govulncheck ./...
 
