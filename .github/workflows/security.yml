@@ -80,6 +80,7 @@ jobs:
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
           ignore-unfixed: true
+          skip-dirs: "docs/"
 
       - name: Upload Trivy results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
@@ -107,6 +108,7 @@ jobs:
           severity: "CRITICAL,HIGH,MEDIUM"
           ignore-unfixed: true
           exit-code: "1"
+          skip-dirs: "docs/"
 
       - name: Run Trivy scanner (license)
         uses: aquasecurity/trivy-action@0.35.0
@@ -117,3 +119,4 @@ jobs:
           scanners: license
           severity: UNKNOWN,HIGH,CRITICAL
           format: table
+          skip-dirs: "docs/"

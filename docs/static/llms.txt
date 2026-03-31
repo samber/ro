@@ -252,6 +252,12 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - **samber/psi** - Starvation notifier
 - **testify** - Testing utilities
 
+## AI Agent Skill:
+
+```bash
+npx skills add https://github.com/samber/cc-skills-golang --skill golang-samber-ro
+```
+
 ## Examples
 
 ### HTTP Requests with Error Handling

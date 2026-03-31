@@ -39,9 +39,9 @@ The SIMD plugin (`plugins/exp/simd`) requires `GOEXPERIMENT=simd` and `GOWORK=of
 - **`internal/`** — Internal helpers: `xsync` (mutex wrappers), `xatomic`, `xrand`, `xtime`, `xerrors`, `constraints`
 - **`testing/`** — Package `rotesting` with `AssertSpec[T]` interface for fluent test assertions
 - **`plugins/`** — Each plugin is a separate Go module with its own `go.mod`. Categories: encoding, observability, rate limiting, I/O, data manipulation, etc.
-- **`ee/`** — Enterprise Edition (separate license). Contains `otel` and `prometheus` plugins, plus licensing infrastructure
+- **`ee/`** — Enterprise Edition (separate license). Contains `otel` and `prometheus` plugins, plus licensing infrastructure. See [`ee/README.md`](ee/README.md) and the [`ee/cmd/license` CLI](ee/cmd/license/README.md)
 - **`examples/`** — Working example applications (each is its own module)
-- **`docs/`** — Docusaurus documentation site. Has its own `CLAUDE.md` for doc-writing conventions
+- **`docs/`** — Docusaurus documentation site. Has its own [`CLAUDE.md`](docs/CLAUDE.md) for doc-writing conventions
 
 ## Operator Pattern
 
@@ -133,13 +133,15 @@ Always test edge cases with `Empty[T]()` (empty source) and `Throw[T](assert.AnE
 
 ## Contributing Conventions
 
+Full guides: [`docs/docs/contributing.md`](docs/docs/contributing.md) (contributing) and [`docs/docs/hacking.md`](docs/docs/hacking.md) (writing custom operators/plugins).
+
 - **Operator naming**: Must be self-explanatory and respect ReactiveX/RxJS standards. Inspired by https://reactivex.io/documentation/operators.html and https://rxjs.dev/api
 - **Context propagation**: Operators must not break the context chain. Always use `SubscribeWithContext`, `NextWithContext`, `ErrorWithContext`, `CompleteWithContext`. The `WithContext` variant callbacks receive and return a `context.Context`
 - **Callback naming**: `predicate` for bool-returning callbacks, `transform`/`project` for value-transforming callbacks, `callback` for void callbacks
 - **Variadic operators**: Some operators accept `...Observable[T]` for flexibility (e.g., `Zip`, `Merge`, `MergeWith`)
 - **Type aliases**: Some operators use `~[]T` constraints to accept named slice types, not just `[]T` (e.g., `Flatten`)
-- **Documentation**: Each operator needs a Go Playground link in its comment, a markdown doc in `docs/data/`, an example in `ro_example_test.go`, and an entry in `docs/static/llms.txt`
-- **License headers**: All `.go` files require license headers (`licenses/header.apache.txt` for open source, `licenses/header.ee.txt` for `ee/`). Run `make lint` to verify
+- **Documentation**: Each operator needs a Go Playground link in its comment, a markdown doc in [`docs/data/`](docs/data/) (one file per operator, e.g. `core-map.md`, `plugin-encoding-json-marshal.md`), an example in `ro_example_test.go`, and an entry in `docs/static/llms.txt`. See [`docs/CLAUDE.md`](docs/CLAUDE.md) for the full doc-file format
+- **License headers**: All `.go` files require license headers (`licenses/header.apache.txt` for open source, `licenses/header.ee.txt` for `ee/`). Run `make lint` to verify. Full license texts: [`licenses/LICENSE.apache.md`](licenses/LICENSE.apache.md) (Apache 2.0, open-source code) and [`licenses/LICENSE.ee.md`](licenses/LICENSE.ee.md) (EE code under `ee/`)
 - **Update the documentation**: when updating a feature of the project, you MUST update the documentation. See @./docs/CLAUDE.md
 
 ## References
