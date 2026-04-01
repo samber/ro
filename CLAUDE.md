@@ -140,3 +140,12 @@ Always test edge cases with `Empty[T]()` (empty source) and `Throw[T](assert.AnE
 - **Type aliases**: Some operators use `~[]T` constraints to accept named slice types, not just `[]T` (e.g., `Flatten`)
 - **Documentation**: Each operator needs a Go Playground link in its comment, a markdown doc in `docs/data/`, an example in `ro_example_test.go`, and an entry in `docs/static/llms.txt`
 - **License headers**: All `.go` files require license headers (`licenses/header.apache.txt` for open source, `licenses/header.ee.txt` for `ee/`). Run `make lint` to verify
+- **Update the documentation**: when updating a feature of the project, you MUST update the documentation. See @./docs/CLAUDE.md
+
+## References
+
+- **Contribution guidelines**: @./docs/docs/contributing.md
+- **Extending ro guidelines**: @./docs/docs/hacking.md
+- **Documentation guidelines**: @./docs/CLAUDE.md
+- **Troubleshooting guidelines**: @./docs/docs/troubleshooting/
+- If you need more context on the project, read the **LLMs documentation**: @./docs/static/llms.txt
