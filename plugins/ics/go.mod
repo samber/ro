@@ -3,7 +3,7 @@ module github.com/samber/ro/plugins/ics
 go 1.20
 
 require (
-	github.com/arran4/golang-ical v0.3.4
+	github.com/arran4/golang-ical v0.3.5
 	github.com/samber/ro v0.0.0
 	github.com/stretchr/testify v1.11.1
 )
