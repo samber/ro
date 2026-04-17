@@ -82,12 +82,13 @@ const config: Config = {
             'async': 'true',
             'src': 'https://analytics.ahrefs.com/analytics.js',
             'data-key': 'ZlVVDleFCGZPB8Nd2KkKrw'
-        },
+        }
+    },
         // DNS prefetch for better performance
-               {
-      tagName: 'link',
-      attributes: {
-        rel: 'dns-prefetch',
+        {
+            tagName: 'link',
+            attributes: {
+                rel: 'dns-prefetch',
         href: '//fonts.googleapis.com',
       },
     },
