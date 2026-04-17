@@ -59,10 +59,11 @@ const config: Config = {
   // Optional: Enable hash router for offline support (experimental)
   // Uncomment if you need offline browsing capability
   // router: 'hash',
-  
-  // Future-proofing configurations
+
+    // Future-proofing configurations
   clientModules: [
     require.resolve('./src/theme/prism-include-languages.js'),
+    require.resolve('./src/analytics.ts'),
   ],
 
   // Even if you don't use internationalization, you can use this field to set
@@ -170,8 +171,8 @@ const config: Config = {
           // Enhanced markdown features
           remarkPlugins: [],
           rehypePlugins: [],
-        },      
-        sitemap: {
+        },
+          sitemap: {
           lastmod: 'date',
           changefreq: 'weekly',
           priority: 0.7,
@@ -220,8 +221,8 @@ const config: Config = {
         maxTextSize: 50000,
       },
     },
-    
-    // Enhanced metadata
+
+      // Enhanced metadata
     metadata: [
       {name: 'og:type', content: 'website'},
     ],
@@ -368,10 +369,19 @@ const config: Config = {
   } satisfies Preset.ThemeConfig,
 
   themes: ['@docusaurus/theme-mermaid'],
-  
-  plugins: [
-    // Add ideal image plugin for better image optimization
-    [
+
+    plugins: [
+        [
+        "posthog-docusaurus",
+        {
+            apiKey: "phc_z838Jn9KD8Da3ue9Z7htxyw3QEvTwm9tsHbHebhCDnSd",
+            appHost: "https://hogpost.samber.dev",
+            enableInDevelopment: false, // optional,
+            disableSessionRecording: true,
+        },
+    ],
+        // Add ideal image plugin for better image optimization
+        [
       '@docusaurus/plugin-ideal-image',
       {
         quality: 70,

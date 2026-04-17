@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useCallback } from 'react';
 import { ensurePrototypeGenericsHighlighted } from './highlightPrototypeGenerics';
 import { marked } from 'marked';
 import type { HelperDefinition } from '../index';
@@ -10,8 +10,14 @@ interface HelperCardProps {
   helper: HelperDefinition;
 }
 
-export default function HelperCard({ 
-  helper, 
+function trackEvent(event: string, props: Record<string, unknown> = {}) {
+  if (typeof window !== 'undefined' && (window as any).posthog) {
+    (window as any).posthog.capture(event, props);
+  }
+}
+
+export default function HelperCard({
+  helper,
 }: HelperCardProps) {
   // Extract function name from signature for godoc link
   const functionName = useMemo(() => {
@@ -114,31 +120,34 @@ export default function HelperCard({
             </span>
           </div>
           {sourceRef && (
-            <a 
+            <a
               href={sourceRef}
               target="_blank"
               rel="noopener noreferrer"
               className="helper-card__source"
+              onClick={() => trackEvent('source_clicked', { name: helper.name, category: helper.category, type: helper.type })}
             >
               🧩 Source
             </a>
           )}
           {godocUrl && (
-            <a 
+            <a
               href={godocUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="helper-card__godoc"
+              onClick={() => trackEvent('godoc_clicked', { name: helper.name, category: helper.category, type: helper.type })}
             >
               📚 GoDoc
             </a>
           )}
           {helper.playUrl && (
-            <a 
+            <a
               href={helper.playUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="helper-card__playground"
+              onClick={() => trackEvent('playground_opened', { name: helper.name, category: helper.category, type: helper.type })}
             >
               🎮 Try on Go Playground
             </a>
