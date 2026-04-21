@@ -640,6 +640,32 @@ func TestOperatorCreationMerge(t *testing.T) { //nolint:paralleltest
 	is.EqualError(err, assert.AnError.Error())
 }
 
+// TestSingleProducerWithMultiProducerOperator is a manual reproduction test that
+// demonstrates mixing `ConcurrencyModeSingleProducer` sources with a
+// multi-producer operator (`Merge`) is unsupported and can lead to data races.
+//
+// This test is intentionally skipped by default. To reproduce the race, run:
+//
+//	go test -run TestSingleProducerWithMultiProducerOperator -race ./ -v
+func TestSingleProducerWithMultiProducerOperator(t *testing.T) { //nolint:paralleltest
+	if !RaceEnabled {
+		t.Skip("manual reproduction test: run with -race to observe data races when mixing single-producer mode with Merge")
+	}
+
+	// Construct two single-producer ranges and merge them. Merge is a
+	// multi-producer operator and may invoke downstream subscribers from
+	// multiple goroutines; combining it with single-producer sources is
+	// unsupported and may produce races.
+	s1 := RangeWithMode(0, 10000, ConcurrencyModeSingleProducer)
+	s2 := RangeWithMode(10000, 20000, ConcurrencyModeSingleProducer)
+
+	merged := Merge(s1, s2)
+
+	// Collect will block until the merged observable completes. When run with
+	// -race the race detector should report concurrent access if present.
+	_, _ = Collect(merged)
+}
+
 func TestOperatorCreationCombineLatest2(t *testing.T) { //nolint:paralleltest
 	// @TODO
 }
