@@ -135,13 +135,6 @@ const config: Config = {
         content: '@samuelberthe',
       },
     },
-    {
-      tagName: 'link',
-      attributes: {
-        rel: 'canonical',
-        href: 'https://ro.samber.dev',
-      },
-    },
   ],
 
   customFields: {

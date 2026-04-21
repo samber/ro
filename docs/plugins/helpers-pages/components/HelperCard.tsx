@@ -231,7 +231,7 @@ function SimilarHelpers({ title, similarHelpers, currentCategory, currentType, c
         <span className="helper-card__prototype-label">{title}:</span>
         <div className="helper-card__similar-list">
           {processedHelpers.map(({ originalLabel, type, category, name, nameRaw }, index) => {
-            const href = type === 'core' ? `/docs/operator/${category}#${name}` : `/docs/plugins/${type}/${category}#${name}`;
+            const href = type === 'core' ? `/docs/operator/${category}#${name}` : `/docs/plugins/${category}#${name}`;
             const currentCategoryLower = (currentCategory || '').toLowerCase();
             const displayName = nameRaw || name;
             const isSameSection = category === currentCategoryLower; // compare only category for label
