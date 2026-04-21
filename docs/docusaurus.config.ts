@@ -135,10 +135,37 @@ const config: Config = {
         content: '@samuelberthe',
       },
     },
-  ],
+    // twitter:site complements twitter:creator for card attribution
+    {
+      tagName: 'meta',
+      attributes: {
+        name: 'twitter:site',
+        content: '@samuelberthe',
+      },
+    },
+    // og:locale signals language/region to crawlers and social platforms
+    {
+      tagName: 'meta',
+      attributes: {
+        property: 'og:locale',
+        content: 'en_US',
+      },
+    },
+    // og:site_name provides branding context in social share cards
+    {
+      tagName: 'meta',
+      attributes: {
+        property: 'og:site_name',
+        content: 'samber/ro',
+      },
+    },
+        // NOTE: do not add a global <link rel="canonical"> here.
+        // Docusaurus generates correct per-page canonical tags from the `url` field above.
+        // A global canonical in headTags applies to ALL pages and conflicts with those.
+    ],
 
-  customFields: {
-    sponsors: [
+    customFields: {
+        sponsors: [
       {
         name: 'DBOS',
         url: 'https://www.dbos.dev/?utm_campaign=gh-smbr',
@@ -178,7 +205,7 @@ const config: Config = {
           lastmod: 'date',
           changefreq: 'weekly',
           priority: 0.7,
-          ignorePatterns: ['/tags/**'],
+          ignorePatterns: ['/tags/**', '/search'],
           filename: 'sitemap.xml',
           // Enhanced sitemap features from 3.8+
           createSitemapItems: async (params) => {
@@ -227,6 +254,8 @@ const config: Config = {
       // Enhanced metadata
     metadata: [
       {name: 'og:type', content: 'website'},
+      // Fallback description for pages that don't set their own
+      {name: 'description', content: 'Reactive programming for Go using generics. An implementation of the ReactiveX spec with Observables, Operators, and Subjects for building event-driven and asynchronous applications.'},
     ],
 
     navbar: {
