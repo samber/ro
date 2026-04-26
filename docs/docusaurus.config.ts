@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'ro',
+  title: 'samber/ro — Reactive Streams for Go',
   tagline: 'Streams and reactive programming for Go',
   favicon: 'img/favicon.ico',
 
