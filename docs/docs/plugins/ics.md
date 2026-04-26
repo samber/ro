@@ -1,20 +1,19 @@
 ---
 title: ICS/iCal
-description: Read and process iCalendar (ICS) files and URLs
+description: iCalendar operators for ro — Go reactive streams. Read .ics files or URLs, parse VEVENTs, and emit calendar entries as Observable values for processing.
 sidebar_position: 145
 hide_table_of_contents: true
 ---
+
+# ICS - Plugin operators
+
+This page lists all operators available in the `ics` sub-package of ro.
 
 :::warning Help improve this documentation
 This documentation is still new and evolving. If you spot any mistakes, unclear explanations, or missing details, please [open an issue](https://github.com/samber/ro/issues).
 
 Your feedback helps us improve!
 :::
-
-#
-## ICS operators
-
-This page lists all operators available in the `ics` sub-package of ro.
 
 ### Install
 
@@ -26,7 +25,7 @@ go get -u github.com/samber/ro/plugins/ics
 
 import HelperList from '@site/plugins/helpers-pages/components/HelperList';
 
-<HelperList 
+<HelperList
   type="plugin"
   category="ics"
 />
