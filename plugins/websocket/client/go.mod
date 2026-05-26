@@ -1,6 +1,6 @@
 module github.com/samber/ro/plugins/websocket/client
 
-go 1.18
+go 1.25.0
 
 require (
 	github.com/gorilla/websocket v1.5.3
@@ -10,7 +10,7 @@ require (
 require (
 	github.com/samber/lo v1.53.0 // indirect
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 )
 
 replace github.com/samber/ro => ../../..
