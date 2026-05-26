@@ -1,6 +1,6 @@
 module github.com/samber/ro/ee/plugins/prometheus
 
-go 1.18
+go 1.23
 
 require (
 	github.com/prometheus/client_golang v1.16.0
@@ -22,7 +22,7 @@ require (
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
