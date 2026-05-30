@@ -16,7 +16,6 @@ package ro
 
 import (
 	"context"
-	"sync"
 
 	"github.com/samber/lo"
 )
@@ -31,7 +30,6 @@ var _ Subject[int] = (*unicastSubjectImpl[int])(nil)
 // to relaying events live to this single Observer.
 func NewUnicastSubject[T any](bufferSize int) Subject[T] {
 	return &unicastSubjectImpl[T]{
-		mu:     sync.Mutex{},
 		status: KindNext,
 
 		observer: nil,
@@ -43,7 +41,6 @@ func NewUnicastSubject[T any](bufferSize int) Subject[T] {
 }
 
 type unicastSubjectImpl[T any] struct {
-	mu     sync.Mutex // sync.RWMutex would be better, but it is too slow for high-volume subjects
 	status Kind
 
 	observer Observer[T]
@@ -61,9 +58,6 @@ func (s *unicastSubjectImpl[T]) Subscribe(destination Observer[T]) Subscription 
 // Implements Observable.
 func (s *unicastSubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Context, destination Observer[T]) Subscription {
 	subscription := NewSubscriber(destination)
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	switch s.status {
 	case KindNext:
@@ -90,9 +84,7 @@ func (s *unicastSubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Conte
 	s.observer = subscription
 
 	subscription.Add(func() {
-		s.mu.Lock()
 		s.observer = nil
-		s.mu.Unlock()
 	})
 
 	return subscription
@@ -105,8 +97,6 @@ func (s *unicastSubjectImpl[T]) Next(value T) {
 
 // Implements Observer.
 func (s *unicastSubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
-	s.mu.Lock()
-
 	if s.status == KindNext { //nolint:nestif
 		if s.observer != nil {
 			tmp := s.observer
@@ -121,8 +111,6 @@ func (s *unicastSubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
 	} else {
 		OnDroppedNotification(ctx, NewNotificationNext(value))
 	}
-
-	s.mu.Unlock()
 }
 
 // Implements Observer.
@@ -132,8 +120,6 @@ func (s *unicastSubjectImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *unicastSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error) {
-	s.mu.Lock()
-
 	if s.status == KindNext {
 		s.err = lo.T2(ctx, err)
 		s.status = KindError
@@ -149,8 +135,6 @@ func (s *unicastSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error)
 	} else {
 		OnDroppedNotification(ctx, NewNotificationError[T](err))
 	}
-
-	s.mu.Unlock()
 }
 
 // Implements Observer.
@@ -160,8 +144,6 @@ func (s *unicastSubjectImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *unicastSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
-	s.mu.Lock()
-
 	if s.status == KindNext {
 		s.status = KindComplete
 
@@ -176,21 +158,13 @@ func (s *unicastSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
 	} else {
 		OnDroppedNotification(ctx, NewNotificationComplete[T]())
 	}
-
-	s.mu.Unlock()
 }
 
 func (s *unicastSubjectImpl[T]) HasObserver() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	return s.observer != nil
 }
 
 func (s *unicastSubjectImpl[T]) CountObservers() int {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if s.observer != nil {
 		return 1
 	}
@@ -200,25 +174,16 @@ func (s *unicastSubjectImpl[T]) CountObservers() int {
 
 // Implements Observer.
 func (s *unicastSubjectImpl[T]) IsClosed() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	return s.status != KindNext
 }
 
 // Implements Observer.
 func (s *unicastSubjectImpl[T]) HasThrown() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	return s.status == KindError
 }
 
 // Implements Observer.
 func (s *unicastSubjectImpl[T]) IsCompleted() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	return s.status == KindComplete
 }
 
