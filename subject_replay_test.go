@@ -184,10 +184,19 @@ func TestReplaySubject_internalOverflow(t *testing.T) {
 	subject.Next(84)
 	is.Equal(KindNext, subject.status)
 	is.Empty(subject.err)
-	is.Equal([]int{42, 84}, t2ToSliceB(subject.values))
+	// the circular buffer overwrites the oldest value in place: 84 replaced 21
+	is.Equal([]int{84, 42}, t2ToSliceB(subject.values))
+	is.Equal(1, subject.head)
 	is.Equal(2, subject.bufferSize)
 	is.Equal(0, syncMapLength(&subject.observers))
 	is.Equal(uint32(0), subject.observerIndex)
+
+	// new subscribers replay values oldest-first
+	values := []int{}
+	subject.Subscribe(OnNext(func(value int) {
+		values = append(values, value)
+	})).Unsubscribe()
+	is.Equal([]int{42, 84}, values)
 }
 
 func TestReplaySubject_hasObserver(t *testing.T) {

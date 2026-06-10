@@ -39,6 +39,7 @@ func NewReplaySubject[T any](bufferSize int) Subject[T] {
 
 		err:        lo.Tuple2[context.Context, error]{},
 		values:     []lo.Tuple2[context.Context, T]{},
+		head:       0,
 		bufferSize: bufferSize,
 	}
 }
@@ -50,8 +51,11 @@ type replaySubjectImpl[T any] struct {
 	observers     sync.Map
 	observerIndex uint32
 
-	err        lo.Tuple2[context.Context, error]
+	err lo.Tuple2[context.Context, error]
+	// values is used as a circular buffer when bufferSize > 0: once full, the
+	// oldest value lives at index head and new values overwrite it in place.
 	values     []lo.Tuple2[context.Context, T]
+	head       int
 	bufferSize int
 }
 
@@ -67,8 +71,12 @@ func (s *replaySubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Contex
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for _, v := range s.values {
-		subscription.NextWithContext(v.A, v.B)
+	// Replay values oldest-first: from head to the end, then the wrapped part.
+	for i := s.head; i < len(s.values); i++ {
+		subscription.NextWithContext(s.values[i].A, s.values[i].B)
+	}
+	for i := 0; i < s.head; i++ {
+		subscription.NextWithContext(s.values[i].A, s.values[i].B)
 	}
 
 	switch s.status {
@@ -111,8 +119,24 @@ func (s *replaySubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
 	if s.status == KindNext {
 		s.broadcastNext(ctx, value)
 
-		s.values = append(s.values, lo.T2(ctx, value))
-		if s.bufferSize != ReplaySubjectUnlimitedBufferSize && len(s.values) > s.bufferSize {
+		switch {
+		case s.bufferSize == ReplaySubjectUnlimitedBufferSize:
+			s.values = append(s.values, lo.T2(ctx, value))
+		case s.bufferSize == 0:
+			// The buffer cannot hold anything: the incoming value is dropped immediately.
+			OnDroppedNotification(ctx, NewNotificationNext(value))
+		case s.bufferSize > 0:
+			if len(s.values) < s.bufferSize {
+				s.values = append(s.values, lo.T2(ctx, value))
+			} else {
+				// Buffer is full: overwrite the oldest value in place.
+				OnDroppedNotification(ctx, NewNotificationNext(s.values[s.head].B))
+				s.values[s.head] = lo.T2(ctx, value)
+				s.head = (s.head + 1) % s.bufferSize
+			}
+		default:
+			// bufferSize < -1 is invalid; kept as-is from the previous implementation.
+			s.values = append(s.values, lo.T2(ctx, value))
 			OnDroppedNotification(ctx, NewNotificationNext(s.values[0].B))
 			s.values = s.values[len(s.values)-s.bufferSize:]
 		}
