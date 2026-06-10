@@ -22,6 +22,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/samber/ro/internal/xatomic"
+	"github.com/samber/ro/internal/xqueue"
 )
 
 // MergeWith merges the values from all observables to a single observable result.
@@ -1098,7 +1099,7 @@ type zipDestination interface {
 }
 
 // This code is dity but much more concise than the original implementation.
-func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T], mu *sync.Mutex, values *[]*T, completed *bool, onUpdate func(context.Context), destination zipDestination, subscriptions Subscription) {
+func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T], mu *sync.Mutex, values *xqueue.Queue[T], completed *bool, onUpdate func(context.Context), destination zipDestination, subscriptions Subscription) {
 	subscriptions.AddUnsubscribable(
 		obs.SubscribeWithContext(
 			subscriberCtx,
@@ -1106,7 +1107,7 @@ func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T
 				func(ctx context.Context, v T) {
 					mu.Lock()
 
-					*values = append(*values, &v)
+					values.Push(v)
 
 					mu.Unlock()
 
@@ -1127,7 +1128,7 @@ func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T
 
 					*completed = true
 
-					if len(*values) == 0 {
+					if values.Len() == 0 {
 						mu.Unlock()
 						destination.CompleteWithContext(ctx)
 					} else {
@@ -1161,8 +1162,8 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple2[A, B]]) Teardown {
 			var mu sync.Mutex
 
-			var valueA []*A
-			var valueB []*B
+			var valueA xqueue.Queue[A]
+			var valueB xqueue.Queue[B]
 
 			var completedA bool
 			var completedB bool
@@ -1170,20 +1171,18 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 			onUpdate := func(ctx context.Context) {
 				mu.Lock()
 
-				if len(valueA) > 0 && len(valueB) > 0 {
-					a := valueA[0]
-					b := valueB[0]
-					valueA = valueA[1:]
-					valueB = valueB[1:]
+				if valueA.Len() > 0 && valueB.Len() > 0 {
+					a := valueA.Pop()
+					b := valueB.Pop()
 
 					mu.Unlock() // unlock before calling destination.Next to prevent long locks
 
-					destination.NextWithContext(ctx, lo.T2(*a, *b)) // @TODO: Send the last context ?
+					destination.NextWithContext(ctx, lo.T2(a, b)) // @TODO: Send the last context ?
 
 					mu.Lock()
 
-					if (completedA && len(valueA) == 0) ||
-						(completedB && len(valueB) == 0) {
+					if (completedA && valueA.Len() == 0) ||
+						(completedB && valueB.Len() == 0) {
 						destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					}
 				}
@@ -1203,8 +1202,8 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 
 				completedA = true
 				completedB = true
-				valueA = nil
-				valueB = nil
+				valueA.Reset()
+				valueB.Reset()
 
 				mu.Unlock()
 			}
@@ -1223,9 +1222,9 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple3[A, B, C]]) Teardown {
 			var mu sync.Mutex
 
-			var valueA []*A
-			var valueB []*B
-			var valueC []*C
+			var valueA xqueue.Queue[A]
+			var valueB xqueue.Queue[B]
+			var valueC xqueue.Queue[C]
 
 			var completedA bool
 			var completedB bool
@@ -1234,23 +1233,20 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 			onUpdate := func(ctx context.Context) {
 				mu.Lock()
 
-				if len(valueA) > 0 && len(valueB) > 0 && len(valueC) > 0 {
-					a := valueA[0]
-					b := valueB[0]
-					c := valueC[0]
-					valueA = valueA[1:]
-					valueB = valueB[1:]
-					valueC = valueC[1:]
+				if valueA.Len() > 0 && valueB.Len() > 0 && valueC.Len() > 0 {
+					a := valueA.Pop()
+					b := valueB.Pop()
+					c := valueC.Pop()
 
 					mu.Unlock() // unlock before calling destination.Next to prevent long locks
 
-					destination.NextWithContext(ctx, lo.T3(*a, *b, *c)) // @TODO: Send the last context ?
+					destination.NextWithContext(ctx, lo.T3(a, b, c)) // @TODO: Send the last context ?
 
 					mu.Lock()
 
-					if (completedA && len(valueA) == 0) ||
-						(completedB && len(valueB) == 0) ||
-						(completedC && len(valueC) == 0) {
+					if (completedA && valueA.Len() == 0) ||
+						(completedB && valueB.Len() == 0) ||
+						(completedC && valueC.Len() == 0) {
 						destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					}
 				}
@@ -1272,9 +1268,9 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 				completedA = true
 				completedB = true
 				completedC = true
-				valueA = nil
-				valueB = nil
-				valueC = nil
+				valueA.Reset()
+				valueB.Reset()
+				valueC.Reset()
 
 				mu.Unlock()
 			}
@@ -1292,10 +1288,10 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple4[A, B, C, D]]) Teardown {
 			var mu sync.Mutex
 
-			var valueA []*A
-			var valueB []*B
-			var valueC []*C
-			var valueD []*D
+			var valueA xqueue.Queue[A]
+			var valueB xqueue.Queue[B]
+			var valueC xqueue.Queue[C]
+			var valueD xqueue.Queue[D]
 
 			var completedA bool
 			var completedB bool
@@ -1305,26 +1301,22 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 			onUpdate := func(ctx context.Context) {
 				mu.Lock()
 
-				if len(valueA) > 0 && len(valueB) > 0 && len(valueC) > 0 && len(valueD) > 0 {
-					a := valueA[0]
-					b := valueB[0]
-					c := valueC[0]
-					d := valueD[0]
-					valueA = valueA[1:]
-					valueB = valueB[1:]
-					valueC = valueC[1:]
-					valueD = valueD[1:]
+				if valueA.Len() > 0 && valueB.Len() > 0 && valueC.Len() > 0 && valueD.Len() > 0 {
+					a := valueA.Pop()
+					b := valueB.Pop()
+					c := valueC.Pop()
+					d := valueD.Pop()
 
 					mu.Unlock() // unlock before calling destination.Next to prevent long locks
 
-					destination.NextWithContext(ctx, lo.T4(*a, *b, *c, *d)) // @TODO: Send the last context ?
+					destination.NextWithContext(ctx, lo.T4(a, b, c, d)) // @TODO: Send the last context ?
 
 					mu.Lock()
 
-					if (completedA && len(valueA) == 0) ||
-						(completedB && len(valueB) == 0) ||
-						(completedC && len(valueC) == 0) ||
-						(completedD && len(valueD) == 0) {
+					if (completedA && valueA.Len() == 0) ||
+						(completedB && valueB.Len() == 0) ||
+						(completedC && valueC.Len() == 0) ||
+						(completedD && valueD.Len() == 0) {
 						destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					}
 				}
@@ -1348,10 +1340,10 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 				completedB = true
 				completedC = true
 				completedD = true
-				valueA = nil
-				valueB = nil
-				valueC = nil
-				valueD = nil
+				valueA.Reset()
+				valueB.Reset()
+				valueC.Reset()
+				valueD.Reset()
 
 				mu.Unlock()
 			}
@@ -1369,11 +1361,11 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple5[A, B, C, D, E]]) Teardown {
 			var mu sync.Mutex
 
-			var valueA []*A
-			var valueB []*B
-			var valueC []*C
-			var valueD []*D
-			var valueE []*E
+			var valueA xqueue.Queue[A]
+			var valueB xqueue.Queue[B]
+			var valueC xqueue.Queue[C]
+			var valueD xqueue.Queue[D]
+			var valueE xqueue.Queue[E]
 
 			var completedA bool
 			var completedB bool
@@ -1384,29 +1376,24 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 			onUpdate := func(ctx context.Context) {
 				mu.Lock()
 
-				if len(valueA) > 0 && len(valueB) > 0 && len(valueC) > 0 && len(valueD) > 0 && len(valueE) > 0 {
-					a := valueA[0]
-					b := valueB[0]
-					c := valueC[0]
-					d := valueD[0]
-					e := valueE[0]
-					valueA = valueA[1:]
-					valueB = valueB[1:]
-					valueC = valueC[1:]
-					valueD = valueD[1:]
-					valueE = valueE[1:]
+				if valueA.Len() > 0 && valueB.Len() > 0 && valueC.Len() > 0 && valueD.Len() > 0 && valueE.Len() > 0 {
+					a := valueA.Pop()
+					b := valueB.Pop()
+					c := valueC.Pop()
+					d := valueD.Pop()
+					e := valueE.Pop()
 
 					mu.Unlock() // unlock before calling destination.Next to prevent long locks
 
-					destination.NextWithContext(ctx, lo.T5(*a, *b, *c, *d, *e)) // @TODO: Send the last context ?
+					destination.NextWithContext(ctx, lo.T5(a, b, c, d, e)) // @TODO: Send the last context ?
 
 					mu.Lock()
 
-					if (completedA && len(valueA) == 0) ||
-						(completedB && len(valueB) == 0) ||
-						(completedC && len(valueC) == 0) ||
-						(completedD && len(valueD) == 0) ||
-						(completedE && len(valueE) == 0) {
+					if (completedA && valueA.Len() == 0) ||
+						(completedB && valueB.Len() == 0) ||
+						(completedC && valueC.Len() == 0) ||
+						(completedD && valueD.Len() == 0) ||
+						(completedE && valueE.Len() == 0) {
 						destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					}
 				}
@@ -1432,11 +1419,11 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 				completedC = true
 				completedD = true
 				completedE = true
-				valueA = nil
-				valueB = nil
-				valueC = nil
-				valueD = nil
-				valueE = nil
+				valueA.Reset()
+				valueB.Reset()
+				valueC.Reset()
+				valueD.Reset()
+				valueE.Reset()
 
 				mu.Unlock()
 			}
@@ -1455,12 +1442,12 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple6[A, B, C, D, E, F]]) Teardown {
 			var mu sync.Mutex
 
-			var valueA []*A
-			var valueB []*B
-			var valueC []*C
-			var valueD []*D
-			var valueE []*E
-			var valueF []*F
+			var valueA xqueue.Queue[A]
+			var valueB xqueue.Queue[B]
+			var valueC xqueue.Queue[C]
+			var valueD xqueue.Queue[D]
+			var valueE xqueue.Queue[E]
+			var valueF xqueue.Queue[F]
 
 			var completedA bool
 			var completedB bool
@@ -1472,32 +1459,26 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 			onUpdate := func(ctx context.Context) {
 				mu.Lock()
 
-				if len(valueA) > 0 && len(valueB) > 0 && len(valueC) > 0 && len(valueD) > 0 && len(valueE) > 0 && len(valueF) > 0 {
-					a := valueA[0]
-					b := valueB[0]
-					c := valueC[0]
-					d := valueD[0]
-					e := valueE[0]
-					f := valueF[0]
-					valueA = valueA[1:]
-					valueB = valueB[1:]
-					valueC = valueC[1:]
-					valueD = valueD[1:]
-					valueE = valueE[1:]
-					valueF = valueF[1:]
+				if valueA.Len() > 0 && valueB.Len() > 0 && valueC.Len() > 0 && valueD.Len() > 0 && valueE.Len() > 0 && valueF.Len() > 0 {
+					a := valueA.Pop()
+					b := valueB.Pop()
+					c := valueC.Pop()
+					d := valueD.Pop()
+					e := valueE.Pop()
+					f := valueF.Pop()
 
 					mu.Unlock() // unlock before calling destination.Next to prevent long locks
 
-					destination.NextWithContext(ctx, lo.T6(*a, *b, *c, *d, *e, *f)) // @TODO: Send the last context ?
+					destination.NextWithContext(ctx, lo.T6(a, b, c, d, e, f)) // @TODO: Send the last context ?
 
 					mu.Lock()
 
-					if (completedA && len(valueA) == 0) ||
-						(completedB && len(valueB) == 0) ||
-						(completedC && len(valueC) == 0) ||
-						(completedD && len(valueD) == 0) ||
-						(completedE && len(valueE) == 0) ||
-						(completedF && len(valueF) == 0) {
+					if (completedA && valueA.Len() == 0) ||
+						(completedB && valueB.Len() == 0) ||
+						(completedC && valueC.Len() == 0) ||
+						(completedD && valueD.Len() == 0) ||
+						(completedE && valueE.Len() == 0) ||
+						(completedF && valueF.Len() == 0) {
 						destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					}
 				}
@@ -1525,12 +1506,12 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 				completedD = true
 				completedE = true
 				completedF = true
-				valueA = nil
-				valueB = nil
-				valueC = nil
-				valueD = nil
-				valueE = nil
-				valueF = nil
+				valueA.Reset()
+				valueB.Reset()
+				valueC.Reset()
+				valueD.Reset()
+				valueE.Reset()
+				valueF.Reset()
 
 				mu.Unlock()
 			}
@@ -1541,7 +1522,7 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observable[T], destination Observer[[]T]) Teardown {
 	var mu sync.Mutex
 
-	values := make([][]*T, len(sources))
+	values := make([]xqueue.Queue[T], len(sources))
 	completed := make([]bool, len(sources))
 
 	onUpdate := func(ctx context.Context) {
@@ -1550,7 +1531,7 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 		hasEmptyQueue := false
 
 		for i := range sources {
-			if len(values[i]) == 0 {
+			if values[i].Len() == 0 {
 				hasEmptyQueue = true
 				break
 			}
@@ -1559,8 +1540,7 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 		if !hasEmptyQueue {
 			result := make([]T, len(sources))
 			for i := range sources {
-				result[i] = *values[i][0]
-				values[i] = values[i][1:]
+				result[i] = values[i].Pop()
 			}
 
 			mu.Unlock() // unlock before calling destination.Next to prevent long locks
@@ -1570,7 +1550,7 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 			mu.Lock()
 
 			for i := range sources {
-				if completed[i] && len(values[i]) == 0 {
+				if completed[i] && values[i].Len() == 0 {
 					destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					break
 				}
