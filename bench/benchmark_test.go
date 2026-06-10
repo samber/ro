@@ -12,24 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ro
-
-import (
-	"context"
-	"fmt"
-	"testing"
-)
-
-// The benchmarks below establish baselines for the per-event hot paths
+// Package bench contains performance benchmarks for the per-event hot paths
 // (Observer.Next, Subscriber.Next, operator chains, subjects) and for the
 // buffering operators. They are fully synchronous so that goleak stays happy.
 //
 // Run with:
 //
-//	go test -run='^$' -bench='^Benchmark' -count=10 -benchmem github.com/samber/ro
+//	go test -run='^$' -bench='^Benchmark' -count=10 -benchmem ./bench/
+package bench
+
+import (
+	"context"
+	"fmt"
+	"testing"
+
+	"github.com/samber/ro"
+)
 
 func BenchmarkObserverNext(b *testing.B) {
-	observer := NewObserver(
+	observer := ro.NewObserver(
 		func(value int) {},
 		func(err error) {},
 		func() {},
@@ -45,7 +46,7 @@ func BenchmarkObserverNext(b *testing.B) {
 
 func BenchmarkObserverNextWithContext(b *testing.B) {
 	ctx := context.Background()
-	observer := NewObserverWithContext(
+	observer := ro.NewObserverWithContext(
 		func(ctx context.Context, value int) {},
 		func(ctx context.Context, err error) {},
 		func(ctx context.Context) {},
@@ -62,17 +63,17 @@ func BenchmarkObserverNextWithContext(b *testing.B) {
 func BenchmarkSubscriberNext(b *testing.B) {
 	modes := []struct {
 		name string
-		mode ConcurrencyMode
+		mode ro.ConcurrencyMode
 	}{
-		{"safe", ConcurrencyModeSafe},
-		{"unsafe", ConcurrencyModeUnsafe},
-		{"eventually-safe", ConcurrencyModeEventuallySafe},
+		{"safe", ro.ConcurrencyModeSafe},
+		{"unsafe", ro.ConcurrencyModeUnsafe},
+		{"eventually-safe", ro.ConcurrencyModeEventuallySafe},
 	}
 
 	for _, m := range modes {
 		b.Run(m.name, func(b *testing.B) {
 			ctx := context.Background()
-			subscriber := NewSubscriberWithConcurrencyMode(NoopObserver[int](), m.mode)
+			subscriber := ro.NewSubscriberWithConcurrencyMode(ro.NoopObserver[int](), m.mode)
 
 			b.ReportAllocs()
 			b.ResetTimer()
@@ -86,15 +87,15 @@ func BenchmarkSubscriberNext(b *testing.B) {
 
 func BenchmarkPipeMapFilter(b *testing.B) {
 	ctx := context.Background()
-	subject := NewPublishSubject[int]()
+	subject := ro.NewPublishSubject[int]()
 
-	obs := Pipe2(
+	obs := ro.Pipe2(
 		subject.AsObservable(),
-		Map(func(v int) int { return v * 2 }),
-		Filter(func(v int) bool { return v%4 == 0 }),
+		ro.Map(func(v int) int { return v * 2 }),
+		ro.Filter(func(v int) bool { return v%4 == 0 }),
 	)
 
-	sub := obs.Subscribe(NoopObserver[int]())
+	sub := obs.Subscribe(ro.NoopObserver[int]())
 	defer sub.Unsubscribe()
 
 	b.ReportAllocs()
@@ -106,30 +107,30 @@ func BenchmarkPipeMapFilter(b *testing.B) {
 }
 
 func BenchmarkCollectRangePipe(b *testing.B) {
-	obs := Pipe2(
-		Range(0, 1000),
-		Map(func(v int64) int64 { return v * 2 }),
-		Filter(func(v int64) bool { return v%4 == 0 }),
+	obs := ro.Pipe2(
+		ro.Range(0, 1000),
+		ro.Map(func(v int64) int64 { return v * 2 }),
+		ro.Filter(func(v int64) bool { return v%4 == 0 }),
 	)
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_, _ = Collect(obs)
+		_, _ = ro.Collect(obs)
 	}
 }
 
 func BenchmarkTakeLast(b *testing.B) {
 	for _, count := range []int{8, 128} {
 		b.Run(fmt.Sprintf("count=%d", count), func(b *testing.B) {
-			obs := TakeLast[int64](count)(Range(0, 1024))
+			obs := ro.TakeLast[int64](count)(ro.Range(0, 1024))
 
 			b.ReportAllocs()
 			b.ResetTimer()
 
 			for i := 0; i < b.N; i++ {
-				_, _ = Collect(obs)
+				_, _ = ro.Collect(obs)
 			}
 		})
 	}
@@ -138,37 +139,37 @@ func BenchmarkTakeLast(b *testing.B) {
 func BenchmarkSkipLast(b *testing.B) {
 	for _, count := range []int{8, 128} {
 		b.Run(fmt.Sprintf("count=%d", count), func(b *testing.B) {
-			obs := SkipLast[int64](count)(Range(0, 1024))
+			obs := ro.SkipLast[int64](count)(ro.Range(0, 1024))
 
 			b.ReportAllocs()
 			b.ResetTimer()
 
 			for i := 0; i < b.N; i++ {
-				_, _ = Collect(obs)
+				_, _ = ro.Collect(obs)
 			}
 		})
 	}
 }
 
 func BenchmarkZip2(b *testing.B) {
-	obs := Zip2(Range(0, 256), Range(0, 256))
+	obs := ro.Zip2(ro.Range(0, 256), ro.Range(0, 256))
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_, _ = Collect(obs)
+		_, _ = ro.Collect(obs)
 	}
 }
 
 func BenchmarkZipWith1(b *testing.B) {
-	obs := ZipWith1[int64](Range(0, 256))(Range(0, 256))
+	obs := ro.ZipWith1[int64](ro.Range(0, 256))(ro.Range(0, 256))
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_, _ = Collect(obs)
+		_, _ = ro.Collect(obs)
 	}
 }
 
@@ -176,11 +177,11 @@ func BenchmarkPublishSubjectFanout(b *testing.B) {
 	for _, observers := range []int{1, 8, 64} {
 		b.Run(fmt.Sprintf("observers=%d", observers), func(b *testing.B) {
 			ctx := context.Background()
-			subject := NewPublishSubject[int]()
+			subject := ro.NewPublishSubject[int]()
 
-			subscriptions := make([]Subscription, 0, observers)
+			subscriptions := make([]ro.Subscription, 0, observers)
 			for range make([]struct{}, observers) {
-				subscriptions = append(subscriptions, subject.Subscribe(NoopObserver[int]()))
+				subscriptions = append(subscriptions, subject.Subscribe(ro.NoopObserver[int]()))
 			}
 			defer func() {
 				for _, sub := range subscriptions {
@@ -200,9 +201,9 @@ func BenchmarkPublishSubjectFanout(b *testing.B) {
 
 func BenchmarkReplaySubjectBounded(b *testing.B) {
 	ctx := context.Background()
-	subject := NewReplaySubject[int](16)
+	subject := ro.NewReplaySubject[int](16)
 
-	sub := subject.Subscribe(NoopObserver[int]())
+	sub := subject.Subscribe(ro.NoopObserver[int]())
 	defer sub.Unsubscribe()
 
 	b.ReportAllocs()
@@ -216,7 +217,7 @@ func BenchmarkReplaySubjectBounded(b *testing.B) {
 
 func BenchmarkReplaySubjectSubscribeReplay(b *testing.B) {
 	ctx := context.Background()
-	subject := NewReplaySubject[int](16)
+	subject := ro.NewReplaySubject[int](16)
 	for i := 0; i < 32; i++ {
 		subject.NextWithContext(ctx, i)
 	}
@@ -225,17 +226,17 @@ func BenchmarkReplaySubjectSubscribeReplay(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		subject.SubscribeWithContext(ctx, NoopObserver[int]()).Unsubscribe()
+		subject.SubscribeWithContext(ctx, ro.NoopObserver[int]()).Unsubscribe()
 	}
 }
 
 func BenchmarkDistinct(b *testing.B) {
 	ctx := context.Background()
-	subject := NewPublishSubject[int]()
+	subject := ro.NewPublishSubject[int]()
 
-	obs := Distinct[int]()(subject.AsObservable())
+	obs := ro.Distinct[int]()(subject.AsObservable())
 
-	sub := obs.Subscribe(NoopObserver[int]())
+	sub := obs.Subscribe(ro.NoopObserver[int]())
 	defer sub.Unsubscribe()
 
 	b.ReportAllocs()
