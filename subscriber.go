@@ -16,9 +16,8 @@ package ro
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
-
-	"github.com/samber/ro/internal/xsync"
 )
 
 // Subscriber implements the Observer and Subscription interfaces. While the Observer is
@@ -102,11 +101,11 @@ func NewSubscriberWithConcurrencyMode[T any](destination Observer[T], mode Concu
 	// only for short-lived local locks.
 	switch mode {
 	case ConcurrencyModeSafe:
-		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureBlock, destination)
+		return newSubscriberImpl(mode, false, BackpressureBlock, destination)
 	case ConcurrencyModeUnsafe:
-		return newSubscriberImpl(mode, xsync.NewMutexWithoutLock(), BackpressureBlock, destination)
+		return newSubscriberImpl(mode, true, BackpressureBlock, destination)
 	case ConcurrencyModeEventuallySafe:
-		return newSubscriberImpl(mode, xsync.NewMutexWithLock(), BackpressureDrop, destination)
+		return newSubscriberImpl(mode, false, BackpressureDrop, destination)
 	default:
 		panic("invalid concurrency mode")
 	}
@@ -114,7 +113,7 @@ func NewSubscriberWithConcurrencyMode[T any](destination Observer[T], mode Concu
 
 // newSubscriberImpl creates a new subscriber implementation with the specified
 // synchronization behavior and destination observer.
-func newSubscriberImpl[T any](mode ConcurrencyMode, mu xsync.Mutex, backpressure Backpressure, destination Observer[T]) Subscriber[T] {
+func newSubscriberImpl[T any](mode ConcurrencyMode, noLock bool, backpressure Backpressure, destination Observer[T]) Subscriber[T] {
 	// Protect against multiple encapsulation layers.
 	if subscriber, ok := destination.(Subscriber[T]); ok {
 		return subscriber
@@ -124,7 +123,7 @@ func newSubscriberImpl[T any](mode ConcurrencyMode, mu xsync.Mutex, backpressure
 		status:       0, // KindNext
 		backpressure: backpressure,
 
-		mu:          mu,
+		noLock:      noLock,
 		destination: destination,
 
 		Subscription: NewSubscription(nil),
@@ -153,18 +152,43 @@ type subscriberImpl[T any] struct {
 
 	// Mutex are much much faster than channels.
 	//
+	// A concrete sync.Mutex (instead of an xsync.Mutex interface) keeps the
+	// lock fast path inlinable: interface dispatch on every Next is measurably
+	// slower. ConcurrencyModeUnsafe skips the lock via the noLock flag.
+	//
 	// Also, generators has been added in go1.23. A different implem of Observable/Observer
 	// might reduce latency induced by mutexes.
 	//
 	// It could be interesting to implement a lock-free version of this,
 	// with message drop instead of backpressure, and when SLO must be kept under
 	// control (real-time streams?).
-	mu          xsync.Mutex
+	mu          sync.Mutex
+	noLock      bool
 	destination Observer[T]
 
 	Subscription
 
 	mode ConcurrencyMode
+}
+
+func (s *subscriberImpl[T]) lock() {
+	if !s.noLock {
+		s.mu.Lock()
+	}
+}
+
+func (s *subscriberImpl[T]) unlock() {
+	if !s.noLock {
+		s.mu.Unlock()
+	}
+}
+
+func (s *subscriberImpl[T]) tryLock() bool {
+	if s.noLock {
+		return true
+	}
+
+	return s.mu.TryLock()
 }
 
 // Implements Observer.
@@ -179,12 +203,12 @@ func (s *subscriberImpl[T]) NextWithContext(ctx context.Context, v T) {
 	}
 
 	if s.backpressure == BackpressureDrop {
-		if !s.mu.TryLock() {
+		if !s.tryLock() {
 			OnDroppedNotification(ctx, NewNotificationNext(v))
 			return
 		}
 	} else {
-		s.mu.Lock()
+		s.lock()
 	}
 
 	if atomic.LoadInt32(&s.status) == 0 {
@@ -193,7 +217,7 @@ func (s *subscriberImpl[T]) NextWithContext(ctx context.Context, v T) {
 		OnDroppedNotification(ctx, NewNotificationNext(v))
 	}
 
-	s.mu.Unlock()
+	s.unlock()
 }
 
 // Implements Observer.
@@ -203,7 +227,7 @@ func (s *subscriberImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *subscriberImpl[T]) ErrorWithContext(ctx context.Context, err error) {
-	s.mu.Lock()
+	s.lock()
 
 	if atomic.CompareAndSwapInt32(&s.status, 0, 1) {
 		if s.destination != nil {
@@ -213,7 +237,7 @@ func (s *subscriberImpl[T]) ErrorWithContext(ctx context.Context, err error) {
 		OnDroppedNotification(ctx, NewNotificationError[T](err))
 	}
 
-	s.mu.Unlock()
+	s.unlock()
 
 	s.unsubscribe()
 }
@@ -225,7 +249,7 @@ func (s *subscriberImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *subscriberImpl[T]) CompleteWithContext(ctx context.Context) {
-	s.mu.Lock()
+	s.lock()
 
 	if atomic.CompareAndSwapInt32(&s.status, 0, 2) {
 		if s.destination != nil {
@@ -235,7 +259,7 @@ func (s *subscriberImpl[T]) CompleteWithContext(ctx context.Context) {
 		OnDroppedNotification(ctx, NewNotificationComplete[T]())
 	}
 
-	s.mu.Unlock()
+	s.unlock()
 
 	s.unsubscribe()
 }
