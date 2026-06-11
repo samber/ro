@@ -1098,7 +1098,7 @@ type zipDestination interface {
 	CompleteWithContext(context.Context)
 }
 
-// This code is dity but much more concise than the original implementation.
+// This code is dirty but much more concise than the original implementation.
 func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T], mu *sync.Mutex, values *xqueue.Queue[T], completed *bool, onUpdate func(context.Context), destination zipDestination, subscriptions Subscription) {
 	subscriptions.AddUnsubscribable(
 		obs.SubscribeWithContext(
