@@ -150,7 +150,7 @@ type subscriberImpl[T any] struct {
 
 	_ [59]byte // padding to prevent false sharing
 
-	// Mutex are much much faster than channels.
+	// Mutexes are much faster than channels.
 	//
 	// A concrete sync.Mutex (instead of an xsync.Mutex interface) keeps the
 	// lock fast path inlinable: interface dispatch on every Next is measurably
