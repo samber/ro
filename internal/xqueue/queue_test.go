@@ -44,7 +44,8 @@ func TestQueuePushPop(t *testing.T) {
 }
 
 func TestQueueReusesCapacityWhenDrained(t *testing.T) {
-	t.Parallel()
+	// Not parallel: testing.AllocsPerRun is unreliable when other tests run
+	// concurrently, since its result depends on whole-program GC behavior.
 	is := assert.New(t)
 
 	q := NewQueue[int]()
