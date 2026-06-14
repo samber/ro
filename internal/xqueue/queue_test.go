@@ -81,6 +81,31 @@ func TestQueueBoundedUnderSustainedSkew(t *testing.T) {
 	is.LessOrEqual(cap(q.items), 16)
 }
 
+func TestQueueShrinksAfterBurst(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	q := &queueImpl[int]{}
+
+	// Grow the backing array with a burst.
+	for i := 0; i < 256; i++ {
+		q.Push(i)
+	}
+	is.GreaterOrEqual(cap(q.items), 256)
+
+	// Drain back down to a single live value: the backing array must be
+	// released rather than held at the peak. A small floor is acceptable.
+	for q.Len() > 1 {
+		_ = q.Pop()
+	}
+	is.Equal(1, q.Len())
+	is.LessOrEqual(cap(q.items), minShrinkCap)
+
+	// The retained value is still correct and in order.
+	is.Equal(255, q.Pop())
+	is.Equal(0, q.Len())
+}
+
 func TestQueuePopEmptyPanics(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)

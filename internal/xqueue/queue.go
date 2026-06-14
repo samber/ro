@@ -36,6 +36,11 @@ type Queue[T any] interface {
 
 var _ Queue[int] = (*queueImpl[int])(nil)
 
+// minShrinkCap is the smallest backing array the queue will shrink down to.
+// Below it, the savings are not worth the reallocation, and keeping a small
+// floor avoids thrashing for queues that hover near empty.
+const minShrinkCap = 16
+
 // NewQueue creates a new empty FIFO queue.
 func NewQueue[T any]() Queue[T] {
 	return &queueImpl[T]{}
@@ -52,7 +57,12 @@ type queueImpl[T any] struct {
 // Push appends a value to the back of the queue.
 func (q *queueImpl[T]) Push(value T) {
 	if q.count == len(q.items) {
-		q.grow()
+		newCap := len(q.items) * 2
+		if newCap == 0 {
+			newCap = 4
+		}
+
+		q.resize(newCap)
 	}
 
 	q.items[q.tail] = value
@@ -84,6 +94,15 @@ func (q *queueImpl[T]) Pop() T {
 
 	q.count--
 
+	// Release backing storage in a single step once a large array has drained
+	// down to a handful of items, so a queue that grew for a burst does not
+	// hold the peak array after the producer goes quiet. Shrinking only at a
+	// low absolute count (rather than progressively while draining) keeps a
+	// full drain to one reallocation, and the floor avoids thrashing.
+	if q.count <= minShrinkCap && len(q.items) > 2*minShrinkCap {
+		q.resize(minShrinkCap)
+	}
+
 	return value
 }
 
@@ -100,14 +119,9 @@ func (q *queueImpl[T]) Reset() {
 	q.count = 0
 }
 
-// grow doubles the backing array and re-linearizes the live region so that it
-// starts at index 0.
-func (q *queueImpl[T]) grow() {
-	newCap := len(q.items) * 2
-	if newCap == 0 {
-		newCap = 4
-	}
-
+// resize moves the live region into a freshly allocated array of newCap,
+// re-linearizing it so that it starts at index 0. newCap must be >= count.
+func (q *queueImpl[T]) resize(newCap int) {
 	buf := make([]T, newCap)
 
 	// Copy the live region in order, starting from head and wrapping around.
@@ -117,4 +131,7 @@ func (q *queueImpl[T]) grow() {
 	q.items = buf
 	q.head = 0
 	q.tail = q.count
+	if q.tail == newCap {
+		q.tail = 0
+	}
 }
