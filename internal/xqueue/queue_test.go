@@ -60,6 +60,27 @@ func TestQueueReusesCapacityWhenDrained(t *testing.T) {
 	is.Equal(0.0, allocs)
 }
 
+func TestQueueBoundedUnderSustainedSkew(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// One producer permanently ahead of the consumer: the live depth stays
+	// constant but head keeps advancing. The backing array must stay bounded
+	// to the peak depth rather than growing without bound.
+	var q Queue[int]
+	for i := 0; i < 8; i++ {
+		q.Push(i)
+	}
+
+	for i := 0; i < 100_000; i++ {
+		q.Push(i)
+		_ = q.Pop()
+	}
+
+	is.Equal(8, q.Len())
+	is.LessOrEqual(cap(q.items), 16)
+}
+
 func TestQueuePopEmptyPanics(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
