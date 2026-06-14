@@ -14,15 +14,35 @@
 
 package xqueue
 
-// Queue is a FIFO queue backed by a growable ring buffer. Popped slots are
-// zeroed so that dequeued values are not pinned in memory, and the backing
-// array is reused in place: a balanced push/pop workload does not allocate in
-// steady state, and a sustained imbalance (one producer permanently ahead of
-// the consumer) keeps the buffer bounded to the peak depth rather than letting
-// a dead prefix grow without bound.
+// Queue is a FIFO queue. Popped slots are zeroed so that dequeued values are
+// not pinned in memory, and the backing storage is reused in place: a balanced
+// push/pop workload does not allocate in steady state, and a sustained
+// imbalance (one producer permanently ahead of the consumer) keeps the storage
+// bounded to the peak depth rather than letting a dead prefix grow without
+// bound.
 //
 // Queue is not safe for concurrent use.
-type Queue[T any] struct {
+type Queue[T any] interface {
+	// Push appends a value to the back of the queue.
+	Push(value T)
+	// Pop removes and returns the value at the front of the queue.
+	// It panics if the queue is empty.
+	Pop() T
+	// Len returns the number of values in the queue.
+	Len() int
+	// Reset empties the queue and releases the backing storage.
+	Reset()
+}
+
+var _ Queue[int] = (*queueImpl[int])(nil)
+
+// NewQueue creates a new empty FIFO queue.
+func NewQueue[T any]() Queue[T] {
+	return &queueImpl[T]{}
+}
+
+// queueImpl is a FIFO queue backed by a growable ring buffer.
+type queueImpl[T any] struct {
 	items []T
 	head  int
 	tail  int
@@ -30,7 +50,7 @@ type Queue[T any] struct {
 }
 
 // Push appends a value to the back of the queue.
-func (q *Queue[T]) Push(value T) {
+func (q *queueImpl[T]) Push(value T) {
 	if q.count == len(q.items) {
 		q.grow()
 	}
@@ -47,7 +67,7 @@ func (q *Queue[T]) Push(value T) {
 
 // Pop removes and returns the value at the front of the queue.
 // It panics if the queue is empty.
-func (q *Queue[T]) Pop() T {
+func (q *queueImpl[T]) Pop() T {
 	if q.count == 0 {
 		panic("xqueue: Pop from empty queue")
 	}
@@ -68,12 +88,12 @@ func (q *Queue[T]) Pop() T {
 }
 
 // Len returns the number of values in the queue.
-func (q *Queue[T]) Len() int {
+func (q *queueImpl[T]) Len() int {
 	return q.count
 }
 
 // Reset empties the queue and releases the backing array.
-func (q *Queue[T]) Reset() {
+func (q *queueImpl[T]) Reset() {
 	q.items = nil
 	q.head = 0
 	q.tail = 0
@@ -82,7 +102,7 @@ func (q *Queue[T]) Reset() {
 
 // grow doubles the backing array and re-linearizes the live region so that it
 // starts at index 0.
-func (q *Queue[T]) grow() {
+func (q *queueImpl[T]) grow() {
 	newCap := len(q.items) * 2
 	if newCap == 0 {
 		newCap = 4

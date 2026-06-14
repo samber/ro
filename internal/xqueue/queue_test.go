@@ -24,7 +24,7 @@ func TestQueuePushPop(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
-	var q Queue[int]
+	q := NewQueue[int]()
 
 	is.Equal(0, q.Len())
 
@@ -47,7 +47,7 @@ func TestQueueReusesCapacityWhenDrained(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
-	var q Queue[int]
+	q := NewQueue[int]()
 
 	// Warm up the backing array.
 	q.Push(1)
@@ -67,7 +67,7 @@ func TestQueueBoundedUnderSustainedSkew(t *testing.T) {
 	// One producer permanently ahead of the consumer: the live depth stays
 	// constant but head keeps advancing. The backing array must stay bounded
 	// to the peak depth rather than growing without bound.
-	var q Queue[int]
+	q := &queueImpl[int]{}
 	for i := 0; i < 8; i++ {
 		q.Push(i)
 	}
@@ -85,7 +85,7 @@ func TestQueuePopEmptyPanics(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
-	var q Queue[int]
+	q := NewQueue[int]()
 
 	is.Panics(func() {
 		q.Pop()
@@ -96,7 +96,7 @@ func TestQueueZeroesPoppedSlots(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
-	var q Queue[*int]
+	q := &queueImpl[*int]{}
 
 	v1 := 1
 	v2 := 2
@@ -113,7 +113,7 @@ func TestQueueReset(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
-	var q Queue[int]
+	q := &queueImpl[int]{}
 
 	q.Push(1)
 	q.Push(2)
@@ -132,7 +132,7 @@ func TestQueueInterleaved(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
-	var q Queue[int]
+	q := NewQueue[int]()
 
 	next := 0
 	expected := 0

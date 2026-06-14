@@ -1099,7 +1099,7 @@ type zipDestination interface {
 }
 
 // This code is dirty but much more concise than the original implementation.
-func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T], mu *sync.Mutex, values *xqueue.Queue[T], completed *bool, onUpdate func(context.Context), destination zipDestination, subscriptions Subscription) {
+func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T], mu *sync.Mutex, values xqueue.Queue[T], completed *bool, onUpdate func(context.Context), destination zipDestination, subscriptions Subscription) {
 	subscriptions.AddUnsubscribable(
 		obs.SubscribeWithContext(
 			subscriberCtx,
@@ -1162,8 +1162,8 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple2[A, B]]) Teardown {
 			var mu sync.Mutex
 
-			var valueA xqueue.Queue[A]
-			var valueB xqueue.Queue[B]
+			valueA := xqueue.NewQueue[A]()
+			valueB := xqueue.NewQueue[B]()
 
 			var completedA bool
 			var completedB bool
@@ -1191,8 +1191,8 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 			}
 
 			subscriptions := NewSubscription(nil)
-			zipInnerSubscription(subscriberCtx, obsA, &mu, &valueA, &completedA, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsB, &mu, &valueB, &completedB, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, onUpdate, destination, subscriptions)
 
 			return func() {
 				subscriptions.Unsubscribe()
@@ -1222,9 +1222,9 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple3[A, B, C]]) Teardown {
 			var mu sync.Mutex
 
-			var valueA xqueue.Queue[A]
-			var valueB xqueue.Queue[B]
-			var valueC xqueue.Queue[C]
+			valueA := xqueue.NewQueue[A]()
+			valueB := xqueue.NewQueue[B]()
+			valueC := xqueue.NewQueue[C]()
 
 			var completedA bool
 			var completedB bool
@@ -1255,9 +1255,9 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 			}
 
 			subscriptions := NewSubscription(nil)
-			zipInnerSubscription(subscriberCtx, obsA, &mu, &valueA, &completedA, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsB, &mu, &valueB, &completedB, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsC, &mu, &valueC, &completedC, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, onUpdate, destination, subscriptions)
 
 			return func() {
 				subscriptions.Unsubscribe()
@@ -1288,10 +1288,10 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple4[A, B, C, D]]) Teardown {
 			var mu sync.Mutex
 
-			var valueA xqueue.Queue[A]
-			var valueB xqueue.Queue[B]
-			var valueC xqueue.Queue[C]
-			var valueD xqueue.Queue[D]
+			valueA := xqueue.NewQueue[A]()
+			valueB := xqueue.NewQueue[B]()
+			valueC := xqueue.NewQueue[C]()
+			valueD := xqueue.NewQueue[D]()
 
 			var completedA bool
 			var completedB bool
@@ -1325,10 +1325,10 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 			}
 
 			subscriptions := NewSubscription(nil)
-			zipInnerSubscription(subscriberCtx, obsA, &mu, &valueA, &completedA, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsB, &mu, &valueB, &completedB, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsC, &mu, &valueC, &completedC, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsD, &mu, &valueD, &completedD, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, onUpdate, destination, subscriptions)
 
 			return func() {
 				subscriptions.Unsubscribe()
@@ -1361,11 +1361,11 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple5[A, B, C, D, E]]) Teardown {
 			var mu sync.Mutex
 
-			var valueA xqueue.Queue[A]
-			var valueB xqueue.Queue[B]
-			var valueC xqueue.Queue[C]
-			var valueD xqueue.Queue[D]
-			var valueE xqueue.Queue[E]
+			valueA := xqueue.NewQueue[A]()
+			valueB := xqueue.NewQueue[B]()
+			valueC := xqueue.NewQueue[C]()
+			valueD := xqueue.NewQueue[D]()
+			valueE := xqueue.NewQueue[E]()
 
 			var completedA bool
 			var completedB bool
@@ -1402,11 +1402,11 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 			}
 
 			subscriptions := NewSubscription(nil)
-			zipInnerSubscription(subscriberCtx, obsA, &mu, &valueA, &completedA, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsB, &mu, &valueB, &completedB, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsC, &mu, &valueC, &completedC, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsD, &mu, &valueD, &completedD, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsE, &mu, &valueE, &completedE, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsE, &mu, valueE, &completedE, onUpdate, destination, subscriptions)
 
 			return func() {
 				subscriptions.Unsubscribe()
@@ -1442,12 +1442,12 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple6[A, B, C, D, E, F]]) Teardown {
 			var mu sync.Mutex
 
-			var valueA xqueue.Queue[A]
-			var valueB xqueue.Queue[B]
-			var valueC xqueue.Queue[C]
-			var valueD xqueue.Queue[D]
-			var valueE xqueue.Queue[E]
-			var valueF xqueue.Queue[F]
+			valueA := xqueue.NewQueue[A]()
+			valueB := xqueue.NewQueue[B]()
+			valueC := xqueue.NewQueue[C]()
+			valueD := xqueue.NewQueue[D]()
+			valueE := xqueue.NewQueue[E]()
+			valueF := xqueue.NewQueue[F]()
 
 			var completedA bool
 			var completedB bool
@@ -1487,12 +1487,12 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 			}
 
 			subscriptions := NewSubscription(nil)
-			zipInnerSubscription(subscriberCtx, obsA, &mu, &valueA, &completedA, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsB, &mu, &valueB, &completedB, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsC, &mu, &valueC, &completedC, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsD, &mu, &valueD, &completedD, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsE, &mu, &valueE, &completedE, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsF, &mu, &valueF, &completedF, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsE, &mu, valueE, &completedE, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsF, &mu, valueF, &completedF, onUpdate, destination, subscriptions)
 
 			return func() {
 				subscriptions.Unsubscribe()
@@ -1523,6 +1523,9 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 	var mu sync.Mutex
 
 	values := make([]xqueue.Queue[T], len(sources))
+	for i := range values {
+		values[i] = xqueue.NewQueue[T]()
+	}
 	completed := make([]bool, len(sources))
 
 	onUpdate := func(ctx context.Context) {
@@ -1564,7 +1567,7 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 
 	for i := range sources {
 		j := i
-		zipInnerSubscription(outerCtx, sources[i], &mu, &(values[j]), &(completed[j]), onUpdate, destination, subscriptions)
+		zipInnerSubscription(outerCtx, sources[i], &mu, values[j], &(completed[j]), onUpdate, destination, subscriptions)
 	}
 
 	return func() {
