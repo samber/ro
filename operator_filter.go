@@ -470,25 +470,31 @@ func TakeLast[T any](count int) func(Observable[T]) Observable[T] {
 
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			// Use a circular buffer to avoid memory allocations
-			buffer := make([]lo.Tuple2[context.Context, T], 0, count)
+			buffer := make([]lo.Tuple2[context.Context, T], count)
+			size := 0
 			index := 0
 
 			sub := source.SubscribeWithContext(
 				subscriberCtx,
 				NewObserverWithContext(
 					func(ctx context.Context, value T) {
-						if index >= count {
-							buffer = buffer[1:]
+						buffer[index] = lo.T2(ctx, value)
+						index = (index + 1) % count
+						if size < count {
+							size++
 						}
-
-						buffer = append(buffer, lo.T2(ctx, value))
-						index++
 					},
 					destination.ErrorWithContext,
 					func(ctx context.Context) {
 						// Emit items in order, starting from the oldest
-						for i := 0; i < count && i < index; i++ {
-							destination.NextWithContext(buffer[i].A, buffer[i].B)
+						start := 0
+						if size == count {
+							start = index
+						}
+
+						for i := 0; i < size; i++ {
+							item := buffer[(start+i)%count]
+							destination.NextWithContext(item.A, item.B)
 						}
 
 						destination.CompleteWithContext(ctx)
