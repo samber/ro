@@ -1,6 +1,6 @@
 module github.com/samber/ro/plugins/encoding/csv
 
-go 1.18
+go 1.24.0
 
 require (
 	github.com/samber/ro v0.0.0

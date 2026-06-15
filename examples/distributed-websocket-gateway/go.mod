@@ -1,6 +1,6 @@
 module github.com/samber/ro/examples/distributed-websocket-gateway
 
-go 1.18
+go 1.24.0
 
 require github.com/samber/lo v1.53.0
 
