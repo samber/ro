@@ -72,13 +72,13 @@ func TestRandom(t *testing.T) {
 	is.Equal([]byte("AAAAAAAAAA"), values3[0])
 	is.Nil(err)
 
-	is.PanicsWithValue(
+	is.PanicsWithError(
 		"robytes.Random: charset must not be empty",
 		func() {
 			_ = Random[struct{}](100, []rune{})
 		},
 	)
-	is.PanicsWithValue(
+	is.PanicsWithError(
 		"robytes.Random: size must be greater than 0",
 		func() {
 			_ = Random[struct{}](0, LowerCaseLettersCharset)

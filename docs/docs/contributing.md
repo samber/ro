@@ -181,6 +181,41 @@ Create a [Go Playground](https://go.dev/play/) demonstration for each operator, 
 
 Please add an example of your operator in the file named `ro_example_test.go`. It will be visible in Godoc website: https://pkg.go.dev/github.com/samber/ro
 
+## Error conventions
+
+Errors must be declared as package-level sentinel variables using `errors.New`, never as inline strings or `fmt.Errorf` calls in a `panic`.
+
+Each package (core or plugin) that panics on invalid input **must** declare its errors in a dedicated `errors.go` file:
+
+```go
+// errors.go
+package myplugin
+
+import "errors"
+
+var (
+    ErrMyOperatorWrongParam = errors.New("myplugin.MyOperator: param must be greater than 0")
+)
+```
+
+Then use the variable in the operator:
+
+```go
+func MyOperator(param int) func(ro.Observable[T]) ro.Observable[T] {
+    if param <= 0 {
+        panic(ErrMyOperatorWrongParam)
+    }
+    // ...
+}
+```
+
+**Rules:**
+- Use `errors.New` — never `fmt.Errorf` or a bare string — for sentinel error declarations.
+- Error variable names follow the pattern `Err{OperatorName}{WhatIsWrong}` (e.g., `ErrRandomWrongSize`, `ErrWebsocketSubjectURLRequired`).
+- Error messages follow the pattern `{package}.{FunctionName}: {lowercase description}` (e.g., `"rostrings.Random: size must be greater than 0"`).
+- Never write `panic("some string")` or `panic(errors.New("..."))` inline — always use a pre-declared variable.
+- Panics are reserved for programmer errors detected at construction time (invalid parameters), never for runtime stream errors.
+
 ## Other conventions
 
 ### Naming

@@ -97,10 +97,10 @@ func random(size int, charset []rune) []byte {
 // Play: https://go.dev/play/p/hX7F8StRq6Q
 func Random[T any](size int, charset []rune) func(destination ro.Observable[T]) ro.Observable[[]byte] {
 	if size <= 0 {
-		panic("robytes.Random: size must be greater than 0")
+		panic(ErrRandomWrongSize)
 	}
 	if len(charset) <= 0 {
-		panic("robytes.Random: charset must not be empty")
+		panic(ErrRandomEmptyCharset)
 	}
 
 	return ro.Map(

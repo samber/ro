@@ -45,13 +45,13 @@ type WebsocketSubjectConfig[In any, Out any] struct {
 // NewWebsocketSubject creates a websocket subject that can both send and receive messages from a websocket endpoint.
 func NewWebsocketSubject[In any, Out any](config WebsocketSubjectConfig[In, Out]) *websocketSubject[In, Out] {
 	if config.URL == "" {
-		panic("rowebsocket.NewWebsocketSubject: URL is required")
+		panic(ErrWebsocketSubjectURLRequired)
 	}
 	if config.Serializer == nil {
-		panic("rowebsocket.NewWebsocketSubject: Serializer is required")
+		panic(ErrWebsocketSubjectSerializerRequired)
 	}
 	if config.Deserializer == nil {
-		panic("rowebsocket.NewWebsocketSubject: Deserializer is required")
+		panic(ErrWebsocketSubjectDeserializerRequired)
 	}
 	if config.Dialer == nil {
 		config.Dialer = websocket.DefaultDialer
