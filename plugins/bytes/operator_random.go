@@ -53,8 +53,17 @@ func nearestPowerOfTwo(cap int) int {
 
 func random(size int, charset []rune) []byte {
 	// see https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go
-	sb := bytes.Buffer{}
+	var sb bytes.Buffer
 	sb.Grow(size)
+
+	// Edge case: single-character charset would cause letterIdBits=0 (division by zero below).
+	if len(charset) == 1 {
+		for i := 0; i < size; i++ {
+			sb.WriteRune(charset[0])
+		}
+		return sb.Bytes()
+	}
+
 	// Calculate the number of bits required to represent the charset,
 	// e.g., for 62 characters, it would need 6 bits (since 62 -> 64 = 2^6)
 	letterIdBits := int(math.Log2(float64(nearestPowerOfTwo(len(charset)))))
@@ -88,10 +97,10 @@ func random(size int, charset []rune) []byte {
 // Play: https://go.dev/play/p/hX7F8StRq6Q
 func Random[T any](size int, charset []rune) func(destination ro.Observable[T]) ro.Observable[[]byte] {
 	if size <= 0 {
-		panic("robytes.Random: Size parameter must be greater than 0")
+		panic("robytes.Random: size must be greater than 0")
 	}
 	if len(charset) <= 0 {
-		panic("robytes.Random: Charset parameter must not be empty")
+		panic("robytes.Random: charset must not be empty")
 	}
 
 	return ro.Map(

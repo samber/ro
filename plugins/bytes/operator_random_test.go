@@ -61,14 +61,25 @@ func TestRandom(t *testing.T) {
 	is.Subset([]byte("明1好休2林森"), values[0])
 	is.Nil(err)
 
+	// Single-char charset: must not divide by zero
+	values3, err := ro.Collect(
+		ro.Pipe1(
+			ro.Just(struct{}{}),
+			Random[struct{}](10, []rune{65}),
+		),
+	)
+	is.Equal(10, utf8.RuneCount(values3[0]))
+	is.Equal([]byte("AAAAAAAAAA"), values3[0])
+	is.Nil(err)
+
 	is.PanicsWithValue(
-		"robytes.Random: Charset parameter must not be empty",
+		"robytes.Random: charset must not be empty",
 		func() {
 			_ = Random[struct{}](100, []rune{})
 		},
 	)
 	is.PanicsWithValue(
-		"robytes.Random: Size parameter must be greater than 0",
+		"robytes.Random: size must be greater than 0",
 		func() {
 			_ = Random[struct{}](0, LowerCaseLettersCharset)
 		},
