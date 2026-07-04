@@ -324,7 +324,7 @@ Follow this checklist in order when adding a new operator or porting one from a 
 5. **Go Playground link**: create a runnable snippet via the `mcp__go-playground__run_and_share_go_code` MCP tool, verify it executes correctly, then add `// Play: https://go.dev/play/p/...` above the function signature. Leave the URL empty if the operator is not yet published (new code not yet released cannot compile on the Playground).
 6. **Markdown doc**: create `docs/data/(core|plugin)-<name>.md` with complete frontmatter (`sourceRef`, `signatures`, `variantHelpers`, `similarHelpers`, `playUrl`, `position`). See `docs/CLAUDE.md` at the repository root for the full format.
 7. **llms.txt**: add a one-line entry for the operator in `docs/static/llms.txt`.
-8. **Upstream parity**: if the operator re-implements logic from a sibling library, synchronize it. See [Upstream parity](./contributing#upstream-parity) in contributing.md.
+8. **Upstream parity**: if the operator re-implements logic from a sibling library, synchronize it. See the [Upstream parity](./contributing) section in contributing.md.
 9. **Verify**: run `make test` (race detector) and `make lint`. Documentation validation scripts run in CI — you do not need to run them manually.
 
 ## Common agent pitfalls
