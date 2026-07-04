@@ -16,6 +16,7 @@ package robytes
 
 import (
 	"bytes"
+	"unicode/utf8"
 
 	"github.com/samber/ro"
 )
@@ -23,11 +24,19 @@ import (
 func ellipsis(str []byte, length int) []byte {
 	str = bytes.TrimSpace(str)
 
-	if len(str) > length {
-		if len(str) < 3 || length < 3 {
-			return []byte("...")
+	const ell = "..."
+
+	cutPosition := 0
+	i := 0
+	for i < len(str) {
+		if length == len(ell) {
+			cutPosition = i
 		}
-		return append(bytes.TrimSpace(str[0:length-3]), '.', '.', '.')
+		if length--; length < 0 {
+			return append(bytes.TrimSpace(str[:cutPosition:cutPosition]), '.', '.', '.')
+		}
+		_, size := utf8.DecodeRune(str[i:])
+		i += size
 	}
 
 	return str

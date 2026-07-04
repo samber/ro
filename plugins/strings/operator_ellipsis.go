@@ -23,11 +23,16 @@ import (
 func ellipsis(str string, length int) string {
 	str = strings.TrimSpace(str)
 
-	if len(str) > length {
-		if len(str) < 3 || length < 3 {
-			return "..."
+	const ellipsis = "..."
+
+	cutPosition := 0
+	for i := range str {
+		if length == len(ellipsis) {
+			cutPosition = i
 		}
-		return strings.TrimSpace(str[0:length-3]) + "..."
+		if length--; length < 0 {
+			return strings.TrimSpace(str[:cutPosition]) + ellipsis
+		}
 	}
 
 	return str

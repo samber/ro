@@ -26,6 +26,7 @@ func words(str string) []string {
 	// example: Int8Value => Int 8Value => Int 8 Value
 	str = splitNumberLetterReg.ReplaceAllString(str, "$1 $2")
 	var result strings.Builder
+	result.Grow(len(str))
 	for _, r := range str {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) {
 			result.WriteRune(r)

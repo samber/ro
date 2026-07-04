@@ -26,6 +26,7 @@ func words(str []byte) [][]byte {
 	// example: Int8Value => Int 8Value => Int 8 Value
 	str = splitNumberLetterReg.ReplaceAll(str, []byte("$1 $2"))
 	var result bytes.Buffer
+	result.Grow(len(str))
 	for _, r := range str {
 		if unicode.IsLetter(rune(r)) || unicode.IsDigit(rune(r)) {
 			result.WriteByte(r)

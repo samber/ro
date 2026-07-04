@@ -40,6 +40,16 @@ func TestEllipsis(t *testing.T) {
 		{"12345", 2, "..."},
 		{"12345", -1, "..."},
 		{" hello   world ", 9, "hello..."},
+		// Unicode: rune-based truncation (not byte-based)
+		{"hello 世界! 你好", 8, "hello..."},
+		{"hello 世界! 你好", 11, "hello 世界..."},
+		{"hello 世界! 你好", 12, "hello 世界! 你好"},
+		{"🏠🐶🐱🌟", 5, "🏠🐶🐱🌟"},
+		{"🏠🐶🐱🌟", 4, "🏠🐶🐱🌟"},
+		{"🏠🐶🐱🌟", 3, "..."},
+		{"🏠🐶🐱🌟🎉🌈", 5, "🏠🐶..."},
+		{"café", 4, "café"},
+		{"café au lait", 5, "ca..."},
 	}
 
 	for _, t := range tests {
