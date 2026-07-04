@@ -6,11 +6,9 @@ type: core
 category: context
 signatures:
   - "func ContextWithDeadline[T any](deadline time.Time)"
-  - "func ContextWithDeadlineCause[T any](deadline time.Time, cause error)"
 playUrl: https://go.dev/play/p/NPYFzhI2YDK
 variantHelpers:
   - core#context#contextwithdeadline
-  - core#context#contextwithdeadlinecause
 similarHelpers:
   - core#context#contextwithtimeout
   - core#context#throwoncontextcancel
@@ -56,27 +54,6 @@ defer sub.Unsubscribe()
 
 // Next: "Success: fast_operation"
 // Completed
-```
-
-### With ContextWithDeadlineCause
-
-```go
-deadline := time.Now().Add(50 * time.Millisecond)
-deadlineError := errors.New("processing deadline exceeded")
-obs := ro.Pipe[string, string](
-    ro.Just("data_processing"),
-    ro.ContextWithDeadlineCause[string](deadline, deadlineError),
-    ro.ThrowOnContextCancel[string](),
-    ro.Map(func(s string) string {
-        time.Sleep(100 * time.Millisecond) // Will exceed deadline
-        return fmt.Sprintf("Result: %s", s)
-    }),
-)
-
-sub := obs.Subscribe(ro.PrintObserver[string]())
-defer sub.Unsubscribe()
-
-// Error: processing deadline exceeded (custom cause error)
 ```
 
 ### With future deadline

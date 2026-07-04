@@ -6,11 +6,9 @@ type: core
 category: context
 signatures:
   - "func ContextWithTimeout[T any](timeout time.Duration)"
-  - "func ContextWithTimeoutCause[T any](timeout time.Duration, cause error)"
 playUrl: https://go.dev/play/p/1qijKGsyn0D
 variantHelpers:
   - core#context#contextwithtimeout
-  - core#context#contextwithtimeoutcause
 similarHelpers:
   - core#context#contextwithdeadline
   - core#context#throwoncontextcancel
@@ -54,26 +52,6 @@ defer sub.Unsubscribe()
 
 // Next: "Success: fast_operation"
 // Completed
-```
-
-### With ContextWithTimeoutCause
-
-```go
-timeoutError := errors.New("operation timed out")
-obs := ro.Pipe[string, string](
-    ro.Just("data_processing"),
-    ro.ContextWithTimeoutCause[string](50 * time.Millisecond, timeoutError),
-    ro.ThrowOnContextCancel[string](),
-    ro.Map(func(s string) string {
-        time.Sleep(100 * time.Millisecond) // Will timeout
-        return fmt.Sprintf("Result: %s", s)
-    }),
-)
-
-sub := obs.Subscribe(ro.PrintObserver[string]())
-defer sub.Unsubscribe()
-
-// Error: operation timed out (custom cause error)
 ```
 
 ### With multiple operations and timeout

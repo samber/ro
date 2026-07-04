@@ -17,6 +17,7 @@ variantHelpers:
   - core#transformation#flatmapiwithcontext
 similarHelpers:
   - core#transformation#map
+  - core#transformation#flatten
   - core#combining#mergemap
 position: 10
 ---
