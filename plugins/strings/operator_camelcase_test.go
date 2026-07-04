@@ -19,6 +19,7 @@ import (
 
 	"github.com/samber/ro"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/text/language"
 )
 
 func TestCamelCase(t *testing.T) {
@@ -33,7 +34,7 @@ func TestCamelCase(t *testing.T) {
 			),
 		)
 		is.Equal([]string{t.output.CamelCase}, values)
-		is.Nil(err)
+		is.NoError(err)
 
 		values, err = ro.Collect(
 			ro.Pipe1(
@@ -42,7 +43,7 @@ func TestCamelCase(t *testing.T) {
 			),
 		)
 		is.Equal([]string{}, values)
-		is.Nil(err)
+		is.NoError(err)
 
 		values, err = ro.Collect(
 			ro.Pipe1(
@@ -53,4 +54,48 @@ func TestCamelCase(t *testing.T) {
 		is.Equal([]string{}, values)
 		is.EqualError(err, assert.AnError.Error())
 	}
+}
+
+func TestCamelCaseWithLanguage(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	tests := []struct {
+		input string
+		tag   language.Tag
+		want  string
+	}{
+		{"hello world", language.English, "helloWorld"},
+		// Turkish: first word 'I' lowercases to 'ı' (U+0131); second word 'c' title-cases to 'C'
+		{"Istanbul city", language.Turkish, "ıstanbulCity"},
+	}
+
+	for _, tc := range tests {
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just(tc.input),
+				CamelCaseWithLanguage[string](tc.tag),
+			),
+		)
+		is.Equal([]string{tc.want}, values)
+		is.NoError(err)
+	}
+
+	values, err := ro.Collect(
+		ro.Pipe1(
+			ro.Empty[string](),
+			CamelCaseWithLanguage[string](language.English),
+		),
+	)
+	is.Equal([]string{}, values)
+	is.NoError(err)
+
+	values, err = ro.Collect(
+		ro.Pipe1(
+			ro.Throw[string](assert.AnError),
+			CamelCaseWithLanguage[string](language.English),
+		),
+	)
+	is.Equal([]string{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }

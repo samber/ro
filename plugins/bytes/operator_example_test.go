@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/samber/ro"
+	"golang.org/x/text/language"
 )
 
 func ExampleCamelCase() {
@@ -86,6 +87,32 @@ func ExampleCapitalize() {
 	// Next: Hello
 	// Next: World
 	// Next: Golang
+	// Completed
+}
+
+func ExampleCapitalizeWithLanguage() {
+	observable := ro.Pipe1(
+		ro.Just([]byte("istanbul")),
+		CapitalizeWithLanguage[[]byte](language.Turkish),
+	)
+
+	subscription := observable.Subscribe(
+		ro.NewObserver(
+			func(data []byte) {
+				fmt.Printf("Next: %s\n", string(data))
+			},
+			func(err error) {
+				fmt.Printf("Error: %s\n", err.Error())
+			},
+			func() {
+				fmt.Printf("Completed\n")
+			},
+		),
+	)
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: İstanbul
 	// Completed
 }
 

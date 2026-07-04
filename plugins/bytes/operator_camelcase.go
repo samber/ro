@@ -18,6 +18,7 @@ import (
 	"bytes"
 
 	"github.com/samber/ro"
+	"golang.org/x/text/language"
 )
 
 func toCamelCase(str []byte) []byte {
@@ -32,12 +33,37 @@ func toCamelCase(str []byte) []byte {
 	return bytes.Join(items, []byte(""))
 }
 
+func toCamelCaseWithLanguage(str []byte, tag language.Tag) []byte {
+	items := words(str)
+	if len(items) == 0 {
+		return []byte{}
+	}
+	lPool, lc := acquireLowerCaser(tag)
+	tPool, tc := acquireTitleCaser(tag)
+	defer lPool.Put(lc)
+	defer tPool.Put(tc)
+	items[0] = lc.Bytes(items[0])
+	for i := 1; i < len(items); i++ {
+		items[i] = tc.Bytes(items[i])
+	}
+	return bytes.Join(items, []byte(""))
+}
+
 // CamelCase converts the string to camel case.
 // Play: https://go.dev/play/p/ela3Jx8QQQL
 func CamelCase[T ~[]byte]() func(destination ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(
 		func(value T) T {
 			return T(toCamelCase(value))
+		},
+	)
+}
+
+// CamelCaseWithLanguage converts the byte slice to camel case using locale-aware casing.
+func CamelCaseWithLanguage[T ~[]byte](tag language.Tag) func(destination ro.Observable[T]) ro.Observable[T] {
+	return ro.Map(
+		func(value T) T {
+			return T(toCamelCaseWithLanguage(value, tag))
 		},
 	)
 }

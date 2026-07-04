@@ -22,19 +22,58 @@ import (
 	"golang.org/x/text/language"
 )
 
-// titleCaserPool reuses cases.Title casers: constructing one is far more
-// expensive than the casing itself, and a Caser is not safe for concurrent
-// use, so it cannot be a plain package-level singleton.
-var titleCaserPool = sync.Pool{
-	New: func() any {
-		c := cases.Title(language.English)
-		return &c
-	},
+// Dedicated English pools are cheaper than looking up the sync.Map each time.
+var (
+	englishTitleCaserPool = sync.Pool{New: func() any { c := cases.Title(language.English); return &c }}
+	englishLowerCaserPool = sync.Pool{New: func() any { c := cases.Lower(language.English); return &c }}
+
+	titleCaserPools sync.Map // map[string]*sync.Pool  (BCP 47 tag → pool of *cases.Caser)
+	lowerCaserPools sync.Map // map[string]*sync.Pool
+)
+
+func acquireTitleCaser(tag language.Tag) (*sync.Pool, *cases.Caser) {
+	key := tag.String()
+	if v, ok := titleCaserPools.Load(key); ok {
+		pool, _ := v.(*sync.Pool)
+		c, _ := pool.Get().(*cases.Caser)
+		return pool, c
+	}
+	p := &sync.Pool{New: func() any { c := cases.Title(tag); return &c }}
+	actual, _ := titleCaserPools.LoadOrStore(key, p)
+	pool, _ := actual.(*sync.Pool)
+	c, _ := pool.Get().(*cases.Caser)
+	return pool, c
+}
+
+func acquireLowerCaser(tag language.Tag) (*sync.Pool, *cases.Caser) {
+	key := tag.String()
+	if v, ok := lowerCaserPools.Load(key); ok {
+		pool, _ := v.(*sync.Pool)
+		c, _ := pool.Get().(*cases.Caser)
+		return pool, c
+	}
+	p := &sync.Pool{New: func() any { c := cases.Lower(tag); return &c }}
+	actual, _ := lowerCaserPools.LoadOrStore(key, p)
+	pool, _ := actual.(*sync.Pool)
+	c, _ := pool.Get().(*cases.Caser)
+	return pool, c
 }
 
 func capitalize(str string) string {
-	c, _ := titleCaserPool.Get().(*cases.Caser) // Pool.New always returns *cases.Caser, so the assertion never fails.
-	defer titleCaserPool.Put(c)
+	c, _ := englishTitleCaserPool.Get().(*cases.Caser)
+	defer englishTitleCaserPool.Put(c)
+	return c.String(str)
+}
+
+func lowerEnglish(str string) string {
+	c, _ := englishLowerCaserPool.Get().(*cases.Caser)
+	defer englishLowerCaserPool.Put(c)
+	return c.String(str)
+}
+
+func capitalizeWithLanguage(str string, tag language.Tag) string {
+	pool, c := acquireTitleCaser(tag)
+	defer pool.Put(c)
 	return c.String(str)
 }
 
@@ -44,6 +83,15 @@ func Capitalize[T ~string]() func(destination ro.Observable[T]) ro.Observable[T]
 	return ro.Map(
 		func(value T) T {
 			return T(capitalize(string(value)))
+		},
+	)
+}
+
+// CapitalizeWithLanguage capitalizes the first letter of the string using locale-aware casing.
+func CapitalizeWithLanguage[T ~string](tag language.Tag) func(destination ro.Observable[T]) ro.Observable[T] {
+	return ro.Map(
+		func(value T) T {
+			return T(capitalizeWithLanguage(string(value), tag))
 		},
 	)
 }

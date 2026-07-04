@@ -16,6 +16,7 @@ package rostrings
 
 import (
 	"github.com/samber/ro"
+	"golang.org/x/text/language"
 )
 
 func ExampleCamelCase() {
@@ -59,6 +60,20 @@ func ExampleCapitalize() {
 	// Next: Hello
 	// Next: World
 	// Next: Golang
+	// Completed
+}
+
+func ExampleCapitalizeWithLanguage() {
+	obs := ro.Pipe[string, string](
+		ro.Just("istanbul"),
+		CapitalizeWithLanguage[string](language.Turkish),
+	)
+
+	sub := obs.Subscribe(ro.PrintObserver[string]())
+	defer sub.Unsubscribe()
+
+	// Output:
+	// Next: İstanbul
 	// Completed
 }
 

@@ -19,6 +19,7 @@ import (
 
 	"github.com/samber/ro"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/text/language"
 )
 
 func TestCapitalize(t *testing.T) {
@@ -49,7 +50,7 @@ func TestCapitalize(t *testing.T) {
 			),
 		)
 		is.Equal([]byte(t.want), values[0])
-		is.Nil(err)
+		is.NoError(err)
 
 		values, err = ro.Collect(
 			ro.Pipe1(
@@ -58,7 +59,7 @@ func TestCapitalize(t *testing.T) {
 			),
 		)
 		is.Equal([][]byte{}, values)
-		is.Nil(err)
+		is.NoError(err)
 
 		values, err = ro.Collect(
 			ro.Pipe1(
@@ -69,4 +70,49 @@ func TestCapitalize(t *testing.T) {
 		is.Equal([][]byte{}, values)
 		is.EqualError(err, assert.AnError.Error())
 	}
+}
+
+func TestCapitalizeWithLanguage(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	tests := []struct {
+		input []byte
+		tag   language.Tag
+		want  []byte
+	}{
+		{[]byte("hello"), language.English, []byte("Hello")},
+		{[]byte("heLLO"), language.English, []byte("Hello")},
+		// Turkish: 'i' title-cases to 'İ' (U+0130)
+		{[]byte("istanbul"), language.Turkish, []byte("İstanbul")},
+	}
+
+	for _, tc := range tests {
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just(tc.input),
+				CapitalizeWithLanguage[[]byte](tc.tag),
+			),
+		)
+		is.Equal(tc.want, values[0])
+		is.NoError(err)
+	}
+
+	values, err := ro.Collect(
+		ro.Pipe1(
+			ro.Empty[[]byte](),
+			CapitalizeWithLanguage[[]byte](language.English),
+		),
+	)
+	is.Equal([][]byte{}, values)
+	is.NoError(err)
+
+	values, err = ro.Collect(
+		ro.Pipe1(
+			ro.Throw[[]byte](assert.AnError),
+			CapitalizeWithLanguage[[]byte](language.English),
+		),
+	)
+	is.Equal([][]byte{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
