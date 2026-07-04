@@ -11,6 +11,7 @@ variantHelpers:
   - plugin#ozzo-validation#validateorerror
 similarHelpers:
   - plugin#ozzo-validation#validate
+  - plugin#ozzo-validation#validateorerrorwithcontext
 position: 80
 ---
 

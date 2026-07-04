@@ -16,8 +16,8 @@ variantHelpers:
   - core#transformation#mapi
   - core#transformation#mapiwithcontext
 similarHelpers:
-  - core#transformation#mapto,
-  - core#transformation#maperr,
+  - core#transformation#mapto
+  - core#transformation#maperr
   - core#transformation#flatmap
 position: 0
 ---

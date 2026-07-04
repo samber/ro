@@ -196,14 +196,17 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - `ToSlice` - Collect all items into a slice
 - `ToMap` - Collect items into a map
 - `ToChannel` - Forward items to a channel
+- `Collect` - Collect all items into a slice (blocking)
+- `CollectWithContext` - Collect all items with context propagation (blocking)
 
 ## Available Plugins
 
 ### Data Manipulation
 - **bytes** - Byte slice manipulation operators
-- **strings** - String manipulation operators (Capitalize, CamelCase, SnakeCase, etc.)
+- **strings** - String manipulation operators (Capitalize, PascalCase, CamelCase, SnakeCase, etc.)
+- **strconv** - String conversion operators (FormatFloat, FormatInt, FormatUint, etc.)
 - **sort** - Sorting operators
-- **time** - Time manipulation
+- **time** - Time manipulation operators (Add, AddDate, In, Format, Parse, ParseInLocation, StartOfDay)
 - **exp/simd** - SIMD-accelerated math operators (Add, Sub, Min, Max, Clamp...)
 
 ### Encoding & Serialization

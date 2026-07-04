@@ -10,7 +10,6 @@ signatures:
 playUrl: https://go.dev/play/p/WMKa26sirV0
 variantHelpers:
   - core#sink#tochannel
-  - core#sink#tochannelwithcontext
 similarHelpers:
   - core#sink#toslice
   - core#sink#tomap

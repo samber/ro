@@ -9,7 +9,10 @@ signatures:
 playUrl: https://go.dev/play/p/AAEJaUZJuIj
 variantHelpers:
   - core#filtering#skip
-similarHelpers: []
+similarHelpers:
+  - core#filtering#skiplast
+  - core#filtering#skipuntil
+  - core#filtering#skipwhile
 position: 80
 ---
 
