@@ -216,6 +216,40 @@ func MyOperator(param int) func(ro.Observable[T]) ro.Observable[T] {
 - Never write `panic("some string")` or `panic(errors.New("..."))` inline — always use a pre-declared variable.
 - Panics are reserved for programmer errors detected at construction time (invalid parameters), never for runtime stream errors.
 
+## Upstream parity
+
+Some operators re-implement algorithms from a sibling library (`samber/lo`); others simply wrap it. These two cases require different maintenance strategies.
+
+### Mode 1 — Re-implemented code (manual sync)
+
+`plugins/strings/operator_*.go` and `plugins/bytes/operator_*.go` contain operators whose logic is **copied from `github.com/samber/lo`** (`string.go`). The affected functions include `words`, `capitalize`, `pascalcase`, `camelcase`, `snakecase`, `kebabcase`, `ellipsis`, `random`, and the case-conversion helpers. Any bug fix or improvement in `samber/lo` must be ported manually to both plugins (code, tests, and doc).
+
+Each file that copies upstream logic carries a header comment:
+
+```go
+// Ported from github.com/samber/lo (string.go) — keep in sync.
+```
+
+If you modify one of these operators and the change improves algorithm correctness (not just the reactive wrapping), check whether `samber/lo` has already applied the same fix, and vice-versa.
+
+**Known divergence**: `bytes.ToLower` produces `U+FFFD` on invalid UTF-8, whereas `cases.Lower(...).Bytes()` preserves raw bytes. This is intentional; do not "fix" it to match `lo` without understanding the impact on byte-level consumers.
+
+### Mode 2 — Wrapped library (go.mod bump)
+
+These plugins **import** the sibling library and call its API; they do not copy logic. Synchronize by bumping the dependency version in `go.mod`:
+
+- `plugins/samber/hot` → `github.com/samber/hot`
+- `plugins/samber/psi` → `github.com/samber/psi`
+- `plugins/iter` → iterator library
+- `plugins/testify` → testify helpers
+- `plugins/ozzo/ozzo-validation` → ozzo-validation
+
+The **core `ro` module** also imports `samber/lo` (e.g., `lo.Must`), but only as a general utility — this is not a parity case.
+
+### General rule
+
+Before modifying an operator, determine whether it **re-implements** upstream logic (sync code + tests + doc, maintain the provenance comment) or **wraps** it (bump `go.mod`). Any file that copies upstream logic MUST carry `// Ported from … — keep in sync.`
+
 ## Other conventions
 
 ### Naming

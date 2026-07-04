@@ -144,6 +144,21 @@ Full guides: [`docs/docs/contributing.md`](docs/docs/contributing.md) (contribut
 - **License headers**: All `.go` files require license headers (`licenses/header.apache.txt` for open source, `licenses/header.ee.txt` for `ee/`). Run `make lint` to verify. Full license texts: [`licenses/LICENSE.apache.md`](licenses/LICENSE.apache.md) (Apache 2.0, open-source code) and [`licenses/LICENSE.ee.md`](licenses/LICENSE.ee.md) (EE code under `ee/`)
 - **Update the documentation**: when updating a feature of the project, you MUST update the documentation. See @./docs/CLAUDE.md
 
+## Definition of Done
+
+When adding or modifying an operator, confirm these steps before opening a PR:
+
+1. Follow the **end-to-end checklist** in [`docs/docs/hacking.md`](docs/docs/hacking.md#add--port-an-operator-end-to-end).
+2. `make test` passes (race detector enabled).
+3. `make lint` passes — or run `make lint-fix` to auto-correct license headers.
+4. Doc files updated: `docs/data/<name>.md` + `docs/static/llms.txt`.
+
+**Workspace pitfalls:**
+
+- Several plugins are **commented out of `go.work`** because they require a newer Go version: `cron`, `exp/simd`, `encoding/json/v2`, `ics`, `hyperloglog`, `iter`, `sentry`, `slog`, `zap`, `oops`, `hot`. They are excluded from `make test`.
+- `plugins/exp/simd` requires `GOEXPERIMENT=simd GOWORK=off` to build or test.
+- `go.work.sum` is modified by routine `go` tool calls — do not commit it as a standalone change. Restore with `git checkout go.work.sum` if it appears unintentionally.
+
 ## References
 
 - **Contribution guidelines**: @./docs/docs/contributing.md
