@@ -6,7 +6,7 @@ type: plugin
 category: ozzo-validation
 signatures:
   - "func ValidateStruct[T any]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/s-raE2CUPEx
 variantHelpers:
   - plugin#ozzo-validation#validatestruct
 similarHelpers:
@@ -16,35 +16,39 @@ similarHelpers:
 position: 20
 ---
 
-Validates struct values that implement ozzo.Validatable interface.
+Validates struct values that implement the `ozzo.Validatable` interface, emitting a `Result[T]` for each item.
 
 ```go
 import (
-    "github.com/go-ozzo/ozzo-validation/v4"
+    validation "github.com/go-ozzo/ozzo-validation/v4"
     "github.com/samber/ro"
-    roozzo "github.com/samber/ro/plugins/ozzo-validation"
+    roozzo "github.com/samber/ro/plugins/ozzo/ozzo-validation"
 )
 
 type User struct {
-    Name string `validate:"required"`
-    Age  int    `validate:"required,min=18"`
+    Name string
+    Age  int
 }
 
 func (u User) Validate() error {
-    return ozzo.ValidateStruct(&u,
-        ozzo.Field(&u.Name, ozzo.Required),
-        ozzo.Field(&u.Age, ozzo.Required, ozzo.Min(18)),
+    return validation.ValidateStruct(&u,
+        validation.Field(&u.Name, validation.Required),
+        validation.Field(&u.Age, validation.Min(18)),
     )
 }
 
-obs := ro.Pipe[User, Result[User]](
-    ro.Just(User{Name: "Alice", Age: 30}),
+obs := ro.Pipe1(
+    ro.Just(
+        User{Name: "Alice", Age: 30},
+        User{Name: "", Age: 15},
+    ),
     roozzo.ValidateStruct[User](),
 )
 
-sub := obs.Subscribe(ro.PrintObserver[Result[User]]())
+sub := obs.Subscribe(ro.PrintObserver[roozzo.Result[User]]())
 defer sub.Unsubscribe()
 
-// Next: {Value: {Name: "Alice", Age: 30}, Error: nil}
+// Next: {false {Alice 30} <nil>}
+// Next: {true { 0} map[Age:{validation_min_greater_equal_than_required must be no less than {{.threshold}} map[threshold:18]} Name:{validation_required cannot be blank map[]}]}
 // Completed
 ```

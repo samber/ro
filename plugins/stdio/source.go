@@ -88,11 +88,13 @@ func NewStdReader() ro.Observable[[]byte] {
 }
 
 // NewStdReaderLine creates an observable that reads lines from standard input.
+// Play: https://go.dev/play/p/VdLPBwNFKT7
 func NewStdReaderLine() ro.Observable[[]byte] {
 	return NewIOReaderLine(os.Stdin)
 }
 
 // NewPrompt creates an observable that reads user input after displaying a prompt.
+// Play: https://go.dev/play/p/0gYrlUPi3Dz
 func NewPrompt(prompt string) ro.Observable[[]byte] {
 	return ro.NewUnsafeObservableWithContext(func(ctx context.Context, destination ro.Observer[[]byte]) ro.Teardown {
 		for {

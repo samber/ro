@@ -6,7 +6,7 @@ type: plugin
 category: time
 signatures:
   - "func In(loc *time.Location)"
-playUrl: ""
+playUrl: https://go.dev/play/p/4XKgzoqfH4H
 variantHelpers:
   - plugin#time#in
 similarHelpers:

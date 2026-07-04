@@ -32,6 +32,7 @@ import (
 //	)
 //
 // The observable then emits: time.Date(2026, time.January, 7, 15, 30, 0, 0, loc).
+// Play: https://go.dev/play/p/4XKgzoqfH4H
 func In(loc *time.Location) func(destination ro.Observable[time.Time]) ro.Observable[time.Time] {
 	return ro.Map(
 		func(value time.Time) time.Time {

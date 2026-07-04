@@ -6,7 +6,7 @@ type: plugin
 category: logger-log
 signatures:
   - "func FatalOnError[T any]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/LuG085GGvvh
 variantHelpers:
   - plugin#logger-log#fatalonerror
 similarHelpers:
@@ -32,6 +32,6 @@ obs := ro.Pipe[string, string](
 sub := obs.Subscribe(ro.PrintObserver[string]())
 defer sub.Unsubscribe()
 
-// Fatal: fatal error
-// (program exits)
+// ro.Error: fatal error
+// (program exits with code 1)
 ```

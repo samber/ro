@@ -6,7 +6,7 @@ type: core
 category: transformation
 signatures:
   - "func MapTo[T any, R any](output R)"
-playUrl: ""
+playUrl: https://go.dev/play/p/Ghc5ar7GJag
 variantHelpers:
   - core#transformation#mapto
 similarHelpers:
@@ -19,17 +19,15 @@ Maps every item emitted by an Observable to the same constant value.
 
 ```go
 obs := ro.Pipe[int, string](
-    ro.Just(1, 2, 3, 4, 5),
-    ro.MapTo[int, string]("hello"),
+    ro.Just(1, 2, 3),
+    ro.MapTo[int, string]("converted"),
 )
 
 sub := obs.Subscribe(ro.PrintObserver[string]())
 defer sub.Unsubscribe()
 
-// Next: hello
-// Next: hello
-// Next: hello
-// Next: hello
-// Next: hello
+// Next: converted
+// Next: converted
+// Next: converted
 // Completed
 ```

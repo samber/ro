@@ -7,7 +7,7 @@ category: time
 signatures:
   - "func Parse[T ~string](layout string)"
   - "func ParseInLocation[T ~string](layout string, loc *time.Location)"
-playUrl: ""
+playUrl: https://go.dev/play/p/rsbNtg6Xr_d
 variantHelpers:
   - plugin#time#parse
   - plugin#time#parseinlocation

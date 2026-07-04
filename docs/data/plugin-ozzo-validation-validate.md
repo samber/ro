@@ -6,7 +6,7 @@ type: plugin
 category: ozzo-validation
 signatures:
   - "func Validate[T any](rules ...ozzo.Rule)"
-playUrl: ""
+playUrl: https://go.dev/play/p/6kgTXIAhCt0
 variantHelpers:
   - plugin#ozzo-validation#validate
 similarHelpers:
@@ -15,31 +15,28 @@ similarHelpers:
 position: 0
 ---
 
-Validates values with rules.
+Validates values with rules, emitting a `Result[T]` that is either ok (valid) or err (invalid).
 
 ```go
 import (
+    validation "github.com/go-ozzo/ozzo-validation/v4"
     "github.com/samber/ro"
-    roozzo "github.com/samber/ro/plugins/ozzo-validation"
-    "github.com/go-ozzo/ozzo-validation/v4"
+    roozzo "github.com/samber/ro/plugins/ozzo/ozzo-validation"
 )
 
-type User struct {
-    Name string
-    Age  int
-}
-
-obs := ro.Pipe[User, roozzovalidation.Result[User]](
-    ro.Just(User{Name: "Alice", Age: 30}),
-    roozzo.Validate[User](
-        validation.Rule{Name: "name", Required: true},
-        validation.Rule{Name: "age", Required: true, Min: 18},
+obs := ro.Pipe1(
+    ro.Just("hello", "", "world"),
+    roozzo.Validate[string](
+        validation.Required,
+        validation.Length(1, 10),
     ),
 )
 
-sub := obs.Subscribe(ro.PrintObserver[roozzovalidation.Result[User]]())
+sub := obs.Subscribe(ro.PrintObserver[roozzo.Result[string]]())
 defer sub.Unsubscribe()
 
-// Next: {Value: {Name: "Alice", Age: 30}, Error: nil}
+// Next: {false hello <nil>}
+// Next: {true  {validation_required cannot be blank map[]}}
+// Next: {false world <nil>}
 // Completed
 ```

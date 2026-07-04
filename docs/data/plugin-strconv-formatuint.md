@@ -6,7 +6,7 @@ type: plugin
 category: strconv
 signatures:
   - "func FormatUint[T ~string](base int)"
-playUrl: ""
+playUrl: https://go.dev/play/p/h4TYG9sFPZw
 variantHelpers:
   - plugin#strconv#formatuint
 similarHelpers:

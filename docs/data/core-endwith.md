@@ -6,7 +6,7 @@ type: core
 category: combining
 signatures:
   - "func EndWith[T any](suffixes ...T)"
-playUrl: ""
+playUrl: https://go.dev/play/p/MfSijaXU7sq
 variantHelpers:
   - core#combining#endwith
 similarHelpers:

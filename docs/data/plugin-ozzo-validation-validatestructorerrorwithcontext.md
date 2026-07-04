@@ -6,7 +6,7 @@ type: plugin
 category: ozzo-validation
 signatures:
   - "func ValidateStructOrErrorWithContext[T any]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/iKmYApNt7Cm
 variantHelpers:
   - plugin#ozzo-validation#validatestructorerrorwithcontext
 similarHelpers:
@@ -51,5 +51,5 @@ sub := obs.Subscribe(ro.PrintObserver[User]())
 defer sub.Unsubscribe()
 
 // Next: {Alice alice@example.com}
-// Error: email: cannot be blank; name: cannot be blank.
+// Error: Email: cannot be blank; Name: cannot be blank.
 ```

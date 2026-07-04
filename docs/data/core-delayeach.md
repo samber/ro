@@ -6,7 +6,7 @@ type: core
 category: utility
 signatures:
   - "func DelayEach[T any](duration time.Duration)"
-playUrl: ""
+playUrl: https://go.dev/play/p/a9opbDTetAz
 variantHelpers:
   - core#utility#delayeach
 similarHelpers:
@@ -20,19 +20,23 @@ Delays each item emitted by the source Observable by a fixed duration before for
 Unlike Delay which shifts all emissions by the same amount, DelayEach introduces a per-item pause.
 
 ```go
-obs := ro.Pipe[string, string](
-    ro.Just("A", "B", "C"),
-    ro.DelayEach[string](100 * time.Millisecond),
+values, err := ro.Collect(
+    ro.Pipe[string, string](
+        ro.Just("A", "B", "C"),
+        ro.DelayEach[string](1*time.Millisecond),
+    ),
 )
+for _, v := range values {
+    fmt.Printf("Next: %s\n", v)
+}
+if err != nil {
+    fmt.Printf("Error: %v\n", err)
+} else {
+    fmt.Println("Completed")
+}
 
-sub := obs.Subscribe(ro.PrintObserver[string]())
-defer sub.Unsubscribe()
-
-// (100ms pause)
 // Next: A
-// (100ms pause)
 // Next: B
-// (100ms pause)
 // Next: C
 // Completed
 ```

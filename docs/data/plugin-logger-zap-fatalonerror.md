@@ -6,7 +6,7 @@ type: plugin
 category: logger-zap
 signatures:
   - "func FatalOnError[T any](logger *zap.Logger)"
-playUrl:
+playUrl: https://go.dev/play/p/00E6cS_aAWU
 variantHelpers:
   - plugin#logger-zap#fatalonerror
 similarHelpers: []
@@ -17,20 +17,21 @@ Terminates the program with a fatal error when an observable error notification 
 
 ```go
 import (
+    "errors"
+
     "github.com/samber/ro"
-    rozap "github.com/samber/ro/plugin/logger-zap"
+    rozap "github.com/samber/ro/plugins/observability/zap"
     "go.uber.org/zap"
 )
 
-logger, _ := zap.NewDevelopment()
-obs := ro.Pipe[string, string](
+logger := zap.NewExample()
+
+sub := ro.Pipe[string, string](
     ro.Throw[string](errors.New("critical error")),
     rozap.FatalOnError[string](logger),
-)
-
-sub := obs.Subscribe(ro.NoopObserver[string]())
+).Subscribe(ro.NoopObserver[string]())
 defer sub.Unsubscribe()
 
-//  program terminates with fatal log
-// FATAL	ro.Error	{"error": "critical error"}
+// {"level":"fatal","msg":"ro.Error","error":"critical error"}
+// exit status 1
 ```

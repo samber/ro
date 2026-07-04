@@ -7,7 +7,7 @@ category: filtering
 signatures:
   - "func DistinctBy[T any, K comparable](keySelector func(item T) K)"
   - "func DistinctByWithContext[T any, K comparable](keySelector func(ctx context.Context, item T) (context.Context, K))"
-playUrl:
+playUrl: https://go.dev/play/p/mEDtKQ0_R2B
 variantHelpers:
   - core#filtering#distinctby
   - core#filtering#distinctbywithcontext

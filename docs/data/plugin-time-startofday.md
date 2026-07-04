@@ -6,7 +6,7 @@ type: plugin
 category: time
 signatures:
   - "func StartOfDay()"
-playUrl: ""
+playUrl: https://go.dev/play/p/Rp_5REv3dMK
 variantHelpers:
   - plugin#time#startofday
 similarHelpers:

@@ -6,7 +6,7 @@ type: plugin
 category: ozzo-validation
 signatures:
   - "func ValidateOrSkip[T any](rules ...ozzo.Rule)"
-playUrl: ""
+playUrl: https://go.dev/play/p/vPj3PElqahA
 variantHelpers:
   - plugin#ozzo-validation#validateorskip
 similarHelpers:
@@ -15,36 +15,27 @@ similarHelpers:
 position: 8
 ---
 
-Validates observable values and skips invalid ones.
+Validates values with rules, skipping items that fail validation and forwarding valid items unchanged.
 
 ```go
 import (
+    validation "github.com/go-ozzo/ozzo-validation/v4"
     "github.com/samber/ro"
-    roozzo "github.com/samber/ro/plugins/ozzo-validation"
-    "github.com/go-ozzo/ozzo-validation/v4"
+    roozzo "github.com/samber/ro/plugins/ozzo/ozzo-validation"
 )
 
-type User struct {
-    Name string
-    Age  int
-}
-
-obs := ro.Pipe[User, User](
-    ro.Just(
-        User{Name: "Alice", Age: 30}, // valid
-        User{Name: "", Age: 15},      // invalid (empty name, too young)
-        User{Name: "Bob", Age: 25},   // valid
-    ),
-    roozzo.ValidateOrSkip[User](
-        validation.Rule{Name: "name", Required: true},
-        validation.Rule{Name: "age", Required: true, Min: 18},
+obs := ro.Pipe1(
+    ro.Just("hello", "", "world", "x-too-long-string"),
+    roozzo.ValidateOrSkip[string](
+        validation.Required,
+        validation.Length(1, 10),
     ),
 )
 
-sub := obs.Subscribe(ro.PrintObserver[User]())
+sub := obs.Subscribe(ro.PrintObserver[string]())
 defer sub.Unsubscribe()
 
-// Next: {Name: "Alice", Age: 30}
-// Next: {Name: "Bob", Age: 25}
-// Completed (invalid entry skipped)
+// Next: hello
+// Next: world
+// Completed
 ```

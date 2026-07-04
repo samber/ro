@@ -6,7 +6,7 @@ type: core
 category: transformation
 signatures:
   - "func Flatten[T any]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/vUyrQ4GO87S
 variantHelpers:
   - core#transformation#flatten
 similarHelpers:

@@ -6,7 +6,7 @@ type: plugin
 category: logger-zap
 signatures:
   - "func LogWithNotification[T any](logger *zap.Logger, level zapcore.Level)"
-playUrl:
+playUrl: https://go.dev/play/p/XXS2joeg3JN
 variantHelpers:
   - plugin#logger-zap#logwithnotification
 similarHelpers: []
@@ -18,23 +18,21 @@ Logs all observable notifications using zap logger with structured notification 
 ```go
 import (
     "github.com/samber/ro"
-    rozap "github.com/samber/ro/plugin/logger-zap"
+    rozap "github.com/samber/ro/plugins/observability/zap"
     "go.uber.org/zap"
     "go.uber.org/zap/zapcore"
 )
 
-logger, _ := zap.NewDevelopment()
-obs := ro.Pipe[string, string](
+logger := zap.NewExample()
+defer logger.Sync()
+
+_, _ = ro.Collect(ro.Pipe[string, string](
     ro.Just("hello", "world", "golang"),
     rozap.LogWithNotification[string](logger, zapcore.DebugLevel),
-)
+))
 
-sub := obs.Subscribe(ro.NoopObserver[string]())
-defer sub.Unsubscribe()
-
-//  zap logs with structured data
-// DEBUG	ro.Next	{"value": "hello"}
-// DEBUG	ro.Next	{"value": "world"}
-// DEBUG	ro.Next	{"value": "golang"}
-// DEBUG	ro.Complete
+// {"level":"debug","msg":"ro.Next","value":"hello"}
+// {"level":"debug","msg":"ro.Next","value":"world"}
+// {"level":"debug","msg":"ro.Next","value":"golang"}
+// {"level":"debug","msg":"ro.Complete"}
 ```

@@ -6,7 +6,7 @@ type: plugin
 category: logger-zerolog
 signatures:
   - "func FatalOnError[T any](logger *zerolog.Logger)"
-playUrl:
+playUrl: https://go.dev/play/p/8na96YvSIci
 variantHelpers:
   - plugin#logger-zerolog#fatalonerror
 similarHelpers: []
@@ -18,7 +18,7 @@ Terminates the program with a fatal error when an observable error notification 
 ```go
 import (
     "github.com/samber/ro"
-    rozerolog "github.com/samber/ro/plugin/logger-zerolog"
+    rozerolog "github.com/samber/ro/plugins/observability/zerolog"
     "github.com/rs/zerolog"
 )
 

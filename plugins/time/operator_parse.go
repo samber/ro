@@ -30,6 +30,7 @@ import (
 //	)
 //
 // The observable then emits: time.Date(2026, time.January, 7, 14, 30, 0, 0, time.UTC).
+// Play: https://go.dev/play/p/rsbNtg6Xr_d
 func Parse[T ~string](layout string) func(ro.Observable[T]) ro.Observable[time.Time] {
 	return ro.MapErr(
 		func(value T) (time.Time, error) {

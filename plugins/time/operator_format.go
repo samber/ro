@@ -30,6 +30,7 @@ import (
 //	)
 //
 // The observable then emits: "2026-01-07 14:30:00".
+// Play: https://go.dev/play/p/ZOq1b1z2P1z
 func Format(format string) func(destination ro.Observable[time.Time]) ro.Observable[string] {
 	return ro.Map(
 		func(value time.Time) string {

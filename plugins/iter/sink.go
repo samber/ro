@@ -70,6 +70,7 @@ func ToSeq[T any](source ro.Observable[T]) iter.Seq[T] {
 }
 
 // ToSeq2 converts an observable to a Go sequence iterator with index-value pairs.
+// Play: https://go.dev/play/p/RGfs_uybXYJ
 func ToSeq2[T any](source ro.Observable[T]) iter.Seq2[int, T] {
 	return func(yield func(int, T) bool) {
 		// Create channels for synchronization

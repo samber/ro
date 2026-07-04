@@ -6,7 +6,7 @@ type: plugin
 category: logger-log
 signatures:
   - "func LogWithPrefix[T any](prefix string)"
-playUrl: ""
+playUrl: https://go.dev/play/p/plP2gfryjzK
 variantHelpers:
   - plugin#logger-log#logwithprefix
 similarHelpers:
@@ -31,11 +31,12 @@ obs := ro.Pipe[int, int](
 sub := obs.Subscribe(ro.PrintObserver[int]())
 defer sub.Unsubscribe()
 
-// Logs: MyStream ro.Next: 1
-// Logs: MyStream ro.Next: 2
-// Logs: MyStream ro.Next: 3
+// MyStream ro.Next: 1
 // Next: 1
+// MyStream ro.Next: 2
 // Next: 2
+// MyStream ro.Next: 3
 // Next: 3
+// MyStream ro.Complete
 // Completed
 ```

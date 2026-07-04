@@ -22,6 +22,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Log logs each stream notification (Next, Error, Complete) using logrus at the given level.
+// Play: https://go.dev/play/p/JMou1n2AIXS
 func Log[T any](logger *logrus.Logger, level logrus.Level) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.TapWithContext(
 		func(ctx context.Context, value T) {
@@ -36,6 +38,8 @@ func Log[T any](logger *logrus.Logger, level logrus.Level) func(ro.Observable[T]
 	)
 }
 
+// LogWithNotification logs each stream notification with structured logrus fields.
+// Play: https://go.dev/play/p/jaNisbwqa4G
 func LogWithNotification[T any](logger *logrus.Logger, level logrus.Level) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.TapWithContext(
 		func(ctx context.Context, value T) {
@@ -50,6 +54,8 @@ func LogWithNotification[T any](logger *logrus.Logger, level logrus.Level) func(
 	)
 }
 
+// FatalOnError logs stream errors using logrus at Fatal level and terminates the application via os.Exit(1).
+// Play: https://go.dev/play/p/tO7LBvlXY9J
 func FatalOnError[T any](logger *logrus.Logger) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.TapOnErrorWithContext[T](
 		func(ctx context.Context, err error) {

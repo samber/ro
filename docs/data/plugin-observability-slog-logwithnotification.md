@@ -6,7 +6,7 @@ type: plugin
 category: logger-slog
 signatures:
   - "func LogWithNotification[T any](logger slog.Logger, level slog.Level)"
-playUrl: ""
+playUrl: https://go.dev/play/p/M8N_igKHWGV
 variantHelpers:
   - plugin#logger-slog#logwithnotification
 similarHelpers:
@@ -35,10 +35,10 @@ obs := ro.Pipe[string, string](
 sub := obs.Subscribe(ro.PrintObserver[string]())
 defer sub.Unsubscribe()
 
-// Logs: time=... level=INFO msg=next value="operation 1"
-// Logs: time=... level=INFO msg=next value="operation 2"
-// Logs: time=... level=INFO msg=complete
+// time=2009-11-10T23:00:00.000Z level=INFO msg=ro.Next value="operation 1"
 // Next: operation 1
+// time=2009-11-10T23:00:00.000Z level=INFO msg=ro.Next value="operation 2"
 // Next: operation 2
+// time=2009-11-10T23:00:00.000Z level=INFO msg=ro.Complete
 // Completed
 ```

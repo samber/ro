@@ -101,6 +101,7 @@ func Distinct[T comparable]() func(Observable[T]) Observable[T] {
 }
 
 // DistinctBy suppresses duplicate items in an Observable based on a key selector.
+// Play: https://go.dev/play/p/mEDtKQ0_R2B
 func DistinctBy[T any, K comparable](keySelector func(item T) K) func(Observable[T]) Observable[T] {
 	return DistinctByWithContext(func(ctx context.Context, item T) (context.Context, K) {
 		return ctx, keySelector(item)
@@ -258,7 +259,7 @@ func SkipWhileIWithContext[T any](predicate func(ctx context.Context, item T, in
 // SkipLast suppresses the last n items emitted by an Observable. If the count
 // is greater than the number of items emitted by the source Observable, SkipLast
 // will not emit any items. If the count is zero, SkipLast will emit all items.
-// Play: https://go.dev/play/p/gire30ONRBB
+// Play: https://go.dev/play/p/oK3Xy9FNnNI
 func SkipLast[T any](count int) func(Observable[T]) Observable[T] {
 	if count < 1 {
 		panic(ErrSkipLastWrongCount)
@@ -299,6 +300,7 @@ func SkipLast[T any](count int) func(Observable[T]) Observable[T] {
 // emits an item or completes. It will then emit all the subsequent items. If the
 // second Observable is empty, SkipUntil will not emit any items. If the second
 // Observable emits an item or completes, SkipUntil will emit all items.
+// Play: https://go.dev/play/p/tAwg2LT3Hqn
 func SkipUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -512,7 +514,7 @@ func TakeLast[T any](count int) func(Observable[T]) Observable[T] {
 // TakeUntil will emit all items. If the second Observable emits an item or completes,
 // TakeUntil will emit all items. If the second Observable emits an item or completes,
 // TakeUntil will complete.
-// Play: https://go.dev/play/p/nhgYGyREW1r
+// Play: https://go.dev/play/p/moJPw7uKjrz
 func TakeUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {

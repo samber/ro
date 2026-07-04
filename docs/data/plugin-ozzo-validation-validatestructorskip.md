@@ -6,7 +6,7 @@ type: plugin
 category: ozzo-validation
 signatures:
   - "func ValidateStructOrSkip[T any]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/9tuhes1uG2q
 variantHelpers:
   - plugin#ozzo-validation#validatestructorskip
 similarHelpers:
@@ -15,32 +15,32 @@ similarHelpers:
 position: 9
 ---
 
-Validates struct observables and skips invalid ones.
+Validates struct items using the `ozzo.Validatable` interface, skipping items that fail validation and forwarding valid items unchanged.
 
 ```go
 import (
+    validation "github.com/go-ozzo/ozzo-validation/v4"
     "github.com/samber/ro"
-    roozzo "github.com/samber/ro/plugins/ozzo-validation"
-    "github.com/go-ozzo/ozzo-validation/v4"
+    roozzo "github.com/samber/ro/plugins/ozzo/ozzo-validation"
 )
 
 type User struct {
-    Name string `validate:"required"`
-    Age  int    `validate:"required,min=18"`
+    Name string
+    Age  int
 }
 
 func (u User) Validate() error {
     return validation.ValidateStruct(&u,
         validation.Field(&u.Name, validation.Required),
-        validation.Field(&u.Age, validation.Required, validation.Min(18)),
+        validation.Field(&u.Age, validation.Min(18)),
     )
 }
 
-obs := ro.Pipe[User, User](
+obs := ro.Pipe1(
     ro.Just(
-        User{Name: "Alice", Age: 30}, // valid
-        User{Name: "", Age: 15},      // invalid
-        User{Name: "Bob", Age: 25},   // valid
+        User{Name: "Alice", Age: 30},
+        User{Name: "", Age: 15},
+        User{Name: "Bob", Age: 25},
     ),
     roozzo.ValidateStructOrSkip[User](),
 )
@@ -48,7 +48,7 @@ obs := ro.Pipe[User, User](
 sub := obs.Subscribe(ro.PrintObserver[User]())
 defer sub.Unsubscribe()
 
-// Next: {Name: "Alice", Age: 30}
-// Next: {Name: "Bob", Age: 25}
-// Completed (invalid entry skipped)
+// Next: {Alice 30}
+// Next: {Bob 25}
+// Completed
 ```

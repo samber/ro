@@ -24,6 +24,8 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Log logs all observable notifications (Next, Error, Complete) using zap logger with formatted messages.
+// Play: https://go.dev/play/p/3kWjeZo4ciK
 func Log[T any](logger *zap.Logger, level zapcore.Level) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.TapWithContext(
 		func(ctx context.Context, value T) {
@@ -38,6 +40,8 @@ func Log[T any](logger *zap.Logger, level zapcore.Level) func(ro.Observable[T]) 
 	)
 }
 
+// LogWithNotification logs all observable notifications using zap logger with structured notification data.
+// Play: https://go.dev/play/p/XXS2joeg3JN
 func LogWithNotification[T any](logger *zap.Logger, level zapcore.Level) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.TapWithContext(
 		func(ctx context.Context, value T) {
@@ -52,6 +56,8 @@ func LogWithNotification[T any](logger *zap.Logger, level zapcore.Level) func(ro
 	)
 }
 
+// FatalOnError terminates the program with a fatal error when an observable error notification occurs using zap logger.
+// Play: https://go.dev/play/p/00E6cS_aAWU
 func FatalOnError[T any](logger *zap.Logger) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.TapOnErrorWithContext[T](
 		func(ctx context.Context, err error) {

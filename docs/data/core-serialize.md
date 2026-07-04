@@ -6,7 +6,7 @@ type: core
 category: utility
 signatures:
   - "func Serialize[T any]()"
-playUrl:
+playUrl: https://go.dev/play/p/KcXb17qceLb
 variantHelpers:
   - core#utility#serialize
 similarHelpers: []
@@ -17,38 +17,36 @@ Serialize ensures thread-safe message passing by wrapping any observable in a Sa
 
 ```go
 import (
+    "fmt"
+    "sync"
     "github.com/samber/ro"
 )
 
-// Concurrent producer that emits from multiple goroutines
-func createConcurrentProducer() ro.Observable[int] {
-    return ro.NewUnsafeObservable(func(observer ro.Observer[int]) ro.Teardown {
-        for i := 0; i < 3; i++ {
-            go func(id int) {
-                for j := 0; j < 5; j++ {
-                    value := id*10 + j
-                    observer.Next(value) // Concurrent emissions
-                }
-            }(i)
-        }
-
-        time.Sleep(100 * time.Millisecond)
+// Concurrent producer emitting from multiple goroutines (unsafe without Serialize)
+producer := ro.NewUnsafeObservable(func(observer ro.Observer[int]) ro.Teardown {
+    var wg sync.WaitGroup
+    for i := 0; i < 5; i++ {
+        wg.Add(1)
+        go func(id int) {
+            defer wg.Done()
+            observer.Next(id)
+        }(i)
+    }
+    go func() {
+        wg.Wait()
         observer.Complete()
-        return nil
-    })
-}
+    }()
+    return nil
+})
 
-// Serialize ensures thread-safe message passing
-obs := ro.Pipe2(
-    createConcurrentProducer(),
-    ro.Serialize[int](), // Wraps in safe observable for serialization
-    ro.Distinct[int](),  // Distinct operator is not protected against race conditions
+// Serialize wraps the unsafe observable in a thread-safe one
+obs := ro.Pipe[int, int](
+    producer,
+    ro.Serialize[int](),
 )
 
-sub := obs.Subscribe(ro.OnNext(func(value int) {
-    fmt.Printf("Received: %d\n", value)
-}))
-defer sub.Unsubscribe()
+values, _ := ro.Collect(obs)
+fmt.Printf("Received %d values without race conditions\n", len(values))
 
-// expected result: Values 0-14 received in sequential order without race conditions
+// Received 5 values without race conditions
 ```

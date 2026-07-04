@@ -945,7 +945,7 @@ func StartWith[T any](prefixes ...T) func(Observable[T]) Observable[T] {
 }
 
 // EndWith emits the given values after emitting the values from the source Observable.
-// Play: https://go.dev/play/p/9FPyf3bqJk_n
+// Play: https://go.dev/play/p/MfSijaXU7sq
 func EndWith[T any](suffixes ...T) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {

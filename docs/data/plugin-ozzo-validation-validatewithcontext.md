@@ -6,7 +6,7 @@ type: plugin
 category: ozzo-validation
 signatures:
   - "func ValidateWithContext[T any](rules ...ozzo.Rule)"
-playUrl: ""
+playUrl: https://go.dev/play/p/uKrqQrP6TAD
 variantHelpers:
   - plugin#ozzo-validation#validatewithcontext
 similarHelpers:
@@ -16,31 +16,28 @@ similarHelpers:
 position: 10
 ---
 
-Validates values with rules using context.
+Validates values with rules using context propagation, emitting a `Result[T]` for each item.
 
 ```go
 import (
+    validation "github.com/go-ozzo/ozzo-validation/v4"
     "github.com/samber/ro"
-    roozzo "github.com/samber/ro/plugins/ozzo-validation"
-    "github.com/go-ozzo/ozzo-validation/v4"
+    roozzo "github.com/samber/ro/plugins/ozzo/ozzo-validation"
 )
 
-type User struct {
-    Name string
-    Age  int
-}
-
-obs := ro.Pipe[User, Result[User]](
-    ro.Just(User{Name: "Alice", Age: 30}),
-    roozzo.ValidateWithContext[User](
-        ozzo.Rule{Name: "name", Required: true},
-        ozzo.Rule{Name: "age", Required: true, Min: 18},
+obs := ro.Pipe1(
+    ro.Just("hello", "", "world"),
+    roozzo.ValidateWithContext[string](
+        validation.Required,
+        validation.Length(1, 10),
     ),
 )
 
-sub := obs.Subscribe(ro.PrintObserver[Result[User]]())
+sub := obs.Subscribe(ro.PrintObserver[roozzo.Result[string]]())
 defer sub.Unsubscribe()
 
-// Next: {Value: {Name: "Alice", Age: 30}, Error: nil}
+// Next: {false hello <nil>}
+// Next: {true  {validation_required cannot be blank map[]}}
+// Next: {false world <nil>}
 // Completed
 ```
