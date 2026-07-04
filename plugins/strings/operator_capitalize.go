@@ -15,13 +15,27 @@
 package rostrings
 
 import (
+	"sync"
+
 	"github.com/samber/ro"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
+// titleCaserPool reuses cases.Title casers: constructing one is far more
+// expensive than the casing itself, and a Caser is not safe for concurrent
+// use, so it cannot be a plain package-level singleton.
+var titleCaserPool = sync.Pool{
+	New: func() any {
+		c := cases.Title(language.English)
+		return &c
+	},
+}
+
 func capitalize(str string) string {
-	return cases.Title(language.English).String(str)
+	c, _ := titleCaserPool.Get().(*cases.Caser) // Pool.New always returns *cases.Caser, so the assertion never fails.
+	defer titleCaserPool.Put(c)
+	return c.String(str)
 }
 
 // Capitalize capitalizes the first letter of the string.
