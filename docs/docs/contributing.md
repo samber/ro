@@ -165,6 +165,10 @@ Feel free to write benchmarks.
 
 Sources can be unbounded and might run for a very long time. If you expect a big memory footprint, please warn developers in the operator comment.
 
+## Core vs plugins
+
+**Never add a third-party library dependency to the core `ro` package.** If an operator requires wrapping an external library, it must live in a dedicated plugin under `plugins/` with its own `go.mod`. The core package only depends on `samber/lo`.
+
 ## Documentation
 
 Operators must be properly commented, with a Go Playground link and a markdown documentation in `docs/data/`. In markdown header, please link to similar helpers (and update other markdowns accordingly).

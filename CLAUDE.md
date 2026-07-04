@@ -100,6 +100,8 @@ Other naming patterns:
 
 **Plugins** are separate Go modules under `plugins/`, each with its own `go.mod` and third-party dependencies. They follow the same `func(Observable[T]) Observable[R]` signature pattern and compose with core operators via `Pipe()`. Plugins wrap external libraries (e.g., `zap`, `sentry`, `fsnotify`) or provide domain-specific operators (e.g., JSON encoding, CSV I/O, rate limiting). Import them separately, e.g., `github.com/samber/ro/plugins/encoding/json`.
 
+> **Rule**: never add a third-party library dependency to the core `ro` package. If an operator requires an external library, it belongs in a plugin under `plugins/`.
+
 ## Testing Conventions
 
 - Tests use `testify` assertions and `go.uber.org/goleak` for goroutine leak detection
