@@ -39,7 +39,8 @@ var allCaseTests = []struct {
 			CamelCase:  "helloWorld",
 			KebabCase:  "hello-world",
 			SnakeCase:  "hello_world",
-		}},
+		},
+	},
 	{
 		input: "A",
 		output: caseTests{
@@ -47,7 +48,8 @@ var allCaseTests = []struct {
 			CamelCase:  "a",
 			KebabCase:  "a",
 			SnakeCase:  "a",
-		}},
+		},
+	},
 	{
 		input: "a",
 		output: caseTests{
@@ -55,7 +57,8 @@ var allCaseTests = []struct {
 			CamelCase:  "a",
 			KebabCase:  "a",
 			SnakeCase:  "a",
-		}},
+		},
+	},
 	{
 		input: "foo",
 		output: caseTests{
@@ -63,7 +66,8 @@ var allCaseTests = []struct {
 			CamelCase:  "foo",
 			KebabCase:  "foo",
 			SnakeCase:  "foo",
-		}},
+		},
+	},
 	{
 		input: "snake_case",
 		output: caseTests{
@@ -71,7 +75,8 @@ var allCaseTests = []struct {
 			CamelCase:  "snakeCase",
 			KebabCase:  "snake-case",
 			SnakeCase:  "snake_case",
-		}},
+		},
+	},
 	{
 		input: "SNAKE_CASE",
 		output: caseTests{
@@ -79,7 +84,8 @@ var allCaseTests = []struct {
 			CamelCase:  "snakeCase",
 			KebabCase:  "snake-case",
 			SnakeCase:  "snake_case",
-		}},
+		},
+	},
 	{
 		input: "kebab-case",
 		output: caseTests{
@@ -87,7 +93,8 @@ var allCaseTests = []struct {
 			CamelCase:  "kebabCase",
 			KebabCase:  "kebab-case",
 			SnakeCase:  "kebab_case",
-		}},
+		},
+	},
 	{
 		input: "PascalCase",
 		output: caseTests{
@@ -95,7 +102,8 @@ var allCaseTests = []struct {
 			CamelCase:  "pascalCase",
 			KebabCase:  "pascal-case",
 			SnakeCase:  "pascal_case",
-		}},
+		},
+	},
 	{
 		input: "camelCase",
 		output: caseTests{
@@ -103,7 +111,8 @@ var allCaseTests = []struct {
 			CamelCase:  "camelCase",
 			KebabCase:  `camel-case`,
 			SnakeCase:  "camel_case",
-		}},
+		},
+	},
 	{
 		input: "Title Case",
 		output: caseTests{
@@ -111,7 +120,8 @@ var allCaseTests = []struct {
 			CamelCase:  "titleCase",
 			KebabCase:  "title-case",
 			SnakeCase:  "title_case",
-		}},
+		},
+	},
 	{
 		input: "point.case",
 		output: caseTests{
@@ -119,7 +129,8 @@ var allCaseTests = []struct {
 			CamelCase:  "pointCase",
 			KebabCase:  "point-case",
 			SnakeCase:  "point_case",
-		}},
+		},
+	},
 	{
 		input: "snake_case_with_more_words",
 		output: caseTests{
@@ -127,7 +138,8 @@ var allCaseTests = []struct {
 			CamelCase:  "snakeCaseWithMoreWords",
 			KebabCase:  "snake-case-with-more-words",
 			SnakeCase:  "snake_case_with_more_words",
-		}},
+		},
+	},
 	{
 		input: "SNAKE_CASE_WITH_MORE_WORDS",
 		output: caseTests{
@@ -135,7 +147,8 @@ var allCaseTests = []struct {
 			CamelCase:  "snakeCaseWithMoreWords",
 			KebabCase:  "snake-case-with-more-words",
 			SnakeCase:  "snake_case_with_more_words",
-		}},
+		},
+	},
 	{
 		input: "kebab-case-with-more-words",
 		output: caseTests{
@@ -143,7 +156,8 @@ var allCaseTests = []struct {
 			CamelCase:  "kebabCaseWithMoreWords",
 			KebabCase:  "kebab-case-with-more-words",
 			SnakeCase:  "kebab_case_with_more_words",
-		}},
+		},
+	},
 	{
 		input: "PascalCaseWithMoreWords",
 		output: caseTests{
@@ -151,7 +165,8 @@ var allCaseTests = []struct {
 			CamelCase:  "pascalCaseWithMoreWords",
 			KebabCase:  "pascal-case-with-more-words",
 			SnakeCase:  "pascal_case_with_more_words",
-		}},
+		},
+	},
 	{
 		input: "camelCaseWithMoreWords",
 		output: caseTests{
@@ -159,7 +174,8 @@ var allCaseTests = []struct {
 			CamelCase:  "camelCaseWithMoreWords",
 			KebabCase:  "camel-case-with-more-words",
 			SnakeCase:  "camel_case_with_more_words",
-		}},
+		},
+	},
 	{
 		input: "Title Case With More Words",
 		output: caseTests{
@@ -167,7 +183,8 @@ var allCaseTests = []struct {
 			CamelCase:  "titleCaseWithMoreWords",
 			KebabCase:  "title-case-with-more-words",
 			SnakeCase:  "title_case_with_more_words",
-		}},
+		},
+	},
 	{
 		input: "point.case.with.more.words",
 		output: caseTests{
@@ -175,7 +192,8 @@ var allCaseTests = []struct {
 			CamelCase:  "pointCaseWithMoreWords",
 			KebabCase:  "point-case-with-more-words",
 			SnakeCase:  "point_case_with_more_words",
-		}},
+		},
+	},
 	{
 		input: "snake_case__with___multiple____delimiters",
 		output: caseTests{
@@ -183,7 +201,8 @@ var allCaseTests = []struct {
 			CamelCase:  "snakeCaseWithMultipleDelimiters",
 			KebabCase:  "snake-case-with-multiple-delimiters",
 			SnakeCase:  "snake_case_with_multiple_delimiters",
-		}},
+		},
+	},
 	{
 		input: "SNAKE_CASE__WITH___multiple____DELIMITERS",
 		output: caseTests{
@@ -191,7 +210,8 @@ var allCaseTests = []struct {
 			CamelCase:  "snakeCaseWithMultipleDelimiters",
 			KebabCase:  "snake-case-with-multiple-delimiters",
 			SnakeCase:  "snake_case_with_multiple_delimiters",
-		}},
+		},
+	},
 	{
 		input: "kebab-case--with---multiple----delimiters",
 		output: caseTests{
@@ -199,7 +219,8 @@ var allCaseTests = []struct {
 			CamelCase:  "kebabCaseWithMultipleDelimiters",
 			KebabCase:  "kebab-case-with-multiple-delimiters",
 			SnakeCase:  "kebab_case_with_multiple_delimiters",
-		}},
+		},
+	},
 	{
 		input: "Title Case  With   Multiple    Delimiters",
 		output: caseTests{
@@ -207,7 +228,8 @@ var allCaseTests = []struct {
 			CamelCase:  "titleCaseWithMultipleDelimiters",
 			KebabCase:  "title-case-with-multiple-delimiters",
 			SnakeCase:  "title_case_with_multiple_delimiters",
-		}},
+		},
+	},
 	{
 		input: "point.case..with...multiple....delimiters",
 		output: caseTests{
@@ -215,7 +237,8 @@ var allCaseTests = []struct {
 			CamelCase:  "pointCaseWithMultipleDelimiters",
 			KebabCase:  "point-case-with-multiple-delimiters",
 			SnakeCase:  "point_case_with_multiple_delimiters",
-		}},
+		},
+	},
 	{
 		input: " leading space",
 		output: caseTests{
@@ -223,7 +246,8 @@ var allCaseTests = []struct {
 			CamelCase:  "leadingSpace",
 			KebabCase:  "leading-space",
 			SnakeCase:  "leading_space",
-		}},
+		},
+	},
 	{
 		input: "   leading spaces",
 		output: caseTests{
@@ -231,7 +255,8 @@ var allCaseTests = []struct {
 			CamelCase:  "leadingSpaces",
 			KebabCase:  "leading-spaces",
 			SnakeCase:  "leading_spaces",
-		}},
+		},
+	},
 	{
 		input: "\t\t\r\n leading whitespaces",
 		output: caseTests{
@@ -239,7 +264,8 @@ var allCaseTests = []struct {
 			CamelCase:  "leadingWhitespaces",
 			KebabCase:  "leading-whitespaces",
 			SnakeCase:  "leading_whitespaces",
-		}},
+		},
+	},
 	{
 		input: "trailing space ",
 		output: caseTests{
@@ -247,7 +273,8 @@ var allCaseTests = []struct {
 			CamelCase:  "trailingSpace",
 			KebabCase:  "trailing-space",
 			SnakeCase:  "trailing_space",
-		}},
+		},
+	},
 	{
 		input: "trailing spaces   ",
 		output: caseTests{
@@ -255,7 +282,8 @@ var allCaseTests = []struct {
 			CamelCase:  "trailingSpaces",
 			KebabCase:  "trailing-spaces",
 			SnakeCase:  "trailing_spaces",
-		}},
+		},
+	},
 	{
 		input: "trailing whitespaces\t\t\r\n",
 		output: caseTests{
@@ -263,7 +291,8 @@ var allCaseTests = []struct {
 			CamelCase:  "trailingWhitespaces",
 			KebabCase:  "trailing-whitespaces",
 			SnakeCase:  "trailing_whitespaces",
-		}},
+		},
+	},
 	{
 		input: " on both sides ",
 		output: caseTests{
@@ -271,7 +300,8 @@ var allCaseTests = []struct {
 			CamelCase:  "onBothSides",
 			KebabCase:  "on-both-sides",
 			SnakeCase:  "on_both_sides",
-		}},
+		},
+	},
 	{
 		input: "    many on both sides  ",
 		output: caseTests{
@@ -279,7 +309,8 @@ var allCaseTests = []struct {
 			CamelCase:  "manyOnBothSides",
 			KebabCase:  "many-on-both-sides",
 			SnakeCase:  "many_on_both_sides",
-		}},
+		},
+	},
 	{
 		input: "\r whitespaces on both sides\t\t\r\n",
 		output: caseTests{
@@ -287,7 +318,8 @@ var allCaseTests = []struct {
 			CamelCase:  "whitespacesOnBothSides",
 			KebabCase:  "whitespaces-on-both-sides",
 			SnakeCase:  "whitespaces_on_both_sides",
-		}},
+		},
+	},
 	{
 		input: "  extraSpaces in_This TestCase Of MIXED_CASES\t",
 		output: caseTests{
@@ -295,7 +327,8 @@ var allCaseTests = []struct {
 			CamelCase:  "extraSpacesInThisTestCaseOfMixedCases",
 			KebabCase:  "extra-spaces-in-this-test-case-of-mixed-cases",
 			SnakeCase:  "extra_spaces_in_this_test_case_of_mixed_cases",
-		}},
+		},
+	},
 	{
 		input: "CASEBreak",
 		output: caseTests{
@@ -303,7 +336,8 @@ var allCaseTests = []struct {
 			CamelCase:  "caseBreak",
 			KebabCase:  "case-break",
 			SnakeCase:  "case_break",
-		}},
+		},
+	},
 	{
 		input: "ID",
 		output: caseTests{
@@ -311,7 +345,8 @@ var allCaseTests = []struct {
 			CamelCase:  "id",
 			KebabCase:  "id",
 			SnakeCase:  "id",
-		}},
+		},
+	},
 	{
 		input: "userID",
 		output: caseTests{
@@ -319,7 +354,8 @@ var allCaseTests = []struct {
 			CamelCase:  "userId",
 			KebabCase:  "user-id",
 			SnakeCase:  "user_id",
-		}},
+		},
+	},
 	{
 		input: "JSON_blob",
 		output: caseTests{
@@ -327,7 +363,8 @@ var allCaseTests = []struct {
 			CamelCase:  "jsonBlob",
 			KebabCase:  "json-blob",
 			SnakeCase:  "json_blob",
-		}},
+		},
+	},
 	{
 		input: "HTTPStatusCode",
 		output: caseTests{
@@ -335,7 +372,8 @@ var allCaseTests = []struct {
 			CamelCase:  "httpStatusCode",
 			KebabCase:  "http-status-code",
 			SnakeCase:  "http_status_code",
-		}},
+		},
+	},
 	{
 		input: "FreeBSD and SSLError are not golang initialisms",
 		output: caseTests{
@@ -343,7 +381,8 @@ var allCaseTests = []struct {
 			CamelCase:  "freeBsdAndSslErrorAreNotGolangInitialisms",
 			KebabCase:  "free-bsd-and-ssl-error-are-not-golang-initialisms",
 			SnakeCase:  "free_bsd_and_ssl_error_are_not_golang_initialisms",
-		}},
+		},
+	},
 	{
 		input: "David's Computer",
 		output: caseTests{
@@ -351,7 +390,8 @@ var allCaseTests = []struct {
 			CamelCase:  "davidSComputer",
 			KebabCase:  "david-s-computer",
 			SnakeCase:  "david_s_computer",
-		}},
+		},
+	},
 	{
 		input: "http200",
 		output: caseTests{
@@ -359,7 +399,8 @@ var allCaseTests = []struct {
 			CamelCase:  "http200",
 			KebabCase:  "http-200",
 			SnakeCase:  "http_200",
-		}},
+		},
+	},
 	{
 		input: "NumberSplittingVersion1.0r3",
 		output: caseTests{
@@ -367,7 +408,8 @@ var allCaseTests = []struct {
 			CamelCase:  "numberSplittingVersion10R3",
 			KebabCase:  "number-splitting-version-1-0-r3",
 			SnakeCase:  "number_splitting_version_1_0_r3",
-		}},
+		},
+	},
 	{
 		input: "When you have a comma, odd results",
 		output: caseTests{
@@ -375,7 +417,8 @@ var allCaseTests = []struct {
 			CamelCase:  "whenYouHaveACommaOddResults",
 			KebabCase:  "when-you-have-a-comma-odd-results",
 			SnakeCase:  "when_you_have_a_comma_odd_results",
-		}},
+		},
+	},
 	{
 		input: "Ordinal numbers work: 1st 2nd and 3rd place",
 		output: caseTests{
@@ -383,15 +426,17 @@ var allCaseTests = []struct {
 			CamelCase:  "ordinalNumbersWork1St2NdAnd3RdPlace",
 			KebabCase:  "ordinal-numbers-work-1-st-2-nd-and-3-rd-place",
 			SnakeCase:  "ordinal_numbers_work_1_st_2_nd_and_3_rd_place",
-		}},
+		},
+	},
 	{
 		input: "BadUTF8\xe2\xe2\xa1",
 		output: caseTests{
 			PascalCase: "BadUtf8\xe2\xe2",
 			CamelCase:  "badUtf8\xef\xbf\xbd\xef\xbf\xbd",
-			KebabCase:  "bad-utf-8\xef\xbf\xbd\xef\xbf\xbd",
-			SnakeCase:  "bad_utf_8\xef\xbf\xbd\xef\xbf\xbd",
-		}},
+			KebabCase:  "bad-utf-8\xe2\xe2",
+			SnakeCase:  "bad_utf_8\xe2\xe2",
+		},
+	},
 	{
 		input: "IDENT3",
 		output: caseTests{
@@ -399,7 +444,8 @@ var allCaseTests = []struct {
 			CamelCase:  "ident3",
 			KebabCase:  "ident-3",
 			SnakeCase:  "ident_3",
-		}},
+		},
+	},
 	{
 		input: "LogRouterS3BucketName",
 		output: caseTests{
@@ -407,7 +453,8 @@ var allCaseTests = []struct {
 			CamelCase:  "logRouterS3BucketName",
 			KebabCase:  "log-router-s3-bucket-name",
 			SnakeCase:  "log_router_s3_bucket_name",
-		}},
+		},
+	},
 	{
 		input: "PINEAPPLE",
 		output: caseTests{
@@ -415,7 +462,8 @@ var allCaseTests = []struct {
 			CamelCase:  "pineapple",
 			KebabCase:  "pineapple",
 			SnakeCase:  "pineapple",
-		}},
+		},
+	},
 	{
 		input: "Int8Value",
 		output: caseTests{
@@ -423,7 +471,8 @@ var allCaseTests = []struct {
 			CamelCase:  "int8Value",
 			KebabCase:  "int-8-value",
 			SnakeCase:  "int_8_value",
-		}},
+		},
+	},
 	{
 		input: "first.last",
 		output: caseTests{

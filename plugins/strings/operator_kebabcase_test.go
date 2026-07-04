@@ -19,6 +19,7 @@ import (
 
 	"github.com/samber/ro"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/text/language"
 )
 
 func TestKebabCase(t *testing.T) {
@@ -33,7 +34,7 @@ func TestKebabCase(t *testing.T) {
 			),
 		)
 		is.Equal([]string{t.output.KebabCase}, values)
-		is.Nil(err)
+		is.NoError(err)
 
 		values, err = ro.Collect(
 			ro.Pipe1(
@@ -42,7 +43,7 @@ func TestKebabCase(t *testing.T) {
 			),
 		)
 		is.Equal([]string{}, values)
-		is.Nil(err)
+		is.NoError(err)
 
 		values, err = ro.Collect(
 			ro.Pipe1(
@@ -53,4 +54,48 @@ func TestKebabCase(t *testing.T) {
 		is.Equal([]string{}, values)
 		is.EqualError(err, assert.AnError.Error())
 	}
+}
+
+func TestKebabCaseWithLanguage(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	tests := []struct {
+		input string
+		tag   language.Tag
+		want  string
+	}{
+		{"HelloWorld", language.English, "hello-world"},
+		// Turkish: 'I' should lowercase to 'ı' (U+0131), not 'i'
+		{"IstanbulCity", language.Turkish, "ıstanbul-city"},
+	}
+
+	for _, tc := range tests {
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just(tc.input),
+				KebabCaseWithLanguage[string](tc.tag),
+			),
+		)
+		is.Equal([]string{tc.want}, values)
+		is.NoError(err)
+	}
+
+	values, err := ro.Collect(
+		ro.Pipe1(
+			ro.Empty[string](),
+			KebabCaseWithLanguage[string](language.English),
+		),
+	)
+	is.Equal([]string{}, values)
+	is.NoError(err)
+
+	values, err = ro.Collect(
+		ro.Pipe1(
+			ro.Throw[string](assert.AnError),
+			KebabCaseWithLanguage[string](language.English),
+		),
+	)
+	is.Equal([]string{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }

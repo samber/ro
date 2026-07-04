@@ -18,12 +18,26 @@ import (
 	"strings"
 
 	"github.com/samber/ro"
+	"golang.org/x/text/language"
 )
 
 func kebabCase(str string) string {
 	items := words(str)
 	for i := range items {
-		items[i] = strings.ToLower(items[i])
+		items[i] = lowerEnglish(items[i])
+	}
+	return strings.Join(items, "-")
+}
+
+func kebabCaseWithLanguage(str string, tag language.Tag) string {
+	items := words(str)
+	if len(items) == 0 {
+		return ""
+	}
+	pool, c := acquireLowerCaser(tag)
+	defer pool.Put(c)
+	for i := range items {
+		items[i] = c.String(items[i])
 	}
 	return strings.Join(items, "-")
 }
@@ -34,6 +48,15 @@ func KebabCase[T ~string]() func(destination ro.Observable[T]) ro.Observable[T] 
 	return ro.Map(
 		func(value T) T {
 			return T(kebabCase(string(value)))
+		},
+	)
+}
+
+// KebabCaseWithLanguage converts the string to kebab case using locale-aware lowercasing.
+func KebabCaseWithLanguage[T ~string](tag language.Tag) func(destination ro.Observable[T]) ro.Observable[T] {
+	return ro.Map(
+		func(value T) T {
+			return T(kebabCaseWithLanguage(string(value), tag))
 		},
 	)
 }

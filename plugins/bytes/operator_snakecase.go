@@ -18,12 +18,26 @@ import (
 	"bytes"
 
 	"github.com/samber/ro"
+	"golang.org/x/text/language"
 )
 
 func snakeCase(str []byte) []byte {
 	items := words(str)
 	for i := range items {
-		items[i] = bytes.ToLower(items[i])
+		items[i] = lowerEnglish(items[i])
+	}
+	return bytes.Join(items, []byte{'_'})
+}
+
+func snakeCaseWithLanguage(str []byte, tag language.Tag) []byte {
+	items := words(str)
+	if len(items) == 0 {
+		return []byte{}
+	}
+	pool, c := acquireLowerCaser(tag)
+	defer pool.Put(c)
+	for i := range items {
+		items[i] = c.Bytes(items[i])
 	}
 	return bytes.Join(items, []byte{'_'})
 }
@@ -34,6 +48,15 @@ func SnakeCase[T ~[]byte]() func(destination ro.Observable[T]) ro.Observable[T] 
 	return ro.Map(
 		func(value T) T {
 			return T(snakeCase(value))
+		},
+	)
+}
+
+// SnakeCaseWithLanguage converts the byte slice to snake case using locale-aware lowercasing.
+func SnakeCaseWithLanguage[T ~[]byte](tag language.Tag) func(destination ro.Observable[T]) ro.Observable[T] {
+	return ro.Map(
+		func(value T) T {
+			return T(snakeCaseWithLanguage(value, tag))
 		},
 	)
 }

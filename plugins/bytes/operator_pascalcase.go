@@ -18,6 +18,7 @@ import (
 	"bytes"
 
 	"github.com/samber/ro"
+	"golang.org/x/text/language"
 )
 
 func pascalCase(str []byte) []byte {
@@ -28,12 +29,34 @@ func pascalCase(str []byte) []byte {
 	return bytes.Join(items, []byte(""))
 }
 
+func pascalCaseWithLanguage(str []byte, tag language.Tag) []byte {
+	items := words(str)
+	if len(items) == 0 {
+		return []byte{}
+	}
+	pool, c := acquireTitleCaser(tag)
+	defer pool.Put(c)
+	for i := range items {
+		items[i] = c.Bytes(items[i])
+	}
+	return bytes.Join(items, []byte(""))
+}
+
 // PascalCase converts the string to pascal case.
 // Play: https://go.dev/play/p/pBULs9BPMVD
 func PascalCase[T ~[]byte]() func(destination ro.Observable[T]) ro.Observable[T] {
 	return ro.Map(
 		func(value T) T {
 			return T(pascalCase(value))
+		},
+	)
+}
+
+// PascalCaseWithLanguage converts the byte slice to pascal case using locale-aware casing.
+func PascalCaseWithLanguage[T ~[]byte](tag language.Tag) func(destination ro.Observable[T]) ro.Observable[T] {
+	return ro.Map(
+		func(value T) T {
+			return T(pascalCaseWithLanguage(value, tag))
 		},
 	)
 }
