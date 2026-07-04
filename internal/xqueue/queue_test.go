@@ -43,7 +43,7 @@ func TestQueuePushPop(t *testing.T) {
 	is.Equal(0, q.Len())
 }
 
-func TestQueueReusesCapacityWhenDrained(t *testing.T) {
+func TestQueueReusesCapacityWhenDrained(t *testing.T) { //nolint:paralleltest
 	// Not parallel: testing.AllocsPerRun is unreliable when other tests run
 	// concurrently, since its result depends on whole-program GC behavior.
 	is := assert.New(t)
@@ -178,5 +178,5 @@ func TestQueueInterleaved(t *testing.T) {
 		expected++
 	}
 
-	is.Equal(next, expected)
+	is.Equal(expected, next)
 }
