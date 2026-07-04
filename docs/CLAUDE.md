@@ -271,7 +271,7 @@ If the documentation is created at the same time of the helper source code, then
 
 ## Validation Scripts (CI only)
 
-The `docs/scripts/` directory contains documentation validation scripts (exposed via `docs/package.json`). They check cross-references, frontmatter consistency, signature sync, and more. **These scripts are run automatically by CI — you do not need to run them manually.** Your responsibility is to follow the doc format described in this file and the [end-to-end checklist in hacking.md](../docs/hacking.md#add--port-an-operator-end-to-end).
+The `docs/scripts/` directory contains documentation validation scripts (exposed via `docs/package.json`). They check cross-references, frontmatter consistency, signature sync, and more. **These scripts are run automatically by CI — you do not need to run them manually.** Your responsibility is to follow the doc format described in this file and the [end-to-end checklist in hacking.md](./docs/hacking.md#add--port-an-operator-end-to-end).
 
 To validate your work locally, run the standard Go checks from the repository root:
 
