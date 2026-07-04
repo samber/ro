@@ -17,13 +17,10 @@ package rohyperloglog
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/axiomhq/hyperloglog"
 	"github.com/samber/ro"
 )
-
-var ErrInvalidPrecision = fmt.Errorf("rohyperloglog.CountDistinct: precision has to be >= 4 and <= 18")
 
 func CountDistinct[T comparable](precision uint8, sparse bool, hashFunc func(input T) uint64) func(ro.Observable[T]) ro.Observable[uint64] {
 	if precision < 4 || precision > 18 {
