@@ -2124,7 +2124,7 @@ func ExampleScan_error() {
 func ExampleScanWithContext() {
 	observable := Pipe1(
 		Just(1, 2, 3, 4, 5),
-		ScanWithContext(func(ctx context.Context, accumulator int, item int) (context.Context, int) {
+		ScanWithContext(func(ctx context.Context, accumulator, item int) (context.Context, int) {
 			return ctx, accumulator + item
 		}, 0),
 	)
@@ -2144,7 +2144,7 @@ func ExampleScanWithContext() {
 func ExampleScanI() {
 	observable := Pipe1(
 		Just("a", "b", "c"),
-		ScanI(func(accumulator string, item string, index int64) string {
+		ScanI(func(accumulator, item string, index int64) string {
 			return fmt.Sprintf("%s%d:%s", accumulator, index, item)
 		}, ""),
 	)
@@ -2162,7 +2162,7 @@ func ExampleScanI() {
 func ExampleScanIWithContext() {
 	observable := Pipe1(
 		Just(1, 2, 3, 4, 5),
-		ScanIWithContext(func(ctx context.Context, accumulator int, item int, index int64) (context.Context, int) {
+		ScanIWithContext(func(ctx context.Context, accumulator, item int, index int64) (context.Context, int) {
 			return ctx, accumulator + item
 		}, 0),
 	)
@@ -2256,7 +2256,7 @@ func ExampleGroupByI() {
 	// GroupByI groups items using both the item value and its emission index.
 	observable := Pipe2(
 		RangeWithInterval(1, 5, 10*time.Millisecond),
-		GroupByI(func(v int64, index int64) bool { return index%2 == 0 }),
+		GroupByI(func(v, index int64) bool { return index%2 == 0 }),
 		MergeAll[int64](),
 	)
 
@@ -2274,7 +2274,7 @@ func ExampleGroupByI() {
 func ExampleGroupByIWithContext() {
 	observable := Pipe2(
 		RangeWithInterval(1, 5, 10*time.Millisecond),
-		GroupByIWithContext(func(ctx context.Context, v int64, index int64) (context.Context, bool) {
+		GroupByIWithContext(func(ctx context.Context, v, index int64) (context.Context, bool) {
 			return ctx, index%2 == 0
 		}),
 		MergeAll[int64](),
@@ -4029,8 +4029,8 @@ func ExampleMergeMapWithContext_ok() {
 		Just(1, 2, 3),
 		ContextWithValue[int](ctxKey("multiplier"), 10),
 		MergeMapWithContext(func(ctx context.Context, item int) Observable[string] {
-			multiplier := ctx.Value(ctxKey("multiplier")).(int)
-			return Just(fmt.Sprintf("%d", item*multiplier))
+			multiplier, _ := ctx.Value(ctxKey("multiplier")).(int)
+			return Just(strconv.Itoa(item * multiplier))
 		}),
 	)
 
@@ -4069,7 +4069,7 @@ func ExampleMergeMapIWithContext_ok() {
 		Just("foo", "bar", "baz"),
 		ContextWithValue[string](ctxKey("prefix"), "item"),
 		MergeMapIWithContext(func(ctx context.Context, item string, index int64) (context.Context, Observable[string]) {
-			prefix := ctx.Value(ctxKey("prefix")).(string)
+			prefix, _ := ctx.Value(ctxKey("prefix")).(string)
 			return ctx, Just(fmt.Sprintf("%s[%d]: %s", prefix, index, strings.ToUpper(item)))
 		}),
 	)
@@ -5542,7 +5542,7 @@ func ExampleReduce_error() {
 func ExampleReduceWithContext() {
 	observable := Pipe1(
 		Just(1, 2, 3, 4, 5),
-		ReduceWithContext(func(ctx context.Context, agg int, item int) (context.Context, int) {
+		ReduceWithContext(func(ctx context.Context, agg, item int) (context.Context, int) {
 			return ctx, agg + item
 		}, 0),
 	)
@@ -5559,7 +5559,7 @@ func ExampleReduceI() {
 	// ReduceI passes an ever-increasing index to the accumulator.
 	observable := Pipe1(
 		Just("a", "b", "c"),
-		ReduceI(func(agg string, item string, index int64) string {
+		ReduceI(func(agg, item string, index int64) string {
 			return fmt.Sprintf("%s[%d:%s]", agg, index, item)
 		}, ""),
 	)
@@ -5578,7 +5578,7 @@ func ExampleReduceIWithContext() {
 	// 10*1 + 20*2 + 30*3 = 10 + 40 + 90 = 140
 	observable := Pipe1(
 		Just(10, 20, 30),
-		ReduceIWithContext(func(ctx context.Context, agg int, item int, index int64) (context.Context, int) {
+		ReduceIWithContext(func(ctx context.Context, agg, item int, index int64) (context.Context, int) {
 			return ctx, agg + item*int(index+1)
 		}, 0),
 	)
