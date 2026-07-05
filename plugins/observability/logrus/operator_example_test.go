@@ -18,6 +18,7 @@ package rologrus
 import (
 	"bufio"
 	"context"
+	"errors"
 	"os"
 
 	"github.com/samber/ro"
@@ -192,4 +193,32 @@ func ExampleLog_withDifferentLevels() {
 	// level=debug msg="ro.Next: 2"
 	// level=debug msg="ro.Next: 3"
 	// level=debug msg=ro.Complete
+}
+
+func ExampleFatalOnError() {
+	// Create a logger that writes to a buffer
+	buff := bufio.NewWriter(os.Stdout)
+	logger := logrus.New()
+	logger.SetOutput(buff)
+	logger.SetLevel(logrus.FatalLevel)
+	logger.SetFormatter(&logrus.TextFormatter{
+		DisableColors:    true,
+		DisableTimestamp: true,
+	})
+	// Prevent os.Exit(1) from terminating the process during the example.
+	// logrus.Logger.ExitFunc defaults to os.Exit; override it to a no-op so
+	// Fatal() only logs without stopping the test runner.
+	logger.ExitFunc = func(int) {}
+	defer buff.Flush()
+
+	observable := ro.Pipe1(
+		ro.Throw[int](errors.New("something went wrong")),
+		FatalOnError[int](logger),
+	)
+
+	subscription := observable.Subscribe(ro.NoopObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// level=fatal msg=ro.Error error="something went wrong"
 }

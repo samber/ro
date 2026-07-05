@@ -16,6 +16,9 @@
 package roozzovalidation
 
 import (
+	"errors"
+	"fmt"
+
 	ozzo "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/samber/ro"
@@ -187,5 +190,100 @@ func ExampleValidateOrSkipWithContext() {
 
 	// Output:
 	// Next: valid@email.com
+	// Completed
+}
+
+func ExampleOk() {
+	// Create a successful Result containing a value
+	result := Ok("hello")
+	fmt.Println(result.IsOk())
+	fmt.Println(result.Unwrap())
+
+	// Output:
+	// true
+	// hello
+}
+
+func ExampleErr() {
+	// Create an error Result containing an error
+	result := Err[string](errors.New("something went wrong"))
+	fmt.Println(result.IsError())
+	fmt.Println(result.Error())
+
+	// Output:
+	// true
+	// something went wrong
+}
+
+func ExampleValidateStructOrError() {
+	// Validate struct items that implement ozzo.Validatable; valid items pass through, invalid items terminate stream with error
+	observable := ro.Pipe1(
+		ro.Just(
+			ValidatableUser{Name: "John", Email: "john@example.com", Age: 25},
+			ValidatableUser{Name: "", Email: "invalid-email", Age: 15},
+		),
+		ValidateStructOrError[ValidatableUser](),
+	)
+
+	subscription := observable.Subscribe(ro.PrintObserver[ValidatableUser]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: {John john@example.com 25}
+	// Error: age: must be no less than 18; email: must be a valid email address; name: cannot be blank.
+}
+
+func ExampleValidateStructOrErrorWithContext() {
+	// Validate struct items that implement ozzo.ValidatableWithContext with context propagation; valid items pass through, invalid items terminate stream with error
+	observable := ro.Pipe1(
+		ro.Just(
+			ValidatableUser{Name: "John", Email: "john@example.com", Age: 25},
+		),
+		ValidateStructOrErrorWithContext[ValidatableUser](),
+	)
+
+	subscription := observable.Subscribe(ro.PrintObserver[ValidatableUser]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: {John john@example.com 25}
+	// Completed
+}
+
+func ExampleValidateStructOrSkip() {
+	// Validate struct items that implement ozzo.Validatable; valid items pass through, invalid items are silently skipped
+	observable := ro.Pipe1(
+		ro.Just(
+			ValidatableUser{Name: "John", Email: "john@example.com", Age: 25},
+			ValidatableUser{Name: "", Email: "invalid-email", Age: 15},
+			ValidatableUser{Name: "Jane", Email: "jane@example.com", Age: 30},
+		),
+		ValidateStructOrSkip[ValidatableUser](),
+	)
+
+	subscription := observable.Subscribe(ro.PrintObserver[ValidatableUser]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: {John john@example.com 25}
+	// Next: {Jane jane@example.com 30}
+	// Completed
+}
+
+func ExampleValidateStructOrSkipWithContext() {
+	// Validate struct items that implement ozzo.ValidatableWithContext with context propagation; valid items pass through, invalid items are silently skipped
+	observable := ro.Pipe1(
+		ro.Just(
+			ValidatableUser{Name: "John", Email: "john@example.com", Age: 25},
+			ValidatableUser{Name: "", Email: "invalid-email", Age: 15},
+		),
+		ValidateStructOrSkipWithContext[ValidatableUser](),
+	)
+
+	subscription := observable.Subscribe(ro.PrintObserver[ValidatableUser]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: {John john@example.com 25}
 	// Completed
 }
