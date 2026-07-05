@@ -81,7 +81,11 @@ func ExampleGetOrFetch() {
 				if found {
 					fmt.Printf("Found in cache: %s (%s)\n", user.Name, user.ID)
 				} else {
-					fmt.Printf("Not in cache: %q\n", user.ID)
+					id := user.ID
+					if id == "" {
+						id = user.Name
+					}
+					fmt.Printf("Not in cache: %q\n", id)
 				}
 			},
 			func(err error) {
@@ -244,7 +248,11 @@ func ExampleGetOrFetch_withContext() {
 				if found {
 					fmt.Printf("Found: %s\n", user.Name)
 				} else {
-					fmt.Printf("Not found: %q\n", user.ID)
+					id := user.ID
+					if id == "" {
+						id = user.Name
+					}
+					fmt.Printf("Not found: %q\n", id)
 				}
 			},
 			func(ctx context.Context, err error) {
