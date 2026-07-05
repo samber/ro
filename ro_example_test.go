@@ -5200,3 +5200,2192 @@ func ExampleNewUnicastSubject_overflow() {
 	// Output:
 	// Completed
 }
+
+func ExampleMergeMapWithContext_ok() {
+	type ctxKey string
+
+	observable := Pipe2(
+		Just(1, 2, 3),
+		ContextWithValue[int](ctxKey("multiplier"), 10),
+		MergeMapWithContext(func(ctx context.Context, item int) Observable[string] {
+			multiplier := ctx.Value(ctxKey("multiplier")).(int)
+			return Just(fmt.Sprintf("%d", item*multiplier))
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 10
+	// Next: 20
+	// Next: 30
+	// Completed
+}
+
+func ExampleMergeMapI_ok() {
+	observable := Pipe1(
+		Just("foo", "bar", "baz"),
+		MergeMapI(func(item string, index int64) Observable[string] {
+			return Just(fmt.Sprintf("[%d] %s", index, strings.ToUpper(item)))
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: [0] FOO
+	// Next: [1] BAR
+	// Next: [2] BAZ
+	// Completed
+}
+
+func ExampleMergeMapIWithContext_ok() {
+	type ctxKey string
+
+	observable := Pipe2(
+		Just("foo", "bar", "baz"),
+		ContextWithValue[string](ctxKey("prefix"), "item"),
+		MergeMapIWithContext(func(ctx context.Context, item string, index int64) (context.Context, Observable[string]) {
+			prefix := ctx.Value(ctxKey("prefix")).(string)
+			return ctx, Just(fmt.Sprintf("%s[%d]: %s", prefix, index, strings.ToUpper(item)))
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: item[0]: FOO
+	// Next: item[1]: BAR
+	// Next: item[2]: BAZ
+	// Completed
+}
+
+func ExampleAllWithContext() {
+	// All items satisfy the predicate: returns true
+	observable1 := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		AllWithContext(func(ctx context.Context, i int) bool { return i > 0 }),
+	)
+
+	subscription1 := observable1.Subscribe(PrintObserver[bool]())
+	defer subscription1.Unsubscribe()
+
+	// Not all items are even: returns false
+	observable2 := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		AllWithContext(func(ctx context.Context, i int) bool { return i%2 == 0 }),
+	)
+
+	subscription2 := observable2.Subscribe(PrintObserver[bool]())
+	defer subscription2.Unsubscribe()
+
+	// Output:
+	// Next: true
+	// Completed
+	// Next: false
+	// Completed
+}
+
+func ExampleAllI() {
+	// All items are strictly greater than their zero-based index: returns true
+	observable1 := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		AllI(func(i int, index int64) bool { return int64(i) > index }),
+	)
+	// item=1 index=0 -> 1>0 ✓, item=2 index=1 -> 2>1 ✓, ... all pass
+
+	subscription1 := observable1.Subscribe(PrintObserver[bool]())
+	defer subscription1.Unsubscribe()
+
+	// First item (0) is not greater than its index (0): returns false
+	observable2 := Pipe1(
+		Just(0, 2, 3, 4, 5),
+		AllI(func(i int, index int64) bool { return int64(i) > index }),
+	)
+	// item=0 index=0 -> 0>0 ✗
+
+	subscription2 := observable2.Subscribe(PrintObserver[bool]())
+	defer subscription2.Unsubscribe()
+
+	// Output:
+	// Next: true
+	// Completed
+	// Next: false
+	// Completed
+}
+
+func ExampleAllIWithContext() {
+	// All items are strictly greater than their zero-based index: returns true
+	observable1 := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		AllIWithContext(func(ctx context.Context, i int, index int64) bool {
+			return int64(i) > index
+		}),
+	)
+
+	subscription1 := observable1.Subscribe(PrintObserver[bool]())
+	defer subscription1.Unsubscribe()
+
+	// First item (0) is not greater than its index (0): returns false
+	observable2 := Pipe1(
+		Just(0, 2, 3, 4, 5),
+		AllIWithContext(func(ctx context.Context, i int, index int64) bool {
+			return int64(i) > index
+		}),
+	)
+
+	subscription2 := observable2.Subscribe(PrintObserver[bool]())
+	defer subscription2.Unsubscribe()
+
+	// Output:
+	// Next: true
+	// Completed
+	// Next: false
+	// Completed
+}
+
+func ExampleContainsWithContext() {
+	// No negative item in the stream: returns false
+	observable1 := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		ContainsWithContext(func(ctx context.Context, i int) bool { return i < 0 }),
+	)
+
+	subscription1 := observable1.Subscribe(PrintObserver[bool]())
+	defer subscription1.Unsubscribe()
+
+	// There is an even item in the stream: returns true
+	observable2 := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		ContainsWithContext(func(ctx context.Context, i int) bool { return i%2 == 0 }),
+	)
+
+	subscription2 := observable2.Subscribe(PrintObserver[bool]())
+	defer subscription2.Unsubscribe()
+
+	// Output:
+	// Next: false
+	// Completed
+	// Next: true
+	// Completed
+}
+
+func ExampleContainsI() {
+	// Check whether any item at an even index is greater than 3
+	// index=0 item=1: 0%2==0 && 1>3 -> false
+	// index=1 item=2: 1%2==0 -> false
+	// index=2 item=3: 2%2==0 && 3>3 -> false
+	// index=3 item=4: 3%2==0 -> false
+	// index=4 item=5: 4%2==0 && 5>3 -> true
+	observable1 := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		ContainsI(func(i int, index int64) bool { return index%2 == 0 && i > 3 }),
+	)
+
+	subscription1 := observable1.Subscribe(PrintObserver[bool]())
+	defer subscription1.Unsubscribe()
+
+	// No item at an even index exceeds 10: returns false
+	observable2 := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		ContainsI(func(i int, index int64) bool { return index%2 == 0 && i > 10 }),
+	)
+
+	subscription2 := observable2.Subscribe(PrintObserver[bool]())
+	defer subscription2.Unsubscribe()
+
+	// Output:
+	// Next: true
+	// Completed
+	// Next: false
+	// Completed
+}
+
+func ExampleContainsIWithContext() {
+	// Find whether any item is even and located at index >= 2
+	// index=0 item=1: 0>=2 -> false
+	// index=1 item=2: 1>=2 -> false
+	// index=2 item=3: 2>=2 && 3%2==0 -> false
+	// index=3 item=4: 3>=2 && 4%2==0 -> true
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		ContainsIWithContext(func(ctx context.Context, i int, index int64) bool {
+			return index >= 2 && i%2 == 0
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[bool]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: true
+	// Completed
+}
+
+func ExampleFindWithContext() {
+	// No item exceeds 10: completes without emitting
+	observable1 := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		FindWithContext(func(ctx context.Context, i int) bool { return i > 10 }),
+	)
+
+	subscription1 := observable1.Subscribe(PrintObserver[int]())
+	defer subscription1.Unsubscribe()
+
+	// First even item is 2
+	observable2 := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		FindWithContext(func(ctx context.Context, i int) bool { return i%2 == 0 }),
+	)
+
+	subscription2 := observable2.Subscribe(PrintObserver[int]())
+	defer subscription2.Unsubscribe()
+
+	// Output:
+	// Completed
+	// Next: 2
+	// Completed
+}
+
+func ExampleFindI() {
+	// Find the first even item located at index >= 2
+	// index=0 item=1: 0>=2 -> false
+	// index=1 item=2: 1>=2 -> false
+	// index=2 item=3: 2>=2 && 3%2==0 -> false
+	// index=3 item=4: 3>=2 && 4%2==0 -> true -> emits 4
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		FindI(func(i int, index int64) bool { return index >= 2 && i%2 == 0 }),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 4
+	// Completed
+}
+
+func ExampleFindIWithContext() {
+	// Find the first even item located at index >= 2
+	// index=0 item=1: 0>=2 -> false
+	// index=1 item=2: 1>=2 -> false
+	// index=2 item=3: 2>=2 && 3%2==0 -> false
+	// index=3 item=4: 3>=2 && 4%2==0 -> true -> emits 4
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		FindIWithContext(func(ctx context.Context, i int, index int64) bool {
+			return index >= 2 && i%2 == 0
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 4
+	// Completed
+}
+
+func ExampleDefaultIfEmptyWithContext() {
+	// Non-empty source: default value is not emitted
+	observable1 := Pipe1(
+		Just(1, 2, 3),
+		DefaultIfEmptyWithContext(context.Background(), 42),
+	)
+
+	subscription1 := observable1.Subscribe(PrintObserver[int]())
+	defer subscription1.Unsubscribe()
+
+	// Empty source: default value is emitted using the provided context
+	observable2 := Pipe1(
+		Empty[int](),
+		DefaultIfEmptyWithContext(context.Background(), 42),
+	)
+
+	subscription2 := observable2.Subscribe(PrintObserver[int]())
+	defer subscription2.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+	// Next: 42
+	// Completed
+}
+
+func ExampleSequenceEqual() {
+	// Two identical sequences are equal
+	observable1 := Pipe1(
+		Just(1, 2, 3),
+		SequenceEqual(Just(1, 2, 3)),
+	)
+
+	subscription1 := observable1.Subscribe(PrintObserver[bool]())
+	defer subscription1.Unsubscribe()
+
+	// Sequences diverge at the third element
+	observable2 := Pipe1(
+		Just(1, 2, 3),
+		SequenceEqual(Just(1, 2, 4)),
+	)
+
+	subscription2 := observable2.Subscribe(PrintObserver[bool]())
+	defer subscription2.Unsubscribe()
+
+	// Output:
+	// Next: true
+	// Completed
+	// Next: false
+	// Completed
+}
+
+func ExampleShare() {
+	subject := NewPublishSubject[int]()
+	shared := Pipe1(subject.AsObservable(), Share[int]())
+
+	// both subscribers share a single subscription to the source
+	sub1 := shared.Subscribe(PrintObserver[int]())
+	sub2 := shared.Subscribe(PrintObserver[int]())
+	defer sub1.Unsubscribe()
+	defer sub2.Unsubscribe()
+
+	subject.Next(1)
+	subject.Next(2)
+	subject.Complete()
+
+	// Output:
+	// Next: 1
+	// Next: 1
+	// Next: 2
+	// Next: 2
+	// Completed
+	// Completed
+}
+
+func ExampleShareWithConfig() {
+	subject := NewPublishSubject[int]()
+	shared := Pipe1(
+		subject.AsObservable(),
+		ShareWithConfig(ShareConfig[int]{
+			Connector:           defaultConnector[int],
+			ResetOnError:        true,
+			ResetOnComplete:     true,
+			ResetOnRefCountZero: false, // source stays subscribed when all subscribers leave
+		}),
+	)
+
+	sub1 := shared.Subscribe(PrintObserver[int]())
+	subject.Next(1)
+	sub1.Unsubscribe() // ref count drops to zero but source remains connected
+
+	// late subscriber joins without restarting the source
+	sub2 := shared.Subscribe(PrintObserver[int]())
+	defer sub2.Unsubscribe()
+	subject.Next(2)
+	subject.Complete()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Completed
+}
+
+func ExampleShareReplay() {
+	subject := NewPublishSubject[int]()
+	shared := Pipe1(subject.AsObservable(), ShareReplay[int](2))
+
+	sub1 := shared.Subscribe(PrintObserver[int]())
+	defer sub1.Unsubscribe()
+
+	subject.Next(1)
+	subject.Next(2)
+
+	// late subscriber gets the last 2 buffered items replayed immediately on subscribe
+	sub2 := shared.Subscribe(PrintObserver[int]())
+	defer sub2.Unsubscribe()
+
+	subject.Next(3)
+	subject.Complete()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 3
+	// Completed
+	// Completed
+}
+
+func ExampleShareReplayWithConfig() {
+	subject := NewPublishSubject[int]()
+	shared := Pipe1(
+		subject.AsObservable(),
+		ShareReplayWithConfig[int](2, ShareReplayConfig{
+			ResetOnRefCountZero: true, // buffer is cleared when all subscribers leave
+		}),
+	)
+
+	sub1 := shared.Subscribe(PrintObserver[int]())
+	subject.Next(1)
+	subject.Next(2)
+	sub1.Unsubscribe() // ref count drops to zero; replay buffer is cleared
+
+	// new subscriber starts fresh — no buffered items replayed
+	sub2 := shared.Subscribe(PrintObserver[int]())
+	defer sub2.Unsubscribe()
+	subject.Next(3)
+	subject.Complete()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleContextWithTimeout() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		ContextWithTimeout[int](time.Second),
+	)
+
+	subscription := observable.Subscribe(
+		OnNextWithContext(func(ctx context.Context, value int) {
+			_, hasDeadline := ctx.Deadline()
+			fmt.Printf("Next: %d (has deadline: %v)\n", value, hasDeadline)
+		}),
+	)
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1 (has deadline: true)
+	// Next: 2 (has deadline: true)
+	// Next: 3 (has deadline: true)
+}
+
+func ExampleContextWithDeadline() {
+	deadline := time.Now().Add(time.Second)
+
+	observable := Pipe1(
+		Just(1, 2, 3),
+		ContextWithDeadline[int](deadline),
+	)
+
+	subscription := observable.Subscribe(
+		OnNextWithContext(func(ctx context.Context, value int) {
+			_, hasDeadline := ctx.Deadline()
+			fmt.Printf("Next: %d (has deadline: %v)\n", value, hasDeadline)
+		}),
+	)
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1 (has deadline: true)
+	// Next: 2 (has deadline: true)
+	// Next: 3 (has deadline: true)
+}
+
+func ExampleContextReset() {
+	type ctxKey struct{}
+
+	newCtx := context.WithValue(context.Background(), ctxKey{}, "fresh")
+
+	observable := Pipe1(
+		Just(1, 2, 3),
+		ContextReset[int](newCtx),
+	)
+
+	subscription := observable.Subscribe(
+		OnNextWithContext(func(ctx context.Context, value int) {
+			fmt.Printf("Next: %d (context: %v)\n", value, ctx.Value(ctxKey{}))
+		}),
+	)
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1 (context: fresh)
+	// Next: 2 (context: fresh)
+	// Next: 3 (context: fresh)
+}
+
+func ExampleContextMap() {
+	type ctxKey struct{}
+
+	observable := Pipe1(
+		Just(1, 2, 3),
+		ContextMap[int](func(ctx context.Context) context.Context {
+			return context.WithValue(ctx, ctxKey{}, "mapped")
+		}),
+	)
+
+	subscription := observable.Subscribe(
+		OnNextWithContext(func(ctx context.Context, value int) {
+			fmt.Printf("Next: %d (context: %v)\n", value, ctx.Value(ctxKey{}))
+		}),
+	)
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1 (context: mapped)
+	// Next: 2 (context: mapped)
+	// Next: 3 (context: mapped)
+}
+
+func ExampleContextMapI() {
+	type indexKey struct{}
+
+	observable := Pipe1(
+		Just("a", "b", "c"),
+		ContextMapI[string](func(ctx context.Context, index int64) context.Context {
+			return context.WithValue(ctx, indexKey{}, index)
+		}),
+	)
+
+	subscription := observable.Subscribe(
+		OnNextWithContext(func(ctx context.Context, value string) {
+			fmt.Printf("Next: %s (index: %d)\n", value, ctx.Value(indexKey{}))
+		}),
+	)
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: a (index: 0)
+	// Next: b (index: 1)
+	// Next: c (index: 2)
+}
+
+func ExampleThrowOnContextCancel() {
+	observable := Pipe1(
+		NewObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+			destination.NextWithContext(ctx, 1)
+			destination.NextWithContext(ctx, 2)
+			// Cancel the context for the third item — ThrowOnContextCancel detects it and errors.
+			cancelledCtx, cancel := context.WithCancel(ctx)
+			cancel()
+			destination.NextWithContext(cancelledCtx, 3)
+			destination.CompleteWithContext(ctx)
+			return nil
+		}),
+		ThrowOnContextCancel[int](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Error: context canceled
+}
+
+func ExampleCombineLatest4_ok() {
+	observable1 := Delay[int64](100 * time.Millisecond)(RangeWithInterval(1, 3, 50*time.Millisecond))
+	observable2 := RangeWithInterval(3, 5, 50*time.Millisecond)
+	observable3 := Delay[int64](25 * time.Millisecond)(RangeWithInterval(5, 7, 50*time.Millisecond))
+	observable4 := Just[int64](10)
+
+	combined := CombineLatest4(observable1, observable2, observable3, observable4)
+	observable := Map(func(snapshot lo.Tuple4[int64, int64, int64, int64]) []int64 {
+		return []int64{snapshot.A, snapshot.B, snapshot.C, snapshot.D}
+	})(combined)
+
+	subscription := observable.Subscribe(PrintObserver[[]int64]())
+	subscription.Wait() // Note: using .Wait() is not recommended.
+
+	// Output:
+	// Next: [1 4 6 10]
+	// Next: [2 4 6 10]
+	// Completed
+}
+
+func ExampleCombineLatest5_ok() {
+	observable1 := Delay[int64](100 * time.Millisecond)(RangeWithInterval(1, 3, 50*time.Millisecond))
+	observable2 := RangeWithInterval(3, 5, 50*time.Millisecond)
+	observable3 := Delay[int64](25 * time.Millisecond)(RangeWithInterval(5, 7, 50*time.Millisecond))
+	observable4 := Just[int64](10)
+	observable5 := Just[int64](100)
+
+	combined := CombineLatest5(observable1, observable2, observable3, observable4, observable5)
+	observable := Map(func(snapshot lo.Tuple5[int64, int64, int64, int64, int64]) []int64 {
+		return []int64{snapshot.A, snapshot.B, snapshot.C, snapshot.D, snapshot.E}
+	})(combined)
+
+	subscription := observable.Subscribe(PrintObserver[[]int64]())
+	subscription.Wait() // Note: using .Wait() is not recommended.
+
+	// Output:
+	// Next: [1 4 6 10 100]
+	// Next: [2 4 6 10 100]
+	// Completed
+}
+
+func ExampleRandIntN() {
+	// RandIntN emits count random integers in [0, n).
+	// Count the items to produce deterministic output regardless of random values.
+	observable := Pipe1(
+		RandIntN(10, 4),
+		Count[int](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 4
+	// Completed
+}
+
+func ExampleRandFloat64() {
+	// RandFloat64 emits count random float64 values in [0, 1).
+	// Count the items to produce deterministic output regardless of random values.
+	observable := Pipe1(
+		RandFloat64(3),
+		Count[float64](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 3
+	// Completed
+}
+
+func ExampleRetry() {
+	attempts := 0
+
+	observable := Pipe1(
+		NewObservable(func(observer Observer[int]) Teardown {
+			attempts++
+			observer.Next(attempts)
+			if attempts < 3 {
+				observer.Error(errors.New("temporary error"))
+			} else {
+				observer.Complete()
+			}
+			return nil
+		}),
+		Retry[int](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleDoWhileWithContext() {
+	i := 0
+
+	observable := Pipe1(
+		Just(1, 2, 3),
+		DoWhileWithContext[int](func(ctx context.Context) (context.Context, bool) {
+			i++
+			return ctx, i < 2
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleDoWhileI() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		DoWhileI[int](func(index int64) bool {
+			return index < 2
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleDoWhileIWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		DoWhileIWithContext[int](func(ctx context.Context, index int64) (context.Context, bool) {
+			return ctx, index < 1
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleWhileWithContext() {
+	i := 0
+
+	observable := Pipe1(
+		Just(1, 2, 3),
+		WhileWithContext[int](func(ctx context.Context) (context.Context, bool) {
+			i++
+			return ctx, i <= 2
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleWhileI() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		WhileI[int](func(index int64) bool {
+			return index < 2
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleWhileIWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		WhileIWithContext[int](func(ctx context.Context, index int64) (context.Context, bool) {
+			return ctx, index < 3
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleFilterWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		FilterWithContext(func(ctx context.Context, i int) (context.Context, bool) {
+			return ctx, i%2 == 0
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 2
+	// Next: 4
+	// Completed
+}
+
+func ExampleFilterI() {
+	// Keep only items at even indices (0, 2, 4...).
+	observable := Pipe1(
+		Just(10, 20, 30, 40, 50),
+		FilterI(func(item int, index int64) bool {
+			return index%2 == 0
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 10
+	// Next: 30
+	// Next: 50
+	// Completed
+}
+
+func ExampleFilterIWithContext() {
+	// Keep items that are even AND located at an index less than 3.
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		FilterIWithContext(func(ctx context.Context, item int, index int64) (context.Context, bool) {
+			return ctx, item%2 == 0 && index < 3
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 2
+	// Completed
+}
+
+func ExampleDistinctByWithContext() {
+	type user struct {
+		id   int
+		name string
+	}
+
+	observable := Pipe1(
+		Just(
+			user{id: 1, name: "Alice"},
+			user{id: 2, name: "Bob"},
+			user{id: 1, name: "Alice Duplicate"},
+			user{id: 3, name: "Charlie"},
+		),
+		DistinctByWithContext(func(ctx context.Context, item user) (context.Context, int) {
+			return ctx, item.id
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[user]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: {1 Alice}
+	// Next: {2 Bob}
+	// Next: {3 Charlie}
+	// Completed
+}
+
+func ExampleSkipWhileWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		SkipWhileWithContext(func(ctx context.Context, v int) (context.Context, bool) {
+			return ctx, v <= 2
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 3
+	// Next: 4
+	// Next: 5
+	// Completed
+}
+
+func ExampleSkipWhileI() {
+	// Skip items while their index is less than 2.
+	observable := Pipe1(
+		Just(10, 20, 30, 40, 50),
+		SkipWhileI(func(item int, index int64) bool {
+			return index < 2
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 30
+	// Next: 40
+	// Next: 50
+	// Completed
+}
+
+func ExampleSkipWhileIWithContext() {
+	observable := Pipe1(
+		Just(10, 20, 30, 40, 50),
+		SkipWhileIWithContext(func(ctx context.Context, item int, index int64) (context.Context, bool) {
+			return ctx, index < 2
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 30
+	// Next: 40
+	// Next: 50
+	// Completed
+}
+
+func ExampleTakeWhileWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		TakeWhileWithContext(func(ctx context.Context, n int) (context.Context, bool) {
+			return ctx, n < 4
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleTakeWhileI() {
+	// Take items while their index is less than 3.
+	observable := Pipe1(
+		Just(10, 20, 30, 40, 50),
+		TakeWhileI(func(item int, index int64) bool {
+			return index < 3
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 10
+	// Next: 20
+	// Next: 30
+	// Completed
+}
+
+func ExampleTakeWhileIWithContext() {
+	observable := Pipe1(
+		Just(10, 20, 30, 40, 50),
+		TakeWhileIWithContext(func(ctx context.Context, item int, index int64) (context.Context, bool) {
+			return ctx, index < 3
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 10
+	// Next: 20
+	// Next: 30
+	// Completed
+}
+
+func ExampleFirstWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		FirstWithContext(func(ctx context.Context, n int) (context.Context, bool) {
+			return ctx, n > 3
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 4
+	// Completed
+}
+
+func ExampleFirstI() {
+	// Find the first item whose index is greater than 1.
+	observable := Pipe1(
+		Just(10, 20, 30, 40, 50),
+		FirstI(func(item int, index int64) bool {
+			return index > 1
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 30
+	// Completed
+}
+
+func ExampleFirstIWithContext() {
+	observable := Pipe1(
+		Just(10, 20, 30, 40, 50),
+		FirstIWithContext(func(ctx context.Context, item int, index int64) (context.Context, bool) {
+			return ctx, item > 20 && index < 4
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 30
+	// Completed
+}
+
+func ExampleLastWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		LastWithContext(func(ctx context.Context, n int) (context.Context, bool) {
+			return ctx, n < 4
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 3
+	// Completed
+}
+
+func ExampleLastI() {
+	// Find the last item whose index is less than 3.
+	observable := Pipe1(
+		Just(10, 20, 30, 40, 50),
+		LastI(func(item int, index int64) bool {
+			return index < 3
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 30
+	// Completed
+}
+
+func ExampleLastIWithContext() {
+	observable := Pipe1(
+		Just(10, 20, 30, 40, 50),
+		LastIWithContext(func(ctx context.Context, item int, index int64) (context.Context, bool) {
+			return ctx, item < 40 && index >= 1
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 30
+	// Completed
+}
+
+func ExampleCeilWithPrecision() {
+	observable := Pipe1(
+		Just(3.14159, 2.71828, -1.2345),
+		CeilWithPrecision(2),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[float64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 3.15
+	// Next: 2.72
+	// Next: -1.23
+	// Completed
+}
+
+func ExampleCeilWithPrecision_negativePrecision() {
+	// Negative places round to powers of ten (e.g. places=-1 → ceil to nearest 10).
+	observable := Pipe1(
+		Just(123.45, -123.45),
+		CeilWithPrecision(-1),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[float64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 130
+	// Next: -120
+	// Completed
+}
+
+func ExampleReduceWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		ReduceWithContext(func(ctx context.Context, agg int, item int) (context.Context, int) {
+			return ctx, agg + item
+		}, 0),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 15
+	// Completed
+}
+
+func ExampleReduceI() {
+	// ReduceI passes an ever-increasing index to the accumulator.
+	observable := Pipe1(
+		Just("a", "b", "c"),
+		ReduceI(func(agg string, item string, index int64) string {
+			return fmt.Sprintf("%s[%d:%s]", agg, index, item)
+		}, ""),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: [0:a][1:b][2:c]
+	// Completed
+}
+
+func ExampleReduceIWithContext() {
+	// ReduceIWithContext passes both context and index to the accumulator.
+	// Here each item is multiplied by its 1-based position before summing:
+	// 10*1 + 20*2 + 30*3 = 10 + 40 + 90 = 140
+	observable := Pipe1(
+		Just(10, 20, 30),
+		ReduceIWithContext(func(ctx context.Context, agg int, item int, index int64) (context.Context, int) {
+			return ctx, agg + item*int(index+1)
+		}, 0),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 140
+	// Completed
+}
+
+func ExampleToMapWithContext_ok() {
+	project := func(ctx context.Context, v int) (string, int) {
+		return strconv.Itoa(v), v * 10
+	}
+
+	observable := Pipe1(
+		Just(1, 2, 3),
+		ToMapWithContext(project),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[map[string]int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: map[1:10 2:20 3:30]
+	// Completed
+}
+
+func ExampleToMapI_ok() {
+	// The index is 0-based and increments for each emitted item.
+	mapper := func(v int, index int64) (int64, int) {
+		return index, v * 2
+	}
+
+	observable := Pipe1(
+		Just(10, 20, 30),
+		ToMapI(mapper),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[map[int64]int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: map[0:20 1:40 2:60]
+	// Completed
+}
+
+func ExampleToMapIWithContext_ok() {
+	// Combines context propagation with a 0-based item index.
+	mapper := func(ctx context.Context, v string, index int64) (int64, string) {
+		return index, v
+	}
+
+	observable := Pipe1(
+		Just("alice", "bob", "carol"),
+		ToMapIWithContext(mapper),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[map[int64]string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: map[0:alice 1:bob 2:carol]
+	// Completed
+}
+
+func ExampleMapWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		MapWithContext(func(ctx context.Context, item int) (context.Context, string) {
+			return ctx, fmt.Sprintf("item-%d", item)
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: item-1
+	// Next: item-2
+	// Next: item-3
+	// Completed
+}
+
+func ExampleMapI() {
+	observable := Pipe1(
+		Just("a", "b", "c"),
+		MapI(func(item string, index int64) string {
+			return fmt.Sprintf("%d:%s", index, item)
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 0:a
+	// Next: 1:b
+	// Next: 2:c
+	// Completed
+}
+
+func ExampleMapIWithContext() {
+	observable := Pipe1(
+		Just("a", "b", "c"),
+		MapIWithContext(func(ctx context.Context, item string, index int64) (context.Context, string) {
+			return ctx, fmt.Sprintf("%d:%s", index, item)
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 0:a
+	// Next: 1:b
+	// Next: 2:c
+	// Completed
+}
+
+func ExampleMapErrWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		MapErrWithContext(func(ctx context.Context, item int) (string, context.Context, error) {
+			if item == 2 {
+				return "", ctx, errors.New("item 2 is invalid")
+			}
+			return fmt.Sprintf("item-%d", item), ctx, nil
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: item-1
+	// Error: item 2 is invalid
+}
+
+func ExampleMapErrI() {
+	observable := Pipe1(
+		Just(10, 20, 30),
+		MapErrI(func(item int, index int64) (string, error) {
+			return fmt.Sprintf("[%d]=%d", index, item), nil
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: [0]=10
+	// Next: [1]=20
+	// Next: [2]=30
+	// Completed
+}
+
+func ExampleMapErrIWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		MapErrIWithContext(func(ctx context.Context, item int, index int64) (string, context.Context, error) {
+			if index == 1 {
+				return "", ctx, errors.New("index 1 is invalid")
+			}
+			return fmt.Sprintf("[%d]=%d", index, item), ctx, nil
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: [0]=1
+	// Error: index 1 is invalid
+}
+
+func ExampleFlatMapWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		FlatMapWithContext(func(ctx context.Context, item int) Observable[int] {
+			return Just(item, item*10)
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 10
+	// Next: 2
+	// Next: 20
+	// Next: 3
+	// Next: 30
+	// Completed
+}
+
+func ExampleFlatMapI() {
+	observable := Pipe1(
+		Just("a", "b", "c"),
+		FlatMapI(func(item string, index int64) Observable[string] {
+			return Just(fmt.Sprintf("%d:%s", index, item))
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 0:a
+	// Next: 1:b
+	// Next: 2:c
+	// Completed
+}
+
+func ExampleFlatMapIWithContext() {
+	observable := Pipe1(
+		Just("a", "b", "c"),
+		FlatMapIWithContext(func(ctx context.Context, item string, index int64) Observable[string] {
+			return Just(fmt.Sprintf("%d:%s", index, item))
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 0:a
+	// Next: 1:b
+	// Next: 2:c
+	// Completed
+}
+
+func ExampleFlatten_ok() {
+	observable := Pipe1(
+		Just([]int{1, 2, 3}, []int{4, 5, 6}),
+		Flatten[int](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 4
+	// Next: 5
+	// Next: 6
+	// Completed
+}
+
+func ExampleFlatten_error() {
+	observable := Pipe1(
+		Throw[[]int](assert.AnError),
+		Flatten[int](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Error: assert.AnError general error for testing
+}
+
+func ExampleCast_ok() {
+	observable := Pipe1(
+		Just[any](1, 2, 3),
+		Cast[any, int](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleCast_error() {
+	// Cast fails when the underlying type does not match the target type.
+	observable := Pipe1(
+		Just("one", "two", "three"),
+		Cast[string, int](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Error: ro.Cast: unable to cast string to int
+}
+
+func ExampleScanWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		ScanWithContext(func(ctx context.Context, accumulator int, item int) (context.Context, int) {
+			return ctx, accumulator + item
+		}, 0),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 3
+	// Next: 6
+	// Next: 10
+	// Next: 15
+	// Completed
+}
+
+func ExampleScanI() {
+	observable := Pipe1(
+		Just("a", "b", "c"),
+		ScanI(func(accumulator string, item string, index int64) string {
+			return fmt.Sprintf("%s%d:%s", accumulator, index, item)
+		}, ""),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 0:a
+	// Next: 0:a1:b
+	// Next: 0:a1:b2:c
+	// Completed
+}
+
+func ExampleScanIWithContext() {
+	observable := Pipe1(
+		Just(1, 2, 3, 4, 5),
+		ScanIWithContext(func(ctx context.Context, accumulator int, item int, index int64) (context.Context, int) {
+			return ctx, accumulator + item
+		}, 0),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 3
+	// Next: 6
+	// Next: 10
+	// Next: 15
+	// Completed
+}
+
+func ExampleGroupByWithContext() {
+	isEven := func(ctx context.Context, v int64) (context.Context, bool) {
+		return ctx, v%2 == 0
+	}
+
+	observable := Pipe2(
+		RangeWithInterval(1, 5, 10*time.Millisecond),
+		GroupByWithContext(isEven),
+		MergeAll[int64](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	subscription.Wait() // Note: using .Wait() is not recommended.
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 4
+	// Completed
+}
+
+func ExampleGroupByI() {
+	// GroupByI groups items using both the item value and its emission index.
+	observable := Pipe2(
+		RangeWithInterval(1, 5, 10*time.Millisecond),
+		GroupByI(func(v int64, index int64) bool { return index%2 == 0 }),
+		MergeAll[int64](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	subscription.Wait() // Note: using .Wait() is not recommended.
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 4
+	// Completed
+}
+
+func ExampleGroupByIWithContext() {
+	observable := Pipe2(
+		RangeWithInterval(1, 5, 10*time.Millisecond),
+		GroupByIWithContext(func(ctx context.Context, v int64, index int64) (context.Context, bool) {
+			return ctx, index%2 == 0
+		}),
+		MergeAll[int64](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	subscription.Wait() // Note: using .Wait() is not recommended.
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Next: 4
+	// Completed
+}
+
+func ExampleSampleWhen() {
+	// SampleWhen emits the most recently emitted value each time the tick Observable fires.
+	// Items emitted between ticks are discarded; only the latest value is sampled.
+	observable := Pipe2(
+		RangeWithInterval(1, 8, 20*time.Millisecond),
+		Delay[int64](10*time.Millisecond),
+		SampleWhen[int64](Interval(60*time.Millisecond)),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	subscription.Wait() // Note: using .Wait() is not recommended.
+
+	// Output:
+	// Next: 2
+	// Next: 5
+	// Completed
+}
+
+func ExampleSampleTime() {
+	// SampleTime emits the most recently emitted value at each periodic interval.
+	// Items emitted between intervals are discarded; only the latest value is sampled.
+	observable := Pipe2(
+		RangeWithInterval(1, 8, 20*time.Millisecond),
+		Delay[int64](10*time.Millisecond),
+		SampleTime[int64](60*time.Millisecond),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	subscription.Wait() // Note: using .Wait() is not recommended.
+
+	// Output:
+	// Next: 2
+	// Next: 5
+	// Completed
+}
+
+func ExampleThrottleWhen() {
+	// ThrottleWhen forwards a source value only when the tick Observable has fired since
+	// the last forwarded value, throttling bursts to at most one item per tick period.
+	observable := Pipe1(
+		RangeWithInterval(1, 8, 20*time.Millisecond),
+		ThrottleWhen[int64](Interval(55*time.Millisecond)),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	subscription.Wait() // Note: using .Wait() is not recommended.
+
+	// Output:
+	// Next: 3
+	// Next: 6
+	// Completed
+}
+
+func ExampleThrottleTime() {
+	// ThrottleTime forwards the first value from the source, then ignores subsequent
+	// values for the specified duration before allowing the next one through.
+	observable := Pipe1(
+		RangeWithInterval(1, 8, 10*time.Millisecond),
+		ThrottleTime[int64](25*time.Millisecond),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	subscription.Wait() // Note: using .Wait() is not recommended.
+
+	// Output:
+	// Next: 1
+	// Next: 4
+	// Next: 7
+	// Completed
+}
+
+func ExampleTapWithContext_ok() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		TapWithContext(
+			func(ctx context.Context, value int) {
+				fmt.Printf("Next: %v\n", value)
+			},
+			func(ctx context.Context, err error) {
+				fmt.Printf("Error: %s\n", err.Error())
+			},
+			func(ctx context.Context) {
+				fmt.Println("Completed")
+			},
+		),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleTapWithContext_error() {
+	observable := Pipe1(
+		NewObservable(func(observer Observer[int]) Teardown {
+			observer.Next(1)
+			observer.Next(2)
+			observer.Error(assert.AnError)
+			return nil
+		}),
+		TapWithContext(
+			func(ctx context.Context, value int) {
+				fmt.Printf("Next: %v\n", value)
+			},
+			func(ctx context.Context, err error) {
+				fmt.Printf("Error: %s\n", err.Error())
+			},
+			func(ctx context.Context) {
+				fmt.Println("Completed")
+			},
+		),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Error: assert.AnError general error for testing
+}
+
+func ExampleDo_ok() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		Do(
+			func(value int) {
+				fmt.Printf("Next: %v\n", value)
+			},
+			func(err error) {
+				fmt.Printf("Error: %s\n", err.Error())
+			},
+			func() {
+				fmt.Println("Completed")
+			},
+		),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleDoWithContext_ok() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		DoWithContext(
+			func(ctx context.Context, value int) {
+				fmt.Printf("Next: %v\n", value)
+			},
+			func(ctx context.Context, err error) {
+				fmt.Printf("Error: %s\n", err.Error())
+			},
+			func(ctx context.Context) {
+				fmt.Println("Completed")
+			},
+		),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleTapOnNextWithContext_ok() {
+	observable := Pipe1(
+		Range(1, 4),
+		TapOnNextWithContext(func(ctx context.Context, v int64) {
+			fmt.Println("Next:", v)
+		}),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+}
+
+func ExampleDoOnNext_ok() {
+	observable := Pipe1(
+		Range(1, 4),
+		DoOnNext(func(v int64) { fmt.Println("Next:", v) }),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+}
+
+func ExampleDoOnNextWithContext_ok() {
+	observable := Pipe1(
+		Range(1, 4),
+		DoOnNextWithContext(func(ctx context.Context, v int64) {
+			fmt.Println("Next:", v)
+		}),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+}
+
+func ExampleTapOnErrorWithContext_error() {
+	observable := Pipe1(
+		NewObservable(func(observer Observer[int]) Teardown {
+			observer.Next(1)
+			observer.Error(assert.AnError)
+			return nil
+		}),
+		TapOnErrorWithContext[int](func(ctx context.Context, err error) {
+			fmt.Printf("Error: %s\n", err.Error())
+		}),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Error: assert.AnError general error for testing
+}
+
+func ExampleDoOnError_error() {
+	observable := Pipe1(
+		NewObservable(func(observer Observer[int]) Teardown {
+			observer.Next(1)
+			observer.Error(assert.AnError)
+			return nil
+		}),
+		DoOnError[int](func(err error) { fmt.Printf("Error: %s\n", err.Error()) }),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Error: assert.AnError general error for testing
+}
+
+func ExampleDoOnErrorWithContext_error() {
+	observable := Pipe1(
+		NewObservable(func(observer Observer[int]) Teardown {
+			observer.Error(assert.AnError)
+			return nil
+		}),
+		DoOnErrorWithContext[int](func(ctx context.Context, err error) {
+			fmt.Printf("Error: %s\n", err.Error())
+		}),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Error: assert.AnError general error for testing
+}
+
+func ExampleTapOnCompleteWithContext_ok() {
+	observable := Pipe1(
+		Range(1, 4),
+		TapOnCompleteWithContext[int64](func(ctx context.Context) {
+			fmt.Println("Completed")
+		}),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Completed
+}
+
+func ExampleDoOnComplete_ok() {
+	observable := Pipe1(
+		Range(1, 4),
+		DoOnComplete[int64](func() { fmt.Println("Completed") }),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Completed
+}
+
+func ExampleDoOnCompleteWithContext_ok() {
+	observable := Pipe1(
+		Range(1, 4),
+		DoOnCompleteWithContext[int64](func(ctx context.Context) {
+			fmt.Println("Completed")
+		}),
+	)
+
+	subscription := observable.Subscribe(NoopObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Completed
+}
+
+func ExampleTapOnSubscribe_ok() {
+	observable := Pipe1(
+		Range(1, 4),
+		TapOnSubscribe[int64](func() {
+			fmt.Println("Subscribed")
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Subscribed
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleTapOnSubscribeWithContext_ok() {
+	observable := Pipe1(
+		Range(1, 4),
+		TapOnSubscribeWithContext[int64](func(ctx context.Context) {
+			fmt.Println("Subscribed")
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Subscribed
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleDoOnSubscribe_ok() {
+	observable := Pipe1(
+		Range(1, 4),
+		DoOnSubscribe[int64](func() {
+			fmt.Println("Subscribed")
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Subscribed
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleDoOnSubscribeWithContext_ok() {
+	observable := Pipe1(
+		Range(1, 4),
+		DoOnSubscribeWithContext[int64](func(ctx context.Context) {
+			fmt.Println("Subscribed")
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Subscribed
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleTapOnFinalize_ok() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		TapOnFinalize[int](func() {
+			fmt.Println("Finalized")
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+	// Finalized
+}
+
+func ExampleDoOnFinalize_ok() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		DoOnFinalize[int](func() {
+			fmt.Println("Finalized")
+		}),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+	// Finalized
+}
+
+func ExampleDelayEach_ok() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		DelayEach[int](10*time.Millisecond),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleSubscribeOn_ok() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		SubscribeOn[int](10),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleObserveOn_ok() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		ObserveOn[int](10),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	subscription.Wait() // Note: using .Wait() is not recommended.
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleSerialize_ok() {
+	observable := Pipe1(
+		Just(1, 2, 3),
+		Serialize[int](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleCollect() {
+	values, err := Collect(Just(1, 2, 3, 4, 5))
+	fmt.Println(values)
+	fmt.Println(err)
+
+	// Output:
+	// [1 2 3 4 5]
+	// <nil>
+}
+
+func ExampleCollect_error() {
+	values, err := Collect(Throw[int](assert.AnError))
+	fmt.Println(values)
+	fmt.Println(err)
+
+	// Output:
+	// []
+	// assert.AnError general error for testing
+}
+
+func ExampleCollectWithContext() {
+	ctx := context.Background()
+	values, _, err := CollectWithContext(ctx, Just(1, 2, 3))
+	fmt.Println(values)
+	fmt.Println(err)
+
+	// Output:
+	// [1 2 3]
+	// <nil>
+}
+
+func ExampleConnectable() {
+	source := Just(1, 2, 3)
+	connectable := Connectable(source)
+
+	a := []int{}
+	b := []int{}
+
+	sub1 := connectable.Subscribe(OnNext(func(item int) {
+		a = append(a, item)
+	}))
+	sub2 := connectable.Subscribe(OnNext(func(item int) {
+		b = append(b, item*10)
+	}))
+	defer sub1.Unsubscribe()
+	defer sub2.Unsubscribe()
+
+	connectable.Connect()
+
+	fmt.Println(a)
+	fmt.Println(b)
+
+	// Output:
+	// [1 2 3]
+	// [10 20 30]
+}
+
+func ExampleConnectableWithConfig() {
+	source := Just(1, 2, 3)
+	config := ConnectableConfig[int]{
+		Connector:         NewSubject[int],
+		ResetOnDisconnect: true,
+	}
+	connectable := ConnectableWithConfig(source, config)
+
+	a := []int{}
+	b := []int{}
+
+	sub1 := connectable.Subscribe(OnNext(func(item int) {
+		a = append(a, item)
+	}))
+	sub2 := connectable.Subscribe(OnNext(func(item int) {
+		b = append(b, item*2)
+	}))
+	defer sub1.Unsubscribe()
+	defer sub2.Unsubscribe()
+
+	connectable.Connect()
+
+	fmt.Println(a)
+	fmt.Println(b)
+
+	// Output:
+	// [1 2 3]
+	// [2 4 6]
+}
