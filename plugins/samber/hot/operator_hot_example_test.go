@@ -18,6 +18,7 @@ package rohot
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/samber/hot"
@@ -199,6 +200,14 @@ func ExampleGetOrFetchMany() {
 		ro.NewObserver(
 			func(users map[string]User) {
 				fmt.Printf("Batch found: %d users\n", len(users))
+				ids := make([]string, 0, len(users))
+				for id := range users {
+					ids = append(ids, id)
+				}
+				sort.Strings(ids)
+				for _, id := range ids {
+					fmt.Printf("  %s: %s\n", id, users[id].Name)
+				}
 			},
 			func(err error) {
 				fmt.Printf("Error: %v\n", err)
@@ -212,8 +221,13 @@ func ExampleGetOrFetchMany() {
 
 	// Output:
 	// Batch found: 2 users
+	//   user1: Alice
+	//   user2: Bob
 	// Batch found: 1 users
+	//   user3: Charlie
 	// Batch found: 2 users
+	//   user1: Alice
+	//   user3: Charlie
 	// Completed
 }
 
