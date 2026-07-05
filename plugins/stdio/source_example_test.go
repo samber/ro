@@ -125,13 +125,17 @@ func ExampleNewPrompt() {
 	defer func() { os.Stdin = originalStdin }()
 
 	// Create a pipe to simulate stdin
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	if err != nil {
+		panic(err)
+	}
+	defer r.Close()
 	os.Stdin = r
 
 	// Write test data to stdin (one line then close to signal EOF)
 	go func() {
-		w.WriteString("hello\n")
-		w.Close()
+		_, _ = w.WriteString("hello\n")
+		_ = w.Close()
 	}()
 
 	observable := NewPrompt("> ")
