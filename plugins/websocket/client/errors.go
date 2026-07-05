@@ -17,7 +17,7 @@ package rowebsocketclient
 import "errors"
 
 var (
-	ErrWebsocketSubjectURLRequired           = errors.New("rowebsocket.NewWebsocketSubject: URL is required")
-	ErrWebsocketSubjectSerializerRequired    = errors.New("rowebsocket.NewWebsocketSubject: Serializer is required")
-	ErrWebsocketSubjectDeserializerRequired  = errors.New("rowebsocket.NewWebsocketSubject: Deserializer is required")
+	ErrWebsocketSubjectURLRequired          = errors.New("rowebsocketclient.NewWebsocketSubject: URL is required")
+	ErrWebsocketSubjectSerializerRequired   = errors.New("rowebsocketclient.NewWebsocketSubject: Serializer is required")
+	ErrWebsocketSubjectDeserializerRequired = errors.New("rowebsocketclient.NewWebsocketSubject: Deserializer is required")
 )
