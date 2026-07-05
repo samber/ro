@@ -1,7 +1,7 @@
 ---
 name: Timer
 slug: timer
-sourceRef: operator_creation.go#L95
+sourceRef: operator_creation.go#L59
 type: core
 category: creation
 signatures:

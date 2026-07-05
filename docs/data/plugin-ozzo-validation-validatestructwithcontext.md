@@ -1,7 +1,7 @@
 ---
 name: ValidateStructWithContext
 slug: validatestructwithcontext
-sourceRef: plugins/ozzo/ozzo-validation/operator.go#L67
+sourceRef: plugins/ozzo/ozzo-validation/operator.go#L75
 type: plugin
 category: ozzo-validation
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: ParseInt
 slug: parseint
-sourceRef: plugins/strconv/operator.go#L46
+sourceRef: plugins/strconv/operator.go#L48
 type: plugin
 category: strconv
 signatures:

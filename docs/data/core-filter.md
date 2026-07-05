@@ -1,7 +1,7 @@
 ---
 name: Filter
 slug: filter
-sourceRef: operator_filter.go#L25
+sourceRef: operator_filter.go#L26
 type: core
 category: filtering
 signatures:

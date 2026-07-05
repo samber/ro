@@ -1,7 +1,7 @@
 ---
 name: ContextReset
 slug: contextreset
-sourceRef: operator_context.go#L129
+sourceRef: operator_context.go#L185
 type: core
 category: context
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: NewSwapDeviceWatcher
 slug: newswapdevicewatcher
-sourceRef: plugins/proc/source.go#L69
+sourceRef: plugins/proc/source.go#L82
 type: plugin
 category: proc
 signatures:

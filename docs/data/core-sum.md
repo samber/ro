@@ -1,7 +1,7 @@
 ---
 name: Sum
 slug: sum
-sourceRef: operator_math.go#L86
+sourceRef: operator_math.go#L107
 type: core
 category: math
 signatures:

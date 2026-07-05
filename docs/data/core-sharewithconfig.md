@@ -1,7 +1,7 @@
 ---
 name: ShareWithConfig
 slug: sharewithconfig
-sourceRef: operator_connectable.go#L64
+sourceRef: operator_connectable.go#L67
 type: core
 category: connectable
 signatures:

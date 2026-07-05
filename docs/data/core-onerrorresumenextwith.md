@@ -1,7 +1,7 @@
 ---
 name: OnErrorResumeNextWith
 slug: onerrorresumenextwith
-sourceRef: operator_error_handling.go#L53
+sourceRef: operator_error_handling.go#L55
 type: core
 category: error-handling
 signatures:

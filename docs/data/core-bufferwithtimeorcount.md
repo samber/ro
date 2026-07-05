@@ -1,7 +1,7 @@
 ---
 name: BufferWithTimeOrCount
 slug: bufferwithtimeorcount
-sourceRef: operator_transformations.go#L396
+sourceRef: operator_transformations.go#L470
 type: core
 category: transformation
 signatures:

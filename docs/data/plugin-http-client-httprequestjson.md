@@ -1,7 +1,7 @@
 ---
 name: HTTPRequestJSON
 slug: httprequestjson
-sourceRef: plugins/http/client/source.go#L56
+sourceRef: plugins/http/client/source.go#L55
 type: plugin
 category: http-client
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: Interval
 slug: interval
-sourceRef: operator_creation.go#L75
+sourceRef: operator_creation.go#L85
 type: core
 category: creation
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: ShareReplay
 slug: sharereplay
-sourceRef: operator_connectable.go#L195
+sourceRef: operator_connectable.go#L197
 type: core
 category: connectable
 signatures:

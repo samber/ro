@@ -1,7 +1,7 @@
 ---
 name: KebabCase
 slug: kebabcase
-sourceRef: plugins/strings/operator_kebabcase.go#L33
+sourceRef: plugins/strings/operator_kebabcase.go#L47
 type: plugin
 category: strings
 signatures:

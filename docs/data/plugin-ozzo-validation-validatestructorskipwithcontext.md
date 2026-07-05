@@ -1,7 +1,7 @@
 ---
 name: ValidateStructOrSkipWithContext
 slug: validatestructorskipwithcontext
-sourceRef: plugins/ozzo/operator.go#L139
+sourceRef: plugins/ozzo/ozzo-validation/operator.go#L170
 type: plugin
 category: ozzo-validation
 signatures:

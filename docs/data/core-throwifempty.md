@@ -1,7 +1,7 @@
 ---
 name: ThrowIfEmpty
 slug: throwifempty
-sourceRef: operator_error_handling.go#L229
+sourceRef: operator_error_handling.go#L227
 type: core
 category: error-handling
 signatures:

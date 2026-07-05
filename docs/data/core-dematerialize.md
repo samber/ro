@@ -1,7 +1,7 @@
 ---
 name: Dematerialize
 slug: dematerialize
-sourceRef: operator_utility.go#L488
+sourceRef: operator_utility.go#L508
 type: core
 category: utility
 signatures:

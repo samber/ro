@@ -1,7 +1,7 @@
 ---
 name: Log
 slug: log
-sourceRef: plugins/observability/zerolog/operator.go#L25
+sourceRef: plugins/observability/zerolog/operator.go#L27
 type: plugin
 category: logger-zerolog
 signatures:

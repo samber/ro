@@ -1,7 +1,7 @@
 ---
 name: NewDiskUsageWatcher
 slug: newdiskusagewatcher
-sourceRef: plugins/proc/source.go#L131
+sourceRef: plugins/proc/source.go#L136
 type: plugin
 category: proc
 signatures:

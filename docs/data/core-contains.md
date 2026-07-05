@@ -1,7 +1,7 @@
 ---
 name: Contains
 slug: contains
-sourceRef: operator_conditional.go#L74
+sourceRef: operator_conditional.go#L78
 type: core
 category: conditional
 signatures:

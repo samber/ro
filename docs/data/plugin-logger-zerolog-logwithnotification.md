@@ -1,7 +1,7 @@
 ---
 name: LogWithNotification
 slug: logwithnotification
-sourceRef: plugins/observability/zerolog/operator.go#L39
+sourceRef: plugins/observability/zerolog/operator.go#L43
 type: plugin
 category: logger-zerolog
 signatures:

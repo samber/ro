@@ -1,7 +1,7 @@
 ---
 name: ValidateStruct
 slug: validatestruct
-sourceRef: plugins/ozzo/ozzo-validation/operator.go#L42
+sourceRef: plugins/ozzo/ozzo-validation/operator.go#L46
 type: plugin
 category: ozzo-validation
 signatures:

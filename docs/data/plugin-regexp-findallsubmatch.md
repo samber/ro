@@ -1,7 +1,7 @@
 ---
 name: FindAllSubmatch
 slug: findallsubmatch
-sourceRef: plugins/regexp/operator.go#L63
+sourceRef: plugins/regexp/operator.go#L68
 type: plugin
 category: regexp
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: FindString
 slug: findstring
-sourceRef: plugins/regexp/operator.go#L32
+sourceRef: plugins/regexp/operator.go#L33
 type: plugin
 category: regexp
 signatures:

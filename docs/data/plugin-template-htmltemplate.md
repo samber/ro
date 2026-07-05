@@ -1,7 +1,7 @@
 ---
 name: HTMLTemplate
 slug: htmltemplate
-sourceRef: plugins/template/operator.go#L36
+sourceRef: plugins/template/operator.go#L40
 type: plugin
 category: template
 signatures:

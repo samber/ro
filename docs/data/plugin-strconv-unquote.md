@@ -1,7 +1,7 @@
 ---
 name: Unquote
 slug: unquote
-sourceRef: plugins/strconv/operator.go#L229
+sourceRef: plugins/strconv/operator.go#L241
 type: plugin
 category: strconv
 signatures:

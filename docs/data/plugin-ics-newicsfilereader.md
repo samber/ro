@@ -1,7 +1,7 @@
 ---
 name: NewICSFileReader
 slug: newicsfilereader
-sourceRef: source.go#L27
+sourceRef: plugins/ics/source.go#L27
 type: plugin
 category: ics
 signatures:

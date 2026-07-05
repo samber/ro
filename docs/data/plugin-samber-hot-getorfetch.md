@@ -1,7 +1,7 @@
 ---
 name: GetOrFetch
 slug: getorfetch
-sourceRef: plugins/samber/hot/operator_hot.go#L29
+sourceRef: plugins/samber/hot/operator_hot.go#L31
 type: plugin
 category: samber-hot
 signatures:

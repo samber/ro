@@ -1,7 +1,7 @@
 ---
 name: WindowWhen
 slug: windowwhen
-sourceRef: operator_transformations.go#L593
+sourceRef: operator_transformations.go#L617
 type: core
 category: transformation
 signatures:

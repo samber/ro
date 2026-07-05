@@ -1,7 +1,7 @@
 ---
 name: NewLoadAverageWatcher
 slug: newloadaveragewatcher
-sourceRef: plugins/proc/source.go#L255
+sourceRef: plugins/proc/source.go#L265
 type: plugin
 category: proc
 signatures:

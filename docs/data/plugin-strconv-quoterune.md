@@ -1,7 +1,7 @@
 ---
 name: QuoteRune
 slug: quoterune
-sourceRef: plugins/strconv/operator.go#L217
+sourceRef: plugins/strconv/operator.go#L228
 type: plugin
 category: strconv
 signatures:

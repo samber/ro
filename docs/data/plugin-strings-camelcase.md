@@ -1,7 +1,7 @@
 ---
 name: CamelCase
 slug: camelcase
-sourceRef: plugins/strings/operator_camelcase.go#L37
+sourceRef: plugins/strings/operator_camelcase.go#L54
 type: plugin
 category: strings
 signatures:

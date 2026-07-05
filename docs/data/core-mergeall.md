@@ -1,7 +1,7 @@
 ---
 name: MergeAll
 slug: mergeall
-sourceRef: operator_combining.go#L76
+sourceRef: operator_combining.go#L115
 type: core
 category: combining
 signatures:

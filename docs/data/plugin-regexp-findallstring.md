@@ -1,7 +1,7 @@
 ---
 name: FindAllString
 slug: findallstring
-sourceRef: plugins/regexp/operator.go#L56
+sourceRef: plugins/regexp/operator.go#L61
 type: plugin
 category: regexp
 signatures:

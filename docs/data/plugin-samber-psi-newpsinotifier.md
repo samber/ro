@@ -1,7 +1,7 @@
 ---
 name: NewPSINotifier
 slug: newpsinotifier
-sourceRef: plugins/samber/psi/source.go#L25
+sourceRef: plugins/samber/psi/source.go#L26
 type: plugin
 category: samber-psi
 signatures:

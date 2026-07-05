@@ -1,7 +1,7 @@
 ---
 name: Marshal
 slug: marshal
-sourceRef: plugins/encoding/json/operator.go#L24
+sourceRef: plugins/encoding/json/operator.go#L26
 type: plugin
 category: encoding-json
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: NewNetFilterCountersWatcher
 slug: newnetfiltercounterswatcher
-sourceRef: plugins/proc/source.go#L329
+sourceRef: plugins/proc/source.go#L369
 type: plugin
 category: proc
 signatures:

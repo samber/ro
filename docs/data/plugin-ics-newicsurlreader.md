@@ -1,7 +1,7 @@
 ---
 name: NewICSURLReader
 slug: newicsurlreader
-sourceRef: source.go#L56
+sourceRef: plugins/ics/source.go#L56
 type: plugin
 category: ics
 signatures:

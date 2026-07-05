@@ -1,7 +1,7 @@
 ---
 name: SortStableFunc
 slug: sortstablefunc
-sourceRef: plugins/sort/operator.go#L82
+sourceRef: plugins/sort/operator.go#L91
 type: plugin
 category: sort
 signatures:

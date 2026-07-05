@@ -1,7 +1,7 @@
 ---
 name: NewVirtualMemoryWatcher
 slug: newvirtualmemorywatcher
-sourceRef: plugins/proc/source.go#L25
+sourceRef: plugins/proc/source.go#L32
 type: plugin
 category: proc
 signatures:

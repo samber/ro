@@ -1,7 +1,7 @@
 ---
 name: NewWebsocketObserver
 slug: newwebsocketobserver
-sourceRef: plugins/websocket/client/observer.go#L17
+sourceRef: plugins/websocket/client/observer.go#L30
 type: plugin
 category: websocket-client
 signatures:

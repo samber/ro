@@ -1,7 +1,7 @@
 ---
 name: Unmarshal
 slug: unmarshal
-sourceRef: plugins/encoding/json/v2/operator.go#L31
+sourceRef: plugins/encoding/json/v2/operator.go#L33
 type: plugin
 category: encoding-json-v2
 signatures:

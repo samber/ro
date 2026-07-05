@@ -1,7 +1,7 @@
 ---
 name: Validate
 slug: validate
-sourceRef: plugins/ozzo/operator.go#L32
+sourceRef: plugins/ozzo/ozzo-validation/operator.go#L34
 type: plugin
 category: ozzo-validation
 signatures:

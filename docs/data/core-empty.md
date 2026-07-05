@@ -1,7 +1,7 @@
 ---
 name: Empty
 slug: empty
-sourceRef: operator_creation.go#L38
+sourceRef: operator_creation.go#L385
 type: core
 category: creation
 signatures:

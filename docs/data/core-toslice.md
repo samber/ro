@@ -1,7 +1,7 @@
 ---
 name: ToSlice
 slug: toslice
-sourceRef: operator_sink.go#L30
+sourceRef: operator_sink.go#L27
 type: core
 category: sink
 signatures:

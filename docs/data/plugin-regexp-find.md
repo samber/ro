@@ -1,7 +1,7 @@
 ---
 name: Find
 slug: find
-sourceRef: plugins/regexp/operator.go#L25
+sourceRef: plugins/regexp/operator.go#L26
 type: plugin
 category: regexp
 signatures:

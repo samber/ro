@@ -1,7 +1,7 @@
 ---
 name: FormatBool
 slug: formatbool
-sourceRef: plugins/strconv/operator.go#L116
+sourceRef: plugins/strconv/operator.go#L121
 type: plugin
 category: strconv
 signatures:

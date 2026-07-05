@@ -1,7 +1,7 @@
 ---
 name: Words
 slug: words
-sourceRef: plugins/strings/operator_words.go#L41
+sourceRef: plugins/strings/operator_words.go#L42
 type: plugin
 category: strings
 signatures:

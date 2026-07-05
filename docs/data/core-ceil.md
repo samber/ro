@@ -1,7 +1,7 @@
 ---
 name: Ceil
 slug: ceil
-sourceRef: operator_math.go#L268
+sourceRef: operator_math.go#L312
 type: core
 category: math
 signatures:

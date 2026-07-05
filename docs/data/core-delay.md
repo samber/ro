@@ -1,7 +1,7 @@
 ---
 name: Delay
 slug: delay
-sourceRef: operator_utility.go#L278
+sourceRef: operator_utility.go#L293
 type: core
 category: utility
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: ToMap
 slug: tomap
-sourceRef: operator_sink.go#L60
+sourceRef: operator_sink.go#L55
 type: core
 category: sink
 signatures:

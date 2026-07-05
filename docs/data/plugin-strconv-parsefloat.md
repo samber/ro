@@ -1,7 +1,7 @@
 ---
 name: ParseFloat
 slug: parsefloat
-sourceRef: plugins/strconv/operator.go#L60
+sourceRef: plugins/strconv/operator.go#L63
 type: plugin
 category: strconv
 signatures:

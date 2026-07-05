@@ -1,7 +1,7 @@
 ---
 name: RangeWithStepAndInterval
 slug: rangewithstepandinterval
-sourceRef: operator_creation.go#L168
+sourceRef: operator_creation.go#L275
 type: core
 category: creation
 signatures:

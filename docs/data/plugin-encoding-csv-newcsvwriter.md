@@ -1,7 +1,7 @@
 ---
 name: NewCSVWriter
 slug: newcsvwriter
-sourceRef: plugins/encoding/csv/sink.go#L25
+sourceRef: plugins/encoding/csv/sink.go#L27
 type: plugin
 category: encoding-csv
 signatures:

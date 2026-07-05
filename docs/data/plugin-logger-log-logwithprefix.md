@@ -1,7 +1,7 @@
 ---
 name: LogWithPrefix
 slug: logwithprefix
-sourceRef: plugins/observability/log/operator.go#L31
+sourceRef: plugins/observability/log/operator.go#L29
 type: plugin
 category: logger-log
 signatures:

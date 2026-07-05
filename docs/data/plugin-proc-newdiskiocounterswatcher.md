@@ -1,7 +1,7 @@
 ---
 name: NewDiskIOCountersWatcher
 slug: newdiskiocounterswatcher
-sourceRef: plugins/proc/source.go#L153
+sourceRef: plugins/proc/source.go#L161
 type: plugin
 category: proc
 signatures:

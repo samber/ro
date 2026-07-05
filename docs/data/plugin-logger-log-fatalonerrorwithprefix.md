@@ -1,7 +1,7 @@
 ---
 name: FatalOnErrorWithPrefix
 slug: fatalonerrorwithprefix
-sourceRef: plugins/observability/log/operator.go#L59
+sourceRef: plugins/observability/log/operator.go#L56
 type: plugin
 category: logger-log
 signatures:

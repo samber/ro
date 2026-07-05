@@ -1,7 +1,7 @@
 ---
 name: NewNetIOCountersWatcher
 slug: newnetiocounterswatcher
-sourceRef: plugins/proc/source.go#L381
+sourceRef: plugins/proc/source.go#L396
 type: plugin
 category: proc
 signatures:

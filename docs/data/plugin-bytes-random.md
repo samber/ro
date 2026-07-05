@@ -1,7 +1,7 @@
 ---
 name: Random
 slug: random
-sourceRef: plugins/bytes/operator_random.go#L89
+sourceRef: plugins/bytes/operator_random.go#L98
 type: plugin
 category: bytes
 signatures:

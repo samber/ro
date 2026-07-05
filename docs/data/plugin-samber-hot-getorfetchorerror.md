@@ -1,7 +1,7 @@
 ---
 name: GetOrFetchOrError
 slug: getorfetchorerror
-sourceRef: plugins/samber/hot/operator_hot.go#L81
+sourceRef: plugins/samber/hot/operator_hot.go#L87
 type: plugin
 category: samber-hot
 signatures:

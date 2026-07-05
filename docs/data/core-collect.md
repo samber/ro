@@ -1,7 +1,7 @@
 ---
 name: Collect
 slug: collect
-sourceRef: observable.go#L327
+sourceRef: observable.go#L328
 type: core
 category: sink
 signatures:

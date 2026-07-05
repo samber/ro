@@ -1,7 +1,7 @@
 ---
 name: ParseBool
 slug: parsebool
-sourceRef: plugins/strconv/operator.go#L75
+sourceRef: plugins/strconv/operator.go#L79
 type: plugin
 category: strconv
 signatures:

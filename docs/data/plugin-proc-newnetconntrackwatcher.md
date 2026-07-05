@@ -1,7 +1,7 @@
 ---
 name: NewNetConntrackWatcher
 slug: newnetconntrackwatcher
-sourceRef: plugins/proc/source.go#L307
+sourceRef: plugins/proc/source.go#L342
 type: plugin
 category: proc
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: ObserveOn
 slug: observeon
-sourceRef: scheduler.go#L81
+sourceRef: operator_utility.go#L569
 type: core
 category: utility
 signatures:

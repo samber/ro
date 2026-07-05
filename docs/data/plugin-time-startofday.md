@@ -1,7 +1,7 @@
 ---
 name: StartOfDay
 slug: startofday
-sourceRef: plugins/time/operator_start_of_day.go#L33
+sourceRef: plugins/time/operator_start_of_day.go#L34
 type: plugin
 category: time
 signatures:

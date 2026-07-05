@@ -1,7 +1,7 @@
 ---
 name: NewSwapMemoryWatcher
 slug: newswapmemorywatcher
-sourceRef: plugins/proc/source.go#L47
+sourceRef: plugins/proc/source.go#L57
 type: plugin
 category: proc
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: Parse
 slug: parse
-sourceRef: plugins/time/operator_parse.go#L33
+sourceRef: plugins/time/operator_parse.go#L34
 type: plugin
 category: time
 signatures:

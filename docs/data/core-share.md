@@ -1,7 +1,7 @@
 ---
 name: Share
 slug: share
-sourceRef: operator_connectable.go#L38
+sourceRef: operator_connectable.go#L39
 type: core
 category: connectable
 signatures:

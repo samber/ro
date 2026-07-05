@@ -1,7 +1,7 @@
 ---
 name: ToChannel
 slug: tochannel
-sourceRef: operator_sink.go#L120
+sourceRef: operator_sink.go#L118
 type: core
 category: sink
 signatures:

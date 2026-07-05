@@ -1,7 +1,7 @@
 ---
 name: NewWebsocketSubject
 slug: newwebsocketsubject
-sourceRef: plugins/websocket/client/subject.go#L67
+sourceRef: plugins/websocket/client/subject.go#L46
 type: plugin
 category: websocket-client
 signatures:
