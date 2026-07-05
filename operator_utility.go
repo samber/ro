@@ -367,7 +367,7 @@ func Delay[T any](duration time.Duration) func(Observable[T]) Observable[T] {
 }
 
 // DelayEach delays the emissions of the source Observable by a given duration without modifying the emitted items.
-// Play: https://go.dev/play/p/dReP7-bffEU
+// Play: https://go.dev/play/p/a9opbDTetAz
 func DelayEach[T any](duration time.Duration) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
@@ -653,6 +653,7 @@ func detachOn[T any](bufferSize int, onUpstream, onDownstream bool) func(Observa
 }
 
 // Serialize ensures thread-safe message passing by wrapping any observable in a ro.SafeObservable implementation.
+// Play: https://go.dev/play/p/KcXb17qceLb
 func Serialize[T any]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {

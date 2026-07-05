@@ -22,6 +22,8 @@ import (
 	"github.com/samber/ro"
 )
 
+// Log logs all observable notifications (Next, Error, Complete) using zerolog logger with formatted messages.
+// Play: https://go.dev/play/p/wJm9Mw1hkhB
 func Log[T any](logger *zerolog.Logger, level zerolog.Level) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.TapWithContext(
 		func(ctx context.Context, value T) {
@@ -36,6 +38,8 @@ func Log[T any](logger *zerolog.Logger, level zerolog.Level) func(ro.Observable[
 	)
 }
 
+// LogWithNotification logs all observable notifications using zerolog logger with structured notification data.
+// Play: https://go.dev/play/p/fHvxhzYzTtV
 func LogWithNotification[T any](logger *zerolog.Logger, level zerolog.Level) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.TapWithContext(
 		func(ctx context.Context, value T) {
@@ -50,6 +54,8 @@ func LogWithNotification[T any](logger *zerolog.Logger, level zerolog.Level) fun
 	)
 }
 
+// FatalOnError terminates the program with a fatal error when an observable error notification occurs using zerolog logger.
+// Play: https://go.dev/play/p/8na96YvSIci
 func FatalOnError[T any](logger *zerolog.Logger) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.TapOnErrorWithContext[T](
 		func(ctx context.Context, err error) {

@@ -6,7 +6,7 @@ type: core
 category: transformation
 signatures:
   - "func ThrottleTime[T any](interval time.Duration)"
-playUrl: ""
+playUrl: https://go.dev/play/p/ExdxZiAE0Eu
 variantHelpers:
   - core#transformation#throttletime
 similarHelpers:
@@ -19,14 +19,16 @@ position: 93
 Emits a value from the source Observable, then ignores subsequent source values for a fixed time duration.
 
 ```go
-obs := ro.Pipe[int, int](
-    ro.Interval(20 * time.Millisecond),
-    ro.ThrottleTime[int](100 * time.Millisecond),
+obs := ro.Pipe[int64, int64](
+    ro.Interval(10*time.Millisecond),
+    ro.ThrottleTime[int64](30*time.Millisecond),
 )
 
-sub := obs.Subscribe(ro.PrintObserver[int]())
-time.Sleep(350 * time.Millisecond)
-sub.Unsubscribe()
+sub := obs.Subscribe(ro.PrintObserver[int64]())
+defer sub.Unsubscribe()
 
-// Emits first item, then ignores items for 100ms
+time.Sleep(100 * time.Millisecond)
+
+// Next: 3
+// Next: 7
 ```

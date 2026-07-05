@@ -7,7 +7,7 @@ category: time
 signatures:
   - "func Add(d time.Duration)"
   - "func AddDate(years int, months int, days int)"
-playUrl: ""
+playUrl: https://go.dev/play/p/XWgGO-93YPK
 variantHelpers:
   - plugin#time#add
   - plugin#time#adddate

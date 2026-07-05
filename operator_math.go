@@ -792,7 +792,7 @@ func floorBigFloat(x *big.Float) *big.Float {
 }
 
 // Trunc emits the truncated values emitted by the source Observable.
-// Play: https://go.dev/play/p/iYc9oGDgRZJ
+// Play: https://go.dev/play/p/SpVO4Xmwfo0
 func Trunc() func(Observable[float64]) Observable[float64] {
 	return func(source Observable[float64]) Observable[float64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {

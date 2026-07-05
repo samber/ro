@@ -18,6 +18,7 @@ package rohot
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/samber/hot"
@@ -81,7 +82,7 @@ func ExampleGetOrFetch() {
 				if found {
 					fmt.Printf("Found in cache: %s (%s)\n", user.Name, user.ID)
 				} else {
-					fmt.Printf("Not in cache: %s\n", user.ID)
+					fmt.Println("Not in cache")
 				}
 			},
 			func(err error) {
@@ -97,8 +98,8 @@ func ExampleGetOrFetch() {
 	// Output:
 	// Found in cache: Alice (user1)
 	// Found in cache: Bob (user2)
-	// Not in cache: user3
-	// Not in cache: user4
+	// Not in cache
+	// Not in cache
 	// Completed
 }
 
@@ -172,8 +173,6 @@ func ExampleGetOrFetchOrError() {
 	// Output:
 	// Found: Alice (user1)
 	// Error: rohot.GetOrFetchOrError: not found
-	// Error: rohot.GetOrFetchOrError: not found
-	// Completed
 }
 
 func ExampleGetOrFetchMany() {
@@ -201,8 +200,13 @@ func ExampleGetOrFetchMany() {
 		ro.NewObserver(
 			func(users map[string]User) {
 				fmt.Printf("Batch found: %d users\n", len(users))
-				for id, user := range users {
-					fmt.Printf("  %s: %s\n", id, user.Name)
+				ids := make([]string, 0, len(users))
+				for id := range users {
+					ids = append(ids, id)
+				}
+				sort.Strings(ids)
+				for _, id := range ids {
+					fmt.Printf("  %s: %s\n", id, users[id].Name)
 				}
 			},
 			func(err error) {
@@ -254,7 +258,7 @@ func ExampleGetOrFetch_withContext() {
 				if found {
 					fmt.Printf("Found: %s\n", user.Name)
 				} else {
-					fmt.Printf("Not found: %s\n", user.ID)
+					fmt.Println("Not found")
 				}
 			},
 			func(ctx context.Context, err error) {
@@ -269,6 +273,6 @@ func ExampleGetOrFetch_withContext() {
 
 	// Output:
 	// Found: Alice
-	// Not found: user2
+	// Not found
 	// Completed
 }

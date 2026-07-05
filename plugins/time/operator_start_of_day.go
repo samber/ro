@@ -30,6 +30,7 @@ import (
 //	)
 //
 // The observable then emits: time.Date(2026, time.January, 7, 0, 0, 0, 0, time.UTC).
+// Play: https://go.dev/play/p/Rp_5REv3dMK
 func StartOfDay() func(ro.Observable[time.Time]) ro.Observable[time.Time] {
 	return ro.Map(
 		func(value time.Time) time.Time {

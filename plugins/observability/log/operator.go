@@ -25,6 +25,7 @@ func Log[T any]() func(ro.Observable[T]) ro.Observable[T] {
 	return LogWithPrefix[T]("")
 }
 
+// Play: https://go.dev/play/p/plP2gfryjzK
 func LogWithPrefix[T any](prefix string) func(ro.Observable[T]) ro.Observable[T] {
 	if prefix != "" {
 		prefix += " "
@@ -46,10 +47,12 @@ func LogWithPrefix[T any](prefix string) func(ro.Observable[T]) ro.Observable[T]
 	)
 }
 
+// Play: https://go.dev/play/p/LuG085GGvvh
 func FatalOnError[T any]() func(ro.Observable[T]) ro.Observable[T] {
 	return FatalOnErrorWithPrefix[T]("")
 }
 
+// Play: https://go.dev/play/p/9E0dtrSJrxE
 func FatalOnErrorWithPrefix[T any](prefix string) func(ro.Observable[T]) ro.Observable[T] {
 	if prefix != "" {
 		prefix += " "

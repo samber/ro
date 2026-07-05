@@ -23,6 +23,8 @@ import (
 	"github.com/samber/ro"
 )
 
+// Log logs each item emitted by the source Observable using structured logging with slog.
+// Play: https://go.dev/play/p/-94jOwZbMtx
 func Log[T any](logger slog.Logger, level slog.Level) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.TapWithContext(
 		func(ctx context.Context, value T) {
@@ -37,6 +39,8 @@ func Log[T any](logger slog.Logger, level slog.Level) func(ro.Observable[T]) ro.
 	)
 }
 
+// LogWithNotification logs each notification (Next, Error, Complete) emitted by the source Observable using structured logging with slog.
+// Play: https://go.dev/play/p/M8N_igKHWGV
 func LogWithNotification[T any](logger slog.Logger, level slog.Level) func(ro.Observable[T]) ro.Observable[T] {
 	return ro.TapWithContext(
 		func(ctx context.Context, value T) {

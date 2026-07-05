@@ -6,7 +6,7 @@ type: core
 category: filtering
 signatures:
   - "func TakeUntil[T any, S any](signal Observable[S])"
-playUrl: ""
+playUrl: https://go.dev/play/p/moJPw7uKjrz
 variantHelpers:
   - core#filtering#takeuntil
 similarHelpers:
@@ -21,12 +21,12 @@ Emits items from the source Observable until a signal Observable emits or comple
 ```go
 signal := ro.Timer(200 * time.Millisecond)
 
-obs := ro.Pipe[int, int](
+obs := ro.Pipe[int64, int64](
     ro.Interval(50 * time.Millisecond),
-    ro.TakeUntil[int](signal),
+    ro.TakeUntil[int64](signal),
 )
 
-sub := obs.Subscribe(ro.PrintObserver[int]())
+sub := obs.Subscribe(ro.PrintObserver[int64]())
 defer sub.Unsubscribe()
 
 // Next: 0

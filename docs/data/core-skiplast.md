@@ -6,7 +6,7 @@ type: core
 category: filtering
 signatures:
   - "func SkipLast[T any](count int)"
-playUrl: ""
+playUrl: https://go.dev/play/p/oK3Xy9FNnNI
 variantHelpers:
   - core#filtering#skiplast
 similarHelpers:

@@ -6,7 +6,7 @@ type: plugin
 category: stdio
 signatures:
   - "func NewPrompt(prompt string)"
-playUrl: ""
+playUrl: https://go.dev/play/p/0gYrlUPi3Dz
 variantHelpers:
   - plugin#io#newprompt
 similarHelpers:

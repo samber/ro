@@ -6,7 +6,7 @@ type: core
 category: transformation
 signatures:
   - "func Cast[T any, U any]()"
-playUrl: ""
+playUrl: https://go.dev/play/p/XUdqodfFyT6
 variantHelpers:
   - core#transformation#cast
 similarHelpers:

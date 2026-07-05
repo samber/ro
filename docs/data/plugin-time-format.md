@@ -6,7 +6,7 @@ type: plugin
 category: time
 signatures:
   - "func Format(format string)"
-playUrl: ""
+playUrl: https://go.dev/play/p/ZOq1b1z2P1z
 variantHelpers:
   - plugin#time#format
 similarHelpers:

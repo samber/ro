@@ -6,7 +6,7 @@ type: core
 category: utility
 signatures:
   - "func DelayEach[T any](duration time.Duration)"
-playUrl: ""
+playUrl: https://go.dev/play/p/a9opbDTetAz
 variantHelpers:
   - core#utility#delayeach
 similarHelpers:

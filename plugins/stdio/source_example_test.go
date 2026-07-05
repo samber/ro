@@ -118,6 +118,36 @@ func ExampleNewIOReader_withError() {
 	// Completed
 }
 
+func ExampleNewPrompt() {
+	// Display a prompt and read user input from stdin
+	// Simulate stdin input by temporarily redirecting stdin
+	originalStdin := os.Stdin
+	defer func() { os.Stdin = originalStdin }()
+
+	// Create a pipe to simulate stdin
+	r, w, err := os.Pipe()
+	if err != nil {
+		panic(err)
+	}
+	defer r.Close()
+	os.Stdin = r
+
+	// Write test data to stdin (one line then close to signal EOF)
+	go func() {
+		_, _ = w.WriteString("hello\n")
+		_ = w.Close()
+	}()
+
+	observable := NewPrompt("> ")
+
+	subscription := observable.Subscribe(ro.PrintObserver[[]byte]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// > Next: [104 101 108 108 111]
+	// > Completed
+}
+
 func ExampleNewIOReaderLine_withLargeFile() {
 	// Read lines from a large text
 	data := `Line 1: This is the first line

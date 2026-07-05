@@ -6,7 +6,7 @@ type: plugin
 category: logger-zerolog
 signatures:
   - "func Log[T any](logger *zerolog.Logger, level zerolog.Level)"
-playUrl:
+playUrl: https://go.dev/play/p/wJm9Mw1hkhB
 variantHelpers:
   - plugin#logger-zerolog#log
 similarHelpers: []
@@ -18,7 +18,7 @@ Logs all observable notifications (Next, Error, Complete) using zerolog logger w
 ```go
 import (
     "github.com/samber/ro"
-    rozerolog "github.com/samber/ro/plugin/logger-zerolog"
+    rozerolog "github.com/samber/ro/plugins/observability/zerolog"
     "github.com/rs/zerolog"
 )
 

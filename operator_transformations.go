@@ -825,7 +825,7 @@ func ThrottleWhen[T, t any](tick Observable[t]) func(Observable[T]) Observable[T
 
 // ThrottleTime emits a value from the source Observable, then ignores subsequent source
 // values for duration milliseconds, then repeats this process.
-// Play: https://go.dev/play/p/ITogsevmh88
+// Play: https://go.dev/play/p/ExdxZiAE0Eu
 func ThrottleTime[T any](interval time.Duration) func(Observable[T]) Observable[T] {
 	intervalNano := interval.Nanoseconds()
 

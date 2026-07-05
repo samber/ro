@@ -6,7 +6,7 @@ type: core
 category: transformation
 signatures:
   - "func SampleTime[T any](interval time.Duration)"
-playUrl: ""
+playUrl: https://go.dev/play/p/PcPo4lE9-_T
 variantHelpers:
   - core#transformation#sampletime
 similarHelpers:
@@ -19,14 +19,18 @@ position: 91
 Emits the most recently emitted item from the source Observable at regular time intervals.
 
 ```go
-obs := ro.Pipe[int, int](
-    ro.Interval(30 * time.Millisecond),
-    ro.SampleTime[int](100 * time.Millisecond),
+obs := ro.Pipe[int64, int64](
+    ro.Interval(10*time.Millisecond),
+    ro.SampleTime[int64](25*time.Millisecond),
 )
 
-sub := obs.Subscribe(ro.PrintObserver[int]())
-time.Sleep(350 * time.Millisecond)
-sub.Unsubscribe()
+sub := obs.Subscribe(ro.PrintObserver[int64]())
+defer sub.Unsubscribe()
 
-// Emits the latest value every 100ms
+time.Sleep(100 * time.Millisecond)
+
+// Next: 1
+// Next: 3
+// Next: 6
+// Next: 8
 ```

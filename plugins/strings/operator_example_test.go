@@ -200,3 +200,63 @@ func ExampleRandom() {
 	subscription := observable.Subscribe(ro.NoopObserver[string]())
 	defer subscription.Unsubscribe()
 }
+
+func ExampleCamelCaseWithLanguage() {
+	// Convert strings to camelCase using locale-aware casing (Turkish)
+	obs := ro.Pipe1(
+		ro.Just("Istanbul city"),
+		CamelCaseWithLanguage[string](language.Turkish),
+	)
+
+	sub := obs.Subscribe(ro.PrintObserver[string]())
+	defer sub.Unsubscribe()
+
+	// Output:
+	// Next: ıstanbulCity
+	// Completed
+}
+
+func ExampleKebabCaseWithLanguage() {
+	// Convert strings to kebab-case using locale-aware lowercasing (Turkish)
+	obs := ro.Pipe1(
+		ro.Just("IstanbulCity"),
+		KebabCaseWithLanguage[string](language.Turkish),
+	)
+
+	sub := obs.Subscribe(ro.PrintObserver[string]())
+	defer sub.Unsubscribe()
+
+	// Output:
+	// Next: ıstanbul-city
+	// Completed
+}
+
+func ExamplePascalCaseWithLanguage() {
+	// Convert strings to PascalCase using locale-aware casing (Turkish)
+	obs := ro.Pipe1(
+		ro.Just("istanbul city"),
+		PascalCaseWithLanguage[string](language.Turkish),
+	)
+
+	sub := obs.Subscribe(ro.PrintObserver[string]())
+	defer sub.Unsubscribe()
+
+	// Output:
+	// Next: İstanbulCity
+	// Completed
+}
+
+func ExampleSnakeCaseWithLanguage() {
+	// Convert strings to snake_case using locale-aware lowercasing (Turkish)
+	obs := ro.Pipe1(
+		ro.Just("IstanbulCity"),
+		SnakeCaseWithLanguage[string](language.Turkish),
+	)
+
+	sub := obs.Subscribe(ro.PrintObserver[string]())
+	defer sub.Unsubscribe()
+
+	// Output:
+	// Next: ıstanbul_city
+	// Completed
+}

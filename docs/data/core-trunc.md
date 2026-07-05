@@ -6,7 +6,7 @@ type: core
 category: math
 signatures:
   - "func Trunc()"
-playUrl: ""
+playUrl: https://go.dev/play/p/SpVO4Xmwfo0
 variantHelpers:
   - core#math#trunc
 similarHelpers:

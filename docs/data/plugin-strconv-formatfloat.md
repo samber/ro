@@ -6,7 +6,7 @@ type: plugin
 category: strconv
 signatures:
   - "func FormatFloat(fmt byte, prec int, bitSize int)"
-playUrl: ""
+playUrl: https://go.dev/play/p/GWSPE4Mp-uy
 variantHelpers:
   - plugin#strconv#formatfloat
 similarHelpers:

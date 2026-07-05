@@ -6,7 +6,7 @@ type: plugin
 category: ozzo-validation
 signatures:
   - "func ValidateOrErrorWithContext[T any](rules ...ozzo.Rule)"
-playUrl: ""
+playUrl: https://go.dev/play/p/vLdYa6s0cTQ
 variantHelpers:
   - plugin#ozzo-validation#validateorerrorwithcontext
 similarHelpers:
@@ -34,5 +34,5 @@ obs := ro.Pipe[int, int](
 sub := obs.Subscribe(ro.PrintObserver[int]())
 defer sub.Unsubscribe()
 
-// Error: 5 must be no less than 10.
+// Error: must be no less than 10
 ```

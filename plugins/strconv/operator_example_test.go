@@ -255,3 +255,37 @@ func ExampleParseInt_withError() {
 	// Next: 123
 	// Error: strconv.ParseInt: parsing "abc": invalid syntax
 }
+
+func ExampleParseUint64() {
+	// Parse strings as unsigned 64-bit integers
+	observable := ro.Pipe1(
+		ro.Just("42", "100", "255"),
+		ParseUint64[string](10, 64),
+	)
+
+	subscription := observable.Subscribe(ro.PrintObserver[uint64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 42
+	// Next: 100
+	// Next: 255
+	// Completed
+}
+
+func ExampleFormatComplex() {
+	// Convert complex128 values to strings with fixed-point notation
+	observable := ro.Pipe1(
+		ro.Just(complex(3, 4), complex(1, 2), complex(0, -1)),
+		FormatComplex('f', 2, 128),
+	)
+
+	subscription := observable.Subscribe(ro.PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: (3.00+4.00i)
+	// Next: (1.00+2.00i)
+	// Next: (0.00-1.00i)
+	// Completed
+}

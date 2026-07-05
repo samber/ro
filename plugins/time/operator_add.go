@@ -30,6 +30,7 @@ import (
 //	)
 //
 // The observable then emits: time.Now().Add(2 * time.Hour).
+// Play: https://go.dev/play/p/XWgGO-93YPK
 func Add(d time.Duration) func(destination ro.Observable[time.Time]) ro.Observable[time.Time] {
 	return ro.Map(
 		func(value time.Time) time.Time {

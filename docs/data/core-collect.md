@@ -7,7 +7,7 @@ category: sink
 signatures:
   - "func Collect[T any](obs Observable[T]) ([]T, error)"
   - "func CollectWithContext[T any](ctx context.Context, obs Observable[T]) ([]T, context.Context, error)"
-playUrl: ""
+playUrl: https://go.dev/play/p/3rObncYBG2h
 variantHelpers:
   - core#sink#collect
   - core#sink#collectwithcontext

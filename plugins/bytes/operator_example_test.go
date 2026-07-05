@@ -307,3 +307,115 @@ func ExampleRandom() {
 	subscription := observable.Subscribe(ro.NoopObserver[[]byte]())
 	defer subscription.Unsubscribe()
 }
+
+func ExampleCamelCaseWithLanguage() {
+	// Convert byte slices to camelCase using locale-aware casing.
+	// Turkish titlecase: 'i' → 'İ', so the second word "istanbul" becomes "İstanbul".
+	observable := ro.Pipe1(
+		ro.Just([]byte("kod istanbul")),
+		CamelCaseWithLanguage[[]byte](language.Turkish),
+	)
+
+	subscription := observable.Subscribe(
+		ro.NewObserver(
+			func(data []byte) {
+				fmt.Printf("Next: %s\n", string(data))
+			},
+			func(err error) {
+				fmt.Printf("Error: %s\n", err.Error())
+			},
+			func() {
+				fmt.Printf("Completed\n")
+			},
+		),
+	)
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: kodİstanbul
+	// Completed
+}
+
+func ExampleKebabCaseWithLanguage() {
+	// Convert byte slices to kebab-case using locale-aware lowercasing.
+	// Turkish lowercase: 'I' → 'ı' (dotless i).
+	observable := ro.Pipe1(
+		ro.Just([]byte("ISTANBUL KODU")),
+		KebabCaseWithLanguage[[]byte](language.Turkish),
+	)
+
+	subscription := observable.Subscribe(
+		ro.NewObserver(
+			func(data []byte) {
+				fmt.Printf("Next: %s\n", string(data))
+			},
+			func(err error) {
+				fmt.Printf("Error: %s\n", err.Error())
+			},
+			func() {
+				fmt.Printf("Completed\n")
+			},
+		),
+	)
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: ıstanbul-kodu
+	// Completed
+}
+
+func ExamplePascalCaseWithLanguage() {
+	// Convert byte slices to PascalCase using locale-aware casing.
+	// Turkish titlecase: 'i' → 'İ', so "istanbul" becomes "İstanbul".
+	observable := ro.Pipe1(
+		ro.Just([]byte("istanbul")),
+		PascalCaseWithLanguage[[]byte](language.Turkish),
+	)
+
+	subscription := observable.Subscribe(
+		ro.NewObserver(
+			func(data []byte) {
+				fmt.Printf("Next: %s\n", string(data))
+			},
+			func(err error) {
+				fmt.Printf("Error: %s\n", err.Error())
+			},
+			func() {
+				fmt.Printf("Completed\n")
+			},
+		),
+	)
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: İstanbul
+	// Completed
+}
+
+func ExampleSnakeCaseWithLanguage() {
+	// Convert byte slices to snake_case using locale-aware lowercasing.
+	// Turkish lowercase: 'I' → 'ı' (dotless i).
+	observable := ro.Pipe1(
+		ro.Just([]byte("ISTANBUL KODU")),
+		SnakeCaseWithLanguage[[]byte](language.Turkish),
+	)
+
+	subscription := observable.Subscribe(
+		ro.NewObserver(
+			func(data []byte) {
+				fmt.Printf("Next: %s\n", string(data))
+			},
+			func(err error) {
+				fmt.Printf("Error: %s\n", err.Error())
+			},
+			func() {
+				fmt.Printf("Completed\n")
+			},
+		),
+	)
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: ıstanbul_kodu
+	// Completed
+}

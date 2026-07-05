@@ -6,7 +6,7 @@ type: plugin
 category: logger-logrus
 signatures:
   - "func FatalOnError[T any](logger *logrus.Logger)"
-playUrl: ""
+playUrl: https://go.dev/play/p/tO7LBvlXY9J
 variantHelpers:
   - plugin#logger-logrus#fatalonerror
 similarHelpers:
@@ -20,28 +20,36 @@ Fatal logs errors using logrus and terminates the application.
 ```go
 import (
     "fmt"
+    "os"
+
     "github.com/samber/ro"
-    "github.com/sirupsen/logrus"
     rologrus "github.com/samber/ro/plugins/observability/logrus"
+    "github.com/sirupsen/logrus"
 )
 
 logger := logrus.New()
-logger.SetLevel(logrus.ErrorLevel)
+logger.SetOutput(os.Stdout)
+logger.SetFormatter(&logrus.TextFormatter{
+    DisableColors:    true,
+    DisableTimestamp: true,
+})
+// Override exit so the Playground process doesn't terminate
+logger.ExitFunc = func(code int) {
+    fmt.Printf("[os.Exit(%d) would be called here]\n", code)
+}
 
-obs := ro.Pipe[string, string](
-    ro.Just("success", "error occurred"),
-    ro.Map[string, string](func(s string) (string, error) {
-        if s == "error occurred" {
-            return "", fmt.Errorf("processing failed")
-        }
-        return s, nil
-    }),
-    rologrus.FatalOnError[string](logger),
+_, err := ro.Collect(
+    ro.Pipe1(
+        ro.Throw[string](fmt.Errorf("something went wrong")),
+        rologrus.FatalOnError[string](logger),
+    ),
 )
 
-sub := obs.Subscribe(ro.PrintObserver[string]())
-defer sub.Unsubscribe()
+if err != nil {
+    fmt.Printf("Stream error: %v\n", err)
+}
 
-// Logs: time=... level=FATAL msg="ro.Error" error=processing failed
-// (Application terminates)
+// level=fatal msg=ro.Error error="something went wrong"
+// [os.Exit(1) would be called here]
+// Stream error: something went wrong
 ```

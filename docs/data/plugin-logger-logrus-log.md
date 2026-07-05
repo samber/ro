@@ -6,7 +6,7 @@ type: plugin
 category: logger-logrus
 signatures:
   - "func Log[T any](logger *logrus.Logger, level logrus.Level)"
-playUrl: ""
+playUrl: https://go.dev/play/p/JMou1n2AIXS
 variantHelpers:
   - plugin#logger-logrus#log
   - plugin#logger-logrus#logwithnotification
@@ -20,24 +20,41 @@ Logs with logrus.
 
 ```go
 import (
+    "fmt"
+    "os"
+
     "github.com/samber/ro"
     rologrus "github.com/samber/ro/plugins/observability/logrus"
     "github.com/sirupsen/logrus"
 )
 
 logger := logrus.New()
+logger.SetOutput(os.Stdout)
 logger.SetLevel(logrus.InfoLevel)
+logger.SetFormatter(&logrus.TextFormatter{
+    DisableColors:    true,
+    DisableTimestamp: true,
+})
 
-obs := ro.Pipe[string, string](
-    ro.Just("message 1", "message 2"),
-    rologrus.Log[string](logger, logrus.InfoLevel),
+values, err := ro.Collect(
+    ro.Pipe1(
+        ro.Just("message 1", "message 2"),
+        rologrus.Log[string](logger, logrus.InfoLevel),
+    ),
 )
 
-sub := obs.Subscribe(ro.PrintObserver[string]())
-defer sub.Unsubscribe()
+for _, v := range values {
+    fmt.Printf("Next: %s\n", v)
+}
+if err != nil {
+    fmt.Printf("Error: %v\n", err)
+} else {
+    fmt.Println("Completed")
+}
 
-// Logs: message 1
-// Logs: message 2
+// level=info msg="ro.Next: message 1"
+// level=info msg="ro.Next: message 2"
+// level=info msg=ro.Complete
 // Next: message 1
 // Next: message 2
 // Completed

@@ -324,6 +324,7 @@ func (s *observableImpl[T]) SubscribeWithContext(ctx context.Context, destinatio
 // as a slice. It waits for the source Observable to complete before returning.
 // If the source Observable emits an error, the error is returned along with the
 // values collected so far.
+// Play: https://go.dev/play/p/3rObncYBG2h
 func Collect[T any](obs Observable[T]) ([]T, error) {
 	v, _, err := CollectWithContext(context.Background(), obs)
 	return v, err

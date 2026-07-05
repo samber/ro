@@ -6,7 +6,7 @@ type: plugin
 category: ratelimit-ulule
 signatures:
   - "func NewRateLimiter[T any](limiter *limiter.Limiter, keyGetter func(T) string)"
-playUrl: ""
+playUrl: https://go.dev/play/p/V4meCiGc3bx
 variantHelpers:
   - plugin#ratelimit-ulule#newratelimiter
 similarHelpers:
@@ -18,23 +18,25 @@ Rate limits observable values using ulule/limiter with custom key extraction.
 
 ```go
 import (
+    "fmt"
     "time"
 
     "github.com/samber/ro"
     roratelimit "github.com/samber/ro/plugins/ratelimit/ulule"
-    "github.com/ulule/limiter"
+    "github.com/ulule/limiter/v3"
+    memory "github.com/ulule/limiter/v3/drivers/store/memory"
 )
 
-rateLimiter, _ := limiter.New(limiter.Rate{
+type Request struct {
+    UserID string
+    Action string
+}
+
+store := memory.NewStore()
+lim := limiter.New(store, limiter.Rate{
     Period: time.Hour,
     Limit:  100,
 })
-
-type Request struct {
-    UserID    string
-    Action    string
-    Timestamp time.Time
-}
 
 obs := ro.Pipe[Request, Request](
     ro.Just(
@@ -42,16 +44,24 @@ obs := ro.Pipe[Request, Request](
         Request{UserID: "user2", Action: "login"},
         Request{UserID: "user1", Action: "post"},
     ),
-    roratelimit.NewRateLimiter(rateLimiter, func(r Request) string {
+    roratelimit.NewRateLimiter(lim, func(r Request) string {
         return r.UserID // Rate limit per user
     }),
 )
 
-sub := obs.Subscribe(ro.PrintObserver[Request]())
-defer sub.Unsubscribe()
+values, err := ro.Collect(obs)
+if err != nil {
+    fmt.Printf("Error: %v\n", err)
+    return
+}
 
-// Next: {UserID: user1, Action: login}
-// Next: {UserID: user2, Action: login}
-// Next: {UserID: user1, Action: post}
+for _, v := range values {
+    fmt.Printf("Next: %+v\n", v)
+}
+fmt.Println("Completed")
+
+// Next: {UserID:user1 Action:login}
+// Next: {UserID:user2 Action:login}
+// Next: {UserID:user1 Action:post}
 // Completed
 ```

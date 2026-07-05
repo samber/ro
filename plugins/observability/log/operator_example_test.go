@@ -186,3 +186,41 @@ func ExampleLog_withContext() {
 	// [Context] ro.Next: logging
 	// [Context] ro.Complete
 }
+
+func ExampleFatalOnError() {
+	br := bufio.NewWriter(os.Stdout)
+	log.SetOutput(br)
+	log.SetFlags(0)
+	defer br.Flush()
+
+	// FatalOnError passes items through when no error occurs.
+	// When an error is received, it calls log.Fatal (which exits the program).
+	observable := ro.Pipe1(
+		ro.Just(1, 2, 3),
+		FatalOnError[int](),
+	)
+
+	subscription := observable.Subscribe(ro.NoopObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+}
+
+func ExampleFatalOnErrorWithPrefix() {
+	br := bufio.NewWriter(os.Stdout)
+	log.SetOutput(br)
+	log.SetFlags(0)
+	defer br.Flush()
+
+	// FatalOnErrorWithPrefix passes items through when no error occurs.
+	// When an error is received, it calls log.Fatal with the given prefix.
+	observable := ro.Pipe1(
+		ro.Just("a", "b", "c"),
+		FatalOnErrorWithPrefix[string]("[MyApp]"),
+	)
+
+	subscription := observable.Subscribe(ro.NoopObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+}
