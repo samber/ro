@@ -100,6 +100,8 @@ Other naming patterns:
 
 **Plugins** are separate Go modules under `plugins/`, each with its own `go.mod` and third-party dependencies. They follow the same `func(Observable[T]) Observable[R]` signature pattern and compose with core operators via `Pipe()`. Plugins wrap external libraries (e.g., `zap`, `sentry`, `fsnotify`) or provide domain-specific operators (e.g., JSON encoding, CSV I/O, rate limiting). Import them separately, e.g., `github.com/samber/ro/plugins/encoding/json`.
 
+> **Rule**: never add a third-party library dependency to the core `ro` package. If an operator requires an external library, it belongs in a plugin under `plugins/`.
+
 ## Testing Conventions
 
 - Tests use `testify` assertions and `go.uber.org/goleak` for goroutine leak detection
@@ -143,6 +145,21 @@ Full guides: [`docs/docs/contributing.md`](docs/docs/contributing.md) (contribut
 - **Documentation**: Each operator needs a Go Playground link in its comment, a markdown doc in [`docs/data/`](docs/data/) (one file per operator, e.g. `core-map.md`, `plugin-encoding-json-marshal.md`), an example in `ro_example_test.go`, and an entry in `docs/static/llms.txt`. See [`docs/CLAUDE.md`](docs/CLAUDE.md) for the full doc-file format
 - **License headers**: All `.go` files require license headers (`licenses/header.apache.txt` for open source, `licenses/header.ee.txt` for `ee/`). Run `make lint` to verify. Full license texts: [`licenses/LICENSE.apache.md`](licenses/LICENSE.apache.md) (Apache 2.0, open-source code) and [`licenses/LICENSE.ee.md`](licenses/LICENSE.ee.md) (EE code under `ee/`)
 - **Update the documentation**: when updating a feature of the project, you MUST update the documentation. See @./docs/CLAUDE.md
+
+## Definition of Done
+
+When adding or modifying an operator, confirm these steps before opening a PR:
+
+1. Follow the **end-to-end checklist** in [`docs/docs/hacking.md`](docs/docs/hacking.md#add--port-an-operator-end-to-end).
+2. `make test` passes (race detector enabled).
+3. `make lint` passes — or run `make lint-fix` to auto-correct license headers.
+4. Doc files updated: `docs/data/<name>.md` + `docs/static/llms.txt`.
+
+**Workspace pitfalls:**
+
+- Several plugins are **commented out of `go.work`** because they require a newer Go version: `cron`, `exp/simd`, `encoding/json/v2`, `ics`, `hyperloglog`, `iter`, `sentry`, `slog`, `zap`, `oops`, `hot`. They are excluded from `make test`.
+- `plugins/exp/simd` requires `GOEXPERIMENT=simd GOWORK=off` to build or test.
+- `go.work.sum` is modified by routine `go` tool calls — do not commit it as a standalone change. Restore with `git checkout go.work.sum` if it appears unintentionally.
 
 ## References
 

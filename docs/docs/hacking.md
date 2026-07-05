@@ -309,6 +309,54 @@ Test more edge cases:
 - If your operator uses functions that are passed in as parameters (predicates, for instance), note that these may be sources of errors, and be prepared to catch these and notify subscribers via `Error()` calls.
 - In general, notify subscribers of error conditions immediately, rather than making an effort to emit more items first.
 
+## Add / port an operator end-to-end
+
+Follow this checklist in order when adding a new operator or porting one from a sibling library. Each step maps to a concrete file in the repository.
+
+1. **Operator code + variants**: implement the base operator and all applicable variants in the correct suffix order: `Err` → `I` → `WithContext` (e.g., `Map`, `MapErr`, `MapI`, `MapErrI`, `MapWithContext`, `MapErrWithContext`, `MapIWithContext`, `MapErrIWithContext`).
+2. **Error sentinels**: if the operator validates its parameters, declare sentinel variables in `errors.go` using the pattern `Err{OperatorName}{WhatIsWrong}`. Never `panic("string")` inline.
+3. **Tests**: write tests using `Collect(...)` with at minimum:
+   - `Empty[T]()` (empty source)
+   - `Throw[T](assert.AnError)` (error propagation)
+   - Early unsubscription
+   - Context propagation and cancellation
+4. **Godoc example**: add an example function in `ro_example_test.go` (core) or `plugins/<x>/operator_example_test.go` (plugin). It will appear on https://pkg.go.dev.
+5. **Go Playground link**: create a runnable snippet via the `mcp__go-playground__run_and_share_go_code` MCP tool, verify it executes correctly, then add `// Play: https://go.dev/play/p/...` above the function signature. Leave the URL empty if the operator is not yet published (new code not yet released cannot compile on the Playground).
+6. **Markdown doc**: create `docs/data/(core|plugin)-<name>.md` with complete frontmatter (`sourceRef`, `signatures`, `variantHelpers`, `similarHelpers`, `playUrl`, `position`). See `docs/CLAUDE.md` at the repository root for the full format.
+7. **llms.txt**: add a one-line entry for the operator in `docs/static/llms.txt`.
+8. **Upstream parity**: if the operator re-implements logic from a sibling library, synchronize it. See the [Upstream parity](./contributing) section in contributing.md.
+9. **Verify**: run `make test` (race detector) and `make lint`. Documentation validation scripts run in CI — you do not need to run them manually.
+
+## Common agent pitfalls
+
+These issues have recurred across multiple sessions. Read them before starting.
+
+- **`PrintObserver[[]byte]()`** prints raw integer slices (`[196 176 ...]`), not strings. For byte-slice observables, write a custom observer that calls `fmt.Println(string(data))`.
+- **`context.TODO()` in goroutines breaks the context chain.** Any goroutine spawned inside a plugin operator must capture and forward `subscriberCtx`, not create an independent context. Using `context.TODO()` silently breaks cancellation and deadline propagation.
+- **Adding an import before its first usage** causes `imported and not used` compile errors. Add the import and its usage in the same edit.
+- **`go.work.sum` churn**: the workspace sum file is modified by routine `go` tool invocations. Do not commit it unless it is the only intentional change. Restore with `git checkout go.work.sum` when it appears as an unintentional modification.
+- **Porting from `samber/lo` — bytes UTF-8 divergence**: `bytes.ToLower` via `strings.ToLower` produces `U+FFFD` replacement characters on invalid UTF-8, whereas `cases.Lower(...).Bytes()` preserves the raw bytes. Adjust test fixtures accordingly when porting from `samber/lo` string helpers to the `bytes` plugin.
+
+## Definition of done
+
+Before opening a PR, confirm:
+
+```bash
+make test   # runs all tests with the race detector
+make lint   # runs golangci-lint + license header check (make lint-fix to auto-correct)
+```
+
+To test a single plugin module without running the whole workspace:
+
+```bash
+cd plugins/<x> && go test -race ./...
+```
+
+**Known pre-existing failures — do not confuse with your own changes:**
+
+- `bench/` and `plugins/exp/simd/` fail under a plain `go build`/`go test` because `exp/simd` requires `GOEXPERIMENT=simd GOWORK=off`.
+- Several plugins are commented out of `go.work` because they require a newer Go version than the workspace default: `cron`, `exp/simd`, `encoding/json/v2`, `ics`, `hyperloglog`, `iter`, `sentry`, `slog`, `zap`, `oops`, `hot`. They are excluded from `make test`.
+
 ## Next Steps
 
 - **[Operators Reference](./operator/)** - Learn about existing operators for inspiration

@@ -269,22 +269,15 @@ func Map[T, R any](project func(item T) R) func(Observable[T]) Observable[R] {
 
 If the documentation is created at the same time of the helper source code, then the Go playground execution might fail, since we need to merge+release the source code first to make this new helper available to Go playground compiler. In that case, skip the creation of the example and set no URL.
 
-## Validation Scripts
+## Validation Scripts (CI only)
 
-Run these scripts to validate your documentation:
+The `docs/scripts/` directory contains documentation validation scripts (exposed via `docs/package.json`). They check cross-references, frontmatter consistency, signature sync, and more. **These scripts are run automatically by CI — you do not need to run them manually.** Your responsibility is to follow the doc format described in this file and the [end-to-end checklist in hacking.md](./docs/hacking.md#add--port-an-operator-end-to-end).
+
+To validate your work locally, run the standard Go checks from the repository root:
 
 ```bash
-# Check cross-references
-node scripts/check-cross-references.js
-
-# Check filename matches frontmatter
-node scripts/check-filename-matches-frontmatter.js
-
-# Check for similar existing helpers
-node scripts/check-similar-exists.js
-
-# Check for similar keys in directory
-node scripts/check-similar-keys-exist-in-directory.js
+make test   # Go tests with race detector
+make lint   # golangci-lint + license headers (make lint-fix to auto-correct)
 ```
 
 ## Examples: Complete Files
@@ -369,5 +362,5 @@ Before submitting:
 - [ ] Expected output is shown as a comment
 - [ ] Similar helpers are listed if applicable
 - [ ] Related helpers are consolidated into single file when appropriate
-- [ ] All validation scripts pass without errors
+- [ ] Markdown doc follows the format above (CI runs the validation scripts automatically)
 - [ ] Helper is added to llms.txt
