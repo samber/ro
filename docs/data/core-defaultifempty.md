@@ -1,7 +1,7 @@
 ---
 name: DefaultIfEmpty
 slug: defaultifempty
-sourceRef: operator_conditional.go#L187
+sourceRef: operator_conditional.go#L198
 type: core
 category: conditional
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: Decode
 slug: decode
-sourceRef: plugins/encoding/gob/operator.go#L33
+sourceRef: plugins/encoding/gob/operator.go#L37
 type: plugin
 category: encoding-gob
 signatures:

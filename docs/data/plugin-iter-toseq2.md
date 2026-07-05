@@ -1,7 +1,7 @@
 ---
 name: ToSeq2
 slug: toseq2
-sourceRef: plugins/iter/sink.go#L71
+sourceRef: plugins/iter/sink.go#L74
 type: plugin
 category: iter
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: Head
 slug: head
-sourceRef: operator_filter.go#L509
+sourceRef: operator_filter.go#L562
 type: core
 category: filtering
 signatures:

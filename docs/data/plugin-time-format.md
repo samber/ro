@@ -1,7 +1,7 @@
 ---
 name: Format
 slug: format
-sourceRef: plugins/time/operator_format.go#L33
+sourceRef: plugins/time/operator_format.go#L34
 type: plugin
 category: time
 signatures:

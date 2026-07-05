@@ -1,7 +1,7 @@
 ---
 name: Serialize
 slug: serialize
-sourceRef: operator_utility.go#L634
+sourceRef: operator_utility.go#L657
 type: core
 category: utility
 signatures:

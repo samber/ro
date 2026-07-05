@@ -1,7 +1,7 @@
 ---
 name: Floor
 slug: floor
-sourceRef: operator_math.go#L248
+sourceRef: operator_math.go#L275
 type: core
 category: math
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: NewHostUserWatcher
 slug: newhostuserwatcher
-sourceRef: plugins/proc/source.go#L219
+sourceRef: plugins/proc/source.go#L238
 type: plugin
 category: proc
 signatures:

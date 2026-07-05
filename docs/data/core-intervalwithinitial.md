@@ -1,7 +1,7 @@
 ---
 name: IntervalWithInitial
 slug: intervalwithinitial
-sourceRef: operator_creation.go#L80
+sourceRef: operator_creation.go#L122
 type: core
 category: creation
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: SubscribeOn
 slug: subscribeon
-sourceRef: scheduler.go#L59
+sourceRef: operator_utility.go#L546
 type: core
 category: utility
 signatures:

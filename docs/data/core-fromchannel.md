@@ -1,7 +1,7 @@
 ---
 name: FromChannel
 slug: fromchannel
-sourceRef: operator_creation.go#L110
+sourceRef: operator_creation.go#L340
 type: core
 category: creation
 signatures:

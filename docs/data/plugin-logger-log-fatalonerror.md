@@ -1,7 +1,7 @@
 ---
 name: FatalOnError
 slug: fatalonerror
-sourceRef: plugins/observability/log/operator.go#L47
+sourceRef: plugins/observability/log/operator.go#L51
 type: plugin
 category: logger-log
 signatures:

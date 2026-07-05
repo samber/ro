@@ -1,7 +1,7 @@
 ---
 name: Scan
 slug: scan
-sourceRef: operator_transformations.go#L245
+sourceRef: operator_transformations.go#L261
 type: core
 category: transformation
 signatures:

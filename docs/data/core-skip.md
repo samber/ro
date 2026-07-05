@@ -1,7 +1,7 @@
 ---
 name: Skip
 slug: skip
-sourceRef: operator_filter.go#L122
+sourceRef: operator_filter.go#L165
 type: core
 category: filtering
 signatures:

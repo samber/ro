@@ -1,7 +1,7 @@
 ---
 name: Retry
 slug: retry
-sourceRef: operator_error_handling.go#L131
+sourceRef: operator_error_handling.go#L135
 type: core
 category: error-handling
 signatures:

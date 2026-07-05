@@ -1,7 +1,7 @@
 ---
 name: Take
 slug: take
-sourceRef: operator_filter.go#L299
+sourceRef: operator_filter.go#L346
 type: core
 category: filtering
 signatures:

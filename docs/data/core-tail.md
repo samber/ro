@@ -1,7 +1,7 @@
 ---
 name: Tail
 slug: tail
-sourceRef: operator_filter.go#L533
+sourceRef: operator_filter.go#L586
 type: core
 category: filtering
 signatures:

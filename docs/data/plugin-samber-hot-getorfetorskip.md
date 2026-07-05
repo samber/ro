@@ -1,7 +1,7 @@
 ---
 name: GetOrFetchOrSkip
 slug: getorfetorskip
-sourceRef: plugins/samber/hot/operator_hot.go#L54
+sourceRef: plugins/samber/hot/operator_hot.go#L58
 type: plugin
 category: samber-hot
 signatures:

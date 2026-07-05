@@ -1,7 +1,7 @@
 ---
 name: Match
 slug: match
-sourceRef: plugins/regexp/operator.go#L80
+sourceRef: plugins/regexp/operator.go#L82
 type: plugin
 category: regexp
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: FatalOnError
 slug: fatalonerror
-sourceRef: plugins/observability/zerolog/operator.go#L53
+sourceRef: plugins/observability/zerolog/operator.go#L59
 type: plugin
 category: logger-zerolog
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: FindAllStringSubmatch
 slug: findallstringsubmatch
-sourceRef: plugins/regexp/operator.go#L70
+sourceRef: plugins/regexp/operator.go#L75
 type: plugin
 category: regexp
 signatures:

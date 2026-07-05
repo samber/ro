@@ -1,7 +1,7 @@
 ---
 name: Start
 slug: start
-sourceRef: operator_creation.go#L66
+sourceRef: operator_creation.go#L48
 type: core
 category: creation
 signatures:

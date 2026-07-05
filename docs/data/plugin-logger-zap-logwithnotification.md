@@ -1,7 +1,7 @@
 ---
 name: LogWithNotification
 slug: logwithnotification
-sourceRef: plugins/observability/zap/operator.go#L41
+sourceRef: plugins/observability/zap/operator.go#L45
 type: plugin
 category: logger-zap
 signatures:

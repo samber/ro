@@ -1,7 +1,7 @@
 ---
 name: RangeWithInterval
 slug: rangewithinterval
-sourceRef: operator_creation.go#L168
+sourceRef: operator_creation.go#L245
 type: core
 category: creation
 signatures:

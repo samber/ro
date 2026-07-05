@@ -1,7 +1,7 @@
 ---
 name: Sort
 slug: sort
-sourceRef: plugins/sort/operator.go#L40
+sourceRef: plugins/sort/operator.go#L41
 type: plugin
 category: sort
 signatures:

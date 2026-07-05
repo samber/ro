@@ -1,7 +1,7 @@
 ---
 name: Words
 slug: words
-sourceRef: plugins/bytes/operator_words.go#L41
+sourceRef: plugins/bytes/operator_words.go#L42
 type: plugin
 category: bytes
 signatures:

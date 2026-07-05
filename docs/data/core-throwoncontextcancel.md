@@ -1,7 +1,7 @@
 ---
 name: ThrowOnContextCancel
 slug: throwoncontextcancel
-sourceRef: operator_context.go#L196
+sourceRef: operator_context.go#L255
 type: core
 category: context
 signatures:

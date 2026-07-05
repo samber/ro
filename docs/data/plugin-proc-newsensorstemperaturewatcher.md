@@ -1,7 +1,7 @@
 ---
 name: NewSensorsTemperatureWatcher
 slug: newsensorstemperaturewatcher
-sourceRef: plugins/proc/source.go#L351
+sourceRef: plugins/proc/source.go#L423
 type: plugin
 category: proc
 signatures:

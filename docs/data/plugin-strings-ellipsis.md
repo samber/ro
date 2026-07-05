@@ -1,7 +1,7 @@
 ---
 name: Ellipsis
 slug: ellipsis
-sourceRef: plugins/strings/operator_ellipsis.go#L38
+sourceRef: plugins/strings/operator_ellipsis.go#L43
 type: plugin
 category: strings
 signatures:

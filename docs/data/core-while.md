@@ -1,7 +1,7 @@
 ---
 name: While
 slug: while
-sourceRef: operator_error_handling.go#L349
+sourceRef: operator_error_handling.go#L351
 type: core
 category: error-handling
 signatures:

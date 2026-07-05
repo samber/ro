@@ -1,7 +1,7 @@
 ---
 name: Log
 slug: log
-sourceRef: plugins/observability/zap/operator.go#L27
+sourceRef: plugins/observability/zap/operator.go#L29
 type: plugin
 category: logger-zap
 signatures:

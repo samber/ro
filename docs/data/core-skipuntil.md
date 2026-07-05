@@ -1,7 +1,7 @@
 ---
 name: SkipUntil
 slug: skipuntil
-sourceRef: operator_filter.go#L302
+sourceRef: operator_filter.go#L304
 type: core
 category: filtering
 signatures:

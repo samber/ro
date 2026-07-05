@@ -1,7 +1,7 @@
 ---
 name: Encode
 slug: encode
-sourceRef: plugins/encoding/gob/operator.go#L25
+sourceRef: plugins/encoding/gob/operator.go#L27
 type: plugin
 category: encoding-gob
 signatures:

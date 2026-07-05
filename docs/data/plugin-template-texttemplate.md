@@ -1,7 +1,7 @@
 ---
 name: TextTemplate
 slug: texttemplate
-sourceRef: plugins/template/operator.go#L26
+sourceRef: plugins/template/operator.go#L28
 type: plugin
 category: template
 signatures:

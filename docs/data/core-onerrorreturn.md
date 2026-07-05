@@ -1,7 +1,7 @@
 ---
 name: OnErrorReturn
 slug: onerrorreturn
-sourceRef: operator_error_handling.go#L108
+sourceRef: operator_error_handling.go#L111
 type: core
 category: error-handling
 signatures:

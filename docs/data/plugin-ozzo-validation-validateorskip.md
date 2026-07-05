@@ -1,7 +1,7 @@
 ---
 name: ValidateOrSkip
 slug: validateorskip
-sourceRef: plugins/ozzo/operator.go#L115
+sourceRef: plugins/ozzo/ozzo-validation/operator.go#L138
 type: plugin
 category: ozzo-validation
 signatures:

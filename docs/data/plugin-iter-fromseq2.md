@@ -1,7 +1,7 @@
 ---
 name: FromSeq2
 slug: fromseq2
-sourceRef: plugins/iter/source.go#L36
+sourceRef: plugins/iter/source.go#L40
 type: plugin
 category: iter
 signatures:

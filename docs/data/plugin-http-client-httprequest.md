@@ -1,7 +1,7 @@
 ---
 name: HTTPRequest
 slug: httprequest
-sourceRef: plugins/http/client/source.go#L31
+sourceRef: plugins/http/client/source.go#L30
 type: plugin
 category: http-client
 signatures:

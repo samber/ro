@@ -1,7 +1,7 @@
 ---
 name: Defer
 slug: defer
-sourceRef: operator_creation.go#L422
+sourceRef: operator_creation.go#L440
 type: core
 category: creation
 signatures:

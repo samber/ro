@@ -1,7 +1,7 @@
 ---
 name: CombineLatestAll
 slug: combinelatestall
-sourceRef: operator_combining.go#L56
+sourceRef: operator_combining.go#L758
 type: core
 category: combining
 signatures:

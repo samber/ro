@@ -1,7 +1,7 @@
 ---
 name: CombineLatest
 slug: combinelatest
-sourceRef: operator_creation.go#L438
+sourceRef: operator_creation.go#L484
 type: core
 category: combining
 signatures:

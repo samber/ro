@@ -1,7 +1,7 @@
 ---
 name: NewIOReader
 slug: newioreader
-sourceRef: plugins/stdio/source.go#L29
+sourceRef: plugins/stdio/source.go#L30
 type: plugin
 category: stdio
 signatures:

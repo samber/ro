@@ -1,7 +1,7 @@
 ---
 name: NewCSVReader
 slug: newcsvreader
-sourceRef: plugins/encoding/csv/source.go#L26
+sourceRef: plugins/encoding/csv/source.go#L28
 type: plugin
 category: encoding-csv
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: Race
 slug: race
-sourceRef: operator_creation.go#L550
+sourceRef: operator_creation.go#L581
 type: core
 category: combining
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: ContextWithTimeout
 slug: contextwithtimeout
-sourceRef: operator_context.go#L53
+sourceRef: operator_context.go#L55
 type: core
 category: context
 signatures:

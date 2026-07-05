@@ -1,7 +1,7 @@
 ---
 name: SnakeCase
 slug: snakecase
-sourceRef: plugins/strings/operator_snakecase.go#L33
+sourceRef: plugins/strings/operator_snakecase.go#L47
 type: plugin
 category: strings
 signatures:

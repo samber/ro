@@ -1,7 +1,7 @@
 ---
 name: Timeout
 slug: timeout
-sourceRef: operator_utility.go#L419
+sourceRef: operator_utility.go#L437
 type: core
 category: utility
 signatures:

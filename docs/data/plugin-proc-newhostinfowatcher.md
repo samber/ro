@@ -1,7 +1,7 @@
 ---
 name: NewHostInfoWatcher
 slug: newhostinfowatcher
-sourceRef: plugins/proc/source.go#L205
+sourceRef: plugins/proc/source.go#L213
 type: plugin
 category: proc
 signatures:

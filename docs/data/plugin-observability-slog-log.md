@@ -1,7 +1,7 @@
 ---
 name: Log
 slug: log
-sourceRef: plugins/observability/slog/operator.go#L26
+sourceRef: plugins/observability/slog/operator.go#L28
 type: plugin
 category: logger-slog
 signatures:

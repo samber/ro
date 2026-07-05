@@ -1,7 +1,7 @@
 ---
 name: NewNetConnectionsWatcher
 slug: newnetconnectionswatcher
-sourceRef: plugins/proc/source.go#L285
+sourceRef: plugins/proc/source.go#L315
 type: plugin
 category: proc
 signatures:

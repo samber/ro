@@ -1,7 +1,7 @@
 ---
 name: DoWhile
 slug: dowhile
-sourceRef: operator_error_handling.go#L260
+sourceRef: operator_error_handling.go#L259
 type: core
 category: error-handling
 signatures:

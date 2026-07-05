@@ -1,7 +1,7 @@
 ---
 name: CountDistinctReduce
 slug: countdistinctreduce
-sourceRef: plugins/hyperloglog/operator.go#L57
+sourceRef: plugins/hyperloglog/operator.go#L54
 type: plugin
 category: hyperloglog
 signatures:

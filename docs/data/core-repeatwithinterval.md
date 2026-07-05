@@ -1,7 +1,7 @@
 ---
 name: RepeatWithInterval
 slug: repeatwithinterval
-sourceRef: operator_creation.go#L74
+sourceRef: operator_creation.go#L322
 type: core
 category: creation
 signatures:

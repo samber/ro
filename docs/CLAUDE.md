@@ -38,7 +38,7 @@ position: 0
 
 - **name**: The display name of the helper (PascalCase)
 - **slug**: URL-friendly name (kebab-case, matches filename without `core-` prefix)
-- **sourceRef**: Source file reference with line number (format: `operator_conditional.go#L123`)
+- **sourceRef**: Source file reference with line number (format: `operator_conditional.go#L123`). Line numbers drift whenever the referenced Go file is edited (added imports, new operators, reordered code...). After changing a `.go` file, re-check every `sourceRef` pointing into it: run `gopls symbols <file>` to list the file's operators/functions with their current line numbers, then update the affected `sourceRef` fields accordingly.
 - **type**: `core`, `plugin`. The category must match the file name.
 - **category**: The functional category. For plugins, the category must match the file name. Some plugins might have a sub-sub-category: in that case use "-" (eg: plugin > `encoding-json` or plugin > `samber-hot` or plugin > `logger-logrus`).
 - **signatures**: Array of function signatures as strings. Do not list signatures from other type/category.

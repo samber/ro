@@ -1,7 +1,7 @@
 ---
 name: Map
 slug: map
-sourceRef: operator_transformations.go#L29
+sourceRef: operator_transformations.go#L30
 type: core
 category: transformation
 signatures:

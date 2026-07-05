@@ -1,7 +1,7 @@
 ---
 name: Zip
 slug: zip
-sourceRef: operator_creation.go#L473
+sourceRef: operator_creation.go#L523
 type: core
 category: combining
 signatures:

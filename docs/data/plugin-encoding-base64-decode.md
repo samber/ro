@@ -1,7 +1,7 @@
 ---
 name: Decode
 slug: decode
-sourceRef: plugins/encoding/base64/operator.go#L46
+sourceRef: plugins/encoding/base64/operator.go#L48
 type: plugin
 category: encoding-base64
 signatures:

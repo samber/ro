@@ -1,7 +1,7 @@
 ---
 name: LogWithNotification
 slug: logwithnotification
-sourceRef: plugins/observability/logrus/operator.go#L39
+sourceRef: plugins/observability/logrus/operator.go#L43
 type: plugin
 category: logger-logrus
 signatures:

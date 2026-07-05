@@ -1,7 +1,7 @@
 ---
 name: SequenceEqual
 slug: sequenceequal
-sourceRef: operator_conditional.go#L222
+sourceRef: operator_conditional.go#L234
 type: core
 category: conditional
 signatures:

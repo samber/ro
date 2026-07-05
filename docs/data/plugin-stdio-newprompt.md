@@ -1,7 +1,7 @@
 ---
 name: NewPrompt
 slug: newprompt
-sourceRef: plugins/stdio/source.go#L95
+sourceRef: plugins/stdio/source.go#L98
 type: plugin
 category: stdio
 signatures:

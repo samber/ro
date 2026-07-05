@@ -1,7 +1,7 @@
 ---
 name: Capitalize
 slug: capitalize
-sourceRef: plugins/bytes/operator_capitalize.go#L29
+sourceRef: plugins/bytes/operator_capitalize.go#L82
 type: plugin
 category: bytes
 signatures:

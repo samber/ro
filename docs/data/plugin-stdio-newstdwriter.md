@@ -1,7 +1,7 @@
 ---
 name: NewStdWriter
 slug: newstdwriter
-sourceRef: plugins/stdio/sink.go#L59
+sourceRef: plugins/stdio/sink.go#L62
 type: plugin
 category: stdio
 signatures:

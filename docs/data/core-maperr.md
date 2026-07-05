@@ -1,7 +1,7 @@
 ---
 name: MapErr
 slug: maperr
-sourceRef: operator_transformations.go#L96
+sourceRef: operator_transformations.go#L102
 type: core
 category: transformation
 signatures:

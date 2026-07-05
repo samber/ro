@@ -1,7 +1,7 @@
 ---
 name: NewDiskPartitionWatcher
 slug: newdiskpartitionwatcher
-sourceRef: plugins/proc/source.go#L175
+sourceRef: plugins/proc/source.go#L186
 type: plugin
 category: proc
 signatures:

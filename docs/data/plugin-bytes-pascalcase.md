@@ -1,7 +1,7 @@
 ---
 name: PascalCase
 slug: pascalcase
-sourceRef: plugins/bytes/operator_pascalcase.go#L33
+sourceRef: plugins/bytes/operator_pascalcase.go#L47
 type: plugin
 category: bytes
 signatures:

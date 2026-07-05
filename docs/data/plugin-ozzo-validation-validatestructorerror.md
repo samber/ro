@@ -1,7 +1,7 @@
 ---
 name: ValidateStructOrError
 slug: validatestructorerror
-sourceRef: plugins/ozzo/ozzo-validation/operator.go#L89
+sourceRef: plugins/ozzo/ozzo-validation/operator.go#L101
 type: plugin
 category: ozzo-validation
 signatures:

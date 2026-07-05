@@ -1,7 +1,7 @@
 ---
 name: Reduce
 slug: reduce
-sourceRef: operator_math.go#L310
+sourceRef: operator_math.go#L819
 type: core
 category: math
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: NewCPUInfoWatcher
 slug: newcpuinfowatcher
-sourceRef: plugins/proc/source.go#L105
+sourceRef: plugins/proc/source.go#L109
 type: plugin
 category: proc
 signatures:

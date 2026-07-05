@@ -1,7 +1,7 @@
 ---
 name: Average
 slug: average
-sourceRef: operator_math.go#L24
+sourceRef: operator_math.go#L45
 type: core
 category: math
 signatures:

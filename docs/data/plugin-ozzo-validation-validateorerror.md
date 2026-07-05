@@ -1,7 +1,7 @@
 ---
 name: ValidateOrError
 slug: validateorerror
-sourceRef: plugins/ozzo/operator.go#L82
+sourceRef: plugins/ozzo/ozzo-validation/operator.go#L92
 type: plugin
 category: ozzo-validation
 signatures:

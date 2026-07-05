@@ -1,7 +1,7 @@
 ---
 name: Encode
 slug: encode
-sourceRef: plugins/encoding/base64/operator.go#L32
+sourceRef: plugins/encoding/base64/operator.go#L33
 type: plugin
 category: encoding-base64
 signatures:

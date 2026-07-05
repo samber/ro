@@ -1,7 +1,7 @@
 ---
 name: Catch
 slug: catch
-sourceRef: operator_error_handling.go#L25
+sourceRef: operator_error_handling.go#L26
 type: core
 category: error-handling
 signatures:

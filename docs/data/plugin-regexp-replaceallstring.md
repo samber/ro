@@ -1,7 +1,7 @@
 ---
 name: ReplaceAllString
 slug: replaceallstring
-sourceRef: plugins/regexp/operator.go#L101
+sourceRef: plugins/regexp/operator.go#L103
 type: plugin
 category: regexp
 signatures:

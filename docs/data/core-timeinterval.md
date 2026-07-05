@@ -1,7 +1,7 @@
 ---
 name: TimeInterval
 slug: timeinterval
-sourceRef: operator_utility.go#L245
+sourceRef: operator_utility.go#L229
 type: core
 category: utility
 signatures:

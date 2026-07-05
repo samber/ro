@@ -1,7 +1,7 @@
 ---
 name: ContextMap
 slug: contextmap
-sourceRef: operator_context.go#L160
+sourceRef: operator_context.go#L217
 type: core
 category: context
 signatures:

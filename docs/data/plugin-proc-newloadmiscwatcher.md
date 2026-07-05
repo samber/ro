@@ -1,7 +1,7 @@
 ---
 name: NewLoadMiscWatcher
 slug: newloadmiscwatcher
-sourceRef: plugins/proc/source.go#L263
+sourceRef: plugins/proc/source.go#L290
 type: plugin
 category: proc
 signatures:

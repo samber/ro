@@ -1,7 +1,7 @@
 ---
 name: Throw
 slug: throw
-sourceRef: operator_creation.go#L46
+sourceRef: operator_creation.go#L425
 type: core
 category: creation
 signatures:

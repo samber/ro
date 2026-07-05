@@ -1,7 +1,7 @@
 ---
 name: Ellipsis
 slug: ellipsis
-sourceRef: plugins/bytes/operator_ellipsis.go#L38
+sourceRef: plugins/bytes/operator_ellipsis.go#L47
 type: plugin
 category: bytes
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: DistinctBy
 slug: distinctby
-sourceRef: operator_filter.go#L98
+sourceRef: operator_filter.go#L105
 type: core
 category: filtering
 signatures:

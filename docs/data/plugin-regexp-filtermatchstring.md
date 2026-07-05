@@ -1,7 +1,7 @@
 ---
 name: FilterMatchString
 slug: filtermatchstring
-sourceRef: plugins/regexp/operator.go#L115
+sourceRef: plugins/regexp/operator.go#L118
 type: plugin
 category: regexp
 signatures:

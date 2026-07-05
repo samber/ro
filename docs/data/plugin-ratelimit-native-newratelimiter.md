@@ -1,7 +1,7 @@
 ---
 name: NewRateLimiter
 slug: newratelimiter
-sourceRef: plugins/ratelimit/native/operator.go#L24
+sourceRef: plugins/ratelimit/native/operator.go#L26
 type: plugin
 category: ratelimit-native
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: All
 slug: all
-sourceRef: operator_conditional.go#L24
+sourceRef: operator_conditional.go#L25
 type: core
 category: conditional
 signatures:

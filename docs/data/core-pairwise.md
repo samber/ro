@@ -1,7 +1,7 @@
 ---
 name: Pairwise
 slug: pairwise
-sourceRef: operator_combining.go#L945
+sourceRef: operator_combining.go#L974
 type: core
 category: combining
 signatures:
