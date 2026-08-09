@@ -16,6 +16,7 @@ package rosort
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -417,6 +418,142 @@ func toLower(s string) string {
 		}
 	}
 	return result
+}
+
+func TestReverse(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// Test with empty observable
+	values, err := ro.Collect(
+		Reverse[int]()(
+			ro.Just[int](),
+		),
+	)
+	is.Equal([]int{}, values)
+	is.NoError(err)
+
+	// Test with single value
+	values, err = ro.Collect(
+		Reverse[int]()(
+			ro.Just(42),
+		),
+	)
+	is.Equal([]int{42}, values)
+	is.NoError(err)
+
+	// Test with multiple values
+	values, err = ro.Collect(
+		Reverse[int]()(
+			ro.Just(1, 2, 3, 4, 5),
+		),
+	)
+	is.Equal([]int{5, 4, 3, 2, 1}, values)
+	is.NoError(err)
+
+	// Test with strings
+	valuesStr, err := ro.Collect(
+		Reverse[string]()(
+			ro.Just("apple", "banana", "cherry"),
+		),
+	)
+	is.Equal([]string{"cherry", "banana", "apple"}, valuesStr)
+	is.NoError(err)
+}
+
+func TestReverseWithError(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// Test with error observable
+	values, err := ro.Collect(
+		Reverse[int]()(
+			ro.Throw[int](assert.AnError),
+		),
+	)
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
+
+	// An error raised after some items were already buffered must not emit
+	// any of the buffered items.
+	values, err = ro.Collect(
+		Reverse[int]()(
+			ro.Pipe1(
+				ro.Just(1, 2, 3),
+				ro.ConcatWith(ro.Throw[int](assert.AnError)),
+			),
+		),
+	)
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
+}
+
+func TestReverseWithContext(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	type ctxKey string
+	key := ctxKey("index")
+
+	var seen []int
+
+	values, err := ro.Collect(
+		ro.Pipe3(
+			ro.Just(10, 20, 30),
+			ro.MapIWithContext(func(ctx context.Context, v int, i int64) (context.Context, int) {
+				return context.WithValue(ctx, key, int(i)), v
+			}),
+			Reverse[int](),
+			ro.TapOnNextWithContext(func(ctx context.Context, _ int) {
+				index, _ := ctx.Value(key).(int)
+				seen = append(seen, index)
+			}),
+		),
+	)
+	is.Equal([]int{30, 20, 10}, values)
+	is.Equal([]int{2, 1, 0}, seen)
+	is.NoError(err)
+}
+
+func TestReverseWithContextCancellation(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	values, resultCtx, err := ro.CollectWithContext(ctx,
+		Reverse[int]()(
+			ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
+		),
+	)
+	is.Equal([]int{6, 2, 9, 5, 1, 4, 1, 3}, values)
+	is.NoError(err)
+	is.NotNil(resultCtx)
+}
+
+func TestReverseEarlyUnsubscribe(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	var finalized int32
+
+	obs := ro.Pipe2(
+		ro.Never(),
+		ro.TapOnFinalize[struct{}](func() {
+			atomic.AddInt32(&finalized, 1)
+		}),
+		Reverse[struct{}](),
+	)
+
+	sub := obs.Subscribe(ro.OnNext(func(struct{}) {}))
+	sub.Unsubscribe()
+
+	is.EqualValues(1, atomic.LoadInt32(&finalized))
 }
 
 func testWithTimeout(t *testing.T, timeout time.Duration) {

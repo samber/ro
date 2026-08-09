@@ -1,6 +1,6 @@
 # Sort Plugin
 
-The sort plugin provides operators for sorting values in reactive streams. **⚠️ Warning: These operators load all values into memory before sorting, which is not recommended for large datasets.**
+The sort plugin provides operators for sorting and reordering values in reactive streams. **⚠️ Warning: These operators load all values into memory before emitting, which is not recommended for large datasets.**
 
 ## Installation
 
@@ -120,6 +120,33 @@ subscription := observable.Subscribe(ro.NewObserver(
 // Priority 1: First
 // Priority 1: Third
 // Priority 2: Second
+// Completed
+```
+
+### Reverse
+
+Buffers every item until the source completes, then re-emits them one by one in reverse order.
+
+```go
+observable := ro.Pipe1(
+    ro.Just(1, 2, 3, 4, 5),
+    rosort.Reverse[int](),
+)
+
+subscription := observable.Subscribe(ro.NewObserver(
+    func(value int) {
+        fmt.Printf("%d ", value)
+    },
+    func(err error) {
+        fmt.Printf("Error: %v\n", err)
+    },
+    func() {
+        fmt.Println("\nCompleted")
+    },
+))
+
+// Output:
+// 5 4 3 2 1
 // Completed
 ```
 

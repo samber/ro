@@ -110,3 +110,42 @@ func SortStableFunc[T comparable](cmp func(a, b T) int) func(ro.Observable[T]) r
 		})
 	}
 }
+
+// reversedItem keeps the context an item was emitted with, so replaying the
+// buffer in reverse order preserves the exact same context chain, item per item.
+type reversedItem[T any] struct {
+	ctx   context.Context
+	value T
+}
+
+// Reverse buffers every item emitted by the source Observable and, on completion,
+// re-emits them one by one in reverse order. Nothing is emitted before the source
+// completes.
+//
+// Warning: the whole stream is held in memory. Never use it on an unbounded source.
+func Reverse[T any]() func(ro.Observable[T]) ro.Observable[T] {
+	return func(source ro.Observable[T]) ro.Observable[T] {
+		return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
+			buffer := []reversedItem[T]{}
+
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				ro.NewObserverWithContext(
+					func(ctx context.Context, value T) {
+						buffer = append(buffer, reversedItem[T]{ctx, value})
+					},
+					destination.ErrorWithContext,
+					func(ctx context.Context) {
+						for i := len(buffer) - 1; i >= 0; i-- {
+							destination.NextWithContext(buffer[i].ctx, buffer[i].value)
+						}
+
+						destination.CompleteWithContext(ctx)
+					},
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
