@@ -205,7 +205,7 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - **bytes** - Byte slice manipulation operators
 - **strings** - String manipulation operators (Capitalize, PascalCase, CamelCase, SnakeCase, etc.) with locale-aware WithLanguage variants
 - **strconv** - String conversion operators (FormatFloat, FormatInt, FormatUint, etc.)
-- **sort** - Sorting operators
+- **sort** - Sorting and reordering operators (Sort, SortFunc, SortStableFunc, Reverse)
 - **time** - Time manipulation operators (Add, AddDate, In, Format, Parse, ParseInLocation, StartOfDay)
 - **exp/simd** - SIMD-accelerated math operators (Add, Sub, Min, Max, Clamp...)
 

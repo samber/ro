@@ -167,6 +167,25 @@ func ExampleSort_sortingStrings() {
 	// Completed
 }
 
+func ExampleReverse() {
+	// Buffer all items until completion, then re-emit them in reverse order
+	observable := ro.Pipe1(
+		ro.Just(1, 2, 3, 4, 5),
+		Reverse[int](),
+	)
+
+	subscription := observable.Subscribe(ro.PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 5
+	// Next: 4
+	// Next: 3
+	// Next: 2
+	// Next: 1
+	// Completed
+}
+
 func ExampleSortFunc_sortingWithCustomStringLogic() {
 	// Sort strings by length, then alphabetically
 	observable := ro.Pipe1(
