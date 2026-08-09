@@ -42,19 +42,4 @@ defer sub.Unsubscribe()
 
 ### Memory usage note
 
-```go
-// Reverse must buffer all elements before emitting the first one.
-// Never use it on an unbounded or very large source.
-obs := ro.Pipe[string, string](
-    ro.Just("apple", "banana", "cherry"),
-    rosort.Reverse[string](),
-)
-
-sub := obs.Subscribe(ro.PrintObserver[string]())
-defer sub.Unsubscribe()
-
-// Next: cherry
-// Next: banana
-// Next: apple
-// Completed
-```
+Reverse must buffer all elements before emitting the first one. Never use it on an unbounded or very large source.
