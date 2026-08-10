@@ -36,86 +36,78 @@ import (
 //
 ////////////////////////////////////////////////////////////
 
-// Sort sorts the observable values using the provided comparison function.
-// Play: https://go.dev/play/p/3hL6m9jK5nV
-func Sort[T constraints.Ordered](cmp func(a, b T) int) func(ro.Observable[T]) ro.Observable[T] {
-	return func(source ro.Observable[T]) ro.Observable[T] {
-		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
-			values, ctx, err := ro.CollectWithContext(subscriberCtx, source)
-			if err != nil {
-				destination.ErrorWithContext(ctx, err)
-				return nil
-			}
-
-			sort.Slice(values, func(i, j int) bool {
-				return cmp(values[i], values[j]) < 0
-			})
-
-			for _, value := range values {
-				destination.NextWithContext(ctx, value)
-			}
-			destination.CompleteWithContext(ctx)
-
-			return nil
-		})
-	}
-}
-
-// SortFunc sorts the observable values using the provided comparison function.
-// Play: https://go.dev/play/p/PzNTA9Vufy7
-func SortFunc[T comparable](cmp func(a, b T) int) func(ro.Observable[T]) ro.Observable[T] {
-	return func(source ro.Observable[T]) ro.Observable[T] {
-		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
-			values, ctx, err := ro.CollectWithContext(subscriberCtx, source)
-			if err != nil {
-				destination.ErrorWithContext(ctx, err)
-				return nil
-			}
-
-			sort.Slice(values, func(i, j int) bool {
-				return cmp(values[i], values[j]) < 0
-			})
-
-			for _, value := range values {
-				destination.NextWithContext(ctx, value)
-			}
-			destination.CompleteWithContext(ctx)
-
-			return nil
-		})
-	}
-}
-
-// SortStableFunc sorts the observable values using the provided stable comparison function.
-// Play: https://go.dev/play/p/6b1tIxX9gfO
-func SortStableFunc[T comparable](cmp func(a, b T) int) func(ro.Observable[T]) ro.Observable[T] {
-	return func(source ro.Observable[T]) ro.Observable[T] {
-		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
-			values, ctx, err := ro.CollectWithContext(subscriberCtx, source)
-			if err != nil {
-				destination.ErrorWithContext(ctx, err)
-				return nil
-			}
-
-			sort.Slice(values, func(i, j int) bool {
-				return cmp(values[i], values[j]) < 0
-			})
-
-			for _, value := range values {
-				destination.NextWithContext(ctx, value)
-			}
-			destination.CompleteWithContext(ctx)
-
-			return nil
-		})
-	}
-}
-
 // bufferedItem keeps the context an item was emitted with, so replaying a
 // buffered item later preserves the exact same context chain, item per item.
 type bufferedItem[T any] struct {
 	ctx   context.Context
 	value T
+}
+
+// sortBuffer buffers every item emitted by the source Observable and, on
+// completion, re-emits them sorted with cmp. Nothing is emitted before the
+// source completes. Each buffered item is replayed with the context it was
+// originally emitted with.
+func sortBuffer[T any](stable bool, cmp func(a, b T) int) func(ro.Observable[T]) ro.Observable[T] {
+	return func(source ro.Observable[T]) ro.Observable[T] {
+		return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
+			buffer := []bufferedItem[T]{}
+
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				ro.NewObserverWithContext(
+					func(ctx context.Context, value T) {
+						buffer = append(buffer, bufferedItem[T]{ctx, value})
+					},
+					destination.ErrorWithContext,
+					func(ctx context.Context) {
+						less := func(i, j int) bool {
+							return cmp(buffer[i].value, buffer[j].value) < 0
+						}
+
+						if stable {
+							sort.SliceStable(buffer, less)
+						} else {
+							sort.Slice(buffer, less)
+						}
+
+						for _, item := range buffer {
+							destination.NextWithContext(item.ctx, item.value)
+						}
+
+						destination.CompleteWithContext(ctx)
+					},
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+// Sort sorts the observable values using the provided comparison function.
+//
+// Warning: the whole stream is held in memory. Never use it on an unbounded source.
+// Play: https://go.dev/play/p/3hL6m9jK5nV
+func Sort[T constraints.Ordered](cmp func(a, b T) int) func(ro.Observable[T]) ro.Observable[T] {
+	return sortBuffer(false, cmp)
+}
+
+// SortFunc sorts the observable values using the provided comparison function.
+//
+// Warning: the whole stream is held in memory. Never use it on an unbounded source.
+// Play: https://go.dev/play/p/PzNTA9Vufy7
+func SortFunc[T comparable](cmp func(a, b T) int) func(ro.Observable[T]) ro.Observable[T] {
+	return sortBuffer(false, cmp)
+}
+
+// SortStableFunc sorts the observable values using the provided comparison function.
+// Unlike SortFunc, the relative order of equivalent elements (cmp(a, b) == 0) is
+// preserved.
+//
+// Warning: the whole stream is held in memory. Never use it on an unbounded source.
+// Play: https://go.dev/play/p/6b1tIxX9gfO
+func SortStableFunc[T comparable](cmp func(a, b T) int) func(ro.Observable[T]) ro.Observable[T] {
+	return sortBuffer(true, cmp)
 }
 
 // Reverse buffers every item emitted by the source Observable and, on completion,

@@ -1,7 +1,7 @@
 ---
 name: SortFunc
 slug: sortfunc
-sourceRef: plugins/sort/operator.go#L66
+sourceRef: plugins/sort/operator.go#L99
 type: plugin
 category: sort
 signatures:

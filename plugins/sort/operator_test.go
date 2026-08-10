@@ -360,6 +360,54 @@ func TestSortWithContext(t *testing.T) {
 	is.NotNil(resultCtx)
 }
 
+func TestSortWithItemContext(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	type ctxKey string
+	key := ctxKey("index")
+
+	var seen []int
+
+	values, err := ro.Collect(
+		ro.Pipe3(
+			ro.Just(30, 10, 20),
+			ro.MapIWithContext(func(ctx context.Context, v int, i int64) (context.Context, int) {
+				return context.WithValue(ctx, key, int(i)), v
+			}),
+			Sort(Compare[int]),
+			ro.TapOnNextWithContext(func(ctx context.Context, _ int) {
+				index, _ := ctx.Value(key).(int)
+				seen = append(seen, index)
+			}),
+		),
+	)
+	is.Equal([]int{10, 20, 30}, values)
+	is.Equal([]int{1, 2, 0}, seen)
+	is.NoError(err)
+}
+
+func TestSortEarlyUnsubscribe(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	var finalized int32
+
+	obs := ro.Pipe2(
+		ro.Never(),
+		ro.TapOnFinalize[struct{}](func() {
+			atomic.AddInt32(&finalized, 1)
+		}),
+		SortFunc(func(struct{}, struct{}) int { return 0 }),
+	)
+
+	sub := obs.Subscribe(ro.OnNext(func(struct{}) {}))
+	sub.Unsubscribe()
+
+	is.EqualValues(1, atomic.LoadInt32(&finalized))
+}
+
 func TestSortFuncWithContext(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
@@ -396,6 +444,42 @@ func TestSortStableFuncWithContext(t *testing.T) {
 	is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
 	is.Nil(err)
 	is.NotNil(resultCtx)
+}
+
+func TestSortStableFuncStability(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	type stableItem struct {
+		key   int
+		order int
+	}
+
+	// Several items share the same key. A stable sort must preserve their
+	// original relative order (tracked here via the "order" field).
+	items := []stableItem{
+		{key: 1, order: 0},
+		{key: 2, order: 1},
+		{key: 1, order: 2},
+		{key: 2, order: 3},
+		{key: 1, order: 4},
+	}
+
+	values, err := ro.Collect(
+		SortStableFunc(func(a, b stableItem) int {
+			return Compare(a.key, b.key)
+		})(
+			ro.FromSlice(items),
+		),
+	)
+	is.NoError(err)
+
+	orders := make([]int, len(values))
+	for i, v := range values {
+		orders[i] = v.order
+	}
+	is.Equal([]int{0, 2, 4, 1, 3}, orders)
 }
 
 // Helper functions

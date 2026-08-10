@@ -1,7 +1,7 @@
 ---
 name: Reverse
 slug: reverse
-sourceRef: plugins/sort/operator.go#L126
+sourceRef: plugins/sort/operator.go#L118
 type: plugin
 category: sort
 signatures:
