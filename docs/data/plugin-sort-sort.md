@@ -1,11 +1,11 @@
 ---
 name: Sort
 slug: sort
-sourceRef: plugins/sort/operator.go#L41
+sourceRef: plugins/sort/operator.go#L91
 type: plugin
 category: sort
 signatures:
-  - "func Sort[T cmp.Ordered](cmp func(a, b T) int)"
+  - "func Sort[T constraints.Ordered](cmp func(a, b T) int)"
 playUrl: https://go.dev/play/p/Jem9ufkfmNR
 variantHelpers:
   - plugin#sort#sort
