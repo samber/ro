@@ -32,8 +32,8 @@ jobs:
       - name: Install dependencies
         run: npm i
 
-      - name: Check that ```go code examples are syntactically valid
-        run: npm run check-go-examples
+      - name: Validate go code blocks in the documentation
+        run: npm run validate-go-code-blocks
 
       - name: Build Docusaurus project
         run: npm run build

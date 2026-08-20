@@ -20,7 +20,7 @@
     "check-filename-matches-frontmatter": "node ./scripts/check-filename-matches-frontmatter.js",
     "check-similar-exists": "node ./scripts/check-similar-exists.js",
     "check-similar-keys-exist-in-directory": "node ./scripts/check-similar-keys-exist-in-directory.js",
-    "check-go-examples": "node ./scripts/check-go-examples.js"
+    "validate-go-code-blocks": "node ./scripts/validate-go-code-blocks.js"
   },
   "dependencies": {
       "@docusaurus/core": "3.10.0",
