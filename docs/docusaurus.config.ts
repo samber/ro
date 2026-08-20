@@ -135,8 +135,8 @@ const config: Config = {
         name: 'DBOS',
         url: 'https://www.dbos.dev/?utm_campaign=gh-smbr',
         title: 'DBOS - Durable workflow orchestration library for Go',
-        logo_light: '/img/sponsors/dbos-black.png',
-        logo_dark: '/img/sponsors/dbos-white.png',
+        logo_light: '/img/sponsors/dbos-black-optimized.png',
+        logo_dark: '/img/sponsors/dbos-white-optimized.png',
       },
     ],
   },
@@ -206,7 +206,7 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/cover.jpg',
+    image: 'img/cover-optimized.jpg',
     colorMode: {
       defaultMode: 'light',
       disableSwitch: false,
@@ -232,7 +232,7 @@ const config: Config = {
       title: '🌊 samber/ro',
       logo: {
         alt: 'ro - Reactive programming for Go',
-        src: 'img/icon.png',
+        src: 'img/icon-optimized.png',
         width: 32,
         height: 32,
       },

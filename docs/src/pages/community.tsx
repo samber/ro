@@ -20,7 +20,7 @@ function Community() {
             <br/>
             "If you want to go fast, go alone. If you want to go far, go together."
           </div>
-          <img className={styles.headerImg} src="/img/go-community.png" alt="samber/ro community" width={502} height={180} />
+          <img className={styles.headerImg} src="/img/go-community-optimized.png" alt="samber/ro community" width={502} height={180} />
         </div>
       </header>
       <main>

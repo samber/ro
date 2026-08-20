@@ -92,7 +92,7 @@ function Examples() {
           <div className="hero--subtitle">
             Production-shaped projects built with samber/ro: websocket ingestion, parallel HTTP fan-out, SQL and calendar pipelines.
           </div>
-          <img className={styles.headerImg} src="/img/go-templates.png" alt="Go project templates" width={300} height={300} />
+          <img className={styles.headerImg} src="/img/go-templates-optimized.png" alt="Go project templates" width={300} height={300} />
         </div>
       </header>
       <main>
