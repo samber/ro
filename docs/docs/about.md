@@ -148,7 +148,7 @@ Designed for high-throughput scenarios:
 - Minimal allocations
 - Efficient backpressure propagation
 - Operator fusion opportunities
-- The typed `PipeX`/`PipeOpX` variants never use reflection; the variadic `Pipe`/`PipeOp` use reflection once, at pipeline construction — never on the message path
+- Zero runtime reflection
 - Limited locks
 
 :::
