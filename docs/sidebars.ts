@@ -71,6 +71,10 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: '📊 Comparison',
+      link: {
+        type: 'doc',
+        id: 'comparison/index',
+      },
       collapsible: true,
       collapsed: true,
       items: [

@@ -1,17 +1,12 @@
 ---
-title: samber/lo vs samber/ro
-description: Compare samber/lo (functional utils) vs samber/ro (reactive streams)
+title: samber/lo and samber/ro
+description: samber/lo and samber/ro are companion Go libraries by the same author — lo for synchronous collections, ro for asynchronous streams. Learn when to use each, and how to use both together.
 sidebar_position: 5
 ---
 
-# ⚖️ `samber/lo` vs `samber/ro`
+# 🤝 `samber/lo` and `samber/ro`
 
-Both `samber/lo` and `samber/ro` are powerful Go libraries, but they serve different purposes:
-
-- **samber/lo**: A Lodash-like utility library for Go (bounded slices)
-- **samber/ro**: A Reactive Programming library for Go (unbounded and event-driven streams)
-
-This comparison will help you understand when to use each library and how they can complement each other.
+**`samber/lo` and `samber/ro` solve different problems and are designed to work together.** `lo` is a Lodash-style toolkit for looping over finite, in-memory Go collections (slices, maps) synchronously. `ro` is a reactive streams library for processing asynchronous, potentially infinite sequences of events. Most Go services that consume `ro` for event-driven pipelines also use `lo` for the synchronous, in-memory steps around them — they are not alternatives to pick between, they're two tools for two different jobs.
 
 ## Key Differences
 
@@ -49,14 +44,14 @@ import (
 func main() {
     numbers := []int{1, 2, 3, 4, 5}
 
-    stage1 := lo.Filter(numbers, func(x int) bool {
+    stage1 := lo.Filter(numbers, func(x int, _ int) bool {
         return x%2==0
     })
     stage2 := lo.Map(stage1, func(x int, _ int) string {
         return fmt.Sprintf("num-%d", x)
     })
 
-    fmt.Println(stage2) // ["num-1", "num-2", "num-3", "num-4", "num-5"]
+    fmt.Println(stage2) // ["num-2", "num-4"]
 }
 ```
 
@@ -127,21 +122,17 @@ observable.Subscribe(ro.OnNext(func(x int) {
 
 Filtering happens as values flow through the stream, providing lazy evaluation.
 
-### Async vs Sync
+### Both are synchronous by default — they differ in when results become visible
 
-:::danger Blocking Behavior
+`ro` is **mostly synchronous and has no scheduler** (Go already gives you first-class concurrency, so `ro` doesn't invent its own — see the [glossary](../glossary#Asynchronous)). A default `Subscribe()` call blocks the calling goroutine exactly like a `lo` call blocks the calling function, until the pipeline completes. The difference is what happens *during* that block: `lo` computes the whole result before returning it, while `ro` surfaces each value to your observer as soon as it's produced.
 
-**samber/lo** (blocking):
-
-:::
-
-All processing must complete before the function returns, blocking execution.
+**samber/lo** — the caller sees nothing until the whole slice is ready:
 ```go
 func processData(data []int) []string {
     // Blocks until all processing is complete
     return lo.Map(
-        lo.Filter(data, func() bool {
-            return i%2 == 1
+        lo.Filter(data, func(x int, _ int) bool {
+            return x%2 == 1
         }),
         func(x int, _ int) string {
             time.Sleep(100 * time.Millisecond) // blocking
@@ -157,33 +148,30 @@ func main() {
 }
 ```
 
-:::tip Non-blocking Streams
-
-**samber/ro** (non-blocking):
-
-:::
-
-Values are processed as they arrive, without blocking the main execution flow.
+**samber/ro** — the caller is progressively notified as each value is produced, but `Subscribe()` still doesn't return until the pipeline is done:
 ```go
 var pipeline = ro.PipeOp3(
     ro.Filter(func(x int) bool {
         return x%2 == 1
-    })
+    }),
     ro.Map(func(x int) string {
         return fmt.Sprintf("processed-%d", x)
     }),
-    ro.DelayEach[string](100 * time.Millisecond)
+    ro.DelayEach[string](100 * time.Millisecond),
 )
 
 func main() {
     observable := pipeline(ro.Just(1, 2, 3))
 
-    // Non-blocking subscription
+    // Subscribe() blocks here until the pipeline completes (~200ms),
+    // but each value is printed as soon as it's ready, not all at once.
     _ = observable.Subscribe(ro.OnNext(func(s string) {
-        fmt.Println(s) // appears immediately, one by one
+        fmt.Println(s) // "processed-1" at ~100ms, "processed-3" at ~200ms
     }))
 }
 ```
+
+To run a pipeline without blocking the calling goroutine, wrap the subscription in your own `go func() { ... }()`, or use `NewSafeObservable` for a source that's genuinely asynchronous underneath.
 
 ## When to Use Which
 
@@ -229,13 +217,13 @@ import (
 
 func main() {
     // Use lo for initial data preparation
-    numbers := lo.Range(1, 11)
+    numbers := lo.RangeFrom(1, 10) // [1, 2, ..., 10]
     evens := lo.Filter(numbers, func(x int, _ int) bool {
         return x%2 == 0
     })
 
     // Use ro for real-time processing
-    observable := ro.Pipe2(
+    observable := ro.Pipe1(
         ro.Just(evens...),
         ro.Map(func(x int) string {
             return fmt.Sprintf("stream-%d", x)
@@ -266,28 +254,31 @@ Choose based on your specific performance requirements - `lo` for immediate resu
 
 ## Feature Comparison
 
+Most rows below aren't "missing" from `lo` — they simply don't apply to synchronous, in-memory collections. `lo` doesn't need backpressure any more than `sort.Slice` does.
+
 :::info Feature Matrix
 
-| Feature               | samber/lo | samber/ro |
-| --------------------- | --------- | --------- |
-| Map/Filter            | ✅         | ✅         |
-| Reduce/Fold           | ✅         | ✅         |
-| Async Processing      | ❌         | ✅         |
-| Error Handling        | Basic     | Advanced  |
-| Retry Mechanisms      | ❌         | ✅         |
-| Time-based Operations | ❌         | ✅         |
-| Backpressure          | ❌         | ✅         |
-| Hot/Cold Observables  | ❌         | ✅         |
-| Subject Types         | ❌         | ✅         |
+| Feature               | samber/lo                    | samber/ro                          |
+| ---------------------- | ----------------------------- | ----------------------------------- |
+| Map/Filter/Reduce      | ✅                             | ✅                                   |
+| Error Handling         | Go `error` return values      | Stream-level `Catch`/`Retry`/propagation |
+| Concurrency model      | None — plain function calls   | Synchronous by default; opt into goroutines yourself when a source is truly async |
+| Time-based Operations  | N/A — no concept of "over time" | ✅ (debounce, throttle, interval)  |
+| Backpressure           | N/A — bounded collections     | ✅                                   |
+| Hot/Cold Observables   | N/A                            | ✅                                   |
+| Subject Types          | N/A                            | ✅                                   |
 
 :::
 
-Both libraries excel in their respective domains. Choose `lo` for traditional functional programming on collections and `ro` for reactive, event-driven applications.
+If a row says N/A for `lo`, that's usually a sign the problem calls for `ro` instead — not that `lo` is behind.
 
-:::tip Learn More
+:::tip Learn more
 
-- Explore [samber/ro basics](../core/observable) for reactive concepts
-- See [Operators guide](../core/operators) for stream transformations
-- Learn about [backpressure](../glossary#Backpressure) in reactive systems
+- [Getting started with ro](../getting-started) — install `ro` and see your first pipeline
+- [channels vs ro](./channels-vs-ro) — how `ro` relates to native Go concurrency
+- [iter vs ro](./iter-vs-ro) — how `ro` relates to Go's `iter` package
+- [Observable basics](../core/observable) for reactive concepts
+- [Operators guide](../core/operators) for stream transformations
+- [Backpressure](../glossary#Backpressure) in reactive systems
 
 :::
