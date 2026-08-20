@@ -14,7 +14,7 @@ sidebar_position: 5
 
 ### Paradigm
 - **lo**: **Synchronous** functional programming
-- **ro**: **Asynchronous** reactive programming
+- **ro**: **Synchronous by default** reactive programming — no scheduler, reacts to events as they occur
 
 ### Data Flow
 - **lo**: Immediate computation on finite collections
@@ -124,7 +124,14 @@ Filtering happens as values flow through the stream, providing lazy evaluation.
 
 ### Both are synchronous by default — they differ in when results become visible
 
-`ro` is **mostly synchronous and has no scheduler** (Go already gives you first-class concurrency, so `ro` doesn't invent its own — see the [glossary](../glossary#Asynchronous)). A default `Subscribe()` call blocks the calling goroutine exactly like a `lo` call blocks the calling function, until the pipeline completes. The difference is what happens *during* that block: `lo` computes the whole result before returning it, while `ro` surfaces each value to your observer as soon as it's produced.
+:::info Blocking vs. Progressive
+
+- **lo**: computes the whole result before returning it — nothing is visible until the call returns
+- **ro**: `Subscribe()` blocks the calling goroutine too, but surfaces each value to your observer as soon as it's produced, not all at once
+
+:::
+
+`ro` is **mostly synchronous and has no scheduler** (Go already gives you first-class concurrency, so `ro` doesn't invent its own — see the [glossary](../glossary#Asynchronous)). A default `Subscribe()` call blocks the calling goroutine exactly like a `lo` call blocks the calling function, until the pipeline completes.
 
 **samber/lo** — the caller sees nothing until the whole slice is ready:
 ```go

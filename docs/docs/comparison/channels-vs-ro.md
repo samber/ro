@@ -586,7 +586,8 @@ Consider your specific requirements for control, complexity, and maintainability
 | Aspect           | Go channels            | samber/ro                 |
 | ---------------- | ---------------------- | ------------------------- |
 | **Memory Usage** | Minimal                | Minimal                   |
-| **CPU Usage**    | Minimal                | Moderate |
+| **Latency**      | Low                    | Very low                  |
+| **CPU Usage**    | Minimal                | Minimal |
 | **Control**      | Full control           | Abstracted into operators |
 | **Scalability**  | Manual scaling         | Opt-in         |
 | **Backpressure** | Unblock on consumption | Unblock after consumption |
