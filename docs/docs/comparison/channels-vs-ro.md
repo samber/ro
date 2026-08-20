@@ -588,7 +588,7 @@ Consider your specific requirements for control, complexity, and maintainability
 | **Memory Usage** | Minimal                | Minimal                   |
 | **CPU Usage**    | Minimal                | Moderate |
 | **Control**      | Full control           | Abstracted into operators |
-| **Scalability**  | Manual fan-out         | Opt-in fan-out via `Share()` — not automatic, see below |
+| **Scalability**  | Manual scaling         | Opt-in         |
 | **Backpressure** | Unblock on consumption | Unblock after consumption |
 
 :::
