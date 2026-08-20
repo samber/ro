@@ -11,16 +11,16 @@ function Community() {
   const context = useDocusaurusContext();
 
   return (
-    <Layout title="Community" description="Where to ask questions and find your soulmate">
+    <Layout title="Community" description="Where to ask questions, report bugs, and follow samber/ro">
       <header className="hero">
         <div className="container text--center">
           <h1>Community</h1>
           <div className="hero--subtitle">
-            These are places where you can ask questions and find your soulmate (no promises).
+            Where to ask questions, report bugs, and follow the project.
             <br/>
             "If you want to go fast, go alone. If you want to go far, go together."
           </div>
-          <img className={styles.headerImg} src="/img/go-community.png" />
+          <img className={styles.headerImg} src="/img/go-community.png" alt="samber/ro community" width={502} height={180} />
         </div>
       </header>
       <main>

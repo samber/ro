@@ -33,3 +33,49 @@
   height: 200px;
   width: 200px;
 }
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 1rem 0;
+}
+
+.badges img {
+  height: 20px;
+}
+
+.heroCode {
+  max-width: 640px;
+  margin: 1.5rem auto;
+  text-align: left;
+}
+
+.installHint {
+  margin-top: 0.75rem;
+  opacity: 0.8;
+}
+
+.why {
+  padding: 2rem 0 3rem;
+}
+
+.explore {
+  padding: 1rem 0 3rem;
+}
+
+.exploreCard {
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.exploreCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ifm-global-shadow-md);
+  text-decoration: none;
+  color: inherit;
+}
