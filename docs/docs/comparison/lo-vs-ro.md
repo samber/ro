@@ -8,6 +8,9 @@ sidebar_position: 5
 
 **`samber/lo` and `samber/ro` solve different problems and are designed to work together.** `lo` is a Lodash-style toolkit for looping over finite, in-memory Go collections (slices, maps) synchronously. `ro` is a reactive streams library for processing asynchronous, potentially infinite sequences of events. Most Go services that consume `ro` for event-driven pipelines also use `lo` for the synchronous, in-memory steps around them — they are not alternatives to pick between, they're two tools for two different jobs.
 
+- **samber/lo**: synchronous helpers for finite, in-memory collections (slices, maps)
+- **samber/ro**: synchronous-by-default reactive streams for asynchronous, potentially infinite sequences of events
+
 ## Key Differences
 
 :::tip Core Distinctions
