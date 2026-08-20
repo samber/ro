@@ -186,7 +186,7 @@ sub := obs.Subscribe(ro.NewObserver(
     },
     func() {
         fmt.Println("Completed")
-    }
+    },
 ))
 time.Sleep(100 * time.Millisecond)
 defer sub.Unsubscribe()

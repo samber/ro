@@ -43,7 +43,7 @@ obs := ro.Pipe[int64, ro.IntervalValue[int64]](
 
 sub := obs.Subscribe(ro.OnNext(func(value ro.IntervalValue[int64]) {
     fmt.Printf("Value: %d, Interval: %v\n", value.Value, value.Interval)
-))
+}))
 time.Sleep(700 * time.Millisecond)
 sub.Unsubscribe()
 

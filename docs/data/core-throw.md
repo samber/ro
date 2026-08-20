@@ -50,10 +50,10 @@ defer sub.Unsubscribe()
 
 ```go
 // pipeline.go
-var pipeline ro.PipeOp(
+pipeline := ro.PipeOp[int, int](
     ro.Map(func(x int) int {
         return x*2
-    })
+    }),
     ro.Catch(func(err error) ro.Observable[int] {
         return ro.Just(42)
     }),

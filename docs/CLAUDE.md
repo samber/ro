@@ -205,7 +205,7 @@ When the method is part of a plugin, add the `import` section on top of code blo
 ```go
 import (
   "github.com/samber/ro"
-  rostrings "github.com/samber/ro/plugin/strings"
+  rostrings "github.com/samber/ro/plugins/strings"
 )
 
 obs := ro.Pipe[string, string](

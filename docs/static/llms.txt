@@ -8,12 +8,12 @@ A Go implementation of the ReactiveX spec that provides a declarative and compos
 import "github.com/samber/ro"
 
 // Basic reactive stream
-observable := ro.Pipe(
+observable := ro.Pipe[int64, string](
     ro.Range(0, 10),
-    ro.Filter(func(x int) bool {
+    ro.Filter(func(x int64) bool {
         return x%2 == 0
     }),
-    ro.Map(func(x int) string {
+    ro.Map(func(x int64) string {
         return fmt.Sprintf("even-%d", x)
     }),
 )
@@ -265,25 +265,32 @@ npx skills add https://github.com/samber/cc-skills-golang --skill golang-samber-
 
 ### HTTP Requests with Error Handling
 ```go
-import rohttp "github.com/samber/ro/plugin/http/client"
+import (
+    "net/http"
+
+    "github.com/samber/ro"
+    rohttp "github.com/samber/ro/plugins/http/client"
+)
+
+type GithubUser struct {
+    Login string `json:"login"`
+}
 
 urls := []string{
     "https://api.github.com/users/samber",
     "https://api.github.com/users/ansible",
 }
 
-obs := ro.Pipe(
+obs := ro.Pipe[string, string](
     ro.FromSlice(urls),
-    ro.MergeMap(func(url string) ro.Observable[[]byte] {
-        return rohttp.Get[[]byte](url)
-    }),
-    ro.Map(func(body []byte] map[string]any {
-        var user map[string]any
-        json.Unmarshal(body, &user)
-        return user
-    }),
-    ro.Map(func(user map[string]any) string {
-        return user["login"].(string)
+    ro.MergeMap(func(url string) ro.Observable[string] {
+        req, _ := http.NewRequest("GET", url, nil)
+        return ro.Pipe[GithubUser, string](
+            rohttp.HTTPRequestJSON[GithubUser](req, nil),
+            ro.Map(func(user GithubUser) string {
+                return user.Login
+            }),
+        )
     }),
 )
 
@@ -294,39 +301,53 @@ obs.Subscribe(ro.OnNext(func(login string) {
 
 ### Real-time File Monitoring
 ```go
-import rofsnotify "github.com/samber/ro/plugin/fsnotify"
-
-obs := rofsnotify.Watch("./config.yaml")
-
-obs.Subscribe(
-    ro.OnNext(func(event fsnotify.Event) {
-        fmt.Printf("File event: %s\n", event.Op.String())
-    }),
-    ro.OnError(func(err error) {
-        fmt.Printf("Error: %v\n", err)
-    }),
+import (
+    "github.com/fsnotify/fsnotify"
+    "github.com/samber/ro"
+    rofsnotify "github.com/samber/ro/plugins/fsnotify"
 )
+
+obs := rofsnotify.NewFSListener("./config.yaml")
+
+obs.Subscribe(ro.NewObserver(
+    func(event fsnotify.Event) {
+        fmt.Printf("File event: %s\n", event.Op.String())
+    },
+    func(err error) {
+        fmt.Printf("Error: %v\n", err)
+    },
+    func() {
+        fmt.Println("Completed")
+    },
+))
 ```
 
 ### Data Pipeline with Validation
 ```go
-import rovalidation "github.com/samber/ro/plugin/ozzo/ozzo-validation"
+import (
+    validation "github.com/go-ozzo/ozzo-validation/v4"
+    "github.com/go-ozzo/ozzo-validation/v4/is"
+    "github.com/samber/ro"
+    roozzo "github.com/samber/ro/plugins/ozzo/ozzo-validation"
+)
 
 type User struct {
-    Name  string `json:"name"`
-    Email string `json:"email"`
-    Age   int    `json:"age"`
+    Name  string
+    Email string
+    Age   int
 }
 
-obs := ro.Pipe(
+func (u User) Validate() error {
+    return validation.ValidateStruct(&u,
+        validation.Field(&u.Name, validation.Required),
+        validation.Field(&u.Email, validation.Required, is.Email),
+        validation.Field(&u.Age, validation.Required, validation.Min(18)),
+    )
+}
+
+obs := ro.Pipe[User, string](
     ro.FromChannel(userChannel),
-    rovalidation.Validate(func(user User) error {
-        return validation.ValidateStruct(&user,
-            validation.Field(&user.Name, validation.Required),
-            validation.Field(&user.Email, validation.Required, is.Email),
-            validation.Field(&user.Age, validation.Required, validation.Min(18)),
-        )
-    }),
+    roozzo.ValidateStructOrError[User](),
     ro.Map(func(user User) string {
         return fmt.Sprintf("Valid user: %s (%s)", user.Name, user.Email)
     }),
@@ -339,12 +360,17 @@ obs.Subscribe(ro.OnNext(func(msg string) {
 
 ### Rate Limited Processing
 ```go
-import rorate "github.com/samber/ro/plugin/ratelimit/native"
+import (
+    "time"
 
-obs := ro.Pipe(
+    "github.com/samber/ro"
+    roratelimit "github.com/samber/ro/plugins/ratelimit/native"
+)
+
+obs := ro.Pipe[int64, string](
     ro.Range(0, 100),
-    rorate.Limit(10), // max 10 items per second
-    ro.Map(func(i int) string {
+    roratelimit.NewRateLimiter[int64](10, time.Second, func(i int64) string { return "global" }), // max 10 items per second
+    ro.Map(func(i int64) string {
         return fmt.Sprintf("Processing item %d", i)
     }),
 )

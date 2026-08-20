@@ -132,7 +132,7 @@ obs := ro.Pipe[int, int](
     ro.ThrowIfEmpty[int](func() error {
         return fmt.Errorf("attempt %d: no data available", attempt)
     }),
-    ro.RetryWithConfig[int](RetryConfig{
+    ro.RetryWithConfig[int](ro.RetryConfig{
         MaxRetries: 5,
         Delay:      100 * time.Millisecond,
     }),

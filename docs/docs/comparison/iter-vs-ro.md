@@ -6,12 +6,7 @@ sidebar_position: 4
 
 # 🔁 `iter` vs `samber/ro`
 
-Go's `iter` package (introduced in Go 1.23) and `samber/ro` both provide ways to work with sequences of values, but they serve different purposes and follow different paradigms:
-
-- **Go iter package**: **Pull-based** - the consumer controls when to pull values
-- **samber/ro**: **Push-based** - the producer pushes values to consumers
-
-This comparison explores the fundamental differences between Go's standard iteration and reactive streams.
+**Go's `iter` package (1.23+) is pull-based; `ro` is push-based — the fundamental difference between an iterator and a stream.** With `iter`, the consumer calls `next()` and blocks until a value is ready: it's a great fit for synchronous, in-memory sequences. With `ro`, the producer emits values whenever they occur — a click, a websocket frame, a timer tick — and every subscriber reacts. The `ro` plugin `plugins/iter` bridges the two, so you can consume an `iter.Seq` as an Observable or vice versa.
 
 ## Key Differences
 
@@ -206,7 +201,7 @@ Reactive programming is inherently asynchronous, perfect for real-time applicati
 ```go
 var pipeline = ro.PipeOp2(
     ro.Map(expensiveAsyncOperation),
-    ro.RetryWithConfig(RetryConfig{MaxRetries: 3}),
+    ro.RetryWithConfig[string](ro.RetryConfig{MaxRetries: 3}),
 )
 
 func main() {
@@ -499,5 +494,7 @@ Go's `iter` package is excellent for synchronous iteration and sequences, while 
 - Explore [Observable basics](../core/observable) for reactive concepts
 - Learn about [backpressure](../glossary#Backpressure) in reactive systems
 - Compare with [Go channels](../comparison/channels-vs-ro) for another concurrency approach
+- Compare with [samber/lo](../comparison/lo-vs-ro), ro's sibling library for synchronous collections
+- Compare with [RxGo](../comparison/rxgo-vs-ro), the historical ReactiveX implementation for Go
 
 :::
