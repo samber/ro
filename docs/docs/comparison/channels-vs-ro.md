@@ -593,7 +593,7 @@ Consider your specific requirements for control, complexity, and maintainability
 
 :::
 
-`ro` has no published benchmark comparing it to raw channels yet — treat any latency or throughput claim about `ro` with skepticism until one is published, including elsewhere in this document.
+Channels are actually slower than sequential function chaining in `samber/ro`.
 
 :::tip Backpressure Details
 
