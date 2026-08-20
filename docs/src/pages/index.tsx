@@ -15,7 +15,7 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Beyond raw channels',
+    title: 'Streams beyond Go channels',
     Svg: require('@site/static/img/tram.svg').default,
     description: (
       <>
@@ -26,13 +26,14 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'Type-safe, not interface{}',
+    title: 'Transformation chaining',
     Svg: require('@site/static/img/street-sign.svg').default,
     description: (
       <>
-        Built on Go 1.18+ generics from day one: every <code>Map</code>,{' '}
-        <code>Filter</code>, and <code>Merge</code> is checked by the
-        compiler, not discovered at runtime with a failed type assertion.
+        Compose <code>Map</code>, <code>Filter</code>, and 200+ other
+        operators into a single fluent pipeline. Every step is fully
+        generic-typed, so a mismatched transformation is a compile error,
+        not a runtime surprise.
       </>
     ),
   },
