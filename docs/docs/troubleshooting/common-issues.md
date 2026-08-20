@@ -10,48 +10,6 @@ This guide covers the most frequently encountered issues when working with `samb
 
 ## 1. Not Receiving Values
 
-### Problem: Observable emits no values
-
-```go
-// This seems like it should work, but no values are received
-observable := ro.Pipe1(
-    ro.Just(1, 2, 3),
-    ro.Map(func(x int) int { return x * 2 }),
-)
-
-// ❌ No output
-observable.Subscribe(ro.OnNext(func(x int) {
-    fmt.Println(x) // Never called
-}))
-```
-
-**Cause:** Using `ro.OnNext()` with a blocking observable. The observable completes synchronously before the observer can handle values.
-
-**Solution:** Use a full observer or handle the blocking nature:
-
-```go
-// ✅ Solution 1: Use full observer
-observable.Subscribe(ro.NewObserver(
-    func(x int) { fmt.Println(x) },      // Next
-    func(err error) { fmt.Println(err) }, // Error  
-    func() { fmt.Println("Done") },      // Complete
-))
-
-// ✅ Solution 2: Use TapXXX operators in the middle of your stream
-observable := ro.Pipe1(
-    ro.Just(1, 2, 3),
-    ro.Take[int64](5),
-    ro.Map(func(x int) int { return x * 2 }),
-    ro.TapOnNext(func(x int) {
-        fmt.Println("Value: %d", n) // print debug
-    }),
-    ro.Map(func(x int64) string {
-        return fmt.Sprintf("Tick: %d", x)
-    }),
-)
-observable.Subscribe(...)
-```
-
 ### Problem: Hot observable not sharing values
 
 ```go

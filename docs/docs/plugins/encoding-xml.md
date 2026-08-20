@@ -3,6 +3,7 @@ title: Encoding / XML
 description: XML operators for ro — Go reactive streams. Marshal, unmarshal, and stream XML documents with encoding/xml; emit decoded values as Observable values.
 sidebar_position: 40
 hide_table_of_contents: true
+draft: true
 ---
 
 # Encoding/XML - Plugin operators
