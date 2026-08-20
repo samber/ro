@@ -178,7 +178,7 @@ func main() {
 }
 ```
 
-To run a pipeline without blocking the calling goroutine, wrap the subscription in your own `go func() { ... }()`, or use `NewSafeObservable` for a source that's genuinely asynchronous underneath.
+`ro` has two built-in operators for offloading work to its own goroutine: `SubscribeOn` moves the upstream source's execution off the calling goroutine, `ObserveOn` does the same for delivery to your observer — both are meant to decouple producer and consumer speed (backpressure), not to make `Subscribe()` itself return immediately. To do that — run a pipeline without blocking the calling goroutine at all — wrap the subscription in your own `go func() { ... }()`.
 
 ## When to Use Which
 
