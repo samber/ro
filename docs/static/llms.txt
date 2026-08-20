@@ -281,16 +281,17 @@ urls := []string{
     "https://api.github.com/users/ansible",
 }
 
-obs := ro.Pipe[string, string](
+obs := ro.Pipe3(
     ro.FromSlice(urls),
-    ro.MergeMap(func(url string) ro.Observable[string] {
+    ro.Map(func(url string) *http.Request {
         req, _ := http.NewRequest("GET", url, nil)
-        return ro.Pipe[GithubUser, string](
-            rohttp.HTTPRequestJSON[GithubUser](req, nil),
-            ro.Map(func(user GithubUser) string {
-                return user.Login
-            }),
-        )
+        return req
+    }),
+    ro.MergeMap(func(req *http.Request) ro.Observable[GithubUser] {
+        return rohttp.HTTPRequestJSON[GithubUser](req, nil)
+    }),
+    ro.Map(func(user GithubUser) string {
+        return user.Login
     }),
 )
 
