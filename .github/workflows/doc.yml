@@ -24,8 +24,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
 
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: '../go.mod'
+
       - name: Install dependencies
         run: npm i
+
+      - name: Check that ```go code examples are syntactically valid
+        run: npm run check-go-examples
 
       - name: Build Docusaurus project
         run: npm run build
