@@ -10,6 +10,55 @@ This guide covers the most frequently encountered issues when working with `samb
 
 ## 1. Not Receiving Values
 
+### Problem: `OnNext` doesn't show errors or completion
+
+```go
+observable := ro.Pipe1(
+    ro.Just(1, 2, 3),
+    ro.Map(func(x int) int { return x * 2 }),
+)
+
+observable.Subscribe(ro.OnNext(func(x int) {
+    fmt.Println(x)
+}))
+// 2
+// 4
+// 6
+// (nothing printed for completion — you can't tell the stream is done)
+```
+
+**Cause:** `ro.OnNext(...)` builds a partial Observer whose `onError` and `onComplete` callbacks are both no-ops — the source comment on `OnNext` warns about exactly this: "This observer will silent errors." The same happens on an errored stream:
+
+```go
+riskyObservable := ro.Pipe1(
+    ro.Just(1, 2, 3),
+    ro.MapErr(func(x int) (int, error) {
+        if x == 2 {
+            return 0, errors.New("failed on 2")
+        }
+        return x * 2, nil
+    }),
+)
+
+riskyObservable.Subscribe(ro.OnNext(func(x int) {
+    fmt.Println(x)
+}))
+// 2
+// (the error on x=2 is silently dropped — no error message, no sign the stream failed)
+```
+
+**Solution:** Use a full observer so you can see all three notification types:
+
+```go
+riskyObservable.Subscribe(ro.NewObserver(
+    func(x int) { fmt.Println("Next:", x) },
+    func(err error) { fmt.Println("Error:", err) },
+    func() { fmt.Println("Complete") },
+))
+// Next: 2
+// Error: failed on 2
+```
+
 ### Problem: Hot observable not sharing values
 
 ```go

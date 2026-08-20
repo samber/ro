@@ -44,10 +44,10 @@ const FeatureList: FeatureItem[] = [
     description: (
       <>
         A minimal yet expressive API that gives you full control over your
-        reactive pipelines, without sacrificing clarity or performance. The
-        core package depends only on <code>samber/lo</code> — everything
-        else (JSON, HTTP, rate limiting, structured logging) lives in
-        opt-in plugin modules you import only when you need them.
+        reactive pipelines, without sacrificing clarity or performance.
+        Everything beyond the core — JSON, HTTP, rate limiting, structured
+        logging — lives in opt-in plugin modules with their own
+        dependencies, imported only when you need them.
       </>
     ),
   },
