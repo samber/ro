@@ -617,7 +617,7 @@ Learn more about [backpressure](../glossary#Backpressure) in the glossary.
 | Backpressure                 | Manual      | ✅         |
 | Type Safety                  | ✅           | ✅         |
 | Standard Library             | ✅           | ❌         |
-| Scheduler                    | N/A         | None — `ro` has no scheduler, Go's goroutines are used directly (see [glossary](../glossary#Schedulers)) |
+| Scheduler                    | N/A         | none |
 | Composition                  | Manual      | ✅         |
 
 ## Migration Examples
