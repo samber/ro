@@ -19,9 +19,10 @@ const FeatureList: FeatureItem[] = [
     Svg: require('@site/static/img/tram.svg').default,
     description: (
       <>
-        Keep the goroutines you already know, but stop hand-rolling fan-out,
-        retries, and backpressure for every pipeline. <code>ro</code> composes
-        those patterns into reusable operators.
+        You already know channels and goroutines. <code>ro</code> adds
+        what's missing: a vocabulary of composable operators, so you
+        describe what a stream does instead of coding the concurrency
+        around it by hand.
       </>
     ),
   },
