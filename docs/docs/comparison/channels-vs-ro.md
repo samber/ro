@@ -586,7 +586,7 @@ Consider your specific requirements for control, complexity, and maintainability
 | Aspect           | Go channels            | samber/ro                 |
 | ---------------- | ---------------------- | ------------------------- |
 | **Memory Usage** | Minimal                | Minimal                   |
-| **CPU Usage**    | Minimal                | Moderate — `Pipe()` uses reflection once, at pipeline construction, never on the message path; `PipeX` variants are fully typed |
+| **CPU Usage**    | Minimal                | Moderate |
 | **Control**      | Full control           | Abstracted into operators |
 | **Scalability**  | Manual fan-out         | Opt-in fan-out via `Share()` — not automatic, see below |
 | **Backpressure** | Unblock on consumption | Unblock after consumption |
