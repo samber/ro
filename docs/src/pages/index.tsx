@@ -38,13 +38,15 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'A small core, opt-in plugins',
+    title: 'A small core, a powerful developer experience',
     Svg: require('@site/static/img/drawing.svg').default,
     description: (
       <>
-        The core package depends only on <code>samber/lo</code>. Everything
-        else — JSON, HTTP, rate limiting, structured logging — lives in
-        separate plugin modules you import only when you need them.
+        A minimal yet expressive API that gives you full control over your
+        reactive pipelines, without sacrificing clarity or performance. The
+        core package depends only on <code>samber/lo</code> — everything
+        else (JSON, HTTP, rate limiting, structured logging) lives in
+        opt-in plugin modules you import only when you need them.
       </>
     ),
   },
