@@ -157,31 +157,31 @@ With channels, you need to manually implement fan-out logic and manage multiple 
 
 **samber/ro** (fan-out via `Share()`):
 
-By default, `ro.Just(...)` is a **cold** observable: each `.Subscribe()` call independently re-runs the source from scratch — that's two separate executions, not a broadcast. To fan a single execution out to multiple subscribers, make it **hot** with `Share()`:
+By default, an observable is **cold**: each `.Subscribe()` call independently re-runs the source from scratch — that's two separate executions, not a broadcast. Add the `Share()` operator to make a source **hot** instead: as long as at least one subscriber is attached, every subscriber sees the same single execution.
 ```go
 func main() {
-    // Share() turns a cold observable into a hot one: all subscribers
-    // attached before Connect() see the same single execution.
-    observable := ro.Connectable(ro.Just(1, 2, 3, 4, 5))
+    source := ro.Pipe2(
+        ro.Interval(1*time.Millisecond),
+        ro.Take[int64](5),
+        ro.Share[int64](), // subscribers share the same execution
+    )
 
-    observable.Subscribe(ro.OnNext(func(v int) {
-        fmt.Println("Subscriber 1:", v)
+    source.Subscribe(ro.OnNext(func(v int64) {
+        fmt.Println("Consumer 1:", v)
     }))
 
-    observable.Subscribe(ro.OnNext(func(v int) {
-        fmt.Println("Subscriber 2:", v)
+    source.Subscribe(ro.OnNext(func(v int64) {
+        fmt.Println("Consumer 2:", v)
     }))
 
-    // Now start the single shared execution
-    observable.Connect()
-
+    time.Sleep(10 * time.Millisecond)
     // No need to manage goroutines or channels yourself
 }
 ```
 
 :::
 
-`Share()`/`Connectable()` replace the manual fan-out goroutine and output channels — but the fan-out is not automatic by default, it's an explicit opt-in operator. See [Hot Observables](../core/observable#hot-observables) for the full explanation.
+`Share()` is the default way to fan a stream out to multiple subscribers — it replaces the manual fan-out goroutine and output channels from the example above, with no extra step to start it. `Connectable()`, used earlier in this project's own examples, is a lower-level primitive for the rarer case where you need to control precisely *when* a shared execution starts (e.g. buffering subscribers until a specific moment); reach for `Share()` first. See [Hot Observables](../core/observable#hot-observables) for the full explanation.
 
 ### Error Handling
 
@@ -588,7 +588,7 @@ Consider your specific requirements for control, complexity, and maintainability
 | **Memory Usage** | Minimal                | Minimal                   |
 | **CPU Usage**    | Minimal                | Moderate — `Pipe()` uses reflection once, at pipeline construction, never on the message path; `PipeX` variants are fully typed |
 | **Control**      | Full control           | Abstracted into operators |
-| **Scalability**  | Manual fan-out         | Opt-in fan-out via `Share()`/`Connectable()` — not automatic, see below |
+| **Scalability**  | Manual fan-out         | Opt-in fan-out via `Share()` — not automatic, see below |
 | **Backpressure** | Unblock on consumption | Unblock after consumption |
 
 :::
