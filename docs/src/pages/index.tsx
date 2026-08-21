@@ -45,9 +45,8 @@ const FeatureList: FeatureItem[] = [
       <>
         A minimal yet expressive API that gives you full control over your
         reactive pipelines, without sacrificing clarity or performance.
-        Everything beyond the core — JSON, HTTP, rate limiting, structured
-        logging — lives in opt-in plugin modules with their own
-        dependencies, imported only when you need them.
+        Everything beyond the core lives in opt-in plugin modules with
+        their own dependencies.
       </>
     ),
   },
@@ -101,28 +100,6 @@ function HomepageFeatures(): ReactNode {
   );
 }
 
-function Badges(): ReactNode {
-  return (
-    <div className={styles.badges}>
-      <a href="https://github.com/samber/ro/releases">
-        <img src="https://img.shields.io/github/tag/samber/ro.svg" alt="Latest tag" loading="lazy" />
-      </a>
-      <a href="https://pkg.go.dev/github.com/samber/ro">
-        <img src="https://godoc.org/github.com/samber/ro?status.svg" alt="GoDoc" loading="lazy" />
-      </a>
-      <a href="https://github.com/samber/ro/actions/workflows/test.yml">
-        <img src="https://github.com/samber/ro/actions/workflows/test.yml/badge.svg" alt="Build status" loading="lazy" />
-      </a>
-      <a href="https://goreportcard.com/report/github.com/samber/ro">
-        <img src="https://goreportcard.com/badge/github.com/samber/ro" alt="Go report card" loading="lazy" />
-      </a>
-      <a href="https://github.com/samber/ro/stargazers">
-        <img src="https://img.shields.io/github/stars/samber/ro?style=social" alt="GitHub stars" loading="lazy" />
-      </a>
-    </div>
-  );
-}
-
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
   return (
@@ -132,55 +109,24 @@ function HomepageHeader() {
           {siteConfig.title}
         </Heading>
         <p className="hero__subtitle">
-          Compose async, event-driven pipelines in Go — Observables, 200+
-          type-safe operators, and a small dependency-free core.
+          Compose event-driven pipelines in Go - Observables, 200+
+          type-safe operators, and dozens of plugins.
         </p>
-        <Badges />
         <div className={styles.heroCode}>
-          <CodeBlock language="go" title="main.go">
+          <CodeBlock language="go">
             {HERO_EXAMPLE}
           </CodeBlock>
         </div>
         <div className={clsx(styles.buttons, 'margin-top--md')}>
-          <Link className="button button--primary button--lg" to="/docs/getting-started">
-            Getting started — 5 min ⏱️
-          </Link>
           <Link className="button button--secondary button--lg" to="/docs/about">
-            Why reactive in Go?
+            About
           </Link>
-          <Link className="button button--secondary button--lg" to="https://github.com/samber/ro">
-            GitHub
+          <Link className="button button--secondary button--lg" to="/docs/getting-started">
+            Getting started - 5min ⏱️
           </Link>
         </div>
-        <p className={styles.installHint}>
-          <code>go get -u github.com/samber/ro</code>
-        </p>
       </div>
     </header>
-  );
-}
-
-function WhyNotChannels(): ReactNode {
-  return (
-    <section className={styles.why}>
-      <div className="container">
-        <div className="row">
-          <div className="col col--8 col--offset-2 text--center">
-            <Heading as="h2">Why not just channels?</Heading>
-            <p>
-              You can build any of this with raw channels and goroutines —{' '}
-              <code>ro</code>'s own operators are implemented that way
-              underneath. The difference is that you write the fan-out,
-              retry, debounce, and cleanup logic once, as a reusable
-              operator, instead of re-deriving it in every service. If a
-              plain channel already does the job, keep the channel — see{' '}
-              <Link to="/docs/comparison/channels-vs-ro">channels vs ro</Link>{' '}
-              for a side-by-side comparison.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -198,7 +144,7 @@ const EXPLORE_CARDS: ExploreCard[] = [
   },
   {
     title: '🔍 Plugins',
-    description: 'JSON, CSV, HTTP, rate limiting, structured logging, and more — opt-in modules.',
+    description: 'JSON, CSV, HTTP, rate limiting, structured logging, and more - opt-in modules.',
     to: '/docs/plugins',
   },
   {
@@ -239,7 +185,6 @@ export default function Home(): JSX.Element {
       <HomepageHeader />
       <main>
         <HomepageFeatures />
-        <WhyNotChannels />
         <ExploreSection />
       </main>
     </Layout>

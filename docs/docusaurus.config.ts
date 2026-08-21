@@ -292,6 +292,10 @@ const config: Config = {
               to: '/docs/getting-started',
             },
             {
+              label: 'Comparisons',
+              to: '/docs/comparison',
+            },
+            {
               label: 'Changelog',
               to: 'https://github.com/samber/ro/releases',
             },

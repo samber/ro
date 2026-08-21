@@ -20,6 +20,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 1rem;
 }
 
 .features {
@@ -34,32 +35,10 @@
   width: 200px;
 }
 
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  margin: 1rem 0;
-}
-
-.badges img {
-  height: 20px;
-}
-
 .heroCode {
   max-width: 640px;
   margin: 1.5rem auto;
   text-align: left;
-}
-
-.installHint {
-  margin-top: 0.75rem;
-  opacity: 0.8;
-}
-
-.why {
-  padding: 2rem 0 3rem;
 }
 
 .explore {
