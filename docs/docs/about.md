@@ -90,7 +90,7 @@ Automatic cleanup and backpressure handling prevent resource leaks. See [Subscri
 // Automatically cancel when stream is completed
 observable := ro.Pipe[int64, int64](
     ro.Interval(1 * time.Second),
-    ro.Take(10),
+    ro.Take[int64](10),
 )
 
 subscription := observable.Subscribe(
@@ -109,7 +109,7 @@ subscription := observable.Subscribe(
 While inspired by ReactiveX and `rxjs`, `ro` embraces Go's conventions:
 - Context-aware operations
 - Error handling via multiple return values
-- Goroutine-safe by design
+- Synchronous by default, explicit when you opt into concurrency — use `NewSafeObservable` or the `Serialize` operator when a source is genuinely asynchronous
 - Zero allocations and limited lock in hot paths where possible
 
 ### **Type Safety**

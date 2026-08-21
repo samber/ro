@@ -8,6 +8,8 @@
 .headerImg {
     padding-top: 20px;
     height: 180px;
+    width: 502px;
+    max-width: 100%;
 }
 
 .twitter:before {

@@ -28,9 +28,9 @@ import (
 func Pipe[First, Last any](source Observable[First], operators ...any) Observable[Last] {
 	o := reflect.ValueOf(source)
 
-	// Since generic type can vary for each operator, we decided to use reflection and validate
-	// types at runtime. Type is not check for each message but only at Pipe() call.
-	// This is a peace of shit. If anybody find a better way to do it, please contribute!!
+	// Generic types vary per operator, so types are validated via reflection here,
+	// once per Pipe() call — never on the message path. Prefer the PipeX variants
+	// for full compile-time type safety.
 	for _, operator := range operators {
 		funcValue := reflect.ValueOf(operator)
 
