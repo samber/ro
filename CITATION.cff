@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "samber/ro: Streams & Reactive Programming paradigm for Go"
+abstract: >-
+  A Go implementation of the ReactiveX specification. ro offers a declarative
+  and composable API — Observables, Observers and 200+ operators — to build
+  event-driven and asynchronous applications on top of infinite data streams.
+type: software
+authors:
+  - family-names: Berthe
+    given-names: Samuel
+    email: hello@samuel-berthe.fr
+    orcid: "https://orcid.org/0009-0000-2060-7721"
+doi: 10.5281/zenodo.22071980
+license: Apache-2.0
+repository-code: "https://github.com/samber/ro"
+url: "https://ro.samber.dev"
+date-released: "2025-10-14"
+keywords:
+  - go
+  - golang
+  - reactive-programming
+  - reactivex
+  - reactive-streams
+  - observable
+  - observer
+  - stream
+  - event-driven
+  - generics
+  - pipeline
+  - rx
