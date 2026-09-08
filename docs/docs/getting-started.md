@@ -299,7 +299,6 @@ package main
 
 import (
     "fmt"
-    "net/http"
     "time"
 
     "github.com/samber/ro"
@@ -318,9 +317,9 @@ func main() {
     // Process with rate limiting
     userStream := ro.Pipe3(
         userIds,
-        ro.Map(fetchUser),
+        ro.MapErr(fetchUser),
         ro.DelayEach[string](200 * time.Millisecond),  // 200ms pause between items
-        ro.RetryWithConfig(RetryConfig{MaxRetries: 2}),  // Retry failed requests
+        ro.RetryWithConfig[string](ro.RetryConfig{MaxRetries: 2}),  // Retry failed requests
     )
 
     // Subscribe and collect results
@@ -402,7 +401,7 @@ sub1 := hot.Subscribe(ro.OnNext(func(x int) { fmt.Println("Sub1:", x) }))
 sub2 := hot.Subscribe(ro.OnNext(func(x int) { fmt.Println("Sub2:", x) }))
 
 // Start subscription
-subscription := connectable.Connect()
+subscription := hot.Connect()
 ```
 
 ## Best Practices
@@ -418,11 +417,10 @@ Follow these practices to write maintainable and robust reactive code:
 Pipeline operators promote clean, reusable code:
 ```go
 // Good: Composable pipeline
-pipeline := ro.Pipe3(
-    source,
+pipeline := ro.PipeOp3(
     ro.Filter(predicate),
     ro.Map(transformer),
-    ro.Retry(3),
+    ro.RetryWithConfig[T](ro.RetryConfig{MaxRetries: 3}),
 )
 
 // Reusable pipeline
@@ -473,7 +471,7 @@ obs1 := ro.Pipe1(
 // Use TakeUntil with timeout
 obs2 := ro.Pipe1(
     source,
-    stream.TakeUntil[int](ro.Timer(30*time.Second))
+    ro.TakeUntil[int](ro.Timer(30*time.Second)),
 )
 ```
 

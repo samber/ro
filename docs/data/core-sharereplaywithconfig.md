@@ -18,7 +18,7 @@ position: 30
 Creates a shared Observable with replay functionality and custom configuration. Provides control over buffer size and reset behavior.
 
 ```go
-config := ShareReplayConfig{
+config := ro.ShareReplayConfig{
     ResetOnRefCountZero: true, // Reset when no subscribers left
 }
 
@@ -44,7 +44,7 @@ sub2.Unsubscribe()
 ### With ResetOnRefCountZero disabled
 
 ```go
-config := ShareReplayConfig{
+config := ro.ShareReplayConfig{
     ResetOnRefCountZero: false, // Keep cache even when no subscribers
 }
 
@@ -80,7 +80,7 @@ sub2.Unsubscribe()
 ### With ResetOnRefCountZero enabled
 
 ```go
-config := ShareReplayConfig{
+config := ro.ShareReplayConfig{
     ResetOnRefCountZero: true, // Reset cache when no subscribers
 }
 
@@ -115,7 +115,7 @@ sub2.Unsubscribe()
 ### With large buffer and persistent cache
 
 ```go
-config := ShareReplayConfig{
+config := ro.ShareReplayConfig{
     ResetOnRefCountZero: false, // Keep cache forever
 }
 
@@ -142,7 +142,7 @@ for i := 2; i <= 4; i++ {
 ### With expensive operation and persistent cache
 
 ```go
-config := ShareReplayConfig{
+config := ro.ShareReplayConfig{
     ResetOnRefCountZero: false, // Cache expensive results
 }
 
@@ -179,7 +179,7 @@ for i := 1; i <= 3; i++ {
 ### With real-time data stream
 
 ```go
-config := ShareReplayConfig{
+config := ro.ShareReplayConfig{
     ResetOnRefCountZero: false, // Keep latest data available
 }
 
@@ -213,7 +213,7 @@ time.Sleep(4 * time.Second)
 ### With error handling and persistent cache
 
 ```go
-config := ShareReplayConfig{
+config := ro.ShareReplayConfig{
     ResetOnRefCountZero: false, // Keep error state too
 }
 
@@ -254,7 +254,7 @@ for i := 1; i <= 3; i++ {
 ### With buffer management
 
 ```go
-config := ShareReplayConfig{
+config := ro.ShareReplayConfig{
     ResetOnRefCountZero: true,
 }
 

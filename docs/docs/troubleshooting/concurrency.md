@@ -277,7 +277,7 @@ func Count[T any]() func(ro.Observable[T]) ro.Observable[T] {
 ```go
 // ❌ PROBLEM: Context misuse causing deadlock
 func contextPipelineDeadlock() ro.Observable[string] {
-    return ro.NewObservableWithContext(func(ctx context.Context, observer ro.Observer<string]) ro.Teardown {
+    return ro.NewObservableWithContext(func(ctx context.Context, observer ro.Observer[string]) ro.Teardown {
         // Creating derived context in goroutine can cause issues
         go func() {
             childCtx, cancel := context.WithCancel(ctx)
@@ -302,7 +302,7 @@ func contextPipelineDeadlock() ro.Observable[string] {
 ```go
 // ✅ Safe context usage in pipeline
 func safeContextPipeline() ro.Observable[string] {
-    return ro.NewObservableWithContext(func(ctx context.Context, observer ro.Observer<string]) ro.Teardown {
+    return ro.NewObservableWithContext(func(ctx context.Context, observer ro.Observer[string]) ro.Teardown {
         // Create derived context in main goroutine
         childCtx, cancel := context.WithCancel(ctx)
         

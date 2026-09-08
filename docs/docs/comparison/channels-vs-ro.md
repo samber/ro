@@ -6,12 +6,7 @@ sidebar_position: 3
 
 # 📡 `channels` vs `samber/ro`
 
-Go's built-in channels and `samber/ro` both provide mechanisms for handling concurrent data flow, but they represent different programming paradigms:
-
-- **Go channels**: Low-level concurrency primitives with explicit control
-- **samber/ro**: High-level reactive streams with declarative operators
-
-This comparison explores how these two approaches handle concurrency, data flow, and stream processing in Go.
+**Go channels are a low-level concurrency primitive; `ro` is a higher-level abstraction built on top of the same goroutine model.** Channels give you full manual control over buffering, fan-out, and error handling — you write it yourself, every time. `ro` provides composable operators (`Map`, `Filter`, `Merge`, `Retry`...) so you don't re-implement the same patterns in every pipeline. Neither replaces the other: `ro`'s own operators are built with channels and goroutines underneath.
 
 ## Key Differences
 
@@ -160,28 +155,33 @@ func main() {
 
 With channels, you need to manually implement fan-out logic and manage multiple output channels.
 
-**samber/ro** (implicit fan-out):
+**samber/ro** (fan-out via `Share()`):
+
+By default, an observable is **cold**: each `.Subscribe()` call independently re-runs the source from scratch — that's two separate executions, not a broadcast. Add the `Share()` operator to make a source **hot** instead: as long as at least one subscriber is attached, every subscriber sees the same single execution.
 ```go
 func main() {
-    // Single observable, multiple subscribers
-    observable := ro.Just(1, 2, 3, 4, 5)
+    source := ro.Pipe2(
+        ro.Interval(1*time.Millisecond),
+        ro.Take[int64](5),
+        ro.Share[int64](), // subscribers share the same execution
+    )
 
-    // Multiple subscribers automatically get all values
-    observable.Subscribe(ro.OnNext(func(v int) {
-        fmt.Println("Subscriber 1:", v)
+    source.Subscribe(ro.OnNext(func(v int64) {
+        fmt.Println("Consumer 1:", v)
     }))
 
-    observable.Subscribe(ro.OnNext(func(v int) {
-        fmt.Println("Subscriber 2:", v)
+    source.Subscribe(ro.OnNext(func(v int64) {
+        fmt.Println("Consumer 2:", v)
     }))
 
-    // No need to manage goroutines or channels
+    time.Sleep(10 * time.Millisecond)
+    // No need to manage goroutines or channels yourself
 }
 ```
 
 :::
 
-Multiple subscribers automatically receive all values without manual channel management.
+`Share()` is the default way to fan a stream out to multiple subscribers — it replaces the manual fan-out goroutine and output channels from the example above, with no extra step to start it. `Connectable()`, used earlier in this project's own examples, is a lower-level primitive for the rarer case where you need to control precisely *when* a shared execution starts (e.g. buffering subscribers until a specific moment); reach for `Share()` first. See [Hot Observables](../core/observable#hot-observables) for the full explanation.
 
 ### Error Handling
 
@@ -587,9 +587,9 @@ Consider your specific requirements for control, complexity, and maintainability
 | ---------------- | ---------------------- | ------------------------- |
 | **Memory Usage** | Minimal                | Minimal                   |
 | **Latency**      | Low                    | Very low                  |
-| **CPU Usage**    | Minimal                | Moderate                  |
-| **Control**      | Full control           | Abstracted away           |
-| **Scalability**  | Manual scaling         | Automatic fan-out         |
+| **CPU Usage**    | Minimal                | Minimal |
+| **Control**      | Full control           | Abstracted into operators |
+| **Scalability**  | Manual scaling         | Opt-in         |
 | **Backpressure** | Unblock on consumption | Unblock after consumption |
 
 :::
@@ -611,14 +611,14 @@ Learn more about [backpressure](../glossary#Backpressure) in the glossary.
 | Feature                      | Go channels | samber/ro |
 | ---------------------------- | ----------- | --------- |
 | Point-to-point Communication | ✅           | ✅         |
-| Broadcast/Fan-out            | Manual      | ✅         |
+| Broadcast/Fan-out            | Manual      | Opt-in (`Share()`) |
 | Error Handling               | Manual      | ✅         |
 | Retry Mechanisms             | Manual      | ✅         |
 | Time Operations              | Manual      | ✅         |
 | Backpressure                 | Manual      | ✅         |
 | Type Safety                  | ✅           | ✅         |
 | Standard Library             | ✅           | ❌         |
-| Goroutine Management         | Manual      | Automatic |
+| Scheduler                    | N/A         | none |
 | Composition                  | Manual      | ✅         |
 
 ## Migration Examples
@@ -662,7 +662,7 @@ func main() {
 **After (samber/ro)**:
 ```go
 func main() {
-    observable := ro.Pipe2(
+    observable := ro.Pipe1(
         ro.Just(1, 2, 3),
         ro.Map(func(value int) string {
             return fmt.Sprintf("processed-%d", value)
@@ -676,3 +676,10 @@ func main() {
 ```
 
 Go channels provide the foundation for concurrent programming in Go, while `samber/ro` builds upon these concepts to provide a higher-level, more declarative approach to stream processing. Choose channels for fine-grained control and `samber/ro` for expressive, maintainable stream processing.
+
+## Learn more
+
+- [Getting started with ro](../getting-started)
+- [samber/lo and samber/ro](./lo-vs-ro) — ro's sibling library for synchronous collections
+- [RxGo vs ro](./rxgo-vs-ro)
+- [Backpressure](../core/backpressure)

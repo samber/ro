@@ -138,7 +138,7 @@ func leakyResourceOperator(filename string) ro.Observable[string] {
 ```go
 // ✅ Proper resource cleanup
 func nonLeakyResourceOperator(filename string) ro.Observable[string] {
-    return ro.NewObservable(func(observer ro.Observer<string]) ro.Teardown {
+    return ro.NewObservable(func(observer ro.Observer[string]) ro.Teardown {
         file, err := os.Open(filename)
         if err != nil {
             observer.Error(err)
@@ -390,16 +390,16 @@ func boundedObserveOnExample() {
     // Apply ObserveOn with a small buffer to control memory
     boundedStream := ro.Pipe2(
         fastProducer,
-        ro.ObserveOn(100), // Buffer only 100 items and send downstream observers into a different goroutine
+        ro.ObserveOn[int64](100), // Buffer only 100 items and send downstream observers into a different goroutine
         ro.Map(func(v int64) int64 {
             time.Sleep(100*time.Millisecond)   // simulate slow processing
             return v
-        })
+        }),
     )
     
     // Process items with controlled memory usage
-    subscription := boundedStream.Subscribe(ro.NewObserver[int](
-        func(value int) {
+    subscription := boundedStream.Subscribe(ro.NewObserver[int64](
+        func(value int64) {
             fmt.Printf("Processed: %d\n", value)
         },
         func(err error) {

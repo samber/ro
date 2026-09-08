@@ -1,5 +1,5 @@
 ---
-title: Introduction
+title: Plugins overview
 description: Extend ro with powerful plugins for bytes, encoding, HTTP, observability, and more
 sidebar_position: 0
 hide_table_of_contents: true
