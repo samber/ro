@@ -40,7 +40,7 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - `Start` - Create Observable that emits a single lazily-evaluated value
 - `Timer` - Emit after specified duration
 - `Interval` - Emit sequential numbers at time intervals
-- `IntervalWithInitial` - Like Interval but with custom initial interval
+- `IntervalWithInitial` - Like Interval but with a custom initial delay; zero emits the first value synchronously
 - `Range` - Emit range of integers
 - `RangeWithStep` - Emit range of floats with custom step
 - `RangeWithInterval` - Emit range of integers with time intervals

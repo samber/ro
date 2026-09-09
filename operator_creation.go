@@ -114,14 +114,14 @@ func Interval(interval time.Duration) Observable[int64] {
 	})
 }
 
-// IntervalWithInitial creates an Observable that emits an infinite sequence of ascending
-// integers, with a constant interval between them. The first value is not emitted immediately,
-// but after the initial interval has passed. The first interval is `initial`, and the subsequent
-// intervals are `interval`. The first value is emitted after `initial` time has passed.
+// IntervalWithInitial creates an Observable that emits ascending integers starting at zero.
+// The first value is emitted after initial, then subsequent values are emitted every interval.
+// When initial is zero, the first value is emitted synchronously during subscription.
 // Play: https://go.dev/play/p/Xhi6c336ldy
 func IntervalWithInitial(initial, interval time.Duration) Observable[int64] {
 	return NewObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
-		ticker := time.NewTicker(initial * 2)
+		ticker := time.NewTicker(interval)
+		ticker.Stop()
 		timer := time.NewTimer(initial)
 		done := make(chan struct{}, 1)
 

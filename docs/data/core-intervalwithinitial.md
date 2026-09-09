@@ -1,7 +1,7 @@
 ---
 name: IntervalWithInitial
 slug: intervalwithinitial
-sourceRef: operator_creation.go#L122
+sourceRef: operator_creation.go#L121
 type: core
 category: creation
 signatures:
@@ -100,6 +100,9 @@ defer sub.Unsubscribe()
 
 ### Edge case: Zero initial delay
 
+With an initial delay of zero, the first value is emitted synchronously before
+`Subscribe` returns. Subsequent values use the regular interval.
+
 ```go
 obs := ro.IntervalWithInitial(0, 100*time.Millisecond)
 
@@ -107,7 +110,6 @@ sub := obs.Subscribe(ro.PrintObserver[int64]())
 time.Sleep(550 * time.Millisecond)
 sub.Unsubscribe()
 
-// Behaves like regular Interval
 // Next: 0 (immediately)
 // Next: 1 (after 100ms)
 // Next: 2 (after 200ms)
