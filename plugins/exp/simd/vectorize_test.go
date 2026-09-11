@@ -597,3 +597,527 @@ func TestPartialLenMatchesStdlibWidth(t *testing.T) {
 	assert.Equal(t, simd.BroadcastUint64s(0).Len(), PartialUint64s{}.Len())
 	assert.Equal(t, simd.BroadcastFloat64s(0).Len(), PartialFloat64s{}.Len())
 }
+
+// Flatten is Vectorize's inverse, so a stream that goes in and comes back out must be
+// unchanged at every size — the short final batch above all, where a forgotten mask
+// would emit padding as if it were data.
+func TestFlattenInt8RoundTrips(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepInt8() {
+		input := rampInt8(size)
+
+		got, err := ro.Collect(
+			ro.Pipe2[int8, PartialInt8s, int8](ro.FromSlice(input), VectorizeInt8, FlattenInt8),
+		)
+		assert.NoError(t, err)
+
+		assert.Equal(t, input, got, "size %d must survive the round trip", size)
+	}
+}
+
+// ToScalar emits one slice per vector, each exactly as long as that vector's valid lane
+// count, and the slices concatenated are the original stream.
+func TestToScalarInt8MatchesBatches(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepInt8() {
+		input := rampInt8(size)
+
+		batches, err := ro.Collect(
+			ro.Pipe2[int8, PartialInt8s, []int8](ro.FromSlice(input), VectorizeInt8, ToScalarInt8),
+		)
+		assert.NoError(t, err)
+
+		counts, err := ro.Collect(
+			ro.Pipe2[int8, PartialInt8s, int](
+				ro.FromSlice(input),
+				VectorizeInt8,
+				ro.Map(func(v PartialInt8s) int { return v.Count() }),
+			),
+		)
+		assert.NoError(t, err)
+
+		joined := []int8{}
+		for i, batch := range batches {
+			assert.Len(t, batch, counts[i], "size %d batch %d", size, i)
+			joined = append(joined, batch...)
+		}
+
+		assert.Equal(t, input, joined, "size %d", size)
+	}
+}
+
+// Flatten is Vectorize's inverse, so a stream that goes in and comes back out must be
+// unchanged at every size — the short final batch above all, where a forgotten mask
+// would emit padding as if it were data.
+func TestFlattenInt16RoundTrips(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepInt16() {
+		input := rampInt16(size)
+
+		got, err := ro.Collect(
+			ro.Pipe2[int16, PartialInt16s, int16](ro.FromSlice(input), VectorizeInt16, FlattenInt16),
+		)
+		assert.NoError(t, err)
+
+		assert.Equal(t, input, got, "size %d must survive the round trip", size)
+	}
+}
+
+// ToScalar emits one slice per vector, each exactly as long as that vector's valid lane
+// count, and the slices concatenated are the original stream.
+func TestToScalarInt16MatchesBatches(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepInt16() {
+		input := rampInt16(size)
+
+		batches, err := ro.Collect(
+			ro.Pipe2[int16, PartialInt16s, []int16](ro.FromSlice(input), VectorizeInt16, ToScalarInt16),
+		)
+		assert.NoError(t, err)
+
+		counts, err := ro.Collect(
+			ro.Pipe2[int16, PartialInt16s, int](
+				ro.FromSlice(input),
+				VectorizeInt16,
+				ro.Map(func(v PartialInt16s) int { return v.Count() }),
+			),
+		)
+		assert.NoError(t, err)
+
+		joined := []int16{}
+		for i, batch := range batches {
+			assert.Len(t, batch, counts[i], "size %d batch %d", size, i)
+			joined = append(joined, batch...)
+		}
+
+		assert.Equal(t, input, joined, "size %d", size)
+	}
+}
+
+// Flatten is Vectorize's inverse, so a stream that goes in and comes back out must be
+// unchanged at every size — the short final batch above all, where a forgotten mask
+// would emit padding as if it were data.
+func TestFlattenInt32RoundTrips(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepInt32() {
+		input := rampInt32(size)
+
+		got, err := ro.Collect(
+			ro.Pipe2[int32, PartialInt32s, int32](ro.FromSlice(input), VectorizeInt32, FlattenInt32),
+		)
+		assert.NoError(t, err)
+
+		assert.Equal(t, input, got, "size %d must survive the round trip", size)
+	}
+}
+
+// ToScalar emits one slice per vector, each exactly as long as that vector's valid lane
+// count, and the slices concatenated are the original stream.
+func TestToScalarInt32MatchesBatches(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepInt32() {
+		input := rampInt32(size)
+
+		batches, err := ro.Collect(
+			ro.Pipe2[int32, PartialInt32s, []int32](ro.FromSlice(input), VectorizeInt32, ToScalarInt32),
+		)
+		assert.NoError(t, err)
+
+		counts, err := ro.Collect(
+			ro.Pipe2[int32, PartialInt32s, int](
+				ro.FromSlice(input),
+				VectorizeInt32,
+				ro.Map(func(v PartialInt32s) int { return v.Count() }),
+			),
+		)
+		assert.NoError(t, err)
+
+		joined := []int32{}
+		for i, batch := range batches {
+			assert.Len(t, batch, counts[i], "size %d batch %d", size, i)
+			joined = append(joined, batch...)
+		}
+
+		assert.Equal(t, input, joined, "size %d", size)
+	}
+}
+
+// Flatten is Vectorize's inverse, so a stream that goes in and comes back out must be
+// unchanged at every size — the short final batch above all, where a forgotten mask
+// would emit padding as if it were data.
+func TestFlattenInt64RoundTrips(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepInt64() {
+		input := rampInt64(size)
+
+		got, err := ro.Collect(
+			ro.Pipe2[int64, PartialInt64s, int64](ro.FromSlice(input), VectorizeInt64, FlattenInt64),
+		)
+		assert.NoError(t, err)
+
+		assert.Equal(t, input, got, "size %d must survive the round trip", size)
+	}
+}
+
+// ToScalar emits one slice per vector, each exactly as long as that vector's valid lane
+// count, and the slices concatenated are the original stream.
+func TestToScalarInt64MatchesBatches(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepInt64() {
+		input := rampInt64(size)
+
+		batches, err := ro.Collect(
+			ro.Pipe2[int64, PartialInt64s, []int64](ro.FromSlice(input), VectorizeInt64, ToScalarInt64),
+		)
+		assert.NoError(t, err)
+
+		counts, err := ro.Collect(
+			ro.Pipe2[int64, PartialInt64s, int](
+				ro.FromSlice(input),
+				VectorizeInt64,
+				ro.Map(func(v PartialInt64s) int { return v.Count() }),
+			),
+		)
+		assert.NoError(t, err)
+
+		joined := []int64{}
+		for i, batch := range batches {
+			assert.Len(t, batch, counts[i], "size %d batch %d", size, i)
+			joined = append(joined, batch...)
+		}
+
+		assert.Equal(t, input, joined, "size %d", size)
+	}
+}
+
+// Flatten is Vectorize's inverse, so a stream that goes in and comes back out must be
+// unchanged at every size — the short final batch above all, where a forgotten mask
+// would emit padding as if it were data.
+func TestFlattenUint8RoundTrips(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepUint8() {
+		input := rampUint8(size)
+
+		got, err := ro.Collect(
+			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8, FlattenUint8),
+		)
+		assert.NoError(t, err)
+
+		assert.Equal(t, input, got, "size %d must survive the round trip", size)
+	}
+}
+
+// ToScalar emits one slice per vector, each exactly as long as that vector's valid lane
+// count, and the slices concatenated are the original stream.
+func TestToScalarUint8MatchesBatches(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepUint8() {
+		input := rampUint8(size)
+
+		batches, err := ro.Collect(
+			ro.Pipe2[uint8, PartialUint8s, []uint8](ro.FromSlice(input), VectorizeUint8, ToScalarUint8),
+		)
+		assert.NoError(t, err)
+
+		counts, err := ro.Collect(
+			ro.Pipe2[uint8, PartialUint8s, int](
+				ro.FromSlice(input),
+				VectorizeUint8,
+				ro.Map(func(v PartialUint8s) int { return v.Count() }),
+			),
+		)
+		assert.NoError(t, err)
+
+		joined := []uint8{}
+		for i, batch := range batches {
+			assert.Len(t, batch, counts[i], "size %d batch %d", size, i)
+			joined = append(joined, batch...)
+		}
+
+		assert.Equal(t, input, joined, "size %d", size)
+	}
+}
+
+// Flatten is Vectorize's inverse, so a stream that goes in and comes back out must be
+// unchanged at every size — the short final batch above all, where a forgotten mask
+// would emit padding as if it were data.
+func TestFlattenUint16RoundTrips(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepUint16() {
+		input := rampUint16(size)
+
+		got, err := ro.Collect(
+			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16, FlattenUint16),
+		)
+		assert.NoError(t, err)
+
+		assert.Equal(t, input, got, "size %d must survive the round trip", size)
+	}
+}
+
+// ToScalar emits one slice per vector, each exactly as long as that vector's valid lane
+// count, and the slices concatenated are the original stream.
+func TestToScalarUint16MatchesBatches(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepUint16() {
+		input := rampUint16(size)
+
+		batches, err := ro.Collect(
+			ro.Pipe2[uint16, PartialUint16s, []uint16](ro.FromSlice(input), VectorizeUint16, ToScalarUint16),
+		)
+		assert.NoError(t, err)
+
+		counts, err := ro.Collect(
+			ro.Pipe2[uint16, PartialUint16s, int](
+				ro.FromSlice(input),
+				VectorizeUint16,
+				ro.Map(func(v PartialUint16s) int { return v.Count() }),
+			),
+		)
+		assert.NoError(t, err)
+
+		joined := []uint16{}
+		for i, batch := range batches {
+			assert.Len(t, batch, counts[i], "size %d batch %d", size, i)
+			joined = append(joined, batch...)
+		}
+
+		assert.Equal(t, input, joined, "size %d", size)
+	}
+}
+
+// Flatten is Vectorize's inverse, so a stream that goes in and comes back out must be
+// unchanged at every size — the short final batch above all, where a forgotten mask
+// would emit padding as if it were data.
+func TestFlattenUint32RoundTrips(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepUint32() {
+		input := rampUint32(size)
+
+		got, err := ro.Collect(
+			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32, FlattenUint32),
+		)
+		assert.NoError(t, err)
+
+		assert.Equal(t, input, got, "size %d must survive the round trip", size)
+	}
+}
+
+// ToScalar emits one slice per vector, each exactly as long as that vector's valid lane
+// count, and the slices concatenated are the original stream.
+func TestToScalarUint32MatchesBatches(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepUint32() {
+		input := rampUint32(size)
+
+		batches, err := ro.Collect(
+			ro.Pipe2[uint32, PartialUint32s, []uint32](ro.FromSlice(input), VectorizeUint32, ToScalarUint32),
+		)
+		assert.NoError(t, err)
+
+		counts, err := ro.Collect(
+			ro.Pipe2[uint32, PartialUint32s, int](
+				ro.FromSlice(input),
+				VectorizeUint32,
+				ro.Map(func(v PartialUint32s) int { return v.Count() }),
+			),
+		)
+		assert.NoError(t, err)
+
+		joined := []uint32{}
+		for i, batch := range batches {
+			assert.Len(t, batch, counts[i], "size %d batch %d", size, i)
+			joined = append(joined, batch...)
+		}
+
+		assert.Equal(t, input, joined, "size %d", size)
+	}
+}
+
+// Flatten is Vectorize's inverse, so a stream that goes in and comes back out must be
+// unchanged at every size — the short final batch above all, where a forgotten mask
+// would emit padding as if it were data.
+func TestFlattenUint64RoundTrips(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepUint64() {
+		input := rampUint64(size)
+
+		got, err := ro.Collect(
+			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64, FlattenUint64),
+		)
+		assert.NoError(t, err)
+
+		assert.Equal(t, input, got, "size %d must survive the round trip", size)
+	}
+}
+
+// ToScalar emits one slice per vector, each exactly as long as that vector's valid lane
+// count, and the slices concatenated are the original stream.
+func TestToScalarUint64MatchesBatches(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepUint64() {
+		input := rampUint64(size)
+
+		batches, err := ro.Collect(
+			ro.Pipe2[uint64, PartialUint64s, []uint64](ro.FromSlice(input), VectorizeUint64, ToScalarUint64),
+		)
+		assert.NoError(t, err)
+
+		counts, err := ro.Collect(
+			ro.Pipe2[uint64, PartialUint64s, int](
+				ro.FromSlice(input),
+				VectorizeUint64,
+				ro.Map(func(v PartialUint64s) int { return v.Count() }),
+			),
+		)
+		assert.NoError(t, err)
+
+		joined := []uint64{}
+		for i, batch := range batches {
+			assert.Len(t, batch, counts[i], "size %d batch %d", size, i)
+			joined = append(joined, batch...)
+		}
+
+		assert.Equal(t, input, joined, "size %d", size)
+	}
+}
+
+// Flatten is Vectorize's inverse, so a stream that goes in and comes back out must be
+// unchanged at every size — the short final batch above all, where a forgotten mask
+// would emit padding as if it were data.
+func TestFlattenFloat32RoundTrips(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepFloat32() {
+		input := rampFloat32(size)
+
+		got, err := ro.Collect(
+			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32, FlattenFloat32),
+		)
+		assert.NoError(t, err)
+
+		assert.Equal(t, input, got, "size %d must survive the round trip", size)
+	}
+}
+
+// ToScalar emits one slice per vector, each exactly as long as that vector's valid lane
+// count, and the slices concatenated are the original stream.
+func TestToScalarFloat32MatchesBatches(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepFloat32() {
+		input := rampFloat32(size)
+
+		batches, err := ro.Collect(
+			ro.Pipe2[float32, PartialFloat32s, []float32](ro.FromSlice(input), VectorizeFloat32, ToScalarFloat32),
+		)
+		assert.NoError(t, err)
+
+		counts, err := ro.Collect(
+			ro.Pipe2[float32, PartialFloat32s, int](
+				ro.FromSlice(input),
+				VectorizeFloat32,
+				ro.Map(func(v PartialFloat32s) int { return v.Count() }),
+			),
+		)
+		assert.NoError(t, err)
+
+		joined := []float32{}
+		for i, batch := range batches {
+			assert.Len(t, batch, counts[i], "size %d batch %d", size, i)
+			joined = append(joined, batch...)
+		}
+
+		assert.Equal(t, input, joined, "size %d", size)
+	}
+}
+
+// Flatten is Vectorize's inverse, so a stream that goes in and comes back out must be
+// unchanged at every size — the short final batch above all, where a forgotten mask
+// would emit padding as if it were data.
+func TestFlattenFloat64RoundTrips(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepFloat64() {
+		input := rampFloat64(size)
+
+		got, err := ro.Collect(
+			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64, FlattenFloat64),
+		)
+		assert.NoError(t, err)
+
+		assert.Equal(t, input, got, "size %d must survive the round trip", size)
+	}
+}
+
+// ToScalar emits one slice per vector, each exactly as long as that vector's valid lane
+// count, and the slices concatenated are the original stream.
+func TestToScalarFloat64MatchesBatches(t *testing.T) {
+	t.Parallel()
+
+	for _, size := range sizeSweepFloat64() {
+		input := rampFloat64(size)
+
+		batches, err := ro.Collect(
+			ro.Pipe2[float64, PartialFloat64s, []float64](ro.FromSlice(input), VectorizeFloat64, ToScalarFloat64),
+		)
+		assert.NoError(t, err)
+
+		counts, err := ro.Collect(
+			ro.Pipe2[float64, PartialFloat64s, int](
+				ro.FromSlice(input),
+				VectorizeFloat64,
+				ro.Map(func(v PartialFloat64s) int { return v.Count() }),
+			),
+		)
+		assert.NoError(t, err)
+
+		joined := []float64{}
+		for i, batch := range batches {
+			assert.Len(t, batch, counts[i], "size %d batch %d", size, i)
+			joined = append(joined, batch...)
+		}
+
+		assert.Equal(t, input, joined, "size %d", size)
+	}
+}
+
+// ToScalar and Flatten ask only that a vector can report its lanes, not that it can do
+// arithmetic, so they accept more types than the operators do — simd.Int64s included,
+// which AddInt64 and the rest reject for want of Min and Max.
+func TestExitOperatorsAcceptStdlibVectors(t *testing.T) {
+	t.Parallel()
+
+	batch := rampInt8(lanesInt8())
+
+	flattened, err := ro.Collect(FlattenInt8[simd.Int8s](ro.Just(simd.LoadInt8s(batch))))
+	assert.NoError(t, err)
+	assert.Equal(t, batch, flattened)
+
+	sliced, err := ro.Collect(ToScalarInt8[simd.Int8s](ro.Just(simd.LoadInt8s(batch))))
+	assert.NoError(t, err)
+	assert.Equal(t, [][]int8{batch}, sliced)
+
+	wide := rampInt64(lanesInt64())
+
+	wideFlattened, err := ro.Collect(FlattenInt64[simd.Int64s](ro.Just(simd.LoadInt64s(wide))))
+	assert.NoError(t, err)
+	assert.Equal(t, wide, wideFlattened,
+		"simd.Int64s cannot satisfy Int64Vector, but it can report its lanes")
+}

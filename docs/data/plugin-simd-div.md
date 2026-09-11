@@ -35,7 +35,7 @@ obs := ro.Pipe4[float64, rosimd.PartialFloat64s, rosimd.PartialFloat64s, []float
     ro.Just[float64](1, 2, 3),
     rosimd.VectorizeFloat64,
     rosimd.DivFloat64(rosimd.BroadcastFloat64(2)),
-    ro.Map(func(v rosimd.PartialFloat64s) []float64 { return v.Values() }),
+    rosimd.ToScalarFloat64,
     ro.Flatten[float64](),
 )
 

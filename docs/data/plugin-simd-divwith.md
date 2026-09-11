@@ -36,7 +36,7 @@ right := rosimd.VectorizeFloat64[rosimd.PartialFloat64s](ro.Just[float64](2, 4, 
 
 obs := ro.Pipe2[rosimd.PartialFloat64s, []float64, float64](
     rosimd.DivWithFloat64(right)(left),
-    ro.Map(func(v rosimd.PartialFloat64s) []float64 { return v.Values() }),
+    rosimd.ToScalarFloat64,
     ro.Flatten[float64](),
 )
 

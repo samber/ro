@@ -22,13 +22,13 @@ import (
 	rosimd "github.com/samber/ro/plugins/exp/simd"
 )
 
-// Vectorize batches a scalar stream into vectors. Leaving vector space again is ro.Map
-// plus ro.Flatten, or one of the Reduce operators — there is no devectorize.
+// Vectorize batches a scalar stream into vectors. ToScalar brings it back out as one
+// slice per vector, which ro.Flatten then unpacks into values.
 func ExampleVectorizeInt8() {
 	obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
 		ro.Just[int8](1, 2, 3, 4, 5),
 		rosimd.VectorizeInt8,
-		ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+		rosimd.ToScalarInt8,
 		ro.Flatten[int8](),
 	)
 
@@ -86,7 +86,7 @@ func ExampleVectorizeFloat64() {
 	obs := ro.Pipe3[float64, rosimd.PartialFloat64s, []float64, float64](
 		ro.Just(1.5, 2.5, 3.5),
 		rosimd.VectorizeFloat64,
-		ro.Map(func(v rosimd.PartialFloat64s) []float64 { return v.Values() }),
+		rosimd.ToScalarFloat64,
 		ro.Flatten[float64](),
 	)
 
@@ -99,6 +99,67 @@ func ExampleVectorizeFloat64() {
 	// 1.5
 	// 2.5
 	// 3.5
+}
+
+// ToScalar hands each vector's valid lanes back as a slice, one slice per vector. It is
+// the exit from vector space, and the shape is the batching: a short final batch gives a
+// correspondingly short slice.
+func ExampleToScalarInt8() {
+	obs := ro.Pipe2[int8, rosimd.PartialInt8s, []int8](
+		ro.Just[int8](1, 2, 3),
+		rosimd.VectorizeInt8,
+		rosimd.ToScalarInt8,
+	)
+
+	sub := obs.Subscribe(ro.OnNext(func(lanes []int8) {
+		fmt.Println(lanes)
+	}))
+	defer sub.Unsubscribe()
+
+	// Output: [1 2 3]
+}
+
+// Flatten is ToScalar followed by ro.Flatten in a single stage: one value per lane
+// instead of one slice per vector. It turns a vector stream straight back into the
+// scalar stream Vectorize was given.
+func ExampleFlattenInt8() {
+	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
+		ro.Just[int8](1, 2, 3, 4, 5),
+		rosimd.VectorizeInt8,
+		rosimd.FlattenInt8,
+	)
+
+	sub := obs.Subscribe(ro.OnNext(func(value int8) {
+		fmt.Println(value)
+	}))
+	defer sub.Unsubscribe()
+
+	// Output:
+	// 1
+	// 2
+	// 3
+	// 4
+	// 5
+}
+
+// Neither exit needs arithmetic, only the ability to report lanes, so both accept the
+// standard library's vector types — simd.Int64s included, which the arithmetic operators
+// reject for want of Min and Max.
+func ExampleFlattenInt8_standardLibraryVector() {
+	input := make([]int8, simd.BroadcastInt8s(0).Len())
+	for i := range input {
+		input[i] = int8(i + 1)
+	}
+
+	values, err := ro.Collect(rosimd.FlattenInt8[simd.Int8s](ro.Just(simd.LoadInt8s(input))))
+	if err != nil {
+		panic(err)
+	}
+
+	// Lane count varies by architecture, so only the first few are shown.
+	fmt.Println(values[:3])
+
+	// Output: [1 2 3]
 }
 
 // An empty source emits no vector at all, rather than one made entirely of padding.

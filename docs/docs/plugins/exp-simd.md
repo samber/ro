@@ -9,7 +9,7 @@ hide_table_of_contents: true
 
 This page lists all operators available in the `exp/simd` sub-package. They are built on the portable `simd` package introduced in Go 1.27: one implementation compiles for amd64, arm64 and wasm, with a pure-Go fallback, so there are no per-ISA operators to choose between. The register width is discovered at runtime.
 
-A stream carries one value at a time; SIMD works on a whole register at once. `Vectorize` bridges the two by batching scalars into vectors, and `Partial` types carry a validity mask so the short final vector of a batch is an ordinary value rather than a special case.
+A stream carries one value at a time; SIMD works on a whole register at once. `Vectorize` bridges the two by batching scalars into vectors, and `Partial` types carry a validity mask so the short final vector of a batch is an ordinary value rather than a special case. `ToScalar` and `Flatten` bring the stream back out — as one slice per vector, or one value per lane — and the `Reduce` operators collapse it to a single value instead.
 
 ```go
 ro.Pipe3[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, int8](

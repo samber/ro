@@ -87,8 +87,13 @@
 // Collapsing a whole stream to a single answer is the ReduceContains operator's job
 // instead.
 //
-// There is no devectorize operator. Leave vector space with ro.Map plus ro.Flatten,
-// or with one of the Reduce operators.
+// Leaving vector space is ToScalar, which hands each vector's valid lanes back as a
+// slice, or Flatten, which emits them one at a time — ToScalar followed by ro.Flatten in
+// a single stage. The Reduce operators are the other way out, collapsing a whole stream
+// to one value.
+//
+// Both exits ask only that a vector can report its lanes, so unlike the arithmetic
+// operators they accept simd.Int64s and simd.Uint64s too.
 //
 // # Package layout
 //

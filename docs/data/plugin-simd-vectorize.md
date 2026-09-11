@@ -28,6 +28,8 @@ variantHelpers:
   - plugin#simd#vectorizefloat32
   - plugin#simd#vectorizefloat64
 similarHelpers:
+  - plugin#simd#toscalar
+  - plugin#simd#flatten
   - plugin#simd#partial
   - plugin#simd#reducesum
   - plugin#simd#broadcast
@@ -38,7 +40,7 @@ Batches a scalar stream into vectors, so the operators downstream can work on a 
 
 A full vector is emitted every time the buffer fills, and on completion one final `Partial` vector holds whatever is left. The lane width is discovered from the running architecture on subscription, not hard-coded.
 
-Leaving vector space again is `ro.Map` plus `ro.Flatten`, or one of the `Reduce` operators — there is no devectorize:
+Leaving vector space again is `ToScalar`, which hands each vector's lanes back as a slice, or `Flatten`, which emits them one at a time. The `Reduce` operators are the other way out:
 
 ```go
 import (
@@ -51,7 +53,7 @@ import (
 obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
     ro.Just[int8](1, 2, 3, 4, 5),
     rosimd.VectorizeInt8,
-    ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+    rosimd.ToScalarInt8,
     ro.Flatten[int8](),
 )
 

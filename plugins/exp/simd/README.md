@@ -93,16 +93,30 @@ To collapse a whole stream to a single answer instead, use the `ReduceContains` 
 
 ## Leaving vector space
 
-There is no devectorize operator. Use `ro.Map` plus `ro.Flatten`, or one of the `Reduce` operators:
+`ToScalar` hands each vector's valid lanes back as a slice, one slice per vector:
 
 ```go
 ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
     source,
     rosimd.VectorizeInt8,
-    ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+    rosimd.ToScalarInt8,
     ro.Flatten[int8](),
 )
 ```
+
+`Flatten` is those last two stages in one, emitting a value per lane rather than a slice per vector — so a stream that goes through `Vectorize` and back out through it arrives unchanged:
+
+```go
+ro.Pipe2[int8, rosimd.PartialInt8s, int8](
+    source,
+    rosimd.VectorizeInt8,
+    rosimd.FlattenInt8,
+)
+```
+
+The `Reduce` operators are the other way out, collapsing a whole stream to a single value.
+
+Neither exit needs arithmetic, only the ability to report lanes, so both accept `simd.Int64s` and `simd.Uint64s` — which the arithmetic operators reject for want of `Min` and `Max`.
 
 ## Operator coverage
 
