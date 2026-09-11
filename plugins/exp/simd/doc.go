@@ -26,7 +26,7 @@
 //		source,
 //		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 //		rosimd.AddInt8(rosimd.BroadcastInt8(42)),
-//		rosimd.ReduceSumInt8,
+//		rosimd.ReduceSumInt8[rosimd.PartialInt8s](),
 //	)
 //
 // Operators accept either PartialInt8s or the standard library's own simd.Int8s,

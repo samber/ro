@@ -230,6 +230,9 @@ both.
 2. The concrete type belongs at the call site as an explicit type argument, nowhere else.
 3. `simd.*` calls and struct-literal construction live in **methods** on the concrete type,
    reached only through the constraint interface.
-4. Prefer non-curried stage functions (`func(source ro.Observable[S]) ro.Observable[R]`) —
-   they infer. Curried operators do not, unless their operand is itself a `V`.
+4. Curried operators (`func() func(source ro.Observable[S]) ro.Observable[R]`) do not
+   infer their type argument, unless their operand is itself a `V` — so a non-curried
+   stage saves an explicit type argument at every call site. The shipped package took the
+   opposite trade-off for `ReduceSum`/`ReduceMin`/`ReduceMax`: uniformity with every other
+   operator in the package (all curried) won over that inference cost.
 5. Every file with simd-dependent code imports `simd` and touches it in a function body.

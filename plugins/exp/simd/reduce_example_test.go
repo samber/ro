@@ -23,13 +23,13 @@ import (
 	rosimd "github.com/samber/ro/plugins/exp/simd"
 )
 
-// The reductions are not curried, so the type argument is inferred from the surrounding
-// Pipe rather than written out.
+// The vector type is given at the call site, since currying puts it out of inference's
+// reach.
 func ExampleReduceSumInt8() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 		ro.Just[int8](1, 2, 3, 4, 5),
 		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		rosimd.ReduceSumInt8,
+		rosimd.ReduceSumInt8[rosimd.PartialInt8s](),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(total int8) {
@@ -46,7 +46,7 @@ func ExampleReduceSumInt8_empty() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 		ro.Empty[int8](),
 		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		rosimd.ReduceSumInt8,
+		rosimd.ReduceSumInt8[rosimd.PartialInt8s](),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(total int8) {
@@ -61,7 +61,7 @@ func ExampleReduceMinInt8() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 		ro.Just[int8](5, 2, 8),
 		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		rosimd.ReduceMinInt8,
+		rosimd.ReduceMinInt8[rosimd.PartialInt8s](),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(smallest int8) {
@@ -76,7 +76,7 @@ func ExampleReduceMaxInt8() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 		ro.Just[int8](5, 2, 8),
 		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		rosimd.ReduceMaxInt8,
+		rosimd.ReduceMaxInt8[rosimd.PartialInt8s](),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(largest int8) {
@@ -94,7 +94,7 @@ func ExampleReduceMinInt8_empty() {
 		ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 			ro.Empty[int8](),
 			rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-			rosimd.ReduceMinInt8,
+			rosimd.ReduceMinInt8[rosimd.PartialInt8s](),
 		),
 	)
 	if err != nil {
@@ -113,7 +113,7 @@ func ExampleReduceMinFloat64_nan() {
 	obs := ro.Pipe2[float64, rosimd.PartialFloat64s, float64](
 		ro.Just(3.0, math.NaN(), 1.0),
 		rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
-		rosimd.ReduceMinFloat64,
+		rosimd.ReduceMinFloat64[rosimd.PartialFloat64s](),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(smallest float64) {
@@ -132,7 +132,7 @@ func ExampleReduceSumInt8_standardLibraryVector() {
 		input[i] = 1
 	}
 
-	obs := rosimd.ReduceSumInt8[simd.Int8s](ro.Just(simd.LoadInt8s(input)))
+	obs := rosimd.ReduceSumInt8[simd.Int8s]()(ro.Just(simd.LoadInt8s(input)))
 
 	sub := obs.Subscribe(ro.OnNext(func(total int8) {
 		// The lane count varies by architecture, so compare rather than print.

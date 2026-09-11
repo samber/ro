@@ -370,7 +370,7 @@ func TestEmptyAndErrorSources(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[int8, PartialInt8s, int8](ro.Empty[int8](), VectorizeInt8[PartialInt8s](), ReduceSumInt8),
+		ro.Pipe2[int8, PartialInt8s, int8](ro.Empty[int8](), VectorizeInt8[PartialInt8s](), ReduceSumInt8[PartialInt8s]()),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []int8{0}, values, "an empty stream sums to zero, as ro.Sum does")
@@ -383,7 +383,7 @@ func TestEmptyAndErrorSources(t *testing.T) {
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[int8, PartialInt8s, int8](ro.Throw[int8](assert.AnError), VectorizeInt8[PartialInt8s](), ReduceSumInt8),
+		ro.Pipe2[int8, PartialInt8s, int8](ro.Throw[int8](assert.AnError), VectorizeInt8[PartialInt8s](), ReduceSumInt8[PartialInt8s]()),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -392,7 +392,7 @@ func TestEmptyAndErrorSourcesInt16(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[int16, PartialInt16s, int16](ro.Empty[int16](), VectorizeInt16[PartialInt16s](), ReduceSumInt16),
+		ro.Pipe2[int16, PartialInt16s, int16](ro.Empty[int16](), VectorizeInt16[PartialInt16s](), ReduceSumInt16[PartialInt16s]()),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []int16{0}, values, "an empty stream sums to zero, as ro.Sum does")
@@ -405,7 +405,7 @@ func TestEmptyAndErrorSourcesInt16(t *testing.T) {
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[int16, PartialInt16s, int16](ro.Throw[int16](assert.AnError), VectorizeInt16[PartialInt16s](), ReduceSumInt16),
+		ro.Pipe2[int16, PartialInt16s, int16](ro.Throw[int16](assert.AnError), VectorizeInt16[PartialInt16s](), ReduceSumInt16[PartialInt16s]()),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -414,7 +414,7 @@ func TestEmptyAndErrorSourcesInt32(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[int32, PartialInt32s, int32](ro.Empty[int32](), VectorizeInt32[PartialInt32s](), ReduceSumInt32),
+		ro.Pipe2[int32, PartialInt32s, int32](ro.Empty[int32](), VectorizeInt32[PartialInt32s](), ReduceSumInt32[PartialInt32s]()),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []int32{0}, values, "an empty stream sums to zero, as ro.Sum does")
@@ -427,7 +427,7 @@ func TestEmptyAndErrorSourcesInt32(t *testing.T) {
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[int32, PartialInt32s, int32](ro.Throw[int32](assert.AnError), VectorizeInt32[PartialInt32s](), ReduceSumInt32),
+		ro.Pipe2[int32, PartialInt32s, int32](ro.Throw[int32](assert.AnError), VectorizeInt32[PartialInt32s](), ReduceSumInt32[PartialInt32s]()),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -436,7 +436,7 @@ func TestEmptyAndErrorSourcesInt64(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[int64, PartialInt64s, int64](ro.Empty[int64](), VectorizeInt64[PartialInt64s](), ReduceSumInt64),
+		ro.Pipe2[int64, PartialInt64s, int64](ro.Empty[int64](), VectorizeInt64[PartialInt64s](), ReduceSumInt64[PartialInt64s]()),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{0}, values, "an empty stream sums to zero, as ro.Sum does")
@@ -449,7 +449,7 @@ func TestEmptyAndErrorSourcesInt64(t *testing.T) {
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[int64, PartialInt64s, int64](ro.Throw[int64](assert.AnError), VectorizeInt64[PartialInt64s](), ReduceSumInt64),
+		ro.Pipe2[int64, PartialInt64s, int64](ro.Throw[int64](assert.AnError), VectorizeInt64[PartialInt64s](), ReduceSumInt64[PartialInt64s]()),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -458,7 +458,7 @@ func TestEmptyAndErrorSourcesUint8(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[uint8, PartialUint8s, uint8](ro.Empty[uint8](), VectorizeUint8[PartialUint8s](), ReduceSumUint8),
+		ro.Pipe2[uint8, PartialUint8s, uint8](ro.Empty[uint8](), VectorizeUint8[PartialUint8s](), ReduceSumUint8[PartialUint8s]()),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint8{0}, values, "an empty stream sums to zero, as ro.Sum does")
@@ -471,7 +471,7 @@ func TestEmptyAndErrorSourcesUint8(t *testing.T) {
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[uint8, PartialUint8s, uint8](ro.Throw[uint8](assert.AnError), VectorizeUint8[PartialUint8s](), ReduceSumUint8),
+		ro.Pipe2[uint8, PartialUint8s, uint8](ro.Throw[uint8](assert.AnError), VectorizeUint8[PartialUint8s](), ReduceSumUint8[PartialUint8s]()),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -480,7 +480,7 @@ func TestEmptyAndErrorSourcesUint16(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[uint16, PartialUint16s, uint16](ro.Empty[uint16](), VectorizeUint16[PartialUint16s](), ReduceSumUint16),
+		ro.Pipe2[uint16, PartialUint16s, uint16](ro.Empty[uint16](), VectorizeUint16[PartialUint16s](), ReduceSumUint16[PartialUint16s]()),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint16{0}, values, "an empty stream sums to zero, as ro.Sum does")
@@ -493,7 +493,7 @@ func TestEmptyAndErrorSourcesUint16(t *testing.T) {
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[uint16, PartialUint16s, uint16](ro.Throw[uint16](assert.AnError), VectorizeUint16[PartialUint16s](), ReduceSumUint16),
+		ro.Pipe2[uint16, PartialUint16s, uint16](ro.Throw[uint16](assert.AnError), VectorizeUint16[PartialUint16s](), ReduceSumUint16[PartialUint16s]()),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -502,7 +502,7 @@ func TestEmptyAndErrorSourcesUint32(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[uint32, PartialUint32s, uint32](ro.Empty[uint32](), VectorizeUint32[PartialUint32s](), ReduceSumUint32),
+		ro.Pipe2[uint32, PartialUint32s, uint32](ro.Empty[uint32](), VectorizeUint32[PartialUint32s](), ReduceSumUint32[PartialUint32s]()),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint32{0}, values, "an empty stream sums to zero, as ro.Sum does")
@@ -515,7 +515,7 @@ func TestEmptyAndErrorSourcesUint32(t *testing.T) {
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[uint32, PartialUint32s, uint32](ro.Throw[uint32](assert.AnError), VectorizeUint32[PartialUint32s](), ReduceSumUint32),
+		ro.Pipe2[uint32, PartialUint32s, uint32](ro.Throw[uint32](assert.AnError), VectorizeUint32[PartialUint32s](), ReduceSumUint32[PartialUint32s]()),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -524,7 +524,7 @@ func TestEmptyAndErrorSourcesUint64(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[uint64, PartialUint64s, uint64](ro.Empty[uint64](), VectorizeUint64[PartialUint64s](), ReduceSumUint64),
+		ro.Pipe2[uint64, PartialUint64s, uint64](ro.Empty[uint64](), VectorizeUint64[PartialUint64s](), ReduceSumUint64[PartialUint64s]()),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint64{0}, values, "an empty stream sums to zero, as ro.Sum does")
@@ -537,7 +537,7 @@ func TestEmptyAndErrorSourcesUint64(t *testing.T) {
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[uint64, PartialUint64s, uint64](ro.Throw[uint64](assert.AnError), VectorizeUint64[PartialUint64s](), ReduceSumUint64),
+		ro.Pipe2[uint64, PartialUint64s, uint64](ro.Throw[uint64](assert.AnError), VectorizeUint64[PartialUint64s](), ReduceSumUint64[PartialUint64s]()),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -546,7 +546,7 @@ func TestEmptyAndErrorSourcesFloat32(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[float32, PartialFloat32s, float32](ro.Empty[float32](), VectorizeFloat32[PartialFloat32s](), ReduceSumFloat32),
+		ro.Pipe2[float32, PartialFloat32s, float32](ro.Empty[float32](), VectorizeFloat32[PartialFloat32s](), ReduceSumFloat32[PartialFloat32s]()),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []float32{0}, values, "an empty stream sums to zero, as ro.Sum does")
@@ -559,7 +559,7 @@ func TestEmptyAndErrorSourcesFloat32(t *testing.T) {
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[float32, PartialFloat32s, float32](ro.Throw[float32](assert.AnError), VectorizeFloat32[PartialFloat32s](), ReduceSumFloat32),
+		ro.Pipe2[float32, PartialFloat32s, float32](ro.Throw[float32](assert.AnError), VectorizeFloat32[PartialFloat32s](), ReduceSumFloat32[PartialFloat32s]()),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -568,7 +568,7 @@ func TestEmptyAndErrorSourcesFloat64(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[float64, PartialFloat64s, float64](ro.Empty[float64](), VectorizeFloat64[PartialFloat64s](), ReduceSumFloat64),
+		ro.Pipe2[float64, PartialFloat64s, float64](ro.Empty[float64](), VectorizeFloat64[PartialFloat64s](), ReduceSumFloat64[PartialFloat64s]()),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []float64{0}, values, "an empty stream sums to zero, as ro.Sum does")
@@ -581,7 +581,7 @@ func TestEmptyAndErrorSourcesFloat64(t *testing.T) {
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[float64, PartialFloat64s, float64](ro.Throw[float64](assert.AnError), VectorizeFloat64[PartialFloat64s](), ReduceSumFloat64),
+		ro.Pipe2[float64, PartialFloat64s, float64](ro.Throw[float64](assert.AnError), VectorizeFloat64[PartialFloat64s](), ReduceSumFloat64[PartialFloat64s]()),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }

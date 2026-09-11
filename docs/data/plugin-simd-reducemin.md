@@ -1,20 +1,20 @@
 ---
 name: ReduceMin
 slug: reducemin
-sourceRef: plugins/exp/simd/reduce.go#L233
+sourceRef: plugins/exp/simd/reduce.go#L263
 type: plugin
 category: simd
 signatures:
-  - "func ReduceMinInt8[V Int8Vector[V]](source Observable[V]) Observable[int8]"
-  - "func ReduceMinInt16[V Int16Vector[V]](source Observable[V]) Observable[int16]"
-  - "func ReduceMinInt32[V Int32Vector[V]](source Observable[V]) Observable[int32]"
-  - "func ReduceMinInt64[V Int64Vector[V]](source Observable[V]) Observable[int64]"
-  - "func ReduceMinUint8[V Uint8Vector[V]](source Observable[V]) Observable[uint8]"
-  - "func ReduceMinUint16[V Uint16Vector[V]](source Observable[V]) Observable[uint16]"
-  - "func ReduceMinUint32[V Uint32Vector[V]](source Observable[V]) Observable[uint32]"
-  - "func ReduceMinUint64[V Uint64Vector[V]](source Observable[V]) Observable[uint64]"
-  - "func ReduceMinFloat32[V Float32Vector[V]](source Observable[V]) Observable[float32]"
-  - "func ReduceMinFloat64[V Float64Vector[V]](source Observable[V]) Observable[float64]"
+  - "func ReduceMinInt8[V Int8Vector[V]]()"
+  - "func ReduceMinInt16[V Int16Vector[V]]()"
+  - "func ReduceMinInt32[V Int32Vector[V]]()"
+  - "func ReduceMinInt64[V Int64Vector[V]]()"
+  - "func ReduceMinUint8[V Uint8Vector[V]]()"
+  - "func ReduceMinUint16[V Uint16Vector[V]]()"
+  - "func ReduceMinUint32[V Uint32Vector[V]]()"
+  - "func ReduceMinUint64[V Uint64Vector[V]]()"
+  - "func ReduceMinFloat32[V Float32Vector[V]]()"
+  - "func ReduceMinFloat64[V Float64Vector[V]]()"
 playUrl:
 variantHelpers:
   - plugin#simd#reduceminint8
@@ -47,7 +47,7 @@ import (
 obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
     ro.Just[int8](5, 2, 8),
     rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-    rosimd.ReduceMinInt8,
+    rosimd.ReduceMinInt8[rosimd.PartialInt8s](),
 )
 
 sub := obs.Subscribe(ro.OnNext(func(smallest int8) {
