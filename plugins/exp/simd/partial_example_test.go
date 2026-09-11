@@ -22,15 +22,19 @@ import (
 	rosimd "github.com/samber/ro/plugins/exp/simd"
 )
 
-// Every element-wise operator is also a method. Methods chain inside ro.Map and need no
-// type arguments, which is usually shorter than stacking operators.
+// PartialInt8s carries a validity mask alongside its lanes, so the short final batch of a
+// stream is an ordinary value rather than a special case. Every operation leaves padded
+// lanes at their previous value, and nothing downstream can observe them.
+//
+// Operators chain in a Pipe like any other ro operator, each stage keeping the stream in
+// vector space. Only leaving it needs a ro.Map, because there is no devectorize.
 func ExamplePartialInt8s() {
-	obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
+	obs := ro.Pipe5[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
 		ro.Just[int8](1, 2, 3),
 		rosimd.VectorizeInt8,
-		ro.Map(func(v rosimd.PartialInt8s) []int8 {
-			return v.Add(rosimd.BroadcastInt8(100)).Min(rosimd.BroadcastInt8(102)).Values()
-		}),
+		rosimd.AddInt8(rosimd.BroadcastInt8(100)),
+		rosimd.MinInt8(rosimd.BroadcastInt8(102)),
+		ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
 		ro.Flatten[int8](),
 	)
 
@@ -43,29 +47,6 @@ func ExamplePartialInt8s() {
 	// 101
 	// 102
 	// 102
-}
-
-// Add leaves padded lanes at their previous value, so a short final batch emits exactly
-// the values it holds and no more.
-func ExamplePartialInt8s_Add() {
-	obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
-		ro.Just[int8](1, 2, 3),
-		rosimd.VectorizeInt8,
-		ro.Map(func(v rosimd.PartialInt8s) []int8 {
-			return v.Add(rosimd.BroadcastInt8(10)).Values()
-		}),
-		ro.Flatten[int8](),
-	)
-
-	sub := obs.Subscribe(ro.OnNext(func(value int8) {
-		fmt.Println(value)
-	}))
-	defer sub.Unsubscribe()
-
-	// Output:
-	// 11
-	// 12
-	// 13
 }
 
 // Values returns the valid lanes as a slice, which is how a pipeline leaves vector

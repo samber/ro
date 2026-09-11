@@ -42,7 +42,7 @@ A stream rarely delivers a multiple of the lane width, so the last vector of a b
 
 There is one per element type — `PartialInt8s`, `PartialUint32s`, `PartialFloat64s` and so on.
 
-Every element-wise operator is also available as a method. Methods chain inside `ro.Map` and need no type arguments, which is usually shorter than stacking operators:
+Operators chain in a `Pipe` like any other `ro` operator, each stage keeping the stream in vector space. Only leaving it needs a `ro.Map`, because there is no devectorize operator:
 
 ```go
 import (
@@ -52,12 +52,12 @@ import (
     rosimd "github.com/samber/ro/plugins/exp/simd"
 )
 
-obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
+obs := ro.Pipe5[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
     ro.Just[int8](1, 2, 3),
     rosimd.VectorizeInt8,
-    ro.Map(func(v rosimd.PartialInt8s) []int8 {
-        return v.Add(rosimd.BroadcastInt8(100)).Min(rosimd.BroadcastInt8(102)).Values()
-    }),
+    rosimd.AddInt8(rosimd.BroadcastInt8(100)),
+    rosimd.MinInt8(rosimd.BroadcastInt8(102)),
+    ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
     ro.Flatten[int8](),
 )
 
@@ -70,6 +70,8 @@ defer sub.Unsubscribe()
 // 102
 // 102
 ```
+
+The same operations exist as methods on the `Partial` types. That is how the operators reach them, through the constraint interface, and it is what lets `simd.Int8s` satisfy the same interface — so the methods are the mechanism rather than the usual way to call one. Reach for them where there is no operator, as with `Contains` and `Select`.
 
 `Values()` returns the valid lanes as a slice, which is how a pipeline leaves vector space — there is no devectorize operator. `Count()` reports how many lanes hold data, `Len()` the lane capacity of the running architecture, and `Sum()` folds the valid lanes to a scalar.
 
