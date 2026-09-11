@@ -57,7 +57,7 @@ obs := ro.Pipe5[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, rosimd.PartialIn
     rosimd.VectorizeInt8,
     rosimd.AddInt8(rosimd.BroadcastInt8(100)),
     rosimd.MinInt8(rosimd.BroadcastInt8(102)),
-    rosimd.ToScalarInt8,
+    rosimd.ToScalar,
     ro.Flatten[int8](),
 )
 

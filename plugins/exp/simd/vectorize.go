@@ -226,138 +226,51 @@ func VectorizeFloat64[V Float64Buffer[V]](source ro.Observable[float64]) ro.Obse
 	return vectorize[float64, V](source)
 }
 
-// ToScalarInt8 hands each vector's valid lanes downstream as a slice.
+// ToScalar hands each vector's valid lanes downstream as a slice.
 //
-// It is the exit from vector space, the counterpart of VectorizeInt8. A short final
-// batch yields a correspondingly short slice: padded lanes are never included, so the
-// concatenation of every slice is exactly what went in.
+// It is the exit from vector space, the counterpart of Vectorize. A short final batch
+// yields a correspondingly short slice: padded lanes are never included, so the slices
+// concatenated are exactly the stream that went in.
 //
-// Its constraint asks only that a vector can report its lanes, so it accepts the
-// standard library's vector types as well as this package's — including simd.Int64s and
-// simd.Uint64s, which the arithmetic operators reject for want of Min and Max.
-//
-// It is not a curried operator: taking the source directly lets the type argument be
-// inferred from the surrounding Pipe.
+// One operator serves every element type. The element type is read off the vector's own
+// StorePart signature, so both type arguments are inferred and the call site names
+// neither:
 //
 //	ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
 //		source,
 //		rosimd.VectorizeInt8,
-//		rosimd.ToScalarInt8,
+//		rosimd.ToScalar,
 //		ro.Flatten[int8](),
 //	)
 //
-// To go straight back to individual values, use FlattenInt8 instead.
-func ToScalarInt8[V LaneStore[int8]](source ro.Observable[V]) ro.Observable[[]int8] {
-	return emitLaneSlices[int8, V](source)
-}
-
-// ToScalarInt16 hands each vector's valid lanes downstream as a slice. See ToScalarInt8.
-func ToScalarInt16[V LaneStore[int16]](source ro.Observable[V]) ro.Observable[[]int16] {
-	return emitLaneSlices[int16, V](source)
-}
-
-// ToScalarInt32 hands each vector's valid lanes downstream as a slice. See ToScalarInt8.
-func ToScalarInt32[V LaneStore[int32]](source ro.Observable[V]) ro.Observable[[]int32] {
-	return emitLaneSlices[int32, V](source)
-}
-
-// ToScalarInt64 hands each vector's valid lanes downstream as a slice. See ToScalarInt8.
-func ToScalarInt64[V LaneStore[int64]](source ro.Observable[V]) ro.Observable[[]int64] {
-	return emitLaneSlices[int64, V](source)
-}
-
-// ToScalarUint8 hands each vector's valid lanes downstream as a slice. See ToScalarInt8.
-func ToScalarUint8[V LaneStore[uint8]](source ro.Observable[V]) ro.Observable[[]uint8] {
-	return emitLaneSlices[uint8, V](source)
-}
-
-// ToScalarUint16 hands each vector's valid lanes downstream as a slice. See ToScalarInt8.
-func ToScalarUint16[V LaneStore[uint16]](source ro.Observable[V]) ro.Observable[[]uint16] {
-	return emitLaneSlices[uint16, V](source)
-}
-
-// ToScalarUint32 hands each vector's valid lanes downstream as a slice. See ToScalarInt8.
-func ToScalarUint32[V LaneStore[uint32]](source ro.Observable[V]) ro.Observable[[]uint32] {
-	return emitLaneSlices[uint32, V](source)
-}
-
-// ToScalarUint64 hands each vector's valid lanes downstream as a slice. See ToScalarInt8.
-func ToScalarUint64[V LaneStore[uint64]](source ro.Observable[V]) ro.Observable[[]uint64] {
-	return emitLaneSlices[uint64, V](source)
-}
-
-// ToScalarFloat32 hands each vector's valid lanes downstream as a slice. See ToScalarInt8.
-func ToScalarFloat32[V LaneStore[float32]](source ro.Observable[V]) ro.Observable[[]float32] {
-	return emitLaneSlices[float32, V](source)
-}
-
-// ToScalarFloat64 hands each vector's valid lanes downstream as a slice. See ToScalarInt8.
-func ToScalarFloat64[V LaneStore[float64]](source ro.Observable[V]) ro.Observable[[]float64] {
-	return emitLaneSlices[float64, V](source)
-}
-
-// FlattenInt8 hands each vector's valid lanes downstream one at a time.
+// Its constraint asks only that a vector can report its lanes, not that it can do
+// arithmetic, so it accepts the standard library's vector types as well — simd.Int64s
+// and simd.Uint64s included, which the arithmetic operators reject for want of Min and
+// Max.
 //
-// It is ToScalarInt8 followed by ro.Flatten, in one stage: where ToScalarInt8 emits one
-// slice per vector, this emits one value per lane, turning a vector stream back into the
-// scalar stream VectorizeInt8 was given.
+// To go straight back to individual values, use Flatten instead.
+func ToScalar[T any, V LaneStore[T]](source ro.Observable[V]) ro.Observable[[]T] {
+	return emitLaneSlices[T, V](source)
+}
+
+// Flatten hands each vector's valid lanes downstream one at a time.
 //
-// Padded lanes are never emitted, so a stream that goes through VectorizeInt8 and back
-// out through this arrives unchanged.
+// It is ToScalar followed by ro.Flatten, in one stage: where ToScalar emits one slice per
+// vector, this emits one value per lane, turning a vector stream back into the scalar
+// stream Vectorize was given.
+//
+// Padded lanes are never emitted, so a stream that goes through Vectorize and back out
+// through this arrives unchanged.
 //
 //	ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 //		source,
 //		rosimd.VectorizeInt8,
-//		rosimd.FlattenInt8,
+//		rosimd.Flatten,
 //	)
 //
-// Every lane of one vector carries that vector's context onward, so context propagation
-// survives the round trip.
-func FlattenInt8[V LaneStore[int8]](source ro.Observable[V]) ro.Observable[int8] {
-	return emitLanes[int8, V](source)
-}
-
-// FlattenInt16 hands each vector's valid lanes downstream one at a time. See FlattenInt8.
-func FlattenInt16[V LaneStore[int16]](source ro.Observable[V]) ro.Observable[int16] {
-	return emitLanes[int16, V](source)
-}
-
-// FlattenInt32 hands each vector's valid lanes downstream one at a time. See FlattenInt8.
-func FlattenInt32[V LaneStore[int32]](source ro.Observable[V]) ro.Observable[int32] {
-	return emitLanes[int32, V](source)
-}
-
-// FlattenInt64 hands each vector's valid lanes downstream one at a time. See FlattenInt8.
-func FlattenInt64[V LaneStore[int64]](source ro.Observable[V]) ro.Observable[int64] {
-	return emitLanes[int64, V](source)
-}
-
-// FlattenUint8 hands each vector's valid lanes downstream one at a time. See FlattenInt8.
-func FlattenUint8[V LaneStore[uint8]](source ro.Observable[V]) ro.Observable[uint8] {
-	return emitLanes[uint8, V](source)
-}
-
-// FlattenUint16 hands each vector's valid lanes downstream one at a time. See FlattenInt8.
-func FlattenUint16[V LaneStore[uint16]](source ro.Observable[V]) ro.Observable[uint16] {
-	return emitLanes[uint16, V](source)
-}
-
-// FlattenUint32 hands each vector's valid lanes downstream one at a time. See FlattenInt8.
-func FlattenUint32[V LaneStore[uint32]](source ro.Observable[V]) ro.Observable[uint32] {
-	return emitLanes[uint32, V](source)
-}
-
-// FlattenUint64 hands each vector's valid lanes downstream one at a time. See FlattenInt8.
-func FlattenUint64[V LaneStore[uint64]](source ro.Observable[V]) ro.Observable[uint64] {
-	return emitLanes[uint64, V](source)
-}
-
-// FlattenFloat32 hands each vector's valid lanes downstream one at a time. See FlattenInt8.
-func FlattenFloat32[V LaneStore[float32]](source ro.Observable[V]) ro.Observable[float32] {
-	return emitLanes[float32, V](source)
-}
-
-// FlattenFloat64 hands each vector's valid lanes downstream one at a time. See FlattenInt8.
-func FlattenFloat64[V LaneStore[float64]](source ro.Observable[V]) ro.Observable[float64] {
-	return emitLanes[float64, V](source)
+// Like ToScalar, one operator serves every element type and both type arguments are
+// inferred. Every lane of one vector carries that vector's context onward, so context
+// propagation survives the round trip.
+func Flatten[T any, V LaneStore[T]](source ro.Observable[V]) ro.Observable[T] {
+	return emitLanes[T, V](source)
 }

@@ -30,7 +30,7 @@ func ExampleMinInt8() {
 		ro.Just[int8](1, 50, 100),
 		rosimd.VectorizeInt8,
 		rosimd.MinInt8(rosimd.BroadcastInt8(60)),
-		rosimd.ToScalarInt8,
+		rosimd.ToScalar,
 		ro.Flatten[int8](),
 	)
 
@@ -50,7 +50,7 @@ func ExampleMaxInt8() {
 		ro.Just[int8](1, 50, 100),
 		rosimd.VectorizeInt8,
 		rosimd.MaxInt8(rosimd.BroadcastInt8(40)),
-		rosimd.ToScalarInt8,
+		rosimd.ToScalar,
 		ro.Flatten[int8](),
 	)
 
@@ -73,7 +73,7 @@ func ExampleClampInt8() {
 		ro.Just[int8](1, 50, 100),
 		rosimd.VectorizeInt8,
 		rosimd.ClampInt8(rosimd.BroadcastInt8(10), rosimd.BroadcastInt8(60)),
-		rosimd.ToScalarInt8,
+		rosimd.ToScalar,
 		ro.Flatten[int8](),
 	)
 
@@ -96,7 +96,7 @@ func ExampleMinWithInt8() {
 
 	obs := ro.Pipe2[rosimd.PartialInt8s, []int8, int8](
 		rosimd.MinWithInt8(right)(left),
-		rosimd.ToScalarInt8,
+		rosimd.ToScalar,
 		ro.Flatten[int8](),
 	)
 
@@ -121,7 +121,7 @@ func ExampleMinFloat64_nan() {
 		ro.Just(1.0, math.NaN(), 3.0),
 		rosimd.VectorizeFloat64,
 		rosimd.MinFloat64(rosimd.BroadcastFloat64(2)),
-		rosimd.ToScalarFloat64,
+		rosimd.ToScalar,
 		ro.Flatten[float64](),
 	)
 
@@ -147,7 +147,7 @@ func ExampleMinUint64() {
 		ro.Just[uint64](100, math.MaxUint64),
 		rosimd.VectorizeUint64,
 		rosimd.MinUint64(rosimd.BroadcastUint64(500)),
-		rosimd.ToScalarUint64,
+		rosimd.ToScalar,
 		ro.Flatten[uint64](),
 	)
 
