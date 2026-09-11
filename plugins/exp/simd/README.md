@@ -126,6 +126,22 @@ Reductions deliberately behave the other way. `ReduceMin` and `ReduceMax` compar
 
 Vectorizing does not automatically make a `ro` pipeline faster. Measurements on the previous implementation showed the reactive machinery — per-item dispatch, context propagation, channel handoff — dominating the arithmetic at every input size tested. Batching amortises that cost, which is the point of this design, but benchmark your own pipeline rather than assuming a win.
 
+## Package layout
+
+Operators are grouped by what they do, across all ten element types. The per-type files hold what genuinely varies per type, which is also the only code that touches `simd` directly.
+
+| File                     | Holds                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `vectorize.go`           | `Vectorize` — the entry point into vector space                                    |
+| `arithmetic.go`          | `Add`, `Sub`, `Mul`, `Div` and their `With` variants                               |
+| `bounds.go`              | `Min`, `Max`, `Clamp`, `MinWith`, `MaxWith`                                        |
+| `contains.go`            | `ReduceContains`                                                                   |
+| `reduce.go`              | `ReduceSum`, `ReduceMin`, `ReduceMax`                                              |
+| `vector.go`              | the generic plumbing those share                                                   |
+| `int8.go` … `float64.go` | per type: constraint interfaces, the `Partial` struct, `Broadcast`, masks, methods |
+
+Tests and examples mirror the same split, with the per-type test fixtures in `testhelpers_test.go`.
+
 ## Contributing
 
 The Go 1.27 compiler rewrites every function that touches a simd type into a dispatcher plus per-width clones, and several ordinary-looking Go constructs do not survive that rewrite. The "Editing this package" section of the [package doc](https://pkg.go.dev/github.com/samber/ro/plugins/exp/simd) states the rules; [COMPILER-CONSTRAINTS.md](./COMPILER-CONSTRAINTS.md) records the probes that established them, including the exact error each rejected shape produces. Read the latter before concluding a rule is wrong — several shapes that look obviously fine do not compile.
@@ -136,4 +152,4 @@ The short version:
 2. The concrete type belongs at the call site, as an explicit type argument, never inside such a declaration.
 3. `simd.*` calls and struct-literal construction live in methods on the concrete type, never inside a generic function's own body.
 4. Prefer stage functions that take the source directly over curried ones — only the former let Go infer the type argument.
-5. Every file with simd-dependent code must import `simd` and touch it in a function body.
+5. Every file with simd-dependent code must import `simd` and touch it in a function body. A file counts as simd-dependent when it names a concrete `Partial` type — the operator files are exempt despite driving all the vector work, because they stay generic throughout.

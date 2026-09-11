@@ -80,6 +80,16 @@
 // There is no devectorize operator. Leave vector space with ro.Map plus ro.Flatten,
 // or with one of the Reduce operators.
 //
+// # Package layout
+//
+// The operators are grouped by what they do, across all ten element types:
+// vectorize.go, arithmetic.go, bounds.go, contains.go and reduce.go. vector.go holds the
+// generic plumbing they share.
+//
+// The per-type files — int8.go through float64.go — hold what genuinely varies per type,
+// which is also the only code that touches simd directly: the constraint interfaces, the
+// Partial struct, Broadcast, the mask helpers and every method.
+//
 // # Build requirements
 //
 // This package requires GOEXPERIMENT=simd, and is excluded from the workspace:
@@ -115,7 +125,10 @@
 //     parameter appears only in the type of the func it returns, which Go's
 //     inference does not reach.
 //  5. Every file with simd-dependent code must import "simd" and touch it inside a
-//     function body; a package-level var reference does not satisfy the specializer.
+//     function body; a package-level var reference does not satisfy the specializer. A
+//     file counts as simd-dependent when it names a concrete Partial type. The operator
+//     files are exempt even though they drive all the vector work, because they stay
+//     generic throughout and reach simd only through methods on their type parameter.
 //
 // COMPILER-CONSTRAINTS.md records the probes behind these rules and the exact error
 // each rejected shape produces; read it before concluding a rule is wrong, because
