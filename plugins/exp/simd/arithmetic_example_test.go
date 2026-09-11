@@ -45,6 +45,30 @@ func ExampleAddInt8() {
 	// 13
 }
 
+// Operators chain in a Pipe like any other ro operator. Each stage keeps the stream in
+// vector space, so the arithmetic happens lane-wise the whole way down; only leaving
+// vector space needs a ro.Map, because there is no devectorize.
+func ExampleAddInt8_chained() {
+	obs := ro.Pipe5[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
+		ro.Just[int8](1, 2, 3),
+		rosimd.VectorizeInt8,
+		rosimd.AddInt8(rosimd.BroadcastInt8(10)),
+		rosimd.MulInt8(rosimd.BroadcastInt8(2)),
+		ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+		ro.Flatten[int8](),
+	)
+
+	sub := obs.Subscribe(ro.OnNext(func(value int8) {
+		fmt.Println(value)
+	}))
+	defer sub.Unsubscribe()
+
+	// Output:
+	// 22
+	// 24
+	// 26
+}
+
 func ExampleSubInt8() {
 	obs := ro.Pipe4[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
 		ro.Just[int8](10, 20, 30),

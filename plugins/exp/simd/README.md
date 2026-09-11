@@ -59,15 +59,22 @@ ro.Pipe1(vectorStream, rosimd.AddInt8(simd.BroadcastInt8s(42)))
 
 Operators that need the validity mask — `VectorizeInt8`, `ReduceContainsInt8` — accept only the `Partial` types, because `simd.Int8s` carries no mask.
 
-## Methods or operators
+## Chaining operators
 
-Element-wise work is available both ways. Methods chain inside `ro.Map` and need no type arguments, which is usually shorter:
+Operators chain in a `Pipe` like any other `ro` operator, each stage keeping the stream in vector space:
 
 ```go
-ro.Map(func(v rosimd.PartialInt8s) []int8 {
-    return v.Add(rosimd.BroadcastInt8(42)).Min(rosimd.BroadcastInt8(50)).Values()
-})
+ro.Pipe5[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
+    source,
+    rosimd.VectorizeInt8,
+    rosimd.AddInt8(rosimd.BroadcastInt8(42)),
+    rosimd.MinInt8(rosimd.BroadcastInt8(50)),
+    ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+    ro.Flatten[int8](),
+)
 ```
+
+The same operations exist as methods on the `Partial` types. That is how the operators reach them, through the constraint interface, and it is what lets `simd.Int8s` satisfy the same interface — so the methods are the mechanism rather than the usual way to call one. Reach for them where there is no operator, as with `Contains` and `Select`.
 
 ## Comparing lanes
 

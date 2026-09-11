@@ -57,12 +57,22 @@
 // false for NaN, so a NaN never displaces the accumulator. That matches core ro.Min
 // and ro.Max rather than the NaN-propagating builtins.
 //
-// Element-wise work is available both as operators and as methods. Methods chain
-// inside ro.Map and need no type arguments, which is usually the shorter route:
+// Operators chain in a Pipe like any other ro operator, each stage keeping the stream in
+// vector space:
 //
-//	ro.Map(func(v rosimd.PartialInt8s) []int8 {
-//		return v.Add(rosimd.BroadcastInt8(42)).Min(rosimd.BroadcastInt8(50)).Values()
-//	})
+//	ro.Pipe5[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
+//		source,
+//		rosimd.VectorizeInt8,
+//		rosimd.AddInt8(rosimd.BroadcastInt8(42)),
+//		rosimd.MinInt8(rosimd.BroadcastInt8(50)),
+//		ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+//		ro.Flatten[int8](),
+//	)
+//
+// The same operations exist as methods on the Partial types. That is how the operators
+// reach them, through the constraint interface, and it is what lets simd.Int8s satisfy
+// the same interface — so the methods are the mechanism rather than the usual way to
+// call one. Reach for them when there is no operator, as with Contains and Select.
 //
 // Contains is element-wise like the rest: it returns a mask — SIMD's vector of
 // booleans — marking which lanes matched, already intersected with the validity mask
