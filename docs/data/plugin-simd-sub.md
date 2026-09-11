@@ -50,7 +50,7 @@ obs := ro.Pipe4[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
     ro.Just[int8](10, 20, 30),
     rosimd.VectorizeInt8,
     rosimd.SubInt8(rosimd.BroadcastInt8(5)),
-    ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+    rosimd.ToScalarInt8,
     ro.Flatten[int8](),
 )
 

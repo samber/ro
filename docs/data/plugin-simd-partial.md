@@ -42,7 +42,7 @@ A stream rarely delivers a multiple of the lane width, so the last vector of a b
 
 There is one per element type — `PartialInt8s`, `PartialUint32s`, `PartialFloat64s` and so on.
 
-Operators chain in a `Pipe` like any other `ro` operator, each stage keeping the stream in vector space. Only leaving it needs a `ro.Map`, because there is no devectorize operator:
+Operators chain in a `Pipe` like any other `ro` operator, each stage keeping the stream in vector space until `ToScalar` takes it back out:
 
 ```go
 import (
@@ -57,7 +57,7 @@ obs := ro.Pipe5[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, rosimd.PartialIn
     rosimd.VectorizeInt8,
     rosimd.AddInt8(rosimd.BroadcastInt8(100)),
     rosimd.MinInt8(rosimd.BroadcastInt8(102)),
-    ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+    rosimd.ToScalarInt8,
     ro.Flatten[int8](),
 )
 
@@ -73,7 +73,7 @@ defer sub.Unsubscribe()
 
 The same operations exist as methods on the `Partial` types. That is how the operators reach them, through the constraint interface, and it is what lets `simd.Int8s` satisfy the same interface — so the methods are the mechanism rather than the usual way to call one. Reach for them where there is no operator, as with `Contains` and `Select`.
 
-`Values()` returns the valid lanes as a slice, which is how a pipeline leaves vector space — there is no devectorize operator. `Count()` reports how many lanes hold data, `Len()` the lane capacity of the running architecture, and `Sum()` folds the valid lanes to a scalar.
+`Values()` returns the valid lanes as a slice; the `ToScalar` operator does the same for a whole stream, so reach for the method only inside a `ro.Map` that is already doing something else. `Count()` reports how many lanes hold data, `Len()` the lane capacity of the running architecture, and `Sum()` folds the valid lanes to a scalar.
 
 ```go
 import (
