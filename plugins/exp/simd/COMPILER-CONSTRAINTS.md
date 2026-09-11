@@ -107,6 +107,22 @@ injecting `simd/archsimd`, and extends it: a package-level var is not enough. (A
 functions never touch a simd type — pure generic plumbing — is exempt; the plain var
 reference only has to satisfy the ordinary unused-import check there.)
 
+### Where the boundary actually falls (observed 2026-09-11, regrouping the package)
+
+Splitting the operators out of the per-type files put the rule to a real test, and it
+draws the line at **naming a concrete simd-containing type**, not at driving vector work:
+
+- `arithmetic.go`, `bounds.go`, `contains.go`, `reduce.go` and `vectorize.go` hold all 160
+  operators and **need no `simd` import at all** — not even the blank var. Every
+  declaration is generic over `V`, and the only way they reach simd is through methods on
+  that type parameter.
+- The test files that name `PartialInt8s` and friends **do** need it, and fail with
+  `undefined: simd` pointing at the `package` clause until the import plus a function-body
+  reference is added. That includes external test files in `package rosimd_test`.
+
+So the practical test when adding a file is not "does this file do SIMD work" but "does
+this file write out a concrete Partial type anywhere".
+
 ## Q5 — pinning type arguments once on `ro.Pipe`
 
 **PASS.**
