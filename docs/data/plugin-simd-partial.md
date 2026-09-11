@@ -1,7 +1,7 @@
 ---
 name: PartialInt8s
 slug: partial
-sourceRef: plugins/exp/simd/int8.go#L63
+sourceRef: plugins/exp/simd/int8.go#L59
 type: plugin
 category: simd
 signatures:

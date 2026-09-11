@@ -1,7 +1,7 @@
 ---
 name: Mul
 slug: mul
-sourceRef: plugins/exp/simd/int8.go#L288
+sourceRef: plugins/exp/simd/arithmetic.go#L240
 type: plugin
 category: simd
 signatures:

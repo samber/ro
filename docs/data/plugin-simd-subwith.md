@@ -1,7 +1,7 @@
 ---
 name: SubWith
 slug: subwith
-sourceRef: plugins/exp/simd/int8.go#L337
+sourceRef: plugins/exp/simd/arithmetic.go#L416
 type: plugin
 category: simd
 signatures:

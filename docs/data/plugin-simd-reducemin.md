@@ -1,7 +1,7 @@
 ---
 name: ReduceMin
 slug: reducemin
-sourceRef: plugins/exp/simd/int8.go#L387
+sourceRef: plugins/exp/simd/reduce.go#L233
 type: plugin
 category: simd
 signatures:

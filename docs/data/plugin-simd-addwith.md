@@ -1,7 +1,7 @@
 ---
 name: AddWith
 slug: addwith
-sourceRef: plugins/exp/simd/int8.go#L330
+sourceRef: plugins/exp/simd/arithmetic.go#L319
 type: plugin
 category: simd
 signatures:

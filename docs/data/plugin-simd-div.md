@@ -1,7 +1,7 @@
 ---
 name: Div
 slug: div
-sourceRef: plugins/exp/simd/float64.go#L347
+sourceRef: plugins/exp/simd/arithmetic.go#L309
 type: plugin
 category: simd
 signatures:

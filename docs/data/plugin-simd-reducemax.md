@@ -1,7 +1,7 @@
 ---
 name: ReduceMax
 slug: reducemax
-sourceRef: plugins/exp/simd/int8.go#L398
+sourceRef: plugins/exp/simd/reduce.go#L367
 type: plugin
 category: simd
 signatures:

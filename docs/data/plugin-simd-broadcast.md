@@ -1,7 +1,7 @@
 ---
 name: Broadcast
 slug: broadcast
-sourceRef: plugins/exp/simd/int8.go#L71
+sourceRef: plugins/exp/simd/int8.go#L67
 type: plugin
 category: simd
 signatures:

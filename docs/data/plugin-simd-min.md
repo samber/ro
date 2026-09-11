@@ -1,7 +1,7 @@
 ---
 name: Min
 slug: min
-sourceRef: plugins/exp/simd/int8.go#L299
+sourceRef: plugins/exp/simd/bounds.go#L30
 type: plugin
 category: simd
 signatures:

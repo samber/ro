@@ -1,7 +1,7 @@
 ---
 name: MaxWith
 slug: maxwith
-sourceRef: plugins/exp/simd/int8.go#L358
+sourceRef: plugins/exp/simd/bounds.go#L416
 type: plugin
 category: simd
 signatures:

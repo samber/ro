@@ -1,7 +1,7 @@
 ---
 name: DivWith
 slug: divwith
-sourceRef: plugins/exp/simd/float64.go#L410
+sourceRef: plugins/exp/simd/arithmetic.go#L549
 type: plugin
 category: simd
 signatures:

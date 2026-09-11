@@ -1,7 +1,7 @@
 ---
 name: Max
 slug: max
-sourceRef: plugins/exp/simd/int8.go#L308
+sourceRef: plugins/exp/simd/bounds.go#L138
 type: plugin
 category: simd
 signatures:
