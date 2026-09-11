@@ -103,16 +103,16 @@ The standard library's vector types are not uniform, so neither is this package.
 
 Ten element types are covered: `Int8`, `Int16`, `Int32`, `Int64`, `Uint8`, `Uint16`, `Uint32`, `Uint64`, `Float32`, `Float64`.
 
-| Operation | Available for |
-| --- | --- |
-| `Vectorize`, `Broadcast` | every element type |
-| `Add`, `Sub`, `Min`, `Max`, `Clamp` | every element type |
-| `Contains`, `Select` (methods) | every `Partial` type — `Contains` returns a mask, `Select` consumes one |
-| `Mul` | every type except `Int64` and `Uint64` — the standard library has no 64-bit lane multiply |
-| `Div` | `Float32` and `Float64` only |
-| `ReduceSum`, `ReduceMin`, `ReduceMax`, `ReduceContains` | every element type |
+| Operation                                               | Available for                                                                             |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `Vectorize`, `Broadcast`                                | every element type                                                                        |
+| `Add`, `Sub`, `Min`, `Max`, `Clamp`                     | every element type                                                                        |
+| `Contains`, `Select` (methods)                          | every `Partial` type — `Contains` returns a mask, `Select` consumes one                   |
+| `Mul`                                                   | every type except `Int64` and `Uint64` — the standard library has no 64-bit lane multiply |
+| `Div`                                                   | `Float32` and `Float64` only                                                              |
+| `ReduceSum`, `ReduceMin`, `ReduceMax`, `ReduceContains` | every element type                                                                        |
 
-Each element-wise operator also has a `With` variant that combines two vector streams in lockstep, following `ro.ZipWith`'s naming — `AddWithInt8`, `MinWithFloat64`, and so on.
+`Add`, `Sub`, `Mul`, `Div`, `Min` and `Max` each have a `With` variant that combines two vector streams in lockstep, following `ro.ZipWith`'s naming — `AddWithInt8`, `MinWithFloat64`, and so on. `Clamp` has none: it takes two bounds, so a two-stream form would have to zip three streams at once.
 
 `Int64` and `Uint64` accept only the `Partial` types. `simd.Int64s` and `simd.Uint64s` have no `Min` or `Max`, so the `Partial` types synthesize them from `Less` and `IfElse` — which is precisely what the wrapper is for, since the standard library's per-type method sets are not uniform. Every other element type accepts stdlib vectors too.
 
@@ -132,8 +132,8 @@ The Go 1.27 compiler rewrites every function that touches a simd type into a dis
 
 The short version:
 
-1. No function may name a concrete simd-containing type in its own signature.
-2. The concrete type belongs at the call site, as an explicit type argument, never inside the declaration itself.
+1. No function may put a concrete simd-containing type inside another package's generic type in its own signature — `ro.Observable[PartialInt8s]` fails as a return type and as a callback parameter alike. Naming a bare simd type is fine.
+2. The concrete type belongs at the call site, as an explicit type argument, never inside such a declaration.
 3. `simd.*` calls and struct-literal construction live in methods on the concrete type, never inside a generic function's own body.
 4. Prefer stage functions that take the source directly over curried ones — only the former let Go infer the type argument.
 5. Every file with simd-dependent code must import `simd` and touch it in a function body.

@@ -99,11 +99,13 @@
 // dispatcher plus per-width clones, and several ordinary-looking Go constructs do
 // not survive that rewrite:
 //
-//  1. No function may name a concrete simd-containing type in its own signature —
-//     not as a return type, not as a callback parameter. Keep every declaration
-//     generic over the vector type parameter.
+//  1. No function may put a concrete simd-containing type inside another package's
+//     generic type in its own signature — ro.Observable[PartialInt8s] fails both as
+//     a return type and as a callback parameter. Keep those declarations generic
+//     over the vector type parameter. Naming a bare simd type is fine, which is why
+//     fullMaskInt8() simd.Mask8s compiles.
 //  2. The concrete type belongs at the call site, as an explicit type argument,
-//     never inside the declaration itself.
+//     never inside such a declaration.
 //  3. simd.* calls and struct-literal construction live in methods on the concrete
 //     type, reached only through the constraint interface — never inside a generic
 //     function's own body, even indirectly through a plain helper function.
