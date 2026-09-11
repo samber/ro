@@ -69,7 +69,7 @@ ro.Pipe5[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, rosimd.PartialInt8s, []
     rosimd.VectorizeInt8,
     rosimd.AddInt8(rosimd.BroadcastInt8(42)),
     rosimd.MinInt8(rosimd.BroadcastInt8(50)),
-    ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+    rosimd.ToScalar,
     ro.Flatten[int8](),
 )
 ```
@@ -99,7 +99,7 @@ To collapse a whole stream to a single answer instead, use the `ReduceContains` 
 ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
     source,
     rosimd.VectorizeInt8,
-    rosimd.ToScalarInt8,
+    rosimd.ToScalar,
     ro.Flatten[int8](),
 )
 ```
@@ -110,7 +110,7 @@ ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
 ro.Pipe2[int8, rosimd.PartialInt8s, int8](
     source,
     rosimd.VectorizeInt8,
-    rosimd.FlattenInt8,
+    rosimd.Flatten,
 )
 ```
 
@@ -127,6 +127,7 @@ Ten element types are covered: `Int8`, `Int16`, `Int32`, `Int64`, `Uint8`, `Uint
 | Operation                                               | Available for                                                                             |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `Vectorize`, `Broadcast`                                | every element type                                                                        |
+| `ToScalar`, `Flatten`                                   | one operator each, serving every element type                                             |
 | `Add`, `Sub`, `Min`, `Max`, `Clamp`                     | every element type                                                                        |
 | `Contains`, `Select` (methods)                          | every `Partial` type — `Contains` returns a mask, `Select` consumes one                   |
 | `Mul`                                                   | every type except `Int64` and `Uint64` — the standard library has no 64-bit lane multiply |
@@ -135,7 +136,9 @@ Ten element types are covered: `Int8`, `Int16`, `Int32`, `Int64`, `Uint8`, `Uint
 
 `Add`, `Sub`, `Mul`, `Div`, `Min` and `Max` each have a `With` variant that combines two vector streams in lockstep, following `ro.ZipWith`'s naming — `AddWithInt8`, `MinWithFloat64`, and so on. `Clamp` has none: it takes two bounds, so a two-stream form would have to zip three streams at once.
 
-`Int64` and `Uint64` accept only the `Partial` types. `simd.Int64s` and `simd.Uint64s` have no `Min` or `Max`, so the `Partial` types synthesize them from `Less` and `IfElse` — which is precisely what the wrapper is for, since the standard library's per-type method sets are not uniform. Every other element type accepts stdlib vectors too.
+For `Int64` and `Uint64` the arithmetic operators accept only the `Partial` types. `simd.Int64s` and `simd.Uint64s` have no `Min` or `Max`, so the `Partial` types synthesize them from `Less` and `IfElse` — which is precisely what the wrapper is for, since the standard library's per-type method sets are not uniform. Every other element type accepts stdlib vectors too, and `ToScalar` and `Flatten` accept them at every width, since converting a vector to a slice needs no arithmetic.
+
+Unlike the rest, `ToScalar` and `Flatten` are not suffixed per type: their element type is read off the vector's own `StorePart` signature, so one operator serves all ten.
 
 ### NaN
 

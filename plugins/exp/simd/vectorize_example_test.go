@@ -28,7 +28,7 @@ func ExampleVectorizeInt8() {
 	obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
 		ro.Just[int8](1, 2, 3, 4, 5),
 		rosimd.VectorizeInt8,
-		rosimd.ToScalarInt8,
+		rosimd.ToScalar,
 		ro.Flatten[int8](),
 	)
 
@@ -86,7 +86,7 @@ func ExampleVectorizeFloat64() {
 	obs := ro.Pipe3[float64, rosimd.PartialFloat64s, []float64, float64](
 		ro.Just(1.5, 2.5, 3.5),
 		rosimd.VectorizeFloat64,
-		rosimd.ToScalarFloat64,
+		rosimd.ToScalar,
 		ro.Flatten[float64](),
 	)
 
@@ -104,11 +104,11 @@ func ExampleVectorizeFloat64() {
 // ToScalar hands each vector's valid lanes back as a slice, one slice per vector. It is
 // the exit from vector space, and the shape is the batching: a short final batch gives a
 // correspondingly short slice.
-func ExampleToScalarInt8() {
+func ExampleToScalar() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, []int8](
 		ro.Just[int8](1, 2, 3),
 		rosimd.VectorizeInt8,
-		rosimd.ToScalarInt8,
+		rosimd.ToScalar,
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(lanes []int8) {
@@ -122,11 +122,11 @@ func ExampleToScalarInt8() {
 // Flatten is ToScalar followed by ro.Flatten in a single stage: one value per lane
 // instead of one slice per vector. It turns a vector stream straight back into the
 // scalar stream Vectorize was given.
-func ExampleFlattenInt8() {
+func ExampleFlatten() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 		ro.Just[int8](1, 2, 3, 4, 5),
 		rosimd.VectorizeInt8,
-		rosimd.FlattenInt8,
+		rosimd.Flatten,
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(value int8) {
@@ -145,13 +145,13 @@ func ExampleFlattenInt8() {
 // Neither exit needs arithmetic, only the ability to report lanes, so both accept the
 // standard library's vector types — simd.Int64s included, which the arithmetic operators
 // reject for want of Min and Max.
-func ExampleFlattenInt8_standardLibraryVector() {
+func ExampleFlatten_standardLibraryVector() {
 	input := make([]int8, simd.BroadcastInt8s(0).Len())
 	for i := range input {
 		input[i] = int8(i + 1)
 	}
 
-	values, err := ro.Collect(rosimd.FlattenInt8[simd.Int8s](ro.Just(simd.LoadInt8s(input))))
+	values, err := ro.Collect(rosimd.Flatten(ro.Just(simd.LoadInt8s(input))))
 	if err != nil {
 		panic(err)
 	}

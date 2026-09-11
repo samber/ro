@@ -48,7 +48,7 @@ right := rosimd.VectorizeInt8[rosimd.PartialInt8s](ro.Just[int8](10, 20, 30))
 
 obs := ro.Pipe2[rosimd.PartialInt8s, []int8, int8](
     rosimd.MulWithInt8(right)(left),
-    rosimd.ToScalarInt8,
+    rosimd.ToScalar,
     ro.Flatten[int8](),
 )
 

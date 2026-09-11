@@ -65,7 +65,7 @@
 //		rosimd.VectorizeInt8,
 //		rosimd.AddInt8(rosimd.BroadcastInt8(42)),
 //		rosimd.MinInt8(rosimd.BroadcastInt8(50)),
-//		ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+//		rosimd.ToScalar,
 //		ro.Flatten[int8](),
 //	)
 //
@@ -93,7 +93,9 @@
 // to one value.
 //
 // Both exits ask only that a vector can report its lanes, so unlike the arithmetic
-// operators they accept simd.Int64s and simd.Uint64s too.
+// operators they accept simd.Int64s and simd.Uint64s too. Both are also unsuffixed,
+// alone among the operators here: their element type is read off the vector's own
+// StorePart signature, so one operator serves all ten types.
 //
 // # Package layout
 //

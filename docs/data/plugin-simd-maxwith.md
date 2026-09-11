@@ -50,7 +50,7 @@ right := rosimd.VectorizeInt8[rosimd.PartialInt8s](ro.Just[int8](10, 60, 10))
 
 obs := ro.Pipe2[rosimd.PartialInt8s, []int8, int8](
     rosimd.MaxWithInt8(right)(left),
-    rosimd.ToScalarInt8,
+    rosimd.ToScalar,
     ro.Flatten[int8](),
 )
 

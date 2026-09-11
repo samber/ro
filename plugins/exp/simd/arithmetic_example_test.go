@@ -30,7 +30,7 @@ func ExampleAddInt8() {
 		ro.Just[int8](1, 2, 3),
 		rosimd.VectorizeInt8,
 		rosimd.AddInt8(rosimd.BroadcastInt8(10)),
-		rosimd.ToScalarInt8,
+		rosimd.ToScalar,
 		ro.Flatten[int8](),
 	)
 
@@ -54,7 +54,7 @@ func ExampleAddInt8_chained() {
 		rosimd.VectorizeInt8,
 		rosimd.AddInt8(rosimd.BroadcastInt8(10)),
 		rosimd.MulInt8(rosimd.BroadcastInt8(2)),
-		rosimd.ToScalarInt8,
+		rosimd.ToScalar,
 		ro.Flatten[int8](),
 	)
 
@@ -74,7 +74,7 @@ func ExampleSubInt8() {
 		ro.Just[int8](10, 20, 30),
 		rosimd.VectorizeInt8,
 		rosimd.SubInt8(rosimd.BroadcastInt8(5)),
-		rosimd.ToScalarInt8,
+		rosimd.ToScalar,
 		ro.Flatten[int8](),
 	)
 
@@ -96,7 +96,7 @@ func ExampleMulInt8() {
 		ro.Just[int8](1, 2, 3),
 		rosimd.VectorizeInt8,
 		rosimd.MulInt8(rosimd.BroadcastInt8(3)),
-		rosimd.ToScalarInt8,
+		rosimd.ToScalar,
 		ro.Flatten[int8](),
 	)
 
@@ -118,7 +118,7 @@ func ExampleDivFloat64() {
 		ro.Just[float64](1, 2, 3),
 		rosimd.VectorizeFloat64,
 		rosimd.DivFloat64(rosimd.BroadcastFloat64(2)),
-		rosimd.ToScalarFloat64,
+		rosimd.ToScalar,
 		ro.Flatten[float64](),
 	)
 
@@ -140,7 +140,7 @@ func ExampleDivFloat64_byZero() {
 		ro.Just[float64](1, -1, 0),
 		rosimd.VectorizeFloat64,
 		rosimd.DivFloat64(rosimd.BroadcastFloat64(0)),
-		rosimd.ToScalarFloat64,
+		rosimd.ToScalar,
 		ro.Flatten[float64](),
 	)
 
@@ -162,7 +162,7 @@ func ExampleAddUint8_overflow() {
 		ro.Just[uint8](250, 10),
 		rosimd.VectorizeUint8,
 		rosimd.AddUint8(rosimd.BroadcastUint8(10)),
-		rosimd.ToScalarUint8,
+		rosimd.ToScalar,
 		ro.Flatten[uint8](),
 	)
 
@@ -184,7 +184,7 @@ func ExampleAddWithInt8() {
 
 	obs := ro.Pipe2[rosimd.PartialInt8s, []int8, int8](
 		rosimd.AddWithInt8(right)(left),
-		rosimd.ToScalarInt8,
+		rosimd.ToScalar,
 		ro.Flatten[int8](),
 	)
 
@@ -205,7 +205,7 @@ func ExampleDivWithFloat64() {
 
 	obs := ro.Pipe2[rosimd.PartialFloat64s, []float64, float64](
 		rosimd.DivWithFloat64(right)(left),
-		rosimd.ToScalarFloat64,
+		rosimd.ToScalar,
 		ro.Flatten[float64](),
 	)
 

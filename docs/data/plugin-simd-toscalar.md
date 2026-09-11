@@ -1,32 +1,14 @@
 ---
 name: ToScalar
 slug: toscalar
-sourceRef: plugins/exp/simd/vectorize.go#L250
+sourceRef: plugins/exp/simd/vectorize.go#L252
 type: plugin
 category: simd
 signatures:
-  - "func ToScalarInt8[V LaneStore[int8]](source Observable[V]) Observable[[]int8]"
-  - "func ToScalarInt16[V LaneStore[int16]](source Observable[V]) Observable[[]int16]"
-  - "func ToScalarInt32[V LaneStore[int32]](source Observable[V]) Observable[[]int32]"
-  - "func ToScalarInt64[V LaneStore[int64]](source Observable[V]) Observable[[]int64]"
-  - "func ToScalarUint8[V LaneStore[uint8]](source Observable[V]) Observable[[]uint8]"
-  - "func ToScalarUint16[V LaneStore[uint16]](source Observable[V]) Observable[[]uint16]"
-  - "func ToScalarUint32[V LaneStore[uint32]](source Observable[V]) Observable[[]uint32]"
-  - "func ToScalarUint64[V LaneStore[uint64]](source Observable[V]) Observable[[]uint64]"
-  - "func ToScalarFloat32[V LaneStore[float32]](source Observable[V]) Observable[[]float32]"
-  - "func ToScalarFloat64[V LaneStore[float64]](source Observable[V]) Observable[[]float64]"
+  - "func ToScalar[T any, V LaneStore[T]](source Observable[V]) Observable[[]T]"
 playUrl:
 variantHelpers:
-  - plugin#simd#toscalarint8
-  - plugin#simd#toscalarint16
-  - plugin#simd#toscalarint32
-  - plugin#simd#toscalarint64
-  - plugin#simd#toscalaruint8
-  - plugin#simd#toscalaruint16
-  - plugin#simd#toscalaruint32
-  - plugin#simd#toscalaruint64
-  - plugin#simd#toscalarfloat32
-  - plugin#simd#toscalarfloat64
+  - plugin#simd#toscalar
 similarHelpers:
   - plugin#simd#flatten
   - plugin#simd#vectorize
@@ -49,7 +31,7 @@ import (
 obs := ro.Pipe2[int8, rosimd.PartialInt8s, []int8](
     ro.Just[int8](1, 2, 3),
     rosimd.VectorizeInt8,
-    rosimd.ToScalarInt8,
+    rosimd.ToScalar,
 )
 
 sub := obs.Subscribe(ro.OnNext(func(lanes []int8) {

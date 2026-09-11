@@ -608,7 +608,7 @@ func TestFlattenInt8RoundTrips(t *testing.T) {
 		input := rampInt8(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int8, PartialInt8s, int8](ro.FromSlice(input), VectorizeInt8, FlattenInt8),
+			ro.Pipe2[int8, PartialInt8s, int8](ro.FromSlice(input), VectorizeInt8, Flatten),
 		)
 		assert.NoError(t, err)
 
@@ -625,7 +625,7 @@ func TestToScalarInt8MatchesBatches(t *testing.T) {
 		input := rampInt8(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[int8, PartialInt8s, []int8](ro.FromSlice(input), VectorizeInt8, ToScalarInt8),
+			ro.Pipe2[int8, PartialInt8s, []int8](ro.FromSlice(input), VectorizeInt8, ToScalar),
 		)
 		assert.NoError(t, err)
 
@@ -658,7 +658,7 @@ func TestFlattenInt16RoundTrips(t *testing.T) {
 		input := rampInt16(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int16, PartialInt16s, int16](ro.FromSlice(input), VectorizeInt16, FlattenInt16),
+			ro.Pipe2[int16, PartialInt16s, int16](ro.FromSlice(input), VectorizeInt16, Flatten),
 		)
 		assert.NoError(t, err)
 
@@ -675,7 +675,7 @@ func TestToScalarInt16MatchesBatches(t *testing.T) {
 		input := rampInt16(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[int16, PartialInt16s, []int16](ro.FromSlice(input), VectorizeInt16, ToScalarInt16),
+			ro.Pipe2[int16, PartialInt16s, []int16](ro.FromSlice(input), VectorizeInt16, ToScalar),
 		)
 		assert.NoError(t, err)
 
@@ -708,7 +708,7 @@ func TestFlattenInt32RoundTrips(t *testing.T) {
 		input := rampInt32(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int32, PartialInt32s, int32](ro.FromSlice(input), VectorizeInt32, FlattenInt32),
+			ro.Pipe2[int32, PartialInt32s, int32](ro.FromSlice(input), VectorizeInt32, Flatten),
 		)
 		assert.NoError(t, err)
 
@@ -725,7 +725,7 @@ func TestToScalarInt32MatchesBatches(t *testing.T) {
 		input := rampInt32(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[int32, PartialInt32s, []int32](ro.FromSlice(input), VectorizeInt32, ToScalarInt32),
+			ro.Pipe2[int32, PartialInt32s, []int32](ro.FromSlice(input), VectorizeInt32, ToScalar),
 		)
 		assert.NoError(t, err)
 
@@ -758,7 +758,7 @@ func TestFlattenInt64RoundTrips(t *testing.T) {
 		input := rampInt64(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int64, PartialInt64s, int64](ro.FromSlice(input), VectorizeInt64, FlattenInt64),
+			ro.Pipe2[int64, PartialInt64s, int64](ro.FromSlice(input), VectorizeInt64, Flatten),
 		)
 		assert.NoError(t, err)
 
@@ -775,7 +775,7 @@ func TestToScalarInt64MatchesBatches(t *testing.T) {
 		input := rampInt64(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[int64, PartialInt64s, []int64](ro.FromSlice(input), VectorizeInt64, ToScalarInt64),
+			ro.Pipe2[int64, PartialInt64s, []int64](ro.FromSlice(input), VectorizeInt64, ToScalar),
 		)
 		assert.NoError(t, err)
 
@@ -808,7 +808,7 @@ func TestFlattenUint8RoundTrips(t *testing.T) {
 		input := rampUint8(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8, FlattenUint8),
+			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8, Flatten),
 		)
 		assert.NoError(t, err)
 
@@ -825,7 +825,7 @@ func TestToScalarUint8MatchesBatches(t *testing.T) {
 		input := rampUint8(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[uint8, PartialUint8s, []uint8](ro.FromSlice(input), VectorizeUint8, ToScalarUint8),
+			ro.Pipe2[uint8, PartialUint8s, []uint8](ro.FromSlice(input), VectorizeUint8, ToScalar),
 		)
 		assert.NoError(t, err)
 
@@ -858,7 +858,7 @@ func TestFlattenUint16RoundTrips(t *testing.T) {
 		input := rampUint16(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16, FlattenUint16),
+			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16, Flatten),
 		)
 		assert.NoError(t, err)
 
@@ -875,7 +875,7 @@ func TestToScalarUint16MatchesBatches(t *testing.T) {
 		input := rampUint16(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[uint16, PartialUint16s, []uint16](ro.FromSlice(input), VectorizeUint16, ToScalarUint16),
+			ro.Pipe2[uint16, PartialUint16s, []uint16](ro.FromSlice(input), VectorizeUint16, ToScalar),
 		)
 		assert.NoError(t, err)
 
@@ -908,7 +908,7 @@ func TestFlattenUint32RoundTrips(t *testing.T) {
 		input := rampUint32(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32, FlattenUint32),
+			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32, Flatten),
 		)
 		assert.NoError(t, err)
 
@@ -925,7 +925,7 @@ func TestToScalarUint32MatchesBatches(t *testing.T) {
 		input := rampUint32(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[uint32, PartialUint32s, []uint32](ro.FromSlice(input), VectorizeUint32, ToScalarUint32),
+			ro.Pipe2[uint32, PartialUint32s, []uint32](ro.FromSlice(input), VectorizeUint32, ToScalar),
 		)
 		assert.NoError(t, err)
 
@@ -958,7 +958,7 @@ func TestFlattenUint64RoundTrips(t *testing.T) {
 		input := rampUint64(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64, FlattenUint64),
+			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64, Flatten),
 		)
 		assert.NoError(t, err)
 
@@ -975,7 +975,7 @@ func TestToScalarUint64MatchesBatches(t *testing.T) {
 		input := rampUint64(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[uint64, PartialUint64s, []uint64](ro.FromSlice(input), VectorizeUint64, ToScalarUint64),
+			ro.Pipe2[uint64, PartialUint64s, []uint64](ro.FromSlice(input), VectorizeUint64, ToScalar),
 		)
 		assert.NoError(t, err)
 
@@ -1008,7 +1008,7 @@ func TestFlattenFloat32RoundTrips(t *testing.T) {
 		input := rampFloat32(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32, FlattenFloat32),
+			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32, Flatten),
 		)
 		assert.NoError(t, err)
 
@@ -1025,7 +1025,7 @@ func TestToScalarFloat32MatchesBatches(t *testing.T) {
 		input := rampFloat32(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[float32, PartialFloat32s, []float32](ro.FromSlice(input), VectorizeFloat32, ToScalarFloat32),
+			ro.Pipe2[float32, PartialFloat32s, []float32](ro.FromSlice(input), VectorizeFloat32, ToScalar),
 		)
 		assert.NoError(t, err)
 
@@ -1058,7 +1058,7 @@ func TestFlattenFloat64RoundTrips(t *testing.T) {
 		input := rampFloat64(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64, FlattenFloat64),
+			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64, Flatten),
 		)
 		assert.NoError(t, err)
 
@@ -1075,7 +1075,7 @@ func TestToScalarFloat64MatchesBatches(t *testing.T) {
 		input := rampFloat64(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[float64, PartialFloat64s, []float64](ro.FromSlice(input), VectorizeFloat64, ToScalarFloat64),
+			ro.Pipe2[float64, PartialFloat64s, []float64](ro.FromSlice(input), VectorizeFloat64, ToScalar),
 		)
 		assert.NoError(t, err)
 
@@ -1106,17 +1106,17 @@ func TestExitOperatorsAcceptStdlibVectors(t *testing.T) {
 
 	batch := rampInt8(lanesInt8())
 
-	flattened, err := ro.Collect(FlattenInt8[simd.Int8s](ro.Just(simd.LoadInt8s(batch))))
+	flattened, err := ro.Collect(Flatten(ro.Just(simd.LoadInt8s(batch))))
 	assert.NoError(t, err)
 	assert.Equal(t, batch, flattened)
 
-	sliced, err := ro.Collect(ToScalarInt8[simd.Int8s](ro.Just(simd.LoadInt8s(batch))))
+	sliced, err := ro.Collect(ToScalar(ro.Just(simd.LoadInt8s(batch))))
 	assert.NoError(t, err)
 	assert.Equal(t, [][]int8{batch}, sliced)
 
 	wide := rampInt64(lanesInt64())
 
-	wideFlattened, err := ro.Collect(FlattenInt64[simd.Int64s](ro.Just(simd.LoadInt64s(wide))))
+	wideFlattened, err := ro.Collect(Flatten(ro.Just(simd.LoadInt64s(wide))))
 	assert.NoError(t, err)
 	assert.Equal(t, wide, wideFlattened,
 		"simd.Int64s cannot satisfy Int64Vector, but it can report its lanes")
