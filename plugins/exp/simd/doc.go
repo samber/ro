@@ -24,7 +24,7 @@
 //
 //	ro.Pipe3[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, int8](
 //		source,
-//		rosimd.VectorizeInt8,
+//		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 //		rosimd.AddInt8(rosimd.BroadcastInt8(42)),
 //		rosimd.ReduceSumInt8,
 //	)
@@ -60,13 +60,12 @@
 // Operators chain in a Pipe like any other ro operator, each stage keeping the stream in
 // vector space:
 //
-//	ro.Pipe5[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
+//	ro.Pipe4[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, rosimd.PartialInt8s, int8](
 //		source,
-//		rosimd.VectorizeInt8,
+//		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 //		rosimd.AddInt8(rosimd.BroadcastInt8(42)),
 //		rosimd.MinInt8(rosimd.BroadcastInt8(50)),
-//		rosimd.ToScalar,
-//		ro.Flatten[int8](),
+//		rosimd.Flatten[rosimd.PartialInt8s](),
 //	)
 //
 // The same operations exist as methods on the Partial types. That is how the operators
@@ -94,8 +93,9 @@
 //
 // Both exits ask only that a vector can report its lanes, so unlike the arithmetic
 // operators they accept simd.Int64s and simd.Uint64s too. Both are also unsuffixed,
-// alone among the operators here: their element type is read off the vector's own
-// StorePart signature, so one operator serves all ten types.
+// alone among the operators here: only the vector type is written at the call site, as in
+// Flatten[PartialInt8s](), and the element type is inferred from that vector's own
+// StorePart signature — so one operator serves all ten types.
 //
 // # Package layout
 //
@@ -136,11 +136,11 @@
 //  3. simd.* calls and struct-literal construction live in methods on the concrete
 //     type, reached only through the constraint interface — never inside a generic
 //     function's own body, even indirectly through a plain helper function.
-//  4. Prefer stage functions that take the source directly
-//     (func(source ro.Observable[S]) ro.Observable[R]) over curried ones: Go infers
-//     their type argument from the surrounding Pipe, while a curried operator's type
-//     parameter appears only in the type of the func it returns, which Go's
-//     inference does not reach.
+//  4. A curried operator's vector type must be written at the call site. Its type
+//     parameter appears only in the type of the func it returns, which Go's inference
+//     does not reach, so Vectorize, ToScalar and Flatten are always instantiated
+//     explicitly. The reductions take the source directly instead, letting the
+//     surrounding Pipe pin their type argument.
 //  5. Every file with simd-dependent code must import "simd" and touch it inside a
 //     function body; a package-level var reference does not satisfy the specializer. A
 //     file counts as simd-dependent when it names a concrete Partial type. The operator

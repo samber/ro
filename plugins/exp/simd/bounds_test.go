@@ -121,13 +121,13 @@ func TestMinMaxUint8TreatsHighBitAsLarge(t *testing.T) {
 	assert.Equal(t, []uint8{120, 200, 150}, raised)
 
 	largest, err := ro.Collect(
-		ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8, ReduceMaxUint8),
+		ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8[PartialUint8s](), ReduceMaxUint8),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint8{200}, largest)
 
 	smallest, err := ro.Collect(
-		ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8, ReduceMinUint8),
+		ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8[PartialUint8s](), ReduceMinUint8),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint8{100}, smallest)
@@ -150,13 +150,13 @@ func TestMinMaxUint16TreatsHighBitAsLarge(t *testing.T) {
 	assert.Equal(t, []uint16{5000, 40000, 20000}, raised)
 
 	largest, err := ro.Collect(
-		ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16, ReduceMaxUint16),
+		ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16[PartialUint16s](), ReduceMaxUint16),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint16{40000}, largest)
 
 	smallest, err := ro.Collect(
-		ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16, ReduceMinUint16),
+		ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16[PartialUint16s](), ReduceMinUint16),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint16{1000}, smallest)
@@ -179,13 +179,13 @@ func TestMinMaxUint32TreatsHighBitAsLarge(t *testing.T) {
 	assert.Equal(t, []uint32{500000, 3000000000, 2000000000}, raised)
 
 	largest, err := ro.Collect(
-		ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32, ReduceMaxUint32),
+		ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32[PartialUint32s](), ReduceMaxUint32),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint32{3000000000}, largest)
 
 	smallest, err := ro.Collect(
-		ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32, ReduceMinUint32),
+		ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32[PartialUint32s](), ReduceMinUint32),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint32{100000}, smallest)
@@ -236,13 +236,13 @@ func TestMinMaxUint64TreatsHighBitAsLarge(t *testing.T) {
 	assert.Equal(t, []uint64{500, math.MaxUint64, 1000}, raised)
 
 	largest, err := ro.Collect(
-		ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64, ReduceMaxUint64),
+		ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64[PartialUint64s](), ReduceMaxUint64),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint64{math.MaxUint64}, largest)
 
 	smallest, err := ro.Collect(
-		ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64, ReduceMinUint64),
+		ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64[PartialUint64s](), ReduceMinUint64),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint64{100}, smallest)

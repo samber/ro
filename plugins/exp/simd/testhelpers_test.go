@@ -58,7 +58,7 @@ func rampInt8(size int) []int8 {
 func collectInt8Values[V Int8Buffer[V]](t *testing.T, input []int8, operators ...func(ro.Observable[V]) ro.Observable[V]) []int8 {
 	t.Helper()
 
-	vectors := VectorizeInt8[V](ro.FromSlice(input))
+	vectors := VectorizeInt8[V]()(ro.FromSlice(input))
 	for _, operator := range operators {
 		vectors = operator(vectors)
 	}
@@ -126,7 +126,7 @@ func rampInt16(size int) []int16 {
 func collectInt16Values[V Int16Buffer[V]](t *testing.T, input []int16, operators ...func(ro.Observable[V]) ro.Observable[V]) []int16 {
 	t.Helper()
 
-	vectors := VectorizeInt16[V](ro.FromSlice(input))
+	vectors := VectorizeInt16[V]()(ro.FromSlice(input))
 	for _, operator := range operators {
 		vectors = operator(vectors)
 	}
@@ -194,7 +194,7 @@ func rampInt32(size int) []int32 {
 func collectInt32Values[V Int32Buffer[V]](t *testing.T, input []int32, operators ...func(ro.Observable[V]) ro.Observable[V]) []int32 {
 	t.Helper()
 
-	vectors := VectorizeInt32[V](ro.FromSlice(input))
+	vectors := VectorizeInt32[V]()(ro.FromSlice(input))
 	for _, operator := range operators {
 		vectors = operator(vectors)
 	}
@@ -263,7 +263,7 @@ func rampInt64(size int) []int64 {
 func collectInt64Values[V Int64Buffer[V]](t *testing.T, input []int64, operators ...func(ro.Observable[V]) ro.Observable[V]) []int64 {
 	t.Helper()
 
-	vectors := VectorizeInt64[V](ro.FromSlice(input))
+	vectors := VectorizeInt64[V]()(ro.FromSlice(input))
 	for _, operator := range operators {
 		vectors = operator(vectors)
 	}
@@ -331,7 +331,7 @@ func rampUint8(size int) []uint8 {
 func collectUint8Values[V Uint8Buffer[V]](t *testing.T, input []uint8, operators ...func(ro.Observable[V]) ro.Observable[V]) []uint8 {
 	t.Helper()
 
-	vectors := VectorizeUint8[V](ro.FromSlice(input))
+	vectors := VectorizeUint8[V]()(ro.FromSlice(input))
 	for _, operator := range operators {
 		vectors = operator(vectors)
 	}
@@ -399,7 +399,7 @@ func rampUint16(size int) []uint16 {
 func collectUint16Values[V Uint16Buffer[V]](t *testing.T, input []uint16, operators ...func(ro.Observable[V]) ro.Observable[V]) []uint16 {
 	t.Helper()
 
-	vectors := VectorizeUint16[V](ro.FromSlice(input))
+	vectors := VectorizeUint16[V]()(ro.FromSlice(input))
 	for _, operator := range operators {
 		vectors = operator(vectors)
 	}
@@ -467,7 +467,7 @@ func rampUint32(size int) []uint32 {
 func collectUint32Values[V Uint32Buffer[V]](t *testing.T, input []uint32, operators ...func(ro.Observable[V]) ro.Observable[V]) []uint32 {
 	t.Helper()
 
-	vectors := VectorizeUint32[V](ro.FromSlice(input))
+	vectors := VectorizeUint32[V]()(ro.FromSlice(input))
 	for _, operator := range operators {
 		vectors = operator(vectors)
 	}
@@ -536,7 +536,7 @@ func rampUint64(size int) []uint64 {
 func collectUint64Values[V Uint64Buffer[V]](t *testing.T, input []uint64, operators ...func(ro.Observable[V]) ro.Observable[V]) []uint64 {
 	t.Helper()
 
-	vectors := VectorizeUint64[V](ro.FromSlice(input))
+	vectors := VectorizeUint64[V]()(ro.FromSlice(input))
 	for _, operator := range operators {
 		vectors = operator(vectors)
 	}
@@ -628,7 +628,7 @@ func assertLanesEqualFloat32(t *testing.T, want, got []float32, context string) 
 func collectFloat32Values[V Float32Buffer[V]](t *testing.T, input []float32, operators ...func(ro.Observable[V]) ro.Observable[V]) []float32 {
 	t.Helper()
 
-	vectors := VectorizeFloat32[V](ro.FromSlice(input))
+	vectors := VectorizeFloat32[V]()(ro.FromSlice(input))
 	for _, operator := range operators {
 		vectors = operator(vectors)
 	}
@@ -723,7 +723,7 @@ func assertLanesEqualFloat64(t *testing.T, want, got []float64, context string) 
 func collectFloat64Values[V Float64Buffer[V]](t *testing.T, input []float64, operators ...func(ro.Observable[V]) ro.Observable[V]) []float64 {
 	t.Helper()
 
-	vectors := VectorizeFloat64[V](ro.FromSlice(input))
+	vectors := VectorizeFloat64[V]()(ro.FromSlice(input))
 	for _, operator := range operators {
 		vectors = operator(vectors)
 	}

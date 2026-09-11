@@ -5,7 +5,7 @@ sourceRef: plugins/exp/simd/vectorize.go#L274
 type: plugin
 category: simd
 signatures:
-  - "func Flatten[T any, V LaneStore[T]](source Observable[V]) Observable[T]"
+  - "func Flatten[V LaneStore[T], T any]()"
 playUrl:
 variantHelpers:
   - plugin#simd#flatten
@@ -30,8 +30,8 @@ import (
 
 obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
     ro.Just[int8](1, 2, 3, 4, 5),
-    rosimd.VectorizeInt8,
-    rosimd.Flatten,
+    rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+    rosimd.Flatten[rosimd.PartialInt8s](),
 )
 
 sub := obs.Subscribe(ro.OnNext(func(value int8) {

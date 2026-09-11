@@ -32,7 +32,7 @@ import "github.com/samber/ro"
 //
 //	ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 //		source,
-//		rosimd.VectorizeInt8,
+//		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 //		rosimd.ReduceSumInt8,
 //	)
 func ReduceSumInt8[V Int8Vector[V]](source ro.Observable[V]) ro.Observable[int8] {
@@ -52,7 +52,7 @@ func ReduceSumInt8[V Int8Vector[V]](source ro.Observable[V]) ro.Observable[int8]
 //
 //	ro.Pipe2[int16, rosimd.PartialInt16s, int16](
 //		source,
-//		rosimd.VectorizeInt16,
+//		rosimd.VectorizeInt16[rosimd.PartialInt16s](),
 //		rosimd.ReduceSumInt16,
 //	)
 func ReduceSumInt16[V Int16Vector[V]](source ro.Observable[V]) ro.Observable[int16] {
@@ -72,7 +72,7 @@ func ReduceSumInt16[V Int16Vector[V]](source ro.Observable[V]) ro.Observable[int
 //
 //	ro.Pipe2[int32, rosimd.PartialInt32s, int32](
 //		source,
-//		rosimd.VectorizeInt32,
+//		rosimd.VectorizeInt32[rosimd.PartialInt32s](),
 //		rosimd.ReduceSumInt32,
 //	)
 func ReduceSumInt32[V Int32Vector[V]](source ro.Observable[V]) ro.Observable[int32] {
@@ -92,7 +92,7 @@ func ReduceSumInt32[V Int32Vector[V]](source ro.Observable[V]) ro.Observable[int
 //
 //	ro.Pipe2[int64, rosimd.PartialInt64s, int64](
 //		source,
-//		rosimd.VectorizeInt64,
+//		rosimd.VectorizeInt64[rosimd.PartialInt64s](),
 //		rosimd.ReduceSumInt64,
 //	)
 func ReduceSumInt64[V Int64Vector[V]](source ro.Observable[V]) ro.Observable[int64] {
@@ -112,7 +112,7 @@ func ReduceSumInt64[V Int64Vector[V]](source ro.Observable[V]) ro.Observable[int
 //
 //	ro.Pipe2[uint8, rosimd.PartialUint8s, uint8](
 //		source,
-//		rosimd.VectorizeUint8,
+//		rosimd.VectorizeUint8[rosimd.PartialUint8s](),
 //		rosimd.ReduceSumUint8,
 //	)
 func ReduceSumUint8[V Uint8Vector[V]](source ro.Observable[V]) ro.Observable[uint8] {
@@ -132,7 +132,7 @@ func ReduceSumUint8[V Uint8Vector[V]](source ro.Observable[V]) ro.Observable[uin
 //
 //	ro.Pipe2[uint16, rosimd.PartialUint16s, uint16](
 //		source,
-//		rosimd.VectorizeUint16,
+//		rosimd.VectorizeUint16[rosimd.PartialUint16s](),
 //		rosimd.ReduceSumUint16,
 //	)
 func ReduceSumUint16[V Uint16Vector[V]](source ro.Observable[V]) ro.Observable[uint16] {
@@ -152,7 +152,7 @@ func ReduceSumUint16[V Uint16Vector[V]](source ro.Observable[V]) ro.Observable[u
 //
 //	ro.Pipe2[uint32, rosimd.PartialUint32s, uint32](
 //		source,
-//		rosimd.VectorizeUint32,
+//		rosimd.VectorizeUint32[rosimd.PartialUint32s](),
 //		rosimd.ReduceSumUint32,
 //	)
 func ReduceSumUint32[V Uint32Vector[V]](source ro.Observable[V]) ro.Observable[uint32] {
@@ -172,7 +172,7 @@ func ReduceSumUint32[V Uint32Vector[V]](source ro.Observable[V]) ro.Observable[u
 //
 //	ro.Pipe2[uint64, rosimd.PartialUint64s, uint64](
 //		source,
-//		rosimd.VectorizeUint64,
+//		rosimd.VectorizeUint64[rosimd.PartialUint64s](),
 //		rosimd.ReduceSumUint64,
 //	)
 func ReduceSumUint64[V Uint64Vector[V]](source ro.Observable[V]) ro.Observable[uint64] {
@@ -194,7 +194,7 @@ func ReduceSumUint64[V Uint64Vector[V]](source ro.Observable[V]) ro.Observable[u
 //
 //	ro.Pipe2[float32, rosimd.PartialFloat32s, float32](
 //		source,
-//		rosimd.VectorizeFloat32,
+//		rosimd.VectorizeFloat32[rosimd.PartialFloat32s](),
 //		rosimd.ReduceSumFloat32,
 //	)
 func ReduceSumFloat32[V Float32Vector[V]](source ro.Observable[V]) ro.Observable[float32] {
@@ -216,7 +216,7 @@ func ReduceSumFloat32[V Float32Vector[V]](source ro.Observable[V]) ro.Observable
 //
 //	ro.Pipe2[float64, rosimd.PartialFloat64s, float64](
 //		source,
-//		rosimd.VectorizeFloat64,
+//		rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
 //		rosimd.ReduceSumFloat64,
 //	)
 func ReduceSumFloat64[V Float64Vector[V]](source ro.Observable[V]) ro.Observable[float64] {

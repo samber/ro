@@ -50,7 +50,7 @@ import (
 
 obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
     ro.Just[int8](7, 1, 7, 2),
-    rosimd.VectorizeInt8,
+    rosimd.VectorizeInt8[rosimd.PartialInt8s](),
     ro.Map(func(v rosimd.PartialInt8s) []int8 {
         matched := v.Contains(rosimd.BroadcastInt8(7))
 

@@ -203,60 +203,6 @@ func vectorize[T any, V LaneBuffer[V, T]](source ro.Observable[T]) ro.Observable
 	})
 }
 
-// emitLaneSlices hands each vector's valid lanes downstream as a slice.
-//
-// The slice is freshly allocated at exactly the valid length rather than sliced out of a
-// reusable buffer, because it is handed to a subscriber that may keep it.
-func emitLaneSlices[T any, V LaneStore[T]](source ro.Observable[V]) ro.Observable[[]T] {
-	return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[[]T]) ro.Teardown {
-		sub := source.SubscribeWithContext(
-			subscriberCtx,
-			ro.NewObserverWithContext(
-				func(ctx context.Context, value V) {
-					var buffer [maxLanes]T
-					n := value.StorePart(buffer[:])
-
-					lanes := make([]T, n)
-					copy(lanes, buffer[:n])
-
-					destination.NextWithContext(ctx, lanes)
-				},
-				destination.ErrorWithContext,
-				destination.CompleteWithContext,
-			),
-		)
-
-		return sub.Unsubscribe
-	})
-}
-
-// emitLanes hands each vector's valid lanes downstream one at a time.
-//
-// Every lane of one vector carries that vector's own context, so a value's context
-// survives the round trip through vector space rather than being replaced by the
-// subscription's.
-func emitLanes[T any, V LaneStore[T]](source ro.Observable[V]) ro.Observable[T] {
-	return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
-		sub := source.SubscribeWithContext(
-			subscriberCtx,
-			ro.NewObserverWithContext(
-				func(ctx context.Context, value V) {
-					var buffer [maxLanes]T
-					n := value.StorePart(buffer[:])
-
-					for i := range n {
-						destination.NextWithContext(ctx, buffer[i])
-					}
-				},
-				destination.ErrorWithContext,
-				destination.CompleteWithContext,
-			),
-		)
-
-		return sub.Unsubscribe
-	})
-}
-
 // reduceLanes folds every valid lane of every vector into a single value.
 //
 // simd offers no horizontal reduction and no way to extract a mask as a bitmask, so

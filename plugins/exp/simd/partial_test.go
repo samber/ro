@@ -400,7 +400,7 @@ func TestMethodChainingViaMap(t *testing.T) {
 	values, err := ro.Collect(
 		ro.Pipe3[int8, PartialInt8s, []int8, int8](
 			ro.FromSlice(rampInt8(10)),
-			VectorizeInt8,
+			VectorizeInt8[PartialInt8s](),
 			ro.Map(func(v PartialInt8s) []int8 {
 				return v.Add(BroadcastInt8(42)).Min(BroadcastInt8(50)).Values()
 			}),
@@ -420,7 +420,7 @@ func TestMethodChainingViaMapInt16(t *testing.T) {
 	values, err := ro.Collect(
 		ro.Pipe3[int16, PartialInt16s, []int16, int16](
 			ro.FromSlice(rampInt16(10)),
-			VectorizeInt16,
+			VectorizeInt16[PartialInt16s](),
 			ro.Map(func(v PartialInt16s) []int16 {
 				return v.Add(BroadcastInt16(42)).Min(BroadcastInt16(50)).Values()
 			}),
@@ -440,7 +440,7 @@ func TestMethodChainingViaMapInt32(t *testing.T) {
 	values, err := ro.Collect(
 		ro.Pipe3[int32, PartialInt32s, []int32, int32](
 			ro.FromSlice(rampInt32(10)),
-			VectorizeInt32,
+			VectorizeInt32[PartialInt32s](),
 			ro.Map(func(v PartialInt32s) []int32 {
 				return v.Add(BroadcastInt32(42)).Min(BroadcastInt32(50)).Values()
 			}),
@@ -460,7 +460,7 @@ func TestMethodChainingViaMapInt64(t *testing.T) {
 	values, err := ro.Collect(
 		ro.Pipe3[int64, PartialInt64s, []int64, int64](
 			ro.FromSlice(rampInt64(10)),
-			VectorizeInt64,
+			VectorizeInt64[PartialInt64s](),
 			ro.Map(func(v PartialInt64s) []int64 {
 				return v.Add(BroadcastInt64(42)).Min(BroadcastInt64(50)).Values()
 			}),
@@ -480,7 +480,7 @@ func TestMethodChainingViaMapUint8(t *testing.T) {
 	values, err := ro.Collect(
 		ro.Pipe3[uint8, PartialUint8s, []uint8, uint8](
 			ro.FromSlice(rampUint8(10)),
-			VectorizeUint8,
+			VectorizeUint8[PartialUint8s](),
 			ro.Map(func(v PartialUint8s) []uint8 {
 				return v.Add(BroadcastUint8(42)).Min(BroadcastUint8(50)).Values()
 			}),
@@ -500,7 +500,7 @@ func TestMethodChainingViaMapUint16(t *testing.T) {
 	values, err := ro.Collect(
 		ro.Pipe3[uint16, PartialUint16s, []uint16, uint16](
 			ro.FromSlice(rampUint16(10)),
-			VectorizeUint16,
+			VectorizeUint16[PartialUint16s](),
 			ro.Map(func(v PartialUint16s) []uint16 {
 				return v.Add(BroadcastUint16(42)).Min(BroadcastUint16(50)).Values()
 			}),
@@ -520,7 +520,7 @@ func TestMethodChainingViaMapUint32(t *testing.T) {
 	values, err := ro.Collect(
 		ro.Pipe3[uint32, PartialUint32s, []uint32, uint32](
 			ro.FromSlice(rampUint32(10)),
-			VectorizeUint32,
+			VectorizeUint32[PartialUint32s](),
 			ro.Map(func(v PartialUint32s) []uint32 {
 				return v.Add(BroadcastUint32(42)).Min(BroadcastUint32(50)).Values()
 			}),
@@ -540,7 +540,7 @@ func TestMethodChainingViaMapUint64(t *testing.T) {
 	values, err := ro.Collect(
 		ro.Pipe3[uint64, PartialUint64s, []uint64, uint64](
 			ro.FromSlice(rampUint64(10)),
-			VectorizeUint64,
+			VectorizeUint64[PartialUint64s](),
 			ro.Map(func(v PartialUint64s) []uint64 {
 				return v.Add(BroadcastUint64(42)).Min(BroadcastUint64(50)).Values()
 			}),
@@ -562,7 +562,7 @@ func TestMethodChainingViaMapFloat32(t *testing.T) {
 	values, err := ro.Collect(
 		ro.Pipe3[float32, PartialFloat32s, []float32, float32](
 			ro.FromSlice(input),
-			VectorizeFloat32,
+			VectorizeFloat32[PartialFloat32s](),
 			ro.Map(func(v PartialFloat32s) []float32 {
 				return v.Add(BroadcastFloat32(42)).Min(BroadcastFloat32(50)).Values()
 			}),
@@ -589,7 +589,7 @@ func TestMethodChainingViaMapFloat64(t *testing.T) {
 	values, err := ro.Collect(
 		ro.Pipe3[float64, PartialFloat64s, []float64, float64](
 			ro.FromSlice(input),
-			VectorizeFloat64,
+			VectorizeFloat64[PartialFloat64s](),
 			ro.Map(func(v PartialFloat64s) []float64 {
 				return v.Add(BroadcastFloat64(42)).Min(BroadcastFloat64(50)).Values()
 			}),
