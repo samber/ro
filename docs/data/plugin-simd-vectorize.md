@@ -1,7 +1,7 @@
 ---
 name: Vectorize
 slug: vectorize
-sourceRef: plugins/exp/simd/vectorize.go#L39
+sourceRef: plugins/exp/simd/vectorize.go#L57
 type: plugin
 category: simd
 signatures:
@@ -69,6 +69,6 @@ defer sub.Unsubscribe()
 // 5
 ```
 
-It is not a curried operator: taking the source directly lets the type argument be inferred from the surrounding `Pipe`.
+Its vector type is always written at the call site: a curried operator's type parameter appears only in the type of the function it returns, which Go's inference does not reach.
 
 It produces `Partial` types only. The standard library's vector types expose no constructor method, and a generic function cannot reach the `simd.LoadXxx` package functions.

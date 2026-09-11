@@ -1,7 +1,7 @@
 ---
 name: ToScalar
 slug: toscalar
-sourceRef: plugins/exp/simd/vectorize.go#L252
+sourceRef: plugins/exp/simd/vectorize.go#L148
 type: plugin
 category: simd
 signatures:
@@ -46,4 +46,4 @@ Pair it with `ro.Flatten` to get a scalar stream back, or use `Flatten` to do bo
 
 Its constraint asks only that a vector can report its lanes, not that it can do arithmetic, so it accepts the standard library's vector types as well — `simd.Int64s` and `simd.Uint64s` included, which the arithmetic operators reject for want of `Min` and `Max`.
 
-It is not a curried operator, so the type argument is inferred from the surrounding `Pipe`.
+Only the vector type is written at the call site — the element type is read off that vector's own `StorePart` signature, so one operator serves all ten element types.

@@ -1,7 +1,7 @@
 ---
 name: Flatten
 slug: flatten
-sourceRef: plugins/exp/simd/vectorize.go#L274
+sourceRef: plugins/exp/simd/vectorize.go#L191
 type: plugin
 category: simd
 signatures:
@@ -50,4 +50,4 @@ Every lane of one vector carries that vector's own context onward, so context pr
 
 Like `ToScalar`, its constraint asks only that a vector can report its lanes, so it accepts the standard library's vector types too.
 
-It is not a curried operator, so the type argument is inferred from the surrounding `Pipe`.
+Only the vector type is written at the call site — the element type is read off that vector's own `StorePart` signature, so one operator serves all ten element types.

@@ -211,3 +211,37 @@ func Flatten[V LaneStore[T], T any]() func(ro.Observable[V]) ro.Observable[T] {
 		})
 	}
 }
+
+// Count reports how many lanes of each vector hold data.
+//
+// It is one value per vector rather than one per lane, so it describes the batching
+// rather than the data: every vector counts a full register except the last of a stream,
+// which is short whenever the stream length is not a multiple of the lane width.
+//
+//	ro.Pipe2[int8, rosimd.PartialInt8s, int](
+//		source,
+//		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+//		rosimd.Count[rosimd.PartialInt8s](),
+//	)
+//
+// One operator serves every element type. Unlike ToScalar and Flatten it rejects the
+// standard library's vector types, which carry no validity mask and so have no count
+// distinct from their capacity.
+func Count[V LaneCount]() func(ro.Observable[V]) ro.Observable[int] {
+	return func(source ro.Observable[V]) ro.Observable[int] {
+		return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[int]) ro.Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				ro.NewObserverWithContext(
+					func(ctx context.Context, value V) {
+						destination.NextWithContext(ctx, value.Count())
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}

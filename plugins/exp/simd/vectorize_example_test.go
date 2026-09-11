@@ -47,7 +47,7 @@ func ExampleVectorizeInt8() {
 
 // A stream rarely delivers a multiple of the lane width, so the final batch is short. It
 // is emitted as an ordinary vector whose padded lanes are masked off, rather than being
-// dropped or padded into the result.
+// dropped or padded into the result. Count reports that shape.
 //
 // The lane count varies by architecture, so this compares against it rather than
 // printing it.
@@ -64,7 +64,7 @@ func ExampleVectorizeInt8_shortFinalBatch() {
 		ro.Pipe2[int8, rosimd.PartialInt8s, int](
 			ro.FromSlice(input),
 			rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-			ro.Map(func(v rosimd.PartialInt8s) int { return v.Count() }),
+			rosimd.Count[rosimd.PartialInt8s](),
 		),
 	)
 	if err != nil {

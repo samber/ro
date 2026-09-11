@@ -49,56 +49,41 @@ func ExamplePartialInt8s() {
 	// 102
 }
 
-// Values returns the valid lanes as a slice. The ToScalar operator does this for a whole
-// stream, so reach for the method only inside a ro.Map that is already doing something
-// else — building the result of a Select, say.
+// Values returns the valid lanes as a slice, padding excluded. The ToScalar operator does
+// this for a whole stream, so the method is for reading a single vector directly — the
+// result of a Select, say.
 func ExamplePartialInt8s_Values() {
-	obs := ro.Pipe2[int8, rosimd.PartialInt8s, []int8](
-		ro.Just[int8](1, 2, 3),
-		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		ro.Map(func(v rosimd.PartialInt8s) []int8 {
-			return v.Select(v.Contains(rosimd.BroadcastInt8(2)), rosimd.BroadcastInt8(0)).Values()
-		}),
-	)
+	v := rosimd.PartialInt8s{}.LoadPart([]int8{1, 2, 3}, 3)
 
-	sub := obs.Subscribe(ro.OnNext(func(values []int8) {
-		fmt.Println(values)
-	}))
-	defer sub.Unsubscribe()
+	fmt.Println(v.Values())
+	fmt.Println(v.Select(v.Contains(rosimd.BroadcastInt8(2)), rosimd.BroadcastInt8(0)).Values())
 
-	// Output: [0 2 0]
+	// Output:
+	// [1 2 3]
+	// [0 2 0]
 }
 
-// Count reports how many lanes hold data, which for a short final batch is fewer than
-// the lane capacity.
+// Count reports how many lanes hold data, which for a short batch is fewer than the lane
+// capacity Len reports. The Count operator applies it to a whole stream.
 func ExamplePartialInt8s_Count() {
-	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int](
-		ro.Just[int8](1, 2, 3),
-		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		ro.Map(func(v rosimd.PartialInt8s) int { return v.Count() }),
-	)
+	v := rosimd.PartialInt8s{}.LoadPart([]int8{1, 2, 3}, 3)
 
-	sub := obs.Subscribe(ro.OnNext(func(count int) {
-		fmt.Println(count)
-	}))
-	defer sub.Unsubscribe()
+	fmt.Println(v.Count())
 
-	// Output: 3
+	// The lane count varies by architecture, but never dips below 16 for int8.
+	fmt.Println(v.Count() < v.Len())
+
+	// Output:
+	// 3
+	// true
 }
 
-// Sum folds the valid lanes of one vector to a scalar. To total a whole stream instead,
-// use the ReduceSum operator.
+// Sum folds the valid lanes of one vector to a scalar, ignoring padding. To total a whole
+// stream instead, use the ReduceSum operator.
 func ExamplePartialInt8s_Sum() {
-	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
-		ro.Just[int8](1, 2, 3),
-		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		ro.Map(func(v rosimd.PartialInt8s) int8 { return v.Sum() }),
-	)
+	v := rosimd.PartialInt8s{}.LoadPart([]int8{1, 2, 3}, 3)
 
-	sub := obs.Subscribe(ro.OnNext(func(total int8) {
-		fmt.Println(total)
-	}))
-	defer sub.Unsubscribe()
+	fmt.Println(v.Sum())
 
 	// Output: 6
 }

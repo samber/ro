@@ -75,12 +75,16 @@
 //
 // Contains is element-wise like the rest: it returns a mask — SIMD's vector of
 // booleans — marking which lanes matched, already intersected with the validity mask
-// so padding is never reported. Select consumes that mask:
+// so padding is never reported. Select consumes that mask.
 //
-//	ro.Map(func(v rosimd.PartialInt8s) []int8 {
+// A mask is not a vector, so no operator can carry one between stages: a search and the
+// select it feeds belong together in a single ro.Map, which keeps the stream in vector
+// space for the operators on either side.
+//
+//	ro.Map(func(v rosimd.PartialInt8s) rosimd.PartialInt8s {
 //		matched := v.Contains(rosimd.BroadcastInt8(7))
 //
-//		return v.Select(matched, rosimd.BroadcastInt8(0)).Values()
+//		return v.Select(matched, rosimd.BroadcastInt8(0))
 //	})
 //
 // Collapsing a whole stream to a single answer is the ReduceContains operator's job
@@ -90,6 +94,9 @@
 // slice, or Flatten, which emits them one at a time — ToScalar followed by ro.Flatten in
 // a single stage. The Reduce operators are the other way out, collapsing a whole stream
 // to one value.
+//
+// Count is the operator for when the batching itself is the question rather than the
+// data: one lane count per vector, short only for a stream's final batch.
 //
 // Both exits ask only that a vector can report its lanes, so unlike the arithmetic
 // operators they accept simd.Int64s and simd.Uint64s too. Both are also unsuffixed,

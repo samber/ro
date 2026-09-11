@@ -58,68 +58,44 @@ func ExamplePartialInt8s_Contains_readingLanes() {
 //
 // Collapsing a whole stream to one answer is ReduceContains' job instead.
 func ExamplePartialInt8s_Contains() {
-	obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
-		ro.Just[int8](7, 1, 7, 2),
-		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		ro.Map(func(v rosimd.PartialInt8s) []int8 {
-			matched := v.Contains(rosimd.BroadcastInt8(7))
+	v := rosimd.PartialInt8s{}.LoadPart([]int8{7, 1, 7, 2}, 4)
 
-			return v.Select(matched, rosimd.BroadcastInt8(0)).Values()
-		}),
-		ro.Flatten[int8](),
-	)
+	matched := v.Contains(rosimd.BroadcastInt8(7))
 
-	sub := obs.Subscribe(ro.OnNext(func(value int8) {
-		fmt.Println(value)
-	}))
-	defer sub.Unsubscribe()
+	fmt.Println(v.Select(matched, rosimd.BroadcastInt8(0)).Values())
 
-	// Output:
-	// 7
-	// 0
-	// 7
-	// 0
+	// Output: [7 0 7 0]
 }
 
 // Masks compose, so two searches can be combined before selecting.
 func ExamplePartialInt8s_Contains_combiningMasks() {
-	obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
-		ro.Just[int8](1, 2, 3, 4),
-		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		ro.Map(func(v rosimd.PartialInt8s) []int8 {
-			twos := v.Contains(rosimd.BroadcastInt8(2))
-			fours := v.Contains(rosimd.BroadcastInt8(4))
+	v := rosimd.PartialInt8s{}.LoadPart([]int8{1, 2, 3, 4}, 4)
 
-			return v.Select(twos.Or(fours), rosimd.BroadcastInt8(0)).Values()
-		}),
-		ro.Flatten[int8](),
-	)
+	twos := v.Contains(rosimd.BroadcastInt8(2))
+	fours := v.Contains(rosimd.BroadcastInt8(4))
 
-	sub := obs.Subscribe(ro.OnNext(func(value int8) {
-		fmt.Println(value)
-	}))
-	defer sub.Unsubscribe()
+	fmt.Println(v.Select(twos.Or(fours), rosimd.BroadcastInt8(0)).Values())
 
-	// Output:
-	// 0
-	// 2
-	// 0
-	// 4
+	// Output: [0 2 0 4]
 }
 
 // Select takes each lane from the receiver where the mask is set and from the other
 // vector where it is not.
+//
+// Inside a pipeline, a mask has no operator to flow through — it is not a vector the
+// stream can carry — so a whole Contains-and-Select lives in one ro.Map, and the package's
+// own Flatten takes the result back to scalars.
 func ExamplePartialInt8s_Select() {
-	obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
+	obs := ro.Pipe3[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, int8](
 		ro.Just[int8](1, 2, 3, 4),
 		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		ro.Map(func(v rosimd.PartialInt8s) []int8 {
+		ro.Map(func(v rosimd.PartialInt8s) rosimd.PartialInt8s {
 			// Keep the lanes below 3, replace the rest with 99.
 			small := v.Contains(rosimd.BroadcastInt8(1)).Or(v.Contains(rosimd.BroadcastInt8(2)))
 
-			return v.Select(small, rosimd.BroadcastInt8(99)).Values()
+			return v.Select(small, rosimd.BroadcastInt8(99))
 		}),
-		ro.Flatten[int8](),
+		rosimd.Flatten[rosimd.PartialInt8s](),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(value int8) {
