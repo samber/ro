@@ -5,16 +5,16 @@ sourceRef: plugins/exp/simd/vectorize.go#L39
 type: plugin
 category: simd
 signatures:
-  - "func VectorizeInt8[V Int8Buffer[V]](source Observable[int8]) Observable[V]"
-  - "func VectorizeInt16[V Int16Buffer[V]](source Observable[int16]) Observable[V]"
-  - "func VectorizeInt32[V Int32Buffer[V]](source Observable[int32]) Observable[V]"
-  - "func VectorizeInt64[V Int64Buffer[V]](source Observable[int64]) Observable[V]"
-  - "func VectorizeUint8[V Uint8Buffer[V]](source Observable[uint8]) Observable[V]"
-  - "func VectorizeUint16[V Uint16Buffer[V]](source Observable[uint16]) Observable[V]"
-  - "func VectorizeUint32[V Uint32Buffer[V]](source Observable[uint32]) Observable[V]"
-  - "func VectorizeUint64[V Uint64Buffer[V]](source Observable[uint64]) Observable[V]"
-  - "func VectorizeFloat32[V Float32Buffer[V]](source Observable[float32]) Observable[V]"
-  - "func VectorizeFloat64[V Float64Buffer[V]](source Observable[float64]) Observable[V]"
+  - "func VectorizeInt8[V Int8Buffer[V]]()"
+  - "func VectorizeInt16[V Int16Buffer[V]]()"
+  - "func VectorizeInt32[V Int32Buffer[V]]()"
+  - "func VectorizeInt64[V Int64Buffer[V]]()"
+  - "func VectorizeUint8[V Uint8Buffer[V]]()"
+  - "func VectorizeUint16[V Uint16Buffer[V]]()"
+  - "func VectorizeUint32[V Uint32Buffer[V]]()"
+  - "func VectorizeUint64[V Uint64Buffer[V]]()"
+  - "func VectorizeFloat32[V Float32Buffer[V]]()"
+  - "func VectorizeFloat64[V Float64Buffer[V]]()"
 playUrl:
 variantHelpers:
   - plugin#simd#vectorizeint8
@@ -52,8 +52,8 @@ import (
 
 obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
     ro.Just[int8](1, 2, 3, 4, 5),
-    rosimd.VectorizeInt8,
-    rosimd.ToScalar,
+    rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+    rosimd.ToScalar[rosimd.PartialInt8s](),
     ro.Flatten[int8](),
 )
 

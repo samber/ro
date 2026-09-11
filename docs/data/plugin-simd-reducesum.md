@@ -46,7 +46,7 @@ import (
 
 obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
     ro.Just[int8](1, 2, 3, 4, 5),
-    rosimd.VectorizeInt8,
+    rosimd.VectorizeInt8[rosimd.PartialInt8s](),
     rosimd.ReduceSumInt8,
 )
 

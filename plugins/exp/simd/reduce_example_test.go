@@ -28,7 +28,7 @@ import (
 func ExampleReduceSumInt8() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 		ro.Just[int8](1, 2, 3, 4, 5),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		rosimd.ReduceSumInt8,
 	)
 
@@ -45,7 +45,7 @@ func ExampleReduceSumInt8() {
 func ExampleReduceSumInt8_empty() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 		ro.Empty[int8](),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		rosimd.ReduceSumInt8,
 	)
 
@@ -60,7 +60,7 @@ func ExampleReduceSumInt8_empty() {
 func ExampleReduceMinInt8() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 		ro.Just[int8](5, 2, 8),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		rosimd.ReduceMinInt8,
 	)
 
@@ -75,7 +75,7 @@ func ExampleReduceMinInt8() {
 func ExampleReduceMaxInt8() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 		ro.Just[int8](5, 2, 8),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		rosimd.ReduceMaxInt8,
 	)
 
@@ -93,7 +93,7 @@ func ExampleReduceMinInt8_empty() {
 	values, err := ro.Collect(
 		ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 			ro.Empty[int8](),
-			rosimd.VectorizeInt8,
+			rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 			rosimd.ReduceMinInt8,
 		),
 	)
@@ -112,7 +112,7 @@ func ExampleReduceMinInt8_empty() {
 func ExampleReduceMinFloat64_nan() {
 	obs := ro.Pipe2[float64, rosimd.PartialFloat64s, float64](
 		ro.Just(3.0, math.NaN(), 1.0),
-		rosimd.VectorizeFloat64,
+		rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
 		rosimd.ReduceMinFloat64,
 	)
 

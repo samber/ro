@@ -27,8 +27,8 @@ import (
 func ExampleVectorizeInt8() {
 	obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
 		ro.Just[int8](1, 2, 3, 4, 5),
-		rosimd.VectorizeInt8,
-		rosimd.ToScalar,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+		rosimd.ToScalar[rosimd.PartialInt8s](),
 		ro.Flatten[int8](),
 	)
 
@@ -63,7 +63,7 @@ func ExampleVectorizeInt8_shortFinalBatch() {
 	counts, err := ro.Collect(
 		ro.Pipe2[int8, rosimd.PartialInt8s, int](
 			ro.FromSlice(input),
-			rosimd.VectorizeInt8,
+			rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 			ro.Map(func(v rosimd.PartialInt8s) int { return v.Count() }),
 		),
 	)
@@ -85,8 +85,8 @@ func ExampleVectorizeInt8_shortFinalBatch() {
 func ExampleVectorizeFloat64() {
 	obs := ro.Pipe3[float64, rosimd.PartialFloat64s, []float64, float64](
 		ro.Just(1.5, 2.5, 3.5),
-		rosimd.VectorizeFloat64,
-		rosimd.ToScalar,
+		rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
+		rosimd.ToScalar[rosimd.PartialFloat64s](),
 		ro.Flatten[float64](),
 	)
 
@@ -107,8 +107,8 @@ func ExampleVectorizeFloat64() {
 func ExampleToScalar() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, []int8](
 		ro.Just[int8](1, 2, 3),
-		rosimd.VectorizeInt8,
-		rosimd.ToScalar,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+		rosimd.ToScalar[rosimd.PartialInt8s](),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(lanes []int8) {
@@ -125,8 +125,8 @@ func ExampleToScalar() {
 func ExampleFlatten() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 		ro.Just[int8](1, 2, 3, 4, 5),
-		rosimd.VectorizeInt8,
-		rosimd.Flatten,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+		rosimd.Flatten[rosimd.PartialInt8s](),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(value int8) {
@@ -151,7 +151,7 @@ func ExampleFlatten_standardLibraryVector() {
 		input[i] = int8(i + 1)
 	}
 
-	values, err := ro.Collect(rosimd.Flatten(ro.Just(simd.LoadInt8s(input))))
+	values, err := ro.Collect(rosimd.Flatten[simd.Int8s]()(ro.Just(simd.LoadInt8s(input))))
 	if err != nil {
 		panic(err)
 	}
@@ -164,7 +164,7 @@ func ExampleFlatten_standardLibraryVector() {
 
 // An empty source emits no vector at all, rather than one made entirely of padding.
 func ExampleVectorizeInt8_empty() {
-	vectors, err := ro.Collect(rosimd.VectorizeInt8[rosimd.PartialInt8s](ro.Empty[int8]()))
+	vectors, err := ro.Collect(rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Empty[int8]()))
 	if err != nil {
 		panic(err)
 	}

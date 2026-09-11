@@ -5,7 +5,7 @@ sourceRef: plugins/exp/simd/vectorize.go#L252
 type: plugin
 category: simd
 signatures:
-  - "func ToScalar[T any, V LaneStore[T]](source Observable[V]) Observable[[]T]"
+  - "func ToScalar[V LaneStore[T], T any]()"
 playUrl:
 variantHelpers:
   - plugin#simd#toscalar
@@ -30,8 +30,8 @@ import (
 
 obs := ro.Pipe2[int8, rosimd.PartialInt8s, []int8](
     ro.Just[int8](1, 2, 3),
-    rosimd.VectorizeInt8,
-    rosimd.ToScalar,
+    rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+    rosimd.ToScalar[rosimd.PartialInt8s](),
 )
 
 sub := obs.Subscribe(ro.OnNext(func(lanes []int8) {

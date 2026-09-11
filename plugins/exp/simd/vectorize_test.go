@@ -32,7 +32,7 @@ func TestVectorizeBatchShapes(t *testing.T) {
 	lanes := lanesInt8()
 
 	// 35 items at 16 lanes is two full vectors plus a 3-lane tail.
-	vectors, err := ro.Collect(VectorizeInt8[PartialInt8s](ro.FromSlice(rampInt8(35))))
+	vectors, err := ro.Collect(VectorizeInt8[PartialInt8s]()(ro.FromSlice(rampInt8(35))))
 	assert.NoError(t, err)
 
 	counts := make([]int, 0, len(vectors))
@@ -66,7 +66,7 @@ func TestVectorizeBatchShapesInt16(t *testing.T) {
 	lanes := lanesInt16()
 
 	// 35 items at 8 lanes is four full vectors plus a 3-lane tail.
-	vectors, err := ro.Collect(VectorizeInt16[PartialInt16s](ro.FromSlice(rampInt16(35))))
+	vectors, err := ro.Collect(VectorizeInt16[PartialInt16s]()(ro.FromSlice(rampInt16(35))))
 	assert.NoError(t, err)
 
 	counts := make([]int, 0, len(vectors))
@@ -100,7 +100,7 @@ func TestVectorizeBatchShapesInt32(t *testing.T) {
 	lanes := lanesInt32()
 
 	// 35 items at 4 lanes is eight full vectors plus a 3-lane tail.
-	vectors, err := ro.Collect(VectorizeInt32[PartialInt32s](ro.FromSlice(rampInt32(35))))
+	vectors, err := ro.Collect(VectorizeInt32[PartialInt32s]()(ro.FromSlice(rampInt32(35))))
 	assert.NoError(t, err)
 
 	counts := make([]int, 0, len(vectors))
@@ -135,7 +135,7 @@ func TestVectorizeBatchShapesInt64(t *testing.T) {
 
 	// 35 is 5*7, and int64 lane counts are powers of two, so the sweep always ends
 	// in a short tail — 17 full vectors plus a 1-lane tail at 2 lanes.
-	vectors, err := ro.Collect(VectorizeInt64[PartialInt64s](ro.FromSlice(rampInt64(35))))
+	vectors, err := ro.Collect(VectorizeInt64[PartialInt64s]()(ro.FromSlice(rampInt64(35))))
 	assert.NoError(t, err)
 
 	counts := make([]int, 0, len(vectors))
@@ -169,7 +169,7 @@ func TestVectorizeBatchShapesUint8(t *testing.T) {
 	lanes := lanesUint8()
 
 	// 35 items at 16 lanes is two full vectors plus a 3-lane tail.
-	vectors, err := ro.Collect(VectorizeUint8[PartialUint8s](ro.FromSlice(rampUint8(35))))
+	vectors, err := ro.Collect(VectorizeUint8[PartialUint8s]()(ro.FromSlice(rampUint8(35))))
 	assert.NoError(t, err)
 
 	counts := make([]int, 0, len(vectors))
@@ -203,7 +203,7 @@ func TestVectorizeBatchShapesUint16(t *testing.T) {
 	lanes := lanesUint16()
 
 	// 35 items at 8 lanes is four full vectors plus a 3-lane tail.
-	vectors, err := ro.Collect(VectorizeUint16[PartialUint16s](ro.FromSlice(rampUint16(35))))
+	vectors, err := ro.Collect(VectorizeUint16[PartialUint16s]()(ro.FromSlice(rampUint16(35))))
 	assert.NoError(t, err)
 
 	counts := make([]int, 0, len(vectors))
@@ -237,7 +237,7 @@ func TestVectorizeBatchShapesUint32(t *testing.T) {
 	lanes := lanesUint32()
 
 	// 35 items at 4 lanes is eight full vectors plus a 3-lane tail.
-	vectors, err := ro.Collect(VectorizeUint32[PartialUint32s](ro.FromSlice(rampUint32(35))))
+	vectors, err := ro.Collect(VectorizeUint32[PartialUint32s]()(ro.FromSlice(rampUint32(35))))
 	assert.NoError(t, err)
 
 	counts := make([]int, 0, len(vectors))
@@ -272,7 +272,7 @@ func TestVectorizeBatchShapesUint64(t *testing.T) {
 
 	// 35 is 5*7, and uint64 lane counts are powers of two, so the sweep always ends
 	// in a short tail — 17 full vectors plus a 1-lane tail at 2 lanes.
-	vectors, err := ro.Collect(VectorizeUint64[PartialUint64s](ro.FromSlice(rampUint64(35))))
+	vectors, err := ro.Collect(VectorizeUint64[PartialUint64s]()(ro.FromSlice(rampUint64(35))))
 	assert.NoError(t, err)
 
 	counts := make([]int, 0, len(vectors))
@@ -305,7 +305,7 @@ func TestVectorizeBatchShapesFloat32(t *testing.T) {
 
 	lanes := lanesFloat32()
 
-	vectors, err := ro.Collect(VectorizeFloat32[PartialFloat32s](ro.FromSlice(rampFloat32(35))))
+	vectors, err := ro.Collect(VectorizeFloat32[PartialFloat32s]()(ro.FromSlice(rampFloat32(35))))
 	assert.NoError(t, err)
 
 	counts := make([]int, 0, len(vectors))
@@ -338,7 +338,7 @@ func TestVectorizeBatchShapesFloat64(t *testing.T) {
 
 	lanes := lanesFloat64()
 
-	vectors, err := ro.Collect(VectorizeFloat64[PartialFloat64s](ro.FromSlice(rampFloat64(35))))
+	vectors, err := ro.Collect(VectorizeFloat64[PartialFloat64s]()(ro.FromSlice(rampFloat64(35))))
 	assert.NoError(t, err)
 
 	counts := make([]int, 0, len(vectors))
@@ -370,20 +370,20 @@ func TestEmptyAndErrorSources(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[int8, PartialInt8s, int8](ro.Empty[int8](), VectorizeInt8, ReduceSumInt8),
+		ro.Pipe2[int8, PartialInt8s, int8](ro.Empty[int8](), VectorizeInt8[PartialInt8s](), ReduceSumInt8),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []int8{0}, values, "an empty stream sums to zero, as ro.Sum does")
 
-	vectors, err := ro.Collect(VectorizeInt8[PartialInt8s](ro.Empty[int8]()))
+	vectors, err := ro.Collect(VectorizeInt8[PartialInt8s]()(ro.Empty[int8]()))
 	assert.NoError(t, err)
 	assert.Equal(t, []PartialInt8s{}, vectors, "an empty stream must not emit a padding-only vector")
 
-	_, err = ro.Collect(VectorizeInt8[PartialInt8s](ro.Throw[int8](assert.AnError)))
+	_, err = ro.Collect(VectorizeInt8[PartialInt8s]()(ro.Throw[int8](assert.AnError)))
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[int8, PartialInt8s, int8](ro.Throw[int8](assert.AnError), VectorizeInt8, ReduceSumInt8),
+		ro.Pipe2[int8, PartialInt8s, int8](ro.Throw[int8](assert.AnError), VectorizeInt8[PartialInt8s](), ReduceSumInt8),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -392,20 +392,20 @@ func TestEmptyAndErrorSourcesInt16(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[int16, PartialInt16s, int16](ro.Empty[int16](), VectorizeInt16, ReduceSumInt16),
+		ro.Pipe2[int16, PartialInt16s, int16](ro.Empty[int16](), VectorizeInt16[PartialInt16s](), ReduceSumInt16),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []int16{0}, values, "an empty stream sums to zero, as ro.Sum does")
 
-	vectors, err := ro.Collect(VectorizeInt16[PartialInt16s](ro.Empty[int16]()))
+	vectors, err := ro.Collect(VectorizeInt16[PartialInt16s]()(ro.Empty[int16]()))
 	assert.NoError(t, err)
 	assert.Equal(t, []PartialInt16s{}, vectors, "an empty stream must not emit a padding-only vector")
 
-	_, err = ro.Collect(VectorizeInt16[PartialInt16s](ro.Throw[int16](assert.AnError)))
+	_, err = ro.Collect(VectorizeInt16[PartialInt16s]()(ro.Throw[int16](assert.AnError)))
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[int16, PartialInt16s, int16](ro.Throw[int16](assert.AnError), VectorizeInt16, ReduceSumInt16),
+		ro.Pipe2[int16, PartialInt16s, int16](ro.Throw[int16](assert.AnError), VectorizeInt16[PartialInt16s](), ReduceSumInt16),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -414,20 +414,20 @@ func TestEmptyAndErrorSourcesInt32(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[int32, PartialInt32s, int32](ro.Empty[int32](), VectorizeInt32, ReduceSumInt32),
+		ro.Pipe2[int32, PartialInt32s, int32](ro.Empty[int32](), VectorizeInt32[PartialInt32s](), ReduceSumInt32),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []int32{0}, values, "an empty stream sums to zero, as ro.Sum does")
 
-	vectors, err := ro.Collect(VectorizeInt32[PartialInt32s](ro.Empty[int32]()))
+	vectors, err := ro.Collect(VectorizeInt32[PartialInt32s]()(ro.Empty[int32]()))
 	assert.NoError(t, err)
 	assert.Equal(t, []PartialInt32s{}, vectors, "an empty stream must not emit a padding-only vector")
 
-	_, err = ro.Collect(VectorizeInt32[PartialInt32s](ro.Throw[int32](assert.AnError)))
+	_, err = ro.Collect(VectorizeInt32[PartialInt32s]()(ro.Throw[int32](assert.AnError)))
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[int32, PartialInt32s, int32](ro.Throw[int32](assert.AnError), VectorizeInt32, ReduceSumInt32),
+		ro.Pipe2[int32, PartialInt32s, int32](ro.Throw[int32](assert.AnError), VectorizeInt32[PartialInt32s](), ReduceSumInt32),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -436,20 +436,20 @@ func TestEmptyAndErrorSourcesInt64(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[int64, PartialInt64s, int64](ro.Empty[int64](), VectorizeInt64, ReduceSumInt64),
+		ro.Pipe2[int64, PartialInt64s, int64](ro.Empty[int64](), VectorizeInt64[PartialInt64s](), ReduceSumInt64),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{0}, values, "an empty stream sums to zero, as ro.Sum does")
 
-	vectors, err := ro.Collect(VectorizeInt64[PartialInt64s](ro.Empty[int64]()))
+	vectors, err := ro.Collect(VectorizeInt64[PartialInt64s]()(ro.Empty[int64]()))
 	assert.NoError(t, err)
 	assert.Equal(t, []PartialInt64s{}, vectors, "an empty stream must not emit a padding-only vector")
 
-	_, err = ro.Collect(VectorizeInt64[PartialInt64s](ro.Throw[int64](assert.AnError)))
+	_, err = ro.Collect(VectorizeInt64[PartialInt64s]()(ro.Throw[int64](assert.AnError)))
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[int64, PartialInt64s, int64](ro.Throw[int64](assert.AnError), VectorizeInt64, ReduceSumInt64),
+		ro.Pipe2[int64, PartialInt64s, int64](ro.Throw[int64](assert.AnError), VectorizeInt64[PartialInt64s](), ReduceSumInt64),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -458,20 +458,20 @@ func TestEmptyAndErrorSourcesUint8(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[uint8, PartialUint8s, uint8](ro.Empty[uint8](), VectorizeUint8, ReduceSumUint8),
+		ro.Pipe2[uint8, PartialUint8s, uint8](ro.Empty[uint8](), VectorizeUint8[PartialUint8s](), ReduceSumUint8),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint8{0}, values, "an empty stream sums to zero, as ro.Sum does")
 
-	vectors, err := ro.Collect(VectorizeUint8[PartialUint8s](ro.Empty[uint8]()))
+	vectors, err := ro.Collect(VectorizeUint8[PartialUint8s]()(ro.Empty[uint8]()))
 	assert.NoError(t, err)
 	assert.Equal(t, []PartialUint8s{}, vectors, "an empty stream must not emit a padding-only vector")
 
-	_, err = ro.Collect(VectorizeUint8[PartialUint8s](ro.Throw[uint8](assert.AnError)))
+	_, err = ro.Collect(VectorizeUint8[PartialUint8s]()(ro.Throw[uint8](assert.AnError)))
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[uint8, PartialUint8s, uint8](ro.Throw[uint8](assert.AnError), VectorizeUint8, ReduceSumUint8),
+		ro.Pipe2[uint8, PartialUint8s, uint8](ro.Throw[uint8](assert.AnError), VectorizeUint8[PartialUint8s](), ReduceSumUint8),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -480,20 +480,20 @@ func TestEmptyAndErrorSourcesUint16(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[uint16, PartialUint16s, uint16](ro.Empty[uint16](), VectorizeUint16, ReduceSumUint16),
+		ro.Pipe2[uint16, PartialUint16s, uint16](ro.Empty[uint16](), VectorizeUint16[PartialUint16s](), ReduceSumUint16),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint16{0}, values, "an empty stream sums to zero, as ro.Sum does")
 
-	vectors, err := ro.Collect(VectorizeUint16[PartialUint16s](ro.Empty[uint16]()))
+	vectors, err := ro.Collect(VectorizeUint16[PartialUint16s]()(ro.Empty[uint16]()))
 	assert.NoError(t, err)
 	assert.Equal(t, []PartialUint16s{}, vectors, "an empty stream must not emit a padding-only vector")
 
-	_, err = ro.Collect(VectorizeUint16[PartialUint16s](ro.Throw[uint16](assert.AnError)))
+	_, err = ro.Collect(VectorizeUint16[PartialUint16s]()(ro.Throw[uint16](assert.AnError)))
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[uint16, PartialUint16s, uint16](ro.Throw[uint16](assert.AnError), VectorizeUint16, ReduceSumUint16),
+		ro.Pipe2[uint16, PartialUint16s, uint16](ro.Throw[uint16](assert.AnError), VectorizeUint16[PartialUint16s](), ReduceSumUint16),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -502,20 +502,20 @@ func TestEmptyAndErrorSourcesUint32(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[uint32, PartialUint32s, uint32](ro.Empty[uint32](), VectorizeUint32, ReduceSumUint32),
+		ro.Pipe2[uint32, PartialUint32s, uint32](ro.Empty[uint32](), VectorizeUint32[PartialUint32s](), ReduceSumUint32),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint32{0}, values, "an empty stream sums to zero, as ro.Sum does")
 
-	vectors, err := ro.Collect(VectorizeUint32[PartialUint32s](ro.Empty[uint32]()))
+	vectors, err := ro.Collect(VectorizeUint32[PartialUint32s]()(ro.Empty[uint32]()))
 	assert.NoError(t, err)
 	assert.Equal(t, []PartialUint32s{}, vectors, "an empty stream must not emit a padding-only vector")
 
-	_, err = ro.Collect(VectorizeUint32[PartialUint32s](ro.Throw[uint32](assert.AnError)))
+	_, err = ro.Collect(VectorizeUint32[PartialUint32s]()(ro.Throw[uint32](assert.AnError)))
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[uint32, PartialUint32s, uint32](ro.Throw[uint32](assert.AnError), VectorizeUint32, ReduceSumUint32),
+		ro.Pipe2[uint32, PartialUint32s, uint32](ro.Throw[uint32](assert.AnError), VectorizeUint32[PartialUint32s](), ReduceSumUint32),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -524,20 +524,20 @@ func TestEmptyAndErrorSourcesUint64(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[uint64, PartialUint64s, uint64](ro.Empty[uint64](), VectorizeUint64, ReduceSumUint64),
+		ro.Pipe2[uint64, PartialUint64s, uint64](ro.Empty[uint64](), VectorizeUint64[PartialUint64s](), ReduceSumUint64),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []uint64{0}, values, "an empty stream sums to zero, as ro.Sum does")
 
-	vectors, err := ro.Collect(VectorizeUint64[PartialUint64s](ro.Empty[uint64]()))
+	vectors, err := ro.Collect(VectorizeUint64[PartialUint64s]()(ro.Empty[uint64]()))
 	assert.NoError(t, err)
 	assert.Equal(t, []PartialUint64s{}, vectors, "an empty stream must not emit a padding-only vector")
 
-	_, err = ro.Collect(VectorizeUint64[PartialUint64s](ro.Throw[uint64](assert.AnError)))
+	_, err = ro.Collect(VectorizeUint64[PartialUint64s]()(ro.Throw[uint64](assert.AnError)))
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[uint64, PartialUint64s, uint64](ro.Throw[uint64](assert.AnError), VectorizeUint64, ReduceSumUint64),
+		ro.Pipe2[uint64, PartialUint64s, uint64](ro.Throw[uint64](assert.AnError), VectorizeUint64[PartialUint64s](), ReduceSumUint64),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -546,20 +546,20 @@ func TestEmptyAndErrorSourcesFloat32(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[float32, PartialFloat32s, float32](ro.Empty[float32](), VectorizeFloat32, ReduceSumFloat32),
+		ro.Pipe2[float32, PartialFloat32s, float32](ro.Empty[float32](), VectorizeFloat32[PartialFloat32s](), ReduceSumFloat32),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []float32{0}, values, "an empty stream sums to zero, as ro.Sum does")
 
-	vectors, err := ro.Collect(VectorizeFloat32[PartialFloat32s](ro.Empty[float32]()))
+	vectors, err := ro.Collect(VectorizeFloat32[PartialFloat32s]()(ro.Empty[float32]()))
 	assert.NoError(t, err)
 	assert.Equal(t, []PartialFloat32s{}, vectors, "an empty stream must not emit a padding-only vector")
 
-	_, err = ro.Collect(VectorizeFloat32[PartialFloat32s](ro.Throw[float32](assert.AnError)))
+	_, err = ro.Collect(VectorizeFloat32[PartialFloat32s]()(ro.Throw[float32](assert.AnError)))
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[float32, PartialFloat32s, float32](ro.Throw[float32](assert.AnError), VectorizeFloat32, ReduceSumFloat32),
+		ro.Pipe2[float32, PartialFloat32s, float32](ro.Throw[float32](assert.AnError), VectorizeFloat32[PartialFloat32s](), ReduceSumFloat32),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -568,20 +568,20 @@ func TestEmptyAndErrorSourcesFloat64(t *testing.T) {
 	t.Parallel()
 
 	values, err := ro.Collect(
-		ro.Pipe2[float64, PartialFloat64s, float64](ro.Empty[float64](), VectorizeFloat64, ReduceSumFloat64),
+		ro.Pipe2[float64, PartialFloat64s, float64](ro.Empty[float64](), VectorizeFloat64[PartialFloat64s](), ReduceSumFloat64),
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []float64{0}, values, "an empty stream sums to zero, as ro.Sum does")
 
-	vectors, err := ro.Collect(VectorizeFloat64[PartialFloat64s](ro.Empty[float64]()))
+	vectors, err := ro.Collect(VectorizeFloat64[PartialFloat64s]()(ro.Empty[float64]()))
 	assert.NoError(t, err)
 	assert.Equal(t, []PartialFloat64s{}, vectors, "an empty stream must not emit a padding-only vector")
 
-	_, err = ro.Collect(VectorizeFloat64[PartialFloat64s](ro.Throw[float64](assert.AnError)))
+	_, err = ro.Collect(VectorizeFloat64[PartialFloat64s]()(ro.Throw[float64](assert.AnError)))
 	assert.EqualError(t, err, assert.AnError.Error())
 
 	_, err = ro.Collect(
-		ro.Pipe2[float64, PartialFloat64s, float64](ro.Throw[float64](assert.AnError), VectorizeFloat64, ReduceSumFloat64),
+		ro.Pipe2[float64, PartialFloat64s, float64](ro.Throw[float64](assert.AnError), VectorizeFloat64[PartialFloat64s](), ReduceSumFloat64),
 	)
 	assert.EqualError(t, err, assert.AnError.Error())
 }
@@ -608,7 +608,7 @@ func TestFlattenInt8RoundTrips(t *testing.T) {
 		input := rampInt8(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int8, PartialInt8s, int8](ro.FromSlice(input), VectorizeInt8, Flatten),
+			ro.Pipe2[int8, PartialInt8s, int8](ro.FromSlice(input), VectorizeInt8[PartialInt8s](), Flatten[PartialInt8s]()),
 		)
 		assert.NoError(t, err)
 
@@ -625,14 +625,14 @@ func TestToScalarInt8MatchesBatches(t *testing.T) {
 		input := rampInt8(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[int8, PartialInt8s, []int8](ro.FromSlice(input), VectorizeInt8, ToScalar),
+			ro.Pipe2[int8, PartialInt8s, []int8](ro.FromSlice(input), VectorizeInt8[PartialInt8s](), ToScalar[PartialInt8s]()),
 		)
 		assert.NoError(t, err)
 
 		counts, err := ro.Collect(
 			ro.Pipe2[int8, PartialInt8s, int](
 				ro.FromSlice(input),
-				VectorizeInt8,
+				VectorizeInt8[PartialInt8s](),
 				ro.Map(func(v PartialInt8s) int { return v.Count() }),
 			),
 		)
@@ -658,7 +658,7 @@ func TestFlattenInt16RoundTrips(t *testing.T) {
 		input := rampInt16(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int16, PartialInt16s, int16](ro.FromSlice(input), VectorizeInt16, Flatten),
+			ro.Pipe2[int16, PartialInt16s, int16](ro.FromSlice(input), VectorizeInt16[PartialInt16s](), Flatten[PartialInt16s]()),
 		)
 		assert.NoError(t, err)
 
@@ -675,14 +675,14 @@ func TestToScalarInt16MatchesBatches(t *testing.T) {
 		input := rampInt16(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[int16, PartialInt16s, []int16](ro.FromSlice(input), VectorizeInt16, ToScalar),
+			ro.Pipe2[int16, PartialInt16s, []int16](ro.FromSlice(input), VectorizeInt16[PartialInt16s](), ToScalar[PartialInt16s]()),
 		)
 		assert.NoError(t, err)
 
 		counts, err := ro.Collect(
 			ro.Pipe2[int16, PartialInt16s, int](
 				ro.FromSlice(input),
-				VectorizeInt16,
+				VectorizeInt16[PartialInt16s](),
 				ro.Map(func(v PartialInt16s) int { return v.Count() }),
 			),
 		)
@@ -708,7 +708,7 @@ func TestFlattenInt32RoundTrips(t *testing.T) {
 		input := rampInt32(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int32, PartialInt32s, int32](ro.FromSlice(input), VectorizeInt32, Flatten),
+			ro.Pipe2[int32, PartialInt32s, int32](ro.FromSlice(input), VectorizeInt32[PartialInt32s](), Flatten[PartialInt32s]()),
 		)
 		assert.NoError(t, err)
 
@@ -725,14 +725,14 @@ func TestToScalarInt32MatchesBatches(t *testing.T) {
 		input := rampInt32(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[int32, PartialInt32s, []int32](ro.FromSlice(input), VectorizeInt32, ToScalar),
+			ro.Pipe2[int32, PartialInt32s, []int32](ro.FromSlice(input), VectorizeInt32[PartialInt32s](), ToScalar[PartialInt32s]()),
 		)
 		assert.NoError(t, err)
 
 		counts, err := ro.Collect(
 			ro.Pipe2[int32, PartialInt32s, int](
 				ro.FromSlice(input),
-				VectorizeInt32,
+				VectorizeInt32[PartialInt32s](),
 				ro.Map(func(v PartialInt32s) int { return v.Count() }),
 			),
 		)
@@ -758,7 +758,7 @@ func TestFlattenInt64RoundTrips(t *testing.T) {
 		input := rampInt64(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int64, PartialInt64s, int64](ro.FromSlice(input), VectorizeInt64, Flatten),
+			ro.Pipe2[int64, PartialInt64s, int64](ro.FromSlice(input), VectorizeInt64[PartialInt64s](), Flatten[PartialInt64s]()),
 		)
 		assert.NoError(t, err)
 
@@ -775,14 +775,14 @@ func TestToScalarInt64MatchesBatches(t *testing.T) {
 		input := rampInt64(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[int64, PartialInt64s, []int64](ro.FromSlice(input), VectorizeInt64, ToScalar),
+			ro.Pipe2[int64, PartialInt64s, []int64](ro.FromSlice(input), VectorizeInt64[PartialInt64s](), ToScalar[PartialInt64s]()),
 		)
 		assert.NoError(t, err)
 
 		counts, err := ro.Collect(
 			ro.Pipe2[int64, PartialInt64s, int](
 				ro.FromSlice(input),
-				VectorizeInt64,
+				VectorizeInt64[PartialInt64s](),
 				ro.Map(func(v PartialInt64s) int { return v.Count() }),
 			),
 		)
@@ -808,7 +808,7 @@ func TestFlattenUint8RoundTrips(t *testing.T) {
 		input := rampUint8(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8, Flatten),
+			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8[PartialUint8s](), Flatten[PartialUint8s]()),
 		)
 		assert.NoError(t, err)
 
@@ -825,14 +825,14 @@ func TestToScalarUint8MatchesBatches(t *testing.T) {
 		input := rampUint8(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[uint8, PartialUint8s, []uint8](ro.FromSlice(input), VectorizeUint8, ToScalar),
+			ro.Pipe2[uint8, PartialUint8s, []uint8](ro.FromSlice(input), VectorizeUint8[PartialUint8s](), ToScalar[PartialUint8s]()),
 		)
 		assert.NoError(t, err)
 
 		counts, err := ro.Collect(
 			ro.Pipe2[uint8, PartialUint8s, int](
 				ro.FromSlice(input),
-				VectorizeUint8,
+				VectorizeUint8[PartialUint8s](),
 				ro.Map(func(v PartialUint8s) int { return v.Count() }),
 			),
 		)
@@ -858,7 +858,7 @@ func TestFlattenUint16RoundTrips(t *testing.T) {
 		input := rampUint16(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16, Flatten),
+			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16[PartialUint16s](), Flatten[PartialUint16s]()),
 		)
 		assert.NoError(t, err)
 
@@ -875,14 +875,14 @@ func TestToScalarUint16MatchesBatches(t *testing.T) {
 		input := rampUint16(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[uint16, PartialUint16s, []uint16](ro.FromSlice(input), VectorizeUint16, ToScalar),
+			ro.Pipe2[uint16, PartialUint16s, []uint16](ro.FromSlice(input), VectorizeUint16[PartialUint16s](), ToScalar[PartialUint16s]()),
 		)
 		assert.NoError(t, err)
 
 		counts, err := ro.Collect(
 			ro.Pipe2[uint16, PartialUint16s, int](
 				ro.FromSlice(input),
-				VectorizeUint16,
+				VectorizeUint16[PartialUint16s](),
 				ro.Map(func(v PartialUint16s) int { return v.Count() }),
 			),
 		)
@@ -908,7 +908,7 @@ func TestFlattenUint32RoundTrips(t *testing.T) {
 		input := rampUint32(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32, Flatten),
+			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32[PartialUint32s](), Flatten[PartialUint32s]()),
 		)
 		assert.NoError(t, err)
 
@@ -925,14 +925,14 @@ func TestToScalarUint32MatchesBatches(t *testing.T) {
 		input := rampUint32(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[uint32, PartialUint32s, []uint32](ro.FromSlice(input), VectorizeUint32, ToScalar),
+			ro.Pipe2[uint32, PartialUint32s, []uint32](ro.FromSlice(input), VectorizeUint32[PartialUint32s](), ToScalar[PartialUint32s]()),
 		)
 		assert.NoError(t, err)
 
 		counts, err := ro.Collect(
 			ro.Pipe2[uint32, PartialUint32s, int](
 				ro.FromSlice(input),
-				VectorizeUint32,
+				VectorizeUint32[PartialUint32s](),
 				ro.Map(func(v PartialUint32s) int { return v.Count() }),
 			),
 		)
@@ -958,7 +958,7 @@ func TestFlattenUint64RoundTrips(t *testing.T) {
 		input := rampUint64(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64, Flatten),
+			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64[PartialUint64s](), Flatten[PartialUint64s]()),
 		)
 		assert.NoError(t, err)
 
@@ -975,14 +975,14 @@ func TestToScalarUint64MatchesBatches(t *testing.T) {
 		input := rampUint64(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[uint64, PartialUint64s, []uint64](ro.FromSlice(input), VectorizeUint64, ToScalar),
+			ro.Pipe2[uint64, PartialUint64s, []uint64](ro.FromSlice(input), VectorizeUint64[PartialUint64s](), ToScalar[PartialUint64s]()),
 		)
 		assert.NoError(t, err)
 
 		counts, err := ro.Collect(
 			ro.Pipe2[uint64, PartialUint64s, int](
 				ro.FromSlice(input),
-				VectorizeUint64,
+				VectorizeUint64[PartialUint64s](),
 				ro.Map(func(v PartialUint64s) int { return v.Count() }),
 			),
 		)
@@ -1008,7 +1008,7 @@ func TestFlattenFloat32RoundTrips(t *testing.T) {
 		input := rampFloat32(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32, Flatten),
+			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32[PartialFloat32s](), Flatten[PartialFloat32s]()),
 		)
 		assert.NoError(t, err)
 
@@ -1025,14 +1025,14 @@ func TestToScalarFloat32MatchesBatches(t *testing.T) {
 		input := rampFloat32(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[float32, PartialFloat32s, []float32](ro.FromSlice(input), VectorizeFloat32, ToScalar),
+			ro.Pipe2[float32, PartialFloat32s, []float32](ro.FromSlice(input), VectorizeFloat32[PartialFloat32s](), ToScalar[PartialFloat32s]()),
 		)
 		assert.NoError(t, err)
 
 		counts, err := ro.Collect(
 			ro.Pipe2[float32, PartialFloat32s, int](
 				ro.FromSlice(input),
-				VectorizeFloat32,
+				VectorizeFloat32[PartialFloat32s](),
 				ro.Map(func(v PartialFloat32s) int { return v.Count() }),
 			),
 		)
@@ -1058,7 +1058,7 @@ func TestFlattenFloat64RoundTrips(t *testing.T) {
 		input := rampFloat64(size)
 
 		got, err := ro.Collect(
-			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64, Flatten),
+			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64[PartialFloat64s](), Flatten[PartialFloat64s]()),
 		)
 		assert.NoError(t, err)
 
@@ -1075,14 +1075,14 @@ func TestToScalarFloat64MatchesBatches(t *testing.T) {
 		input := rampFloat64(size)
 
 		batches, err := ro.Collect(
-			ro.Pipe2[float64, PartialFloat64s, []float64](ro.FromSlice(input), VectorizeFloat64, ToScalar),
+			ro.Pipe2[float64, PartialFloat64s, []float64](ro.FromSlice(input), VectorizeFloat64[PartialFloat64s](), ToScalar[PartialFloat64s]()),
 		)
 		assert.NoError(t, err)
 
 		counts, err := ro.Collect(
 			ro.Pipe2[float64, PartialFloat64s, int](
 				ro.FromSlice(input),
-				VectorizeFloat64,
+				VectorizeFloat64[PartialFloat64s](),
 				ro.Map(func(v PartialFloat64s) int { return v.Count() }),
 			),
 		)
@@ -1106,17 +1106,17 @@ func TestExitOperatorsAcceptStdlibVectors(t *testing.T) {
 
 	batch := rampInt8(lanesInt8())
 
-	flattened, err := ro.Collect(Flatten(ro.Just(simd.LoadInt8s(batch))))
+	flattened, err := ro.Collect(Flatten[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
 	assert.NoError(t, err)
 	assert.Equal(t, batch, flattened)
 
-	sliced, err := ro.Collect(ToScalar(ro.Just(simd.LoadInt8s(batch))))
+	sliced, err := ro.Collect(ToScalar[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
 	assert.NoError(t, err)
 	assert.Equal(t, [][]int8{batch}, sliced)
 
 	wide := rampInt64(lanesInt64())
 
-	wideFlattened, err := ro.Collect(Flatten(ro.Just(simd.LoadInt64s(wide))))
+	wideFlattened, err := ro.Collect(Flatten[simd.Int64s]()(ro.Just(simd.LoadInt64s(wide))))
 	assert.NoError(t, err)
 	assert.Equal(t, wide, wideFlattened,
 		"simd.Int64s cannot satisfy Int64Vector, but it can report its lanes")

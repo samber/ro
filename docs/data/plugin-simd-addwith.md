@@ -46,12 +46,12 @@ import (
     rosimd "github.com/samber/ro/plugins/exp/simd"
 )
 
-left := rosimd.VectorizeInt8[rosimd.PartialInt8s](ro.Just[int8](1, 2, 3))
-right := rosimd.VectorizeInt8[rosimd.PartialInt8s](ro.Just[int8](10, 20, 30))
+left := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](1, 2, 3))
+right := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](10, 20, 30))
 
 obs := ro.Pipe2[rosimd.PartialInt8s, []int8, int8](
     rosimd.AddWithInt8(right)(left),
-    rosimd.ToScalar,
+    rosimd.ToScalar[rosimd.PartialInt8s](),
     ro.Flatten[int8](),
 )
 

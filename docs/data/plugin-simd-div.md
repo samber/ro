@@ -33,9 +33,9 @@ import (
 
 obs := ro.Pipe4[float64, rosimd.PartialFloat64s, rosimd.PartialFloat64s, []float64, float64](
     ro.Just[float64](1, 2, 3),
-    rosimd.VectorizeFloat64,
+    rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
     rosimd.DivFloat64(rosimd.BroadcastFloat64(2)),
-    rosimd.ToScalar,
+    rosimd.ToScalar[rosimd.PartialFloat64s](),
     ro.Flatten[float64](),
 )
 

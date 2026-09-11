@@ -42,7 +42,7 @@ func TestReduceContainsInt8(t *testing.T) {
 			got, err := ro.Collect(
 				ro.Pipe2[int8, PartialInt8s, bool](
 					ro.FromSlice(input),
-					VectorizeInt8,
+					VectorizeInt8[PartialInt8s](),
 					ReduceContainsInt8(BroadcastInt8(target)),
 				),
 			)
@@ -60,7 +60,7 @@ func TestReduceContainsInt8ZeroIsNotFoundInPadding(t *testing.T) {
 	got, err := ro.Collect(
 		ro.Pipe2[int8, PartialInt8s, bool](
 			ro.FromSlice([]int8{1, 2, 3}),
-			VectorizeInt8,
+			VectorizeInt8[PartialInt8s](),
 			ReduceContainsInt8(BroadcastInt8(0)),
 		),
 	)
@@ -80,7 +80,7 @@ func TestReduceContainsInt16(t *testing.T) {
 			got, err := ro.Collect(
 				ro.Pipe2[int16, PartialInt16s, bool](
 					ro.FromSlice(input),
-					VectorizeInt16,
+					VectorizeInt16[PartialInt16s](),
 					ReduceContainsInt16(BroadcastInt16(target)),
 				),
 			)
@@ -98,7 +98,7 @@ func TestReduceContainsInt16ZeroIsNotFoundInPadding(t *testing.T) {
 	got, err := ro.Collect(
 		ro.Pipe2[int16, PartialInt16s, bool](
 			ro.FromSlice([]int16{1, 2, 3}),
-			VectorizeInt16,
+			VectorizeInt16[PartialInt16s](),
 			ReduceContainsInt16(BroadcastInt16(0)),
 		),
 	)
@@ -118,7 +118,7 @@ func TestReduceContainsInt32(t *testing.T) {
 			got, err := ro.Collect(
 				ro.Pipe2[int32, PartialInt32s, bool](
 					ro.FromSlice(input),
-					VectorizeInt32,
+					VectorizeInt32[PartialInt32s](),
 					ReduceContainsInt32(BroadcastInt32(target)),
 				),
 			)
@@ -136,7 +136,7 @@ func TestReduceContainsInt32ZeroIsNotFoundInPadding(t *testing.T) {
 	got, err := ro.Collect(
 		ro.Pipe2[int32, PartialInt32s, bool](
 			ro.FromSlice([]int32{1, 2, 3}),
-			VectorizeInt32,
+			VectorizeInt32[PartialInt32s](),
 			ReduceContainsInt32(BroadcastInt32(0)),
 		),
 	)
@@ -158,7 +158,7 @@ func TestReduceContainsInt64(t *testing.T) {
 			got, err := ro.Collect(
 				ro.Pipe2[int64, PartialInt64s, bool](
 					ro.FromSlice(input),
-					VectorizeInt64,
+					VectorizeInt64[PartialInt64s](),
 					ReduceContainsInt64(BroadcastInt64(target)),
 				),
 			)
@@ -177,7 +177,7 @@ func TestReduceContainsInt64ZeroIsNotFoundInPadding(t *testing.T) {
 	got, err := ro.Collect(
 		ro.Pipe2[int64, PartialInt64s, bool](
 			ro.FromSlice(rampInt64(lanesInt64()-1)),
-			VectorizeInt64,
+			VectorizeInt64[PartialInt64s](),
 			ReduceContainsInt64(BroadcastInt64(0)),
 		),
 	)
@@ -197,7 +197,7 @@ func TestReduceContainsUint8(t *testing.T) {
 			got, err := ro.Collect(
 				ro.Pipe2[uint8, PartialUint8s, bool](
 					ro.FromSlice(input),
-					VectorizeUint8,
+					VectorizeUint8[PartialUint8s](),
 					ReduceContainsUint8(BroadcastUint8(target)),
 				),
 			)
@@ -215,7 +215,7 @@ func TestReduceContainsUint8ZeroIsNotFoundInPadding(t *testing.T) {
 	got, err := ro.Collect(
 		ro.Pipe2[uint8, PartialUint8s, bool](
 			ro.FromSlice([]uint8{1, 2, 3}),
-			VectorizeUint8,
+			VectorizeUint8[PartialUint8s](),
 			ReduceContainsUint8(BroadcastUint8(0)),
 		),
 	)
@@ -235,7 +235,7 @@ func TestReduceContainsUint16(t *testing.T) {
 			got, err := ro.Collect(
 				ro.Pipe2[uint16, PartialUint16s, bool](
 					ro.FromSlice(input),
-					VectorizeUint16,
+					VectorizeUint16[PartialUint16s](),
 					ReduceContainsUint16(BroadcastUint16(target)),
 				),
 			)
@@ -253,7 +253,7 @@ func TestReduceContainsUint16ZeroIsNotFoundInPadding(t *testing.T) {
 	got, err := ro.Collect(
 		ro.Pipe2[uint16, PartialUint16s, bool](
 			ro.FromSlice([]uint16{1, 2, 3}),
-			VectorizeUint16,
+			VectorizeUint16[PartialUint16s](),
 			ReduceContainsUint16(BroadcastUint16(0)),
 		),
 	)
@@ -273,7 +273,7 @@ func TestReduceContainsUint32(t *testing.T) {
 			got, err := ro.Collect(
 				ro.Pipe2[uint32, PartialUint32s, bool](
 					ro.FromSlice(input),
-					VectorizeUint32,
+					VectorizeUint32[PartialUint32s](),
 					ReduceContainsUint32(BroadcastUint32(target)),
 				),
 			)
@@ -291,7 +291,7 @@ func TestReduceContainsUint32ZeroIsNotFoundInPadding(t *testing.T) {
 	got, err := ro.Collect(
 		ro.Pipe2[uint32, PartialUint32s, bool](
 			ro.FromSlice([]uint32{1, 2, 3}),
-			VectorizeUint32,
+			VectorizeUint32[PartialUint32s](),
 			ReduceContainsUint32(BroadcastUint32(0)),
 		),
 	)
@@ -313,7 +313,7 @@ func TestReduceContainsUint64(t *testing.T) {
 			got, err := ro.Collect(
 				ro.Pipe2[uint64, PartialUint64s, bool](
 					ro.FromSlice(input),
-					VectorizeUint64,
+					VectorizeUint64[PartialUint64s](),
 					ReduceContainsUint64(BroadcastUint64(target)),
 				),
 			)
@@ -332,7 +332,7 @@ func TestReduceContainsUint64ZeroIsNotFoundInPadding(t *testing.T) {
 	got, err := ro.Collect(
 		ro.Pipe2[uint64, PartialUint64s, bool](
 			ro.FromSlice(rampUint64(lanesUint64()-1)),
-			VectorizeUint64,
+			VectorizeUint64[PartialUint64s](),
 			ReduceContainsUint64(BroadcastUint64(0)),
 		),
 	)
@@ -352,7 +352,7 @@ func TestReduceContainsFloat32(t *testing.T) {
 			got, err := ro.Collect(
 				ro.Pipe2[float32, PartialFloat32s, bool](
 					ro.FromSlice(input),
-					VectorizeFloat32,
+					VectorizeFloat32[PartialFloat32s](),
 					ReduceContainsFloat32(BroadcastFloat32(target)),
 				),
 			)
@@ -370,7 +370,7 @@ func TestReduceContainsFloat32ZeroIsNotFoundInPadding(t *testing.T) {
 	got, err := ro.Collect(
 		ro.Pipe2[float32, PartialFloat32s, bool](
 			ro.FromSlice([]float32{1, 2, 3}),
-			VectorizeFloat32,
+			VectorizeFloat32[PartialFloat32s](),
 			ReduceContainsFloat32(BroadcastFloat32(0)),
 		),
 	)
@@ -390,7 +390,7 @@ func TestReduceContainsFloat64(t *testing.T) {
 			got, err := ro.Collect(
 				ro.Pipe2[float64, PartialFloat64s, bool](
 					ro.FromSlice(input),
-					VectorizeFloat64,
+					VectorizeFloat64[PartialFloat64s](),
 					ReduceContainsFloat64(BroadcastFloat64(target)),
 				),
 			)
@@ -408,7 +408,7 @@ func TestReduceContainsFloat64ZeroIsNotFoundInPadding(t *testing.T) {
 	got, err := ro.Collect(
 		ro.Pipe2[float64, PartialFloat64s, bool](
 			ro.FromSlice([]float64{1, 2, 3}),
-			VectorizeFloat64,
+			VectorizeFloat64[PartialFloat64s](),
 			ReduceContainsFloat64(BroadcastFloat64(0)),
 		),
 	)
@@ -754,7 +754,7 @@ func TestContainsFloat32NaNNeverMatches(t *testing.T) {
 	found, err := ro.Collect(
 		ro.Pipe2[float32, PartialFloat32s, bool](
 			ro.FromSlice([]float32{1, nan, 3}),
-			VectorizeFloat32,
+			VectorizeFloat32[PartialFloat32s](),
 			ReduceContainsFloat32(BroadcastFloat32(nan)),
 		),
 	)
@@ -820,7 +820,7 @@ func TestContainsFloat64NaNNeverMatches(t *testing.T) {
 	found, err := ro.Collect(
 		ro.Pipe2[float64, PartialFloat64s, bool](
 			ro.FromSlice([]float64{1, nan, 3}),
-			VectorizeFloat64,
+			VectorizeFloat64[PartialFloat64s](),
 			ReduceContainsFloat64(BroadcastFloat64(nan)),
 		),
 	)

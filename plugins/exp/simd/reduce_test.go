@@ -44,7 +44,7 @@ func TestReduceMinMaxFloat32MatchCoreOnNaN(t *testing.T) {
 		assert.NoError(t, err)
 
 		gotMin, err := ro.Collect(
-			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32, ReduceMinFloat32),
+			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32[PartialFloat32s](), ReduceMinFloat32),
 		)
 		assert.NoError(t, err)
 		assertLanesEqualFloat32(t, wantMin, gotMin, "ReduceMin with NaN")
@@ -53,7 +53,7 @@ func TestReduceMinMaxFloat32MatchCoreOnNaN(t *testing.T) {
 		assert.NoError(t, err)
 
 		gotMax, err := ro.Collect(
-			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32, ReduceMaxFloat32),
+			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32[PartialFloat32s](), ReduceMaxFloat32),
 		)
 		assert.NoError(t, err)
 		assertLanesEqualFloat32(t, wantMax, gotMax, "ReduceMax with NaN")
@@ -78,7 +78,7 @@ func TestReduceMinMaxFloat64MatchCoreOnNaN(t *testing.T) {
 		assert.NoError(t, err)
 
 		gotMin, err := ro.Collect(
-			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64, ReduceMinFloat64),
+			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64[PartialFloat64s](), ReduceMinFloat64),
 		)
 		assert.NoError(t, err)
 		assertLanesEqualFloat64(t, wantMin, gotMin, "ReduceMin with NaN")
@@ -87,7 +87,7 @@ func TestReduceMinMaxFloat64MatchCoreOnNaN(t *testing.T) {
 		assert.NoError(t, err)
 
 		gotMax, err := ro.Collect(
-			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64, ReduceMaxFloat64),
+			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64[PartialFloat64s](), ReduceMaxFloat64),
 		)
 		assert.NoError(t, err)
 		assertLanesEqualFloat64(t, wantMax, gotMax, "ReduceMax with NaN")
@@ -104,7 +104,7 @@ func TestReduceSumInt8MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int8, PartialInt8s, int8](ro.FromSlice(input), VectorizeInt8, ReduceSumInt8),
+			ro.Pipe2[int8, PartialInt8s, int8](ro.FromSlice(input), VectorizeInt8[PartialInt8s](), ReduceSumInt8),
 		)
 		assert.NoError(t, err)
 
@@ -122,7 +122,7 @@ func TestReduceSumInt16MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int16, PartialInt16s, int16](ro.FromSlice(input), VectorizeInt16, ReduceSumInt16),
+			ro.Pipe2[int16, PartialInt16s, int16](ro.FromSlice(input), VectorizeInt16[PartialInt16s](), ReduceSumInt16),
 		)
 		assert.NoError(t, err)
 
@@ -140,7 +140,7 @@ func TestReduceSumInt32MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int32, PartialInt32s, int32](ro.FromSlice(input), VectorizeInt32, ReduceSumInt32),
+			ro.Pipe2[int32, PartialInt32s, int32](ro.FromSlice(input), VectorizeInt32[PartialInt32s](), ReduceSumInt32),
 		)
 		assert.NoError(t, err)
 
@@ -158,7 +158,7 @@ func TestReduceSumInt64MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int64, PartialInt64s, int64](ro.FromSlice(input), VectorizeInt64, ReduceSumInt64),
+			ro.Pipe2[int64, PartialInt64s, int64](ro.FromSlice(input), VectorizeInt64[PartialInt64s](), ReduceSumInt64),
 		)
 		assert.NoError(t, err)
 
@@ -176,7 +176,7 @@ func TestReduceSumUint8MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8, ReduceSumUint8),
+			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8[PartialUint8s](), ReduceSumUint8),
 		)
 		assert.NoError(t, err)
 
@@ -194,7 +194,7 @@ func TestReduceSumUint16MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16, ReduceSumUint16),
+			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16[PartialUint16s](), ReduceSumUint16),
 		)
 		assert.NoError(t, err)
 
@@ -212,7 +212,7 @@ func TestReduceSumUint32MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32, ReduceSumUint32),
+			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32[PartialUint32s](), ReduceSumUint32),
 		)
 		assert.NoError(t, err)
 
@@ -230,7 +230,7 @@ func TestReduceSumUint64MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64, ReduceSumUint64),
+			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64[PartialUint64s](), ReduceSumUint64),
 		)
 		assert.NoError(t, err)
 
@@ -248,7 +248,7 @@ func TestReduceSumFloat32MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32, ReduceSumFloat32),
+			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32[PartialFloat32s](), ReduceSumFloat32),
 		)
 		assert.NoError(t, err)
 
@@ -266,7 +266,7 @@ func TestReduceSumFloat64MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64, ReduceSumFloat64),
+			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64[PartialFloat64s](), ReduceSumFloat64),
 		)
 		assert.NoError(t, err)
 
@@ -284,7 +284,7 @@ func TestReduceMinInt8MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int8, PartialInt8s, int8](ro.FromSlice(input), VectorizeInt8, ReduceMinInt8),
+			ro.Pipe2[int8, PartialInt8s, int8](ro.FromSlice(input), VectorizeInt8[PartialInt8s](), ReduceMinInt8),
 		)
 		assert.NoError(t, err)
 
@@ -302,7 +302,7 @@ func TestReduceMinInt16MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int16, PartialInt16s, int16](ro.FromSlice(input), VectorizeInt16, ReduceMinInt16),
+			ro.Pipe2[int16, PartialInt16s, int16](ro.FromSlice(input), VectorizeInt16[PartialInt16s](), ReduceMinInt16),
 		)
 		assert.NoError(t, err)
 
@@ -320,7 +320,7 @@ func TestReduceMinInt32MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int32, PartialInt32s, int32](ro.FromSlice(input), VectorizeInt32, ReduceMinInt32),
+			ro.Pipe2[int32, PartialInt32s, int32](ro.FromSlice(input), VectorizeInt32[PartialInt32s](), ReduceMinInt32),
 		)
 		assert.NoError(t, err)
 
@@ -338,7 +338,7 @@ func TestReduceMinInt64MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int64, PartialInt64s, int64](ro.FromSlice(input), VectorizeInt64, ReduceMinInt64),
+			ro.Pipe2[int64, PartialInt64s, int64](ro.FromSlice(input), VectorizeInt64[PartialInt64s](), ReduceMinInt64),
 		)
 		assert.NoError(t, err)
 
@@ -356,7 +356,7 @@ func TestReduceMinUint8MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8, ReduceMinUint8),
+			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8[PartialUint8s](), ReduceMinUint8),
 		)
 		assert.NoError(t, err)
 
@@ -374,7 +374,7 @@ func TestReduceMinUint16MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16, ReduceMinUint16),
+			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16[PartialUint16s](), ReduceMinUint16),
 		)
 		assert.NoError(t, err)
 
@@ -392,7 +392,7 @@ func TestReduceMinUint32MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32, ReduceMinUint32),
+			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32[PartialUint32s](), ReduceMinUint32),
 		)
 		assert.NoError(t, err)
 
@@ -410,7 +410,7 @@ func TestReduceMinUint64MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64, ReduceMinUint64),
+			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64[PartialUint64s](), ReduceMinUint64),
 		)
 		assert.NoError(t, err)
 
@@ -428,7 +428,7 @@ func TestReduceMinFloat32MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32, ReduceMinFloat32),
+			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32[PartialFloat32s](), ReduceMinFloat32),
 		)
 		assert.NoError(t, err)
 
@@ -446,7 +446,7 @@ func TestReduceMinFloat64MatchesCore(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64, ReduceMinFloat64),
+			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64[PartialFloat64s](), ReduceMinFloat64),
 		)
 		assert.NoError(t, err)
 
@@ -468,7 +468,7 @@ func TestReduceMaxInt8(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int8, PartialInt8s, int8](ro.FromSlice(input), VectorizeInt8, ReduceMaxInt8),
+			ro.Pipe2[int8, PartialInt8s, int8](ro.FromSlice(input), VectorizeInt8[PartialInt8s](), ReduceMaxInt8),
 		)
 		assert.NoError(t, err)
 
@@ -490,7 +490,7 @@ func TestReduceMaxInt16(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int16, PartialInt16s, int16](ro.FromSlice(input), VectorizeInt16, ReduceMaxInt16),
+			ro.Pipe2[int16, PartialInt16s, int16](ro.FromSlice(input), VectorizeInt16[PartialInt16s](), ReduceMaxInt16),
 		)
 		assert.NoError(t, err)
 
@@ -512,7 +512,7 @@ func TestReduceMaxInt32(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int32, PartialInt32s, int32](ro.FromSlice(input), VectorizeInt32, ReduceMaxInt32),
+			ro.Pipe2[int32, PartialInt32s, int32](ro.FromSlice(input), VectorizeInt32[PartialInt32s](), ReduceMaxInt32),
 		)
 		assert.NoError(t, err)
 
@@ -534,7 +534,7 @@ func TestReduceMaxInt64(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[int64, PartialInt64s, int64](ro.FromSlice(input), VectorizeInt64, ReduceMaxInt64),
+			ro.Pipe2[int64, PartialInt64s, int64](ro.FromSlice(input), VectorizeInt64[PartialInt64s](), ReduceMaxInt64),
 		)
 		assert.NoError(t, err)
 
@@ -556,7 +556,7 @@ func TestReduceMaxUint8(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8, ReduceMaxUint8),
+			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8[PartialUint8s](), ReduceMaxUint8),
 		)
 		assert.NoError(t, err)
 
@@ -578,7 +578,7 @@ func TestReduceMaxUint16(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16, ReduceMaxUint16),
+			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16[PartialUint16s](), ReduceMaxUint16),
 		)
 		assert.NoError(t, err)
 
@@ -600,7 +600,7 @@ func TestReduceMaxUint32(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32, ReduceMaxUint32),
+			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32[PartialUint32s](), ReduceMaxUint32),
 		)
 		assert.NoError(t, err)
 
@@ -622,7 +622,7 @@ func TestReduceMaxUint64(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64, ReduceMaxUint64),
+			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64[PartialUint64s](), ReduceMaxUint64),
 		)
 		assert.NoError(t, err)
 
@@ -644,7 +644,7 @@ func TestReduceMaxFloat32(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32, ReduceMaxFloat32),
+			ro.Pipe2[float32, PartialFloat32s, float32](ro.FromSlice(input), VectorizeFloat32[PartialFloat32s](), ReduceMaxFloat32),
 		)
 		assert.NoError(t, err)
 
@@ -666,7 +666,7 @@ func TestReduceMaxFloat64(t *testing.T) {
 		assert.NoError(t, err)
 
 		got, err := ro.Collect(
-			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64, ReduceMaxFloat64),
+			ro.Pipe2[float64, PartialFloat64s, float64](ro.FromSlice(input), VectorizeFloat64[PartialFloat64s](), ReduceMaxFloat64),
 		)
 		assert.NoError(t, err)
 

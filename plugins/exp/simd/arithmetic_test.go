@@ -28,8 +28,8 @@ import (
 func TestAddWithInt8ZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
-	left := VectorizeInt8[PartialInt8s](ro.FromSlice(rampInt8(20)))
-	right := VectorizeInt8[PartialInt8s](ro.FromSlice(rampInt8(20)))
+	left := VectorizeInt8[PartialInt8s]()(ro.FromSlice(rampInt8(20)))
+	right := VectorizeInt8[PartialInt8s]()(ro.FromSlice(rampInt8(20)))
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialInt8s, []int8, int8](
@@ -51,8 +51,8 @@ func TestAddWithInt8ZipsTwoStreams(t *testing.T) {
 func TestAddWithInt16ZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
-	left := VectorizeInt16[PartialInt16s](ro.FromSlice(rampInt16(20)))
-	right := VectorizeInt16[PartialInt16s](ro.FromSlice(rampInt16(20)))
+	left := VectorizeInt16[PartialInt16s]()(ro.FromSlice(rampInt16(20)))
+	right := VectorizeInt16[PartialInt16s]()(ro.FromSlice(rampInt16(20)))
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialInt16s, []int16, int16](
@@ -74,8 +74,8 @@ func TestAddWithInt16ZipsTwoStreams(t *testing.T) {
 func TestAddWithInt32ZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
-	left := VectorizeInt32[PartialInt32s](ro.FromSlice(rampInt32(20)))
-	right := VectorizeInt32[PartialInt32s](ro.FromSlice(rampInt32(20)))
+	left := VectorizeInt32[PartialInt32s]()(ro.FromSlice(rampInt32(20)))
+	right := VectorizeInt32[PartialInt32s]()(ro.FromSlice(rampInt32(20)))
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialInt32s, []int32, int32](
@@ -97,8 +97,8 @@ func TestAddWithInt32ZipsTwoStreams(t *testing.T) {
 func TestAddWithInt64ZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
-	left := VectorizeInt64[PartialInt64s](ro.FromSlice(rampInt64(20)))
-	right := VectorizeInt64[PartialInt64s](ro.FromSlice(rampInt64(20)))
+	left := VectorizeInt64[PartialInt64s]()(ro.FromSlice(rampInt64(20)))
+	right := VectorizeInt64[PartialInt64s]()(ro.FromSlice(rampInt64(20)))
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialInt64s, []int64, int64](
@@ -120,8 +120,8 @@ func TestAddWithInt64ZipsTwoStreams(t *testing.T) {
 func TestAddWithUint8ZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
-	left := VectorizeUint8[PartialUint8s](ro.FromSlice(rampUint8(20)))
-	right := VectorizeUint8[PartialUint8s](ro.FromSlice(rampUint8(20)))
+	left := VectorizeUint8[PartialUint8s]()(ro.FromSlice(rampUint8(20)))
+	right := VectorizeUint8[PartialUint8s]()(ro.FromSlice(rampUint8(20)))
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialUint8s, []uint8, uint8](
@@ -143,8 +143,8 @@ func TestAddWithUint8ZipsTwoStreams(t *testing.T) {
 func TestAddWithUint16ZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
-	left := VectorizeUint16[PartialUint16s](ro.FromSlice(rampUint16(20)))
-	right := VectorizeUint16[PartialUint16s](ro.FromSlice(rampUint16(20)))
+	left := VectorizeUint16[PartialUint16s]()(ro.FromSlice(rampUint16(20)))
+	right := VectorizeUint16[PartialUint16s]()(ro.FromSlice(rampUint16(20)))
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialUint16s, []uint16, uint16](
@@ -166,8 +166,8 @@ func TestAddWithUint16ZipsTwoStreams(t *testing.T) {
 func TestAddWithUint32ZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
-	left := VectorizeUint32[PartialUint32s](ro.FromSlice(rampUint32(20)))
-	right := VectorizeUint32[PartialUint32s](ro.FromSlice(rampUint32(20)))
+	left := VectorizeUint32[PartialUint32s]()(ro.FromSlice(rampUint32(20)))
+	right := VectorizeUint32[PartialUint32s]()(ro.FromSlice(rampUint32(20)))
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialUint32s, []uint32, uint32](
@@ -189,8 +189,8 @@ func TestAddWithUint32ZipsTwoStreams(t *testing.T) {
 func TestAddWithUint64ZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
-	left := VectorizeUint64[PartialUint64s](ro.FromSlice(rampUint64(20)))
-	right := VectorizeUint64[PartialUint64s](ro.FromSlice(rampUint64(20)))
+	left := VectorizeUint64[PartialUint64s]()(ro.FromSlice(rampUint64(20)))
+	right := VectorizeUint64[PartialUint64s]()(ro.FromSlice(rampUint64(20)))
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialUint64s, []uint64, uint64](
@@ -212,8 +212,8 @@ func TestAddWithUint64ZipsTwoStreams(t *testing.T) {
 func TestAddWithFloat32ZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
-	left := VectorizeFloat32[PartialFloat32s](ro.FromSlice(rampFloat32(20)))
-	right := VectorizeFloat32[PartialFloat32s](ro.FromSlice(rampFloat32(20)))
+	left := VectorizeFloat32[PartialFloat32s]()(ro.FromSlice(rampFloat32(20)))
+	right := VectorizeFloat32[PartialFloat32s]()(ro.FromSlice(rampFloat32(20)))
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialFloat32s, []float32, float32](
@@ -235,8 +235,8 @@ func TestAddWithFloat32ZipsTwoStreams(t *testing.T) {
 func TestAddWithFloat64ZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
-	left := VectorizeFloat64[PartialFloat64s](ro.FromSlice(rampFloat64(20)))
-	right := VectorizeFloat64[PartialFloat64s](ro.FromSlice(rampFloat64(20)))
+	left := VectorizeFloat64[PartialFloat64s]()(ro.FromSlice(rampFloat64(20)))
+	right := VectorizeFloat64[PartialFloat64s]()(ro.FromSlice(rampFloat64(20)))
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialFloat64s, []float64, float64](
@@ -263,8 +263,8 @@ func TestDivWithFloat32LeavesNoNaNInPadding(t *testing.T) {
 
 	lanes := lanesFloat32()
 
-	left := VectorizeFloat32[PartialFloat32s](ro.FromSlice([]float32{1}))
-	right := VectorizeFloat32[PartialFloat32s](ro.FromSlice([]float32{2}))
+	left := VectorizeFloat32[PartialFloat32s]()(ro.FromSlice([]float32{1}))
+	right := VectorizeFloat32[PartialFloat32s]()(ro.FromSlice([]float32{2}))
 
 	vectors, err := ro.Collect(DivWithFloat32(right)(left))
 	assert.NoError(t, err)
@@ -287,8 +287,8 @@ func TestDivWithFloat64LeavesNoNaNInPadding(t *testing.T) {
 
 	lanes := lanesFloat64()
 
-	left := VectorizeFloat64[PartialFloat64s](ro.FromSlice([]float64{1}))
-	right := VectorizeFloat64[PartialFloat64s](ro.FromSlice([]float64{2}))
+	left := VectorizeFloat64[PartialFloat64s]()(ro.FromSlice([]float64{1}))
+	right := VectorizeFloat64[PartialFloat64s]()(ro.FromSlice([]float64{2}))
 
 	vectors, err := ro.Collect(DivWithFloat64(right)(left))
 	assert.NoError(t, err)

@@ -28,9 +28,9 @@ import (
 func ExampleMinInt8() {
 	obs := ro.Pipe4[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
 		ro.Just[int8](1, 50, 100),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		rosimd.MinInt8(rosimd.BroadcastInt8(60)),
-		rosimd.ToScalar,
+		rosimd.ToScalar[rosimd.PartialInt8s](),
 		ro.Flatten[int8](),
 	)
 
@@ -48,9 +48,9 @@ func ExampleMinInt8() {
 func ExampleMaxInt8() {
 	obs := ro.Pipe4[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
 		ro.Just[int8](1, 50, 100),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		rosimd.MaxInt8(rosimd.BroadcastInt8(40)),
-		rosimd.ToScalar,
+		rosimd.ToScalar[rosimd.PartialInt8s](),
 		ro.Flatten[int8](),
 	)
 
@@ -71,9 +71,9 @@ func ExampleMaxInt8() {
 func ExampleClampInt8() {
 	obs := ro.Pipe4[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
 		ro.Just[int8](1, 50, 100),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		rosimd.ClampInt8(rosimd.BroadcastInt8(10), rosimd.BroadcastInt8(60)),
-		rosimd.ToScalar,
+		rosimd.ToScalar[rosimd.PartialInt8s](),
 		ro.Flatten[int8](),
 	)
 
@@ -91,12 +91,12 @@ func ExampleClampInt8() {
 // MinWith takes the smaller of each lane pair from two streams rather than from a
 // constant.
 func ExampleMinWithInt8() {
-	left := rosimd.VectorizeInt8[rosimd.PartialInt8s](ro.Just[int8](1, 50, 100))
-	right := rosimd.VectorizeInt8[rosimd.PartialInt8s](ro.Just[int8](10, 10, 10))
+	left := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](1, 50, 100))
+	right := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](10, 10, 10))
 
 	obs := ro.Pipe2[rosimd.PartialInt8s, []int8, int8](
 		rosimd.MinWithInt8(right)(left),
-		rosimd.ToScalar,
+		rosimd.ToScalar[rosimd.PartialInt8s](),
 		ro.Flatten[int8](),
 	)
 
@@ -119,9 +119,9 @@ func ExampleMinWithInt8() {
 func ExampleMinFloat64_nan() {
 	obs := ro.Pipe4[float64, rosimd.PartialFloat64s, rosimd.PartialFloat64s, []float64, float64](
 		ro.Just(1.0, math.NaN(), 3.0),
-		rosimd.VectorizeFloat64,
+		rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
 		rosimd.MinFloat64(rosimd.BroadcastFloat64(2)),
-		rosimd.ToScalar,
+		rosimd.ToScalar[rosimd.PartialFloat64s](),
 		ro.Flatten[float64](),
 	)
 
@@ -145,9 +145,9 @@ func ExampleMinFloat64_nan() {
 func ExampleMinUint64() {
 	obs := ro.Pipe4[uint64, rosimd.PartialUint64s, rosimd.PartialUint64s, []uint64, uint64](
 		ro.Just[uint64](100, math.MaxUint64),
-		rosimd.VectorizeUint64,
+		rosimd.VectorizeUint64[rosimd.PartialUint64s](),
 		rosimd.MinUint64(rosimd.BroadcastUint64(500)),
-		rosimd.ToScalar,
+		rosimd.ToScalar[rosimd.PartialUint64s](),
 		ro.Flatten[uint64](),
 	)
 

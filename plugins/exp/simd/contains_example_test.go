@@ -60,7 +60,7 @@ func ExamplePartialInt8s_Contains_readingLanes() {
 func ExamplePartialInt8s_Contains() {
 	obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
 		ro.Just[int8](7, 1, 7, 2),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		ro.Map(func(v rosimd.PartialInt8s) []int8 {
 			matched := v.Contains(rosimd.BroadcastInt8(7))
 
@@ -85,7 +85,7 @@ func ExamplePartialInt8s_Contains() {
 func ExamplePartialInt8s_Contains_combiningMasks() {
 	obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
 		ro.Just[int8](1, 2, 3, 4),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		ro.Map(func(v rosimd.PartialInt8s) []int8 {
 			twos := v.Contains(rosimd.BroadcastInt8(2))
 			fours := v.Contains(rosimd.BroadcastInt8(4))
@@ -112,7 +112,7 @@ func ExamplePartialInt8s_Contains_combiningMasks() {
 func ExamplePartialInt8s_Select() {
 	obs := ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
 		ro.Just[int8](1, 2, 3, 4),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		ro.Map(func(v rosimd.PartialInt8s) []int8 {
 			// Keep the lanes below 3, replace the rest with 99.
 			small := v.Contains(rosimd.BroadcastInt8(1)).Or(v.Contains(rosimd.BroadcastInt8(2)))
@@ -139,7 +139,7 @@ func ExamplePartialInt8s_Select() {
 func ExampleReduceContainsInt8() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, bool](
 		ro.Just[int8](1, 2, 3),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		rosimd.ReduceContainsInt8(rosimd.BroadcastInt8(2)),
 	)
 
@@ -155,7 +155,7 @@ func ExampleReduceContainsInt8() {
 func ExampleReduceContainsInt8_absent() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, bool](
 		ro.Just[int8](1, 2, 3),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		rosimd.ReduceContainsInt8(rosimd.BroadcastInt8(9)),
 	)
 
@@ -172,7 +172,7 @@ func ExampleReduceContainsInt8_absent() {
 func ExampleReduceContainsInt8_zero() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, bool](
 		ro.Just[int8](1, 2, 3),
-		rosimd.VectorizeInt8,
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
 		rosimd.ReduceContainsInt8(rosimd.BroadcastInt8(0)),
 	)
 
@@ -189,7 +189,7 @@ func ExampleReduceContainsInt8_zero() {
 func ExampleReduceContainsFloat64_nan() {
 	obs := ro.Pipe2[float64, rosimd.PartialFloat64s, bool](
 		ro.Just(1.0, math.NaN(), 3.0),
-		rosimd.VectorizeFloat64,
+		rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
 		rosimd.ReduceContainsFloat64(rosimd.BroadcastFloat64(math.NaN())),
 	)
 

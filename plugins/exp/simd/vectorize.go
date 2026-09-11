@@ -14,7 +14,11 @@
 
 package rosimd
 
-import "github.com/samber/ro"
+import (
+	"context"
+
+	"github.com/samber/ro"
+)
 
 // Crossing the boundary of vector space, in both directions.
 //
@@ -25,205 +29,98 @@ import "github.com/samber/ro"
 // Vectorize produces the Partial types alone, since only they carry the validity mask a
 // short final batch needs. The two exits are less demanding: they ask only that a vector
 // can report its lanes, so the standard library's vector types work too.
+//
+// All three are curried, like the operators in core ro. That costs inference — a curried
+// operator's type parameter appears only in the type of the func it returns, which Go
+// does not reach — so each names its vector type at the call site.
 
 // VectorizeInt8 batches a scalar stream into vectors.
 //
-// It emits a full vector every time the buffer fills, and on completion emits one
-// final PartialInt8s holding whatever is left. Downstream operators see that short
-// vector as a first-class value rather than a special case, because its padded lanes
-// are masked out of every operation.
+// It emits a full vector every time the buffer fills, and on completion emits one final
+// PartialInt8s holding whatever is left. Downstream operators see that short vector as a
+// first-class value rather than a special case, because its padded lanes are masked out
+// of every operation.
 //
-// It is not a curried operator: taking the source directly lets the type argument be
-// inferred from the surrounding Pipe, and avoids the compiler bug that breaks generic
-// functions whose only parameter is a type parameter.
+// The vector type is given at the call site, since currying puts it out of inference's
+// reach:
 //
-//	ro.Pipe2[int8, rosimd.PartialInt8s, int8](
+//	ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
 //		source,
-//		rosimd.VectorizeInt8,
-//		rosimd.ReduceSumInt8,
+//		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+//		rosimd.ToScalar[rosimd.PartialInt8s](),
+//		ro.Flatten[int8](),
 //	)
-func VectorizeInt8[V Int8Buffer[V]](source ro.Observable[int8]) ro.Observable[V] {
-	return vectorize[int8, V](source)
+//
+// It produces the Partial types alone: the standard library's vector types expose no
+// constructor method, and a generic function cannot reach the simd.LoadXxx package
+// functions.
+func VectorizeInt8[V Int8Buffer[V]]() func(ro.Observable[int8]) ro.Observable[V] {
+	return func(source ro.Observable[int8]) ro.Observable[V] {
+		return vectorize[int8, V](source)
+	}
 }
 
-// VectorizeInt16 batches a scalar stream into vectors.
-//
-// It emits a full vector every time the buffer fills, and on completion emits one
-// final PartialInt16s holding whatever is left. Downstream operators see that short
-// vector as a first-class value rather than a special case, because its padded lanes
-// are masked out of every operation.
-//
-// It is not a curried operator: taking the source directly lets the type argument be
-// inferred from the surrounding Pipe, and avoids the compiler bug that breaks generic
-// functions whose only parameter is a type parameter.
-//
-//	ro.Pipe2[int16, rosimd.PartialInt16s, int16](
-//		source,
-//		rosimd.VectorizeInt16,
-//		rosimd.ReduceSumInt16,
-//	)
-func VectorizeInt16[V Int16Buffer[V]](source ro.Observable[int16]) ro.Observable[V] {
-	return vectorize[int16, V](source)
+// VectorizeInt16 batches a scalar stream into vectors of int16 lanes. See VectorizeInt8.
+func VectorizeInt16[V Int16Buffer[V]]() func(ro.Observable[int16]) ro.Observable[V] {
+	return func(source ro.Observable[int16]) ro.Observable[V] {
+		return vectorize[int16, V](source)
+	}
 }
 
-// VectorizeInt32 batches a scalar stream into vectors.
-//
-// It emits a full vector every time the buffer fills, and on completion emits one
-// final PartialInt32s holding whatever is left. Downstream operators see that short
-// vector as a first-class value rather than a special case, because its padded lanes
-// are masked out of every operation.
-//
-// It is not a curried operator: taking the source directly lets the type argument be
-// inferred from the surrounding Pipe, and avoids the compiler bug that breaks generic
-// functions whose only parameter is a type parameter.
-//
-//	ro.Pipe2[int32, rosimd.PartialInt32s, int32](
-//		source,
-//		rosimd.VectorizeInt32,
-//		rosimd.ReduceSumInt32,
-//	)
-func VectorizeInt32[V Int32Buffer[V]](source ro.Observable[int32]) ro.Observable[V] {
-	return vectorize[int32, V](source)
+// VectorizeInt32 batches a scalar stream into vectors of int32 lanes. See VectorizeInt8.
+func VectorizeInt32[V Int32Buffer[V]]() func(ro.Observable[int32]) ro.Observable[V] {
+	return func(source ro.Observable[int32]) ro.Observable[V] {
+		return vectorize[int32, V](source)
+	}
 }
 
-// VectorizeInt64 batches a scalar stream into vectors.
-//
-// It emits a full vector every time the buffer fills, and on completion emits one
-// final PartialInt64s holding whatever is left. Downstream operators see that short
-// vector as a first-class value rather than a special case, because its padded lanes
-// are masked out of every operation.
-//
-// It is not a curried operator: taking the source directly lets the type argument be
-// inferred from the surrounding Pipe, and avoids the compiler bug that breaks generic
-// functions whose only parameter is a type parameter.
-//
-//	ro.Pipe2[int64, rosimd.PartialInt64s, int64](
-//		source,
-//		rosimd.VectorizeInt64,
-//		rosimd.ReduceSumInt64,
-//	)
-func VectorizeInt64[V Int64Buffer[V]](source ro.Observable[int64]) ro.Observable[V] {
-	return vectorize[int64, V](source)
+// VectorizeInt64 batches a scalar stream into vectors of int64 lanes. See VectorizeInt8.
+func VectorizeInt64[V Int64Buffer[V]]() func(ro.Observable[int64]) ro.Observable[V] {
+	return func(source ro.Observable[int64]) ro.Observable[V] {
+		return vectorize[int64, V](source)
+	}
 }
 
-// VectorizeUint8 batches a scalar stream into vectors.
-//
-// It emits a full vector every time the buffer fills, and on completion emits one
-// final PartialUint8s holding whatever is left. Downstream operators see that short
-// vector as a first-class value rather than a special case, because its padded lanes
-// are masked out of every operation.
-//
-// It is not a curried operator: taking the source directly lets the type argument be
-// inferred from the surrounding Pipe, and avoids the compiler bug that breaks generic
-// functions whose only parameter is a type parameter.
-//
-//	ro.Pipe2[uint8, rosimd.PartialUint8s, uint8](
-//		source,
-//		rosimd.VectorizeUint8,
-//		rosimd.ReduceSumUint8,
-//	)
-func VectorizeUint8[V Uint8Buffer[V]](source ro.Observable[uint8]) ro.Observable[V] {
-	return vectorize[uint8, V](source)
+// VectorizeUint8 batches a scalar stream into vectors of uint8 lanes. See VectorizeInt8.
+func VectorizeUint8[V Uint8Buffer[V]]() func(ro.Observable[uint8]) ro.Observable[V] {
+	return func(source ro.Observable[uint8]) ro.Observable[V] {
+		return vectorize[uint8, V](source)
+	}
 }
 
-// VectorizeUint16 batches a scalar stream into vectors.
-//
-// It emits a full vector every time the buffer fills, and on completion emits one
-// final PartialUint16s holding whatever is left. Downstream operators see that short
-// vector as a first-class value rather than a special case, because its padded lanes
-// are masked out of every operation.
-//
-// It is not a curried operator: taking the source directly lets the type argument be
-// inferred from the surrounding Pipe, and avoids the compiler bug that breaks generic
-// functions whose only parameter is a type parameter.
-//
-//	ro.Pipe2[uint16, rosimd.PartialUint16s, uint16](
-//		source,
-//		rosimd.VectorizeUint16,
-//		rosimd.ReduceSumUint16,
-//	)
-func VectorizeUint16[V Uint16Buffer[V]](source ro.Observable[uint16]) ro.Observable[V] {
-	return vectorize[uint16, V](source)
+// VectorizeUint16 batches a scalar stream into vectors of uint16 lanes. See VectorizeInt8.
+func VectorizeUint16[V Uint16Buffer[V]]() func(ro.Observable[uint16]) ro.Observable[V] {
+	return func(source ro.Observable[uint16]) ro.Observable[V] {
+		return vectorize[uint16, V](source)
+	}
 }
 
-// VectorizeUint32 batches a scalar stream into vectors.
-//
-// It emits a full vector every time the buffer fills, and on completion emits one
-// final PartialUint32s holding whatever is left. Downstream operators see that short
-// vector as a first-class value rather than a special case, because its padded lanes
-// are masked out of every operation.
-//
-// It is not a curried operator: taking the source directly lets the type argument be
-// inferred from the surrounding Pipe, and avoids the compiler bug that breaks generic
-// functions whose only parameter is a type parameter.
-//
-//	ro.Pipe2[uint32, rosimd.PartialUint32s, uint32](
-//		source,
-//		rosimd.VectorizeUint32,
-//		rosimd.ReduceSumUint32,
-//	)
-func VectorizeUint32[V Uint32Buffer[V]](source ro.Observable[uint32]) ro.Observable[V] {
-	return vectorize[uint32, V](source)
+// VectorizeUint32 batches a scalar stream into vectors of uint32 lanes. See VectorizeInt8.
+func VectorizeUint32[V Uint32Buffer[V]]() func(ro.Observable[uint32]) ro.Observable[V] {
+	return func(source ro.Observable[uint32]) ro.Observable[V] {
+		return vectorize[uint32, V](source)
+	}
 }
 
-// VectorizeUint64 batches a scalar stream into vectors.
-//
-// It emits a full vector every time the buffer fills, and on completion emits one
-// final PartialUint64s holding whatever is left. Downstream operators see that short
-// vector as a first-class value rather than a special case, because its padded lanes
-// are masked out of every operation.
-//
-// It is not a curried operator: taking the source directly lets the type argument be
-// inferred from the surrounding Pipe, and avoids the compiler bug that breaks generic
-// functions whose only parameter is a type parameter.
-//
-//	ro.Pipe2[uint64, rosimd.PartialUint64s, uint64](
-//		source,
-//		rosimd.VectorizeUint64,
-//		rosimd.ReduceSumUint64,
-//	)
-func VectorizeUint64[V Uint64Buffer[V]](source ro.Observable[uint64]) ro.Observable[V] {
-	return vectorize[uint64, V](source)
+// VectorizeUint64 batches a scalar stream into vectors of uint64 lanes. See VectorizeInt8.
+func VectorizeUint64[V Uint64Buffer[V]]() func(ro.Observable[uint64]) ro.Observable[V] {
+	return func(source ro.Observable[uint64]) ro.Observable[V] {
+		return vectorize[uint64, V](source)
+	}
 }
 
-// VectorizeFloat32 batches a scalar stream into vectors.
-//
-// It emits a full vector every time the buffer fills, and on completion emits one
-// final PartialFloat32s holding whatever is left. Downstream operators see that short
-// vector as a first-class value rather than a special case, because its padded lanes
-// are masked out of every operation.
-//
-// It is not a curried operator: taking the source directly lets the type argument be
-// inferred from the surrounding Pipe, and avoids the compiler bug that breaks generic
-// functions whose only parameter is a type parameter.
-//
-//	ro.Pipe2[float32, rosimd.PartialFloat32s, float32](
-//		source,
-//		rosimd.VectorizeFloat32,
-//		rosimd.ReduceSumFloat32,
-//	)
-func VectorizeFloat32[V Float32Buffer[V]](source ro.Observable[float32]) ro.Observable[V] {
-	return vectorize[float32, V](source)
+// VectorizeFloat32 batches a scalar stream into vectors of float32 lanes. See VectorizeInt8.
+func VectorizeFloat32[V Float32Buffer[V]]() func(ro.Observable[float32]) ro.Observable[V] {
+	return func(source ro.Observable[float32]) ro.Observable[V] {
+		return vectorize[float32, V](source)
+	}
 }
 
-// VectorizeFloat64 batches a scalar stream into vectors.
-//
-// It emits a full vector every time the buffer fills, and on completion emits one
-// final PartialFloat64s holding whatever is left. Downstream operators see that short
-// vector as a first-class value rather than a special case, because its padded lanes
-// are masked out of every operation.
-//
-// It is not a curried operator: taking the source directly lets the type argument be
-// inferred from the surrounding Pipe, and avoids the compiler bug that breaks generic
-// functions whose only parameter is a type parameter.
-//
-//	ro.Pipe2[float64, rosimd.PartialFloat64s, float64](
-//		source,
-//		rosimd.VectorizeFloat64,
-//		rosimd.ReduceSumFloat64,
-//	)
-func VectorizeFloat64[V Float64Buffer[V]](source ro.Observable[float64]) ro.Observable[V] {
-	return vectorize[float64, V](source)
+// VectorizeFloat64 batches a scalar stream into vectors of float64 lanes. See VectorizeInt8.
+func VectorizeFloat64[V Float64Buffer[V]]() func(ro.Observable[float64]) ro.Observable[V] {
+	return func(source ro.Observable[float64]) ro.Observable[V] {
+		return vectorize[float64, V](source)
+	}
 }
 
 // ToScalar hands each vector's valid lanes downstream as a slice.
@@ -232,14 +129,13 @@ func VectorizeFloat64[V Float64Buffer[V]](source ro.Observable[float64]) ro.Obse
 // yields a correspondingly short slice: padded lanes are never included, so the slices
 // concatenated are exactly the stream that went in.
 //
-// One operator serves every element type. The element type is read off the vector's own
-// StorePart signature, so both type arguments are inferred and the call site names
-// neither:
+// One operator serves every element type. Only the vector type is named — the element
+// type is read off that vector's own StorePart signature:
 //
 //	ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
 //		source,
-//		rosimd.VectorizeInt8,
-//		rosimd.ToScalar,
+//		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+//		rosimd.ToScalar[rosimd.PartialInt8s](),
 //		ro.Flatten[int8](),
 //	)
 //
@@ -249,8 +145,29 @@ func VectorizeFloat64[V Float64Buffer[V]](source ro.Observable[float64]) ro.Obse
 // Max.
 //
 // To go straight back to individual values, use Flatten instead.
-func ToScalar[T any, V LaneStore[T]](source ro.Observable[V]) ro.Observable[[]T] {
-	return emitLaneSlices[T, V](source)
+func ToScalar[V LaneStore[T], T any]() func(ro.Observable[V]) ro.Observable[[]T] {
+	return func(source ro.Observable[V]) ro.Observable[[]T] {
+		return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[[]T]) ro.Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				ro.NewObserverWithContext(
+					func(ctx context.Context, value V) {
+						var buffer [maxLanes]T
+						n := value.StorePart(buffer[:])
+
+						lanes := make([]T, n)
+						copy(lanes, buffer[:n])
+
+						destination.NextWithContext(ctx, lanes)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
 }
 
 // Flatten hands each vector's valid lanes downstream one at a time.
@@ -264,13 +181,33 @@ func ToScalar[T any, V LaneStore[T]](source ro.Observable[V]) ro.Observable[[]T]
 //
 //	ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 //		source,
-//		rosimd.VectorizeInt8,
-//		rosimd.Flatten,
+//		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+//		rosimd.Flatten[rosimd.PartialInt8s](),
 //	)
 //
-// Like ToScalar, one operator serves every element type and both type arguments are
-// inferred. Every lane of one vector carries that vector's context onward, so context
+// Like ToScalar, one operator serves every element type and only the vector type is
+// named. Every lane of one vector carries that vector's context onward, so context
 // propagation survives the round trip.
-func Flatten[T any, V LaneStore[T]](source ro.Observable[V]) ro.Observable[T] {
-	return emitLanes[T, V](source)
+func Flatten[V LaneStore[T], T any]() func(ro.Observable[V]) ro.Observable[T] {
+	return func(source ro.Observable[V]) ro.Observable[T] {
+		return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				ro.NewObserverWithContext(
+					func(ctx context.Context, value V) {
+						var buffer [maxLanes]T
+						n := value.StorePart(buffer[:])
+
+						for i := range n {
+							destination.NextWithContext(ctx, buffer[i])
+						}
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
 }

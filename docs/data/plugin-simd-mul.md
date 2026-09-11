@@ -46,9 +46,9 @@ import (
 
 obs := ro.Pipe4[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
     ro.Just[int8](1, 2, 3),
-    rosimd.VectorizeInt8,
+    rosimd.VectorizeInt8[rosimd.PartialInt8s](),
     rosimd.MulInt8(rosimd.BroadcastInt8(3)),
-    rosimd.ToScalar,
+    rosimd.ToScalar[rosimd.PartialInt8s](),
     ro.Flatten[int8](),
 )
 
