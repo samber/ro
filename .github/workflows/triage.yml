@@ -29,72 +29,72 @@ jobs:
   #         count: "50"
   #         since: "180d"
 
-  labelling:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'issues' || (github.event_name == 'pull_request' && !endsWith(github.event.pull_request.user.login, '[bot]')) }}
-    strategy:
-      fail-fast: false
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-      id-token: write
-    steps:
-      - name: Determine body and id
-        id: params
-        run: |
-          if [ "${{ github.event_name }}" = "issues" ]; then
-            echo "NBR=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
-            echo "TITLE=${{ github.event.issue.title }}" >> $GITHUB_OUTPUT
-            {
-              echo -n "BODY="
-              echo '${{ github.event.issue.body }}' | sed ':a;N;$!ba;s/\n/\\n/g'
-            } >> $GITHUB_OUTPUT
-            echo "AUTHOR=${{ github.event.issue.user.login }}" >> $GITHUB_OUTPUT
-            echo "TYPE=issue" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "NBR=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-            echo "TITLE=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
-            {
-              echo -n "BODY="
-              echo '${{ github.event.pull_request.body }}' | sed ':a;N;$!ba;s/\n/\\n/g'
-            } >> $GITHUB_OUTPUT
-            echo "AUTHOR=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
-            echo "TYPE=pull_request" >> $GITHUB_OUTPUT
-          fi
+  # labelling:
+  #   runs-on: ubuntu-latest
+  #   if: ${{ github.event_name == 'issues' || (github.event_name == 'pull_request' && !endsWith(github.event.pull_request.user.login, '[bot]')) }}
+  #   strategy:
+  #     fail-fast: false
+  #   permissions:
+  #     contents: read
+  #     pull-requests: write
+  #     issues: write
+  #     id-token: write
+  #   steps:
+  #     - name: Determine body and id
+  #       id: params
+  #       run: |
+  #         if [ "${{ github.event_name }}" = "issues" ]; then
+  #           echo "NBR=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+  #           echo "TITLE=${{ github.event.issue.title }}" >> $GITHUB_OUTPUT
+  #           {
+  #             echo -n "BODY="
+  #             echo '${{ github.event.issue.body }}' | sed ':a;N;$!ba;s/\n/\\n/g'
+  #           } >> $GITHUB_OUTPUT
+  #           echo "AUTHOR=${{ github.event.issue.user.login }}" >> $GITHUB_OUTPUT
+  #           echo "TYPE=issue" >> $GITHUB_OUTPUT
+  #         elif [ "${{ github.event_name }}" = "pull_request" ]; then
+  #           echo "NBR=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+  #           echo "TITLE=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+  #           {
+  #             echo -n "BODY="
+  #             echo '${{ github.event.pull_request.body }}' | sed ':a;N;$!ba;s/\n/\\n/g'
+  #           } >> $GITHUB_OUTPUT
+  #           echo "AUTHOR=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+  #           echo "TYPE=pull_request" >> $GITHUB_OUTPUT
+  #         fi
 
-      - uses: anthropics/claude-code-action@v1
-        env:
-          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
-          ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
-          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
-          prompt: |
-            REPO: ${{ github.repository }}
-            TITLE: ${{ steps.params.outputs.TITLE }}
-            BODY: ${{ steps.params.outputs.BODY }}
-            TYPE: ${{ steps.params.outputs.TYPE }}
-            ISSUE/PR NUMBER: ${{ steps.params.outputs.NBR }}
-            AUTHOR: ${{ steps.params.outputs.AUTHOR }}
+  #     - uses: anthropics/claude-code-action@v1
+  #       env:
+  #         ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+  #         ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
+  #         ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+  #       with:
+  #         anthropic_api_key: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+  #         prompt: |
+  #           REPO: ${{ github.repository }}
+  #           TITLE: ${{ steps.params.outputs.TITLE }}
+  #           BODY: ${{ steps.params.outputs.BODY }}
+  #           TYPE: ${{ steps.params.outputs.TYPE }}
+  #           ISSUE/PR NUMBER: ${{ steps.params.outputs.NBR }}
+  #           AUTHOR: ${{ steps.params.outputs.AUTHOR }}
 
-            If you need more context on the project, read the LLMs documentation: ./docs/static/llms.txt
+  #           If you need more context on the project, read the LLMs documentation: ./docs/static/llms.txt
 
-            List labels for this repository: `gh label list`
+  #           List labels for this repository: `gh label list`
 
-            Analyze this new issue and:
-            1. Determine if it's a bug report, feature request, or question
-            2. Suggest appropriate labels
-            3. Check if it duplicates existing issues
+  #           Analyze this new issue and:
+  #           1. Determine if it's a bug report, feature request, or question
+  #           2. Suggest appropriate labels
+  #           3. Check if it duplicates existing issues
 
-            Based on your analysis, add the appropriate labels using:
-            `gh issue edit [number] --add-label "label1,label2"`
-            or
-            `gh pr edit [number] --add-label "label1,label2"`
+  #           Based on your analysis, add the appropriate labels using:
+  #           `gh issue edit [number] --add-label "label1,label2"`
+  #           or
+  #           `gh pr edit [number] --add-label "label1,label2"`
 
-            If it appears to be a duplicate, post a comment mentioning the original issue.
+  #           If it appears to be a duplicate, post a comment mentioning the original issue.
 
-          # security: a prompt injection can be used to update comments in the current issue/PR.
-          claude_args: |
-            --mcp-config '{"mcpServers": {"sequential-thinking": {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]}}}'
-            --allowedTools "mcp__sequential-thinking__sequentialthinking,Bash(gh issue:*),Bash(gh pr:*),Bash(gh search:*),Bash(gh label list)"
+  #         # security: a prompt injection can be used to update comments in the current issue/PR.
+  #         claude_args: |
+  #           --mcp-config '{"mcpServers": {"sequential-thinking": {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]}}}'
+  #           --allowedTools "mcp__sequential-thinking__sequentialthinking,Bash(gh issue:*),Bash(gh pr:*),Bash(gh search:*),Bash(gh label list)"
