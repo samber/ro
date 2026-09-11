@@ -19,6 +19,9 @@ import "github.com/samber/ro"
 // Element-wise arithmetic: Add, Sub, Mul and Div, each paired with the two-stream With
 // variant that combines vectors from a second stream in lockstep.
 //
+// The element type comes before the variant suffix, as in AddInt8With, so every operator
+// for one type sorts together in godoc.
+//
 // Mul is absent for Int64 and Uint64, and Div exists only for the float types, because
 // the standard library provides neither operation for those lanes.
 
@@ -312,241 +315,241 @@ func DivFloat64[V Float64Vector[V]](operand V) func(ro.Observable[V]) ro.Observa
 	}
 }
 
-// AddWithInt8 adds another vector stream to this one, pairing vectors in order.
+// AddInt8With adds another vector stream to this one, pairing vectors in order.
 //
 // It is the curried, two-stream counterpart of AddInt8, following the same naming
 // convention as ro.ZipWith and ro.MergeWith.
-func AddWithInt8[V Int8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+func AddInt8With[V Int8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Add(right) })
 	}
 }
 
-// AddWithInt16 adds another vector stream to this one, pairing vectors in order.
+// AddInt16With adds another vector stream to this one, pairing vectors in order.
 //
 // It is the curried, two-stream counterpart of AddInt16, following the same naming
 // convention as ro.ZipWith and ro.MergeWith.
-func AddWithInt16[V Int16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+func AddInt16With[V Int16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Add(right) })
 	}
 }
 
-// AddWithInt32 adds another vector stream to this one, pairing vectors in order.
+// AddInt32With adds another vector stream to this one, pairing vectors in order.
 //
 // It is the curried, two-stream counterpart of AddInt32, following the same naming
 // convention as ro.ZipWith and ro.MergeWith.
-func AddWithInt32[V Int32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+func AddInt32With[V Int32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Add(right) })
 	}
 }
 
-// AddWithInt64 adds another vector stream to this one, pairing vectors in order.
+// AddInt64With adds another vector stream to this one, pairing vectors in order.
 //
 // It is the curried, two-stream counterpart of AddInt64, following the same naming
 // convention as ro.ZipWith and ro.MergeWith.
-func AddWithInt64[V Int64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+func AddInt64With[V Int64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Add(right) })
 	}
 }
 
-// AddWithUint8 adds another vector stream to this one, pairing vectors in order.
+// AddUint8With adds another vector stream to this one, pairing vectors in order.
 //
 // It is the curried, two-stream counterpart of AddUint8, following the same naming
 // convention as ro.ZipWith and ro.MergeWith.
-func AddWithUint8[V Uint8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+func AddUint8With[V Uint8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Add(right) })
 	}
 }
 
-// AddWithUint16 adds another vector stream to this one, pairing vectors in order.
+// AddUint16With adds another vector stream to this one, pairing vectors in order.
 //
 // It is the curried, two-stream counterpart of AddUint16, following the same naming
 // convention as ro.ZipWith and ro.MergeWith.
-func AddWithUint16[V Uint16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+func AddUint16With[V Uint16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Add(right) })
 	}
 }
 
-// AddWithUint32 adds another vector stream to this one, pairing vectors in order.
+// AddUint32With adds another vector stream to this one, pairing vectors in order.
 //
 // It is the curried, two-stream counterpart of AddUint32, following the same naming
 // convention as ro.ZipWith and ro.MergeWith.
-func AddWithUint32[V Uint32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+func AddUint32With[V Uint32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Add(right) })
 	}
 }
 
-// AddWithUint64 adds another vector stream to this one, pairing vectors in order.
+// AddUint64With adds another vector stream to this one, pairing vectors in order.
 //
 // It is the curried, two-stream counterpart of AddUint64, following the same naming
 // convention as ro.ZipWith and ro.MergeWith.
-func AddWithUint64[V Uint64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+func AddUint64With[V Uint64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Add(right) })
 	}
 }
 
-// AddWithFloat32 adds another vector stream to this one, pairing vectors in order.
+// AddFloat32With adds another vector stream to this one, pairing vectors in order.
 //
 // It is the curried, two-stream counterpart of AddFloat32, following the same naming
 // convention as ro.ZipWith and ro.MergeWith.
-func AddWithFloat32[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+func AddFloat32With[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Add(right) })
 	}
 }
 
-// AddWithFloat64 adds another vector stream to this one, pairing vectors in order.
+// AddFloat64With adds another vector stream to this one, pairing vectors in order.
 //
 // It is the curried, two-stream counterpart of AddFloat64, following the same naming
 // convention as ro.ZipWith and ro.MergeWith.
-func AddWithFloat64[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+func AddFloat64With[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Add(right) })
 	}
 }
 
-// SubWithInt8 subtracts another vector stream from this one, pairing vectors in order.
-func SubWithInt8[V Int8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// SubInt8With subtracts another vector stream from this one, pairing vectors in order.
+func SubInt8With[V Int8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Sub(right) })
 	}
 }
 
-// SubWithInt16 subtracts another vector stream from this one, pairing vectors in order.
-func SubWithInt16[V Int16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// SubInt16With subtracts another vector stream from this one, pairing vectors in order.
+func SubInt16With[V Int16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Sub(right) })
 	}
 }
 
-// SubWithInt32 subtracts another vector stream from this one, pairing vectors in order.
-func SubWithInt32[V Int32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// SubInt32With subtracts another vector stream from this one, pairing vectors in order.
+func SubInt32With[V Int32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Sub(right) })
 	}
 }
 
-// SubWithInt64 subtracts another vector stream from this one, pairing vectors in order.
-func SubWithInt64[V Int64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// SubInt64With subtracts another vector stream from this one, pairing vectors in order.
+func SubInt64With[V Int64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Sub(right) })
 	}
 }
 
-// SubWithUint8 subtracts another vector stream from this one, pairing vectors in order.
-func SubWithUint8[V Uint8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// SubUint8With subtracts another vector stream from this one, pairing vectors in order.
+func SubUint8With[V Uint8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Sub(right) })
 	}
 }
 
-// SubWithUint16 subtracts another vector stream from this one, pairing vectors in order.
-func SubWithUint16[V Uint16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// SubUint16With subtracts another vector stream from this one, pairing vectors in order.
+func SubUint16With[V Uint16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Sub(right) })
 	}
 }
 
-// SubWithUint32 subtracts another vector stream from this one, pairing vectors in order.
-func SubWithUint32[V Uint32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// SubUint32With subtracts another vector stream from this one, pairing vectors in order.
+func SubUint32With[V Uint32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Sub(right) })
 	}
 }
 
-// SubWithUint64 subtracts another vector stream from this one, pairing vectors in order.
-func SubWithUint64[V Uint64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// SubUint64With subtracts another vector stream from this one, pairing vectors in order.
+func SubUint64With[V Uint64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Sub(right) })
 	}
 }
 
-// SubWithFloat32 subtracts another vector stream from this one, pairing vectors in order.
-func SubWithFloat32[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// SubFloat32With subtracts another vector stream from this one, pairing vectors in order.
+func SubFloat32With[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Sub(right) })
 	}
 }
 
-// SubWithFloat64 subtracts another vector stream from this one, pairing vectors in order.
-func SubWithFloat64[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// SubFloat64With subtracts another vector stream from this one, pairing vectors in order.
+func SubFloat64With[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Sub(right) })
 	}
 }
 
-// MulWithInt8 multiplies this vector stream by another, pairing vectors in order.
-func MulWithInt8[V Int8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MulInt8With multiplies this vector stream by another, pairing vectors in order.
+func MulInt8With[V Int8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Mul(right) })
 	}
 }
 
-// MulWithInt16 multiplies this vector stream by another, pairing vectors in order.
-func MulWithInt16[V Int16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MulInt16With multiplies this vector stream by another, pairing vectors in order.
+func MulInt16With[V Int16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Mul(right) })
 	}
 }
 
-// MulWithInt32 multiplies this vector stream by another, pairing vectors in order.
-func MulWithInt32[V Int32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MulInt32With multiplies this vector stream by another, pairing vectors in order.
+func MulInt32With[V Int32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Mul(right) })
 	}
 }
 
-// MulWithUint8 multiplies this vector stream by another, pairing vectors in order.
-func MulWithUint8[V Uint8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MulUint8With multiplies this vector stream by another, pairing vectors in order.
+func MulUint8With[V Uint8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Mul(right) })
 	}
 }
 
-// MulWithUint16 multiplies this vector stream by another, pairing vectors in order.
-func MulWithUint16[V Uint16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MulUint16With multiplies this vector stream by another, pairing vectors in order.
+func MulUint16With[V Uint16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Mul(right) })
 	}
 }
 
-// MulWithUint32 multiplies this vector stream by another, pairing vectors in order.
-func MulWithUint32[V Uint32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MulUint32With multiplies this vector stream by another, pairing vectors in order.
+func MulUint32With[V Uint32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Mul(right) })
 	}
 }
 
-// MulWithFloat32 multiplies this vector stream by another, pairing vectors in order.
-func MulWithFloat32[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MulFloat32With multiplies this vector stream by another, pairing vectors in order.
+func MulFloat32With[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Mul(right) })
 	}
 }
 
-// MulWithFloat64 multiplies this vector stream by another, pairing vectors in order.
-func MulWithFloat64[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MulFloat64With multiplies this vector stream by another, pairing vectors in order.
+func MulFloat64With[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Mul(right) })
 	}
 }
 
-// DivWithFloat32 divides this vector stream by another, pairing vectors in order.
-func DivWithFloat32[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// DivFloat32With divides this vector stream by another, pairing vectors in order.
+func DivFloat32With[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Div(right) })
 	}
 }
 
-// DivWithFloat64 divides this vector stream by another, pairing vectors in order.
-func DivWithFloat64[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// DivFloat64With divides this vector stream by another, pairing vectors in order.
+func DivFloat64With[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Div(right) })
 	}

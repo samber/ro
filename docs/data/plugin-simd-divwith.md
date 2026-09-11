@@ -5,12 +5,12 @@ sourceRef: plugins/exp/simd/arithmetic.go#L549
 type: plugin
 category: simd
 signatures:
-  - "func DivWithFloat32[V Float32Vector[V]](other Observable[V])"
-  - "func DivWithFloat64[V Float64Vector[V]](other Observable[V])"
+  - "func DivFloat32With[V Float32Vector[V]](other Observable[V])"
+  - "func DivFloat64With[V Float64Vector[V]](other Observable[V])"
 playUrl:
 variantHelpers:
-  - plugin#simd#divwithfloat32
-  - plugin#simd#divwithfloat64
+  - plugin#simd#divfloat32with
+  - plugin#simd#divfloat64with
 similarHelpers:
   - plugin#simd#div
   - plugin#simd#mulwith
@@ -35,7 +35,7 @@ left := rosimd.VectorizeFloat64[rosimd.PartialFloat64s]()(ro.Just[float64](10, 2
 right := rosimd.VectorizeFloat64[rosimd.PartialFloat64s]()(ro.Just[float64](2, 4, 5))
 
 obs := ro.Pipe2[rosimd.PartialFloat64s, []float64, float64](
-    rosimd.DivWithFloat64(right)(left),
+    rosimd.DivFloat64With(right)(left),
     rosimd.ToScalar[rosimd.PartialFloat64s](),
     ro.Flatten[float64](),
 )

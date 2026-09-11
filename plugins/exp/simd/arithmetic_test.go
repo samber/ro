@@ -25,7 +25,7 @@ import (
 // Differential tests for Add, Sub, Mul and Div against the equivalent core ro
 // pipeline, across a sweep of input sizes that surrounds every lane boundary.
 
-func TestAddWithInt8ZipsTwoStreams(t *testing.T) {
+func TestAddInt8WithZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
 	left := VectorizeInt8[PartialInt8s]()(ro.FromSlice(rampInt8(20)))
@@ -33,7 +33,7 @@ func TestAddWithInt8ZipsTwoStreams(t *testing.T) {
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialInt8s, []int8, int8](
-			AddWithInt8(right)(left),
+			AddInt8With(right)(left),
 			ro.Map(func(v PartialInt8s) []int8 { return v.Values() }),
 			ro.Flatten[int8](),
 		),
@@ -48,7 +48,7 @@ func TestAddWithInt8ZipsTwoStreams(t *testing.T) {
 	assert.Equal(t, want, values)
 }
 
-func TestAddWithInt16ZipsTwoStreams(t *testing.T) {
+func TestAddInt16WithZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
 	left := VectorizeInt16[PartialInt16s]()(ro.FromSlice(rampInt16(20)))
@@ -56,7 +56,7 @@ func TestAddWithInt16ZipsTwoStreams(t *testing.T) {
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialInt16s, []int16, int16](
-			AddWithInt16(right)(left),
+			AddInt16With(right)(left),
 			ro.Map(func(v PartialInt16s) []int16 { return v.Values() }),
 			ro.Flatten[int16](),
 		),
@@ -71,7 +71,7 @@ func TestAddWithInt16ZipsTwoStreams(t *testing.T) {
 	assert.Equal(t, want, values)
 }
 
-func TestAddWithInt32ZipsTwoStreams(t *testing.T) {
+func TestAddInt32WithZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
 	left := VectorizeInt32[PartialInt32s]()(ro.FromSlice(rampInt32(20)))
@@ -79,7 +79,7 @@ func TestAddWithInt32ZipsTwoStreams(t *testing.T) {
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialInt32s, []int32, int32](
-			AddWithInt32(right)(left),
+			AddInt32With(right)(left),
 			ro.Map(func(v PartialInt32s) []int32 { return v.Values() }),
 			ro.Flatten[int32](),
 		),
@@ -94,7 +94,7 @@ func TestAddWithInt32ZipsTwoStreams(t *testing.T) {
 	assert.Equal(t, want, values)
 }
 
-func TestAddWithInt64ZipsTwoStreams(t *testing.T) {
+func TestAddInt64WithZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
 	left := VectorizeInt64[PartialInt64s]()(ro.FromSlice(rampInt64(20)))
@@ -102,7 +102,7 @@ func TestAddWithInt64ZipsTwoStreams(t *testing.T) {
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialInt64s, []int64, int64](
-			AddWithInt64(right)(left),
+			AddInt64With(right)(left),
 			ro.Map(func(v PartialInt64s) []int64 { return v.Values() }),
 			ro.Flatten[int64](),
 		),
@@ -117,7 +117,7 @@ func TestAddWithInt64ZipsTwoStreams(t *testing.T) {
 	assert.Equal(t, want, values)
 }
 
-func TestAddWithUint8ZipsTwoStreams(t *testing.T) {
+func TestAddUint8WithZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
 	left := VectorizeUint8[PartialUint8s]()(ro.FromSlice(rampUint8(20)))
@@ -125,7 +125,7 @@ func TestAddWithUint8ZipsTwoStreams(t *testing.T) {
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialUint8s, []uint8, uint8](
-			AddWithUint8(right)(left),
+			AddUint8With(right)(left),
 			ro.Map(func(v PartialUint8s) []uint8 { return v.Values() }),
 			ro.Flatten[uint8](),
 		),
@@ -140,7 +140,7 @@ func TestAddWithUint8ZipsTwoStreams(t *testing.T) {
 	assert.Equal(t, want, values)
 }
 
-func TestAddWithUint16ZipsTwoStreams(t *testing.T) {
+func TestAddUint16WithZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
 	left := VectorizeUint16[PartialUint16s]()(ro.FromSlice(rampUint16(20)))
@@ -148,7 +148,7 @@ func TestAddWithUint16ZipsTwoStreams(t *testing.T) {
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialUint16s, []uint16, uint16](
-			AddWithUint16(right)(left),
+			AddUint16With(right)(left),
 			ro.Map(func(v PartialUint16s) []uint16 { return v.Values() }),
 			ro.Flatten[uint16](),
 		),
@@ -163,7 +163,7 @@ func TestAddWithUint16ZipsTwoStreams(t *testing.T) {
 	assert.Equal(t, want, values)
 }
 
-func TestAddWithUint32ZipsTwoStreams(t *testing.T) {
+func TestAddUint32WithZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
 	left := VectorizeUint32[PartialUint32s]()(ro.FromSlice(rampUint32(20)))
@@ -171,7 +171,7 @@ func TestAddWithUint32ZipsTwoStreams(t *testing.T) {
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialUint32s, []uint32, uint32](
-			AddWithUint32(right)(left),
+			AddUint32With(right)(left),
 			ro.Map(func(v PartialUint32s) []uint32 { return v.Values() }),
 			ro.Flatten[uint32](),
 		),
@@ -186,7 +186,7 @@ func TestAddWithUint32ZipsTwoStreams(t *testing.T) {
 	assert.Equal(t, want, values)
 }
 
-func TestAddWithUint64ZipsTwoStreams(t *testing.T) {
+func TestAddUint64WithZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
 	left := VectorizeUint64[PartialUint64s]()(ro.FromSlice(rampUint64(20)))
@@ -194,7 +194,7 @@ func TestAddWithUint64ZipsTwoStreams(t *testing.T) {
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialUint64s, []uint64, uint64](
-			AddWithUint64(right)(left),
+			AddUint64With(right)(left),
 			ro.Map(func(v PartialUint64s) []uint64 { return v.Values() }),
 			ro.Flatten[uint64](),
 		),
@@ -209,7 +209,7 @@ func TestAddWithUint64ZipsTwoStreams(t *testing.T) {
 	assert.Equal(t, want, values)
 }
 
-func TestAddWithFloat32ZipsTwoStreams(t *testing.T) {
+func TestAddFloat32WithZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
 	left := VectorizeFloat32[PartialFloat32s]()(ro.FromSlice(rampFloat32(20)))
@@ -217,7 +217,7 @@ func TestAddWithFloat32ZipsTwoStreams(t *testing.T) {
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialFloat32s, []float32, float32](
-			AddWithFloat32(right)(left),
+			AddFloat32With(right)(left),
 			ro.Map(func(v PartialFloat32s) []float32 { return v.Values() }),
 			ro.Flatten[float32](),
 		),
@@ -232,7 +232,7 @@ func TestAddWithFloat32ZipsTwoStreams(t *testing.T) {
 	assert.Equal(t, want, values)
 }
 
-func TestAddWithFloat64ZipsTwoStreams(t *testing.T) {
+func TestAddFloat64WithZipsTwoStreams(t *testing.T) {
 	t.Parallel()
 
 	left := VectorizeFloat64[PartialFloat64s]()(ro.FromSlice(rampFloat64(20)))
@@ -240,7 +240,7 @@ func TestAddWithFloat64ZipsTwoStreams(t *testing.T) {
 
 	values, err := ro.Collect(
 		ro.Pipe2[PartialFloat64s, []float64, float64](
-			AddWithFloat64(right)(left),
+			AddFloat64With(right)(left),
 			ro.Map(func(v PartialFloat64s) []float64 { return v.Values() }),
 			ro.Flatten[float64](),
 		),
@@ -258,7 +258,7 @@ func TestAddWithFloat64ZipsTwoStreams(t *testing.T) {
 // Padded lanes are zero-filled, so an unmasked Div of two short vectors would compute
 // 0/0 and leave NaN behind — which a later Min or Max would then propagate into a
 // valid lane.
-func TestDivWithFloat32LeavesNoNaNInPadding(t *testing.T) {
+func TestDivFloat32WithLeavesNoNaNInPadding(t *testing.T) {
 	t.Parallel()
 
 	lanes := lanesFloat32()
@@ -266,7 +266,7 @@ func TestDivWithFloat32LeavesNoNaNInPadding(t *testing.T) {
 	left := VectorizeFloat32[PartialFloat32s]()(ro.FromSlice([]float32{1}))
 	right := VectorizeFloat32[PartialFloat32s]()(ro.FromSlice([]float32{2}))
 
-	vectors, err := ro.Collect(DivWithFloat32(right)(left))
+	vectors, err := ro.Collect(DivFloat32With(right)(left))
 	assert.NoError(t, err)
 	assert.Len(t, vectors, 1)
 
@@ -282,7 +282,7 @@ func TestDivWithFloat32LeavesNoNaNInPadding(t *testing.T) {
 // Padded lanes are zero-filled, so an unmasked Div of two short vectors would compute
 // 0/0 and leave NaN behind — which a later Min or Max would then propagate into a
 // valid lane.
-func TestDivWithFloat64LeavesNoNaNInPadding(t *testing.T) {
+func TestDivFloat64WithLeavesNoNaNInPadding(t *testing.T) {
 	t.Parallel()
 
 	lanes := lanesFloat64()
@@ -290,7 +290,7 @@ func TestDivWithFloat64LeavesNoNaNInPadding(t *testing.T) {
 	left := VectorizeFloat64[PartialFloat64s]()(ro.FromSlice([]float64{1}))
 	right := VectorizeFloat64[PartialFloat64s]()(ro.FromSlice([]float64{2}))
 
-	vectors, err := ro.Collect(DivWithFloat64(right)(left))
+	vectors, err := ro.Collect(DivFloat64With(right)(left))
 	assert.NoError(t, err)
 	assert.Len(t, vectors, 1)
 
