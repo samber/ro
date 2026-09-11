@@ -106,6 +106,29 @@ func ExamplePartialInt8s_Contains() {
 	// 0
 }
 
+// Div exists for the float types only: the standard library has no lane-wise integer
+// division.
+func ExampleDivFloat64() {
+	obs := ro.Pipe3[float64, rosimd.PartialFloat64s, []float64, float64](
+		ro.Just[float64](1, 2, 3),
+		rosimd.VectorizeFloat64,
+		ro.Map(func(v rosimd.PartialFloat64s) []float64 {
+			return v.Div(rosimd.BroadcastFloat64(2)).Values()
+		}),
+		ro.Flatten[float64](),
+	)
+
+	sub := obs.Subscribe(ro.OnNext(func(value float64) {
+		fmt.Println(value)
+	}))
+	defer sub.Unsubscribe()
+
+	// Output:
+	// 0.5
+	// 1
+	// 1.5
+}
+
 // The same operator accepts the standard library's own vector type, not just this
 // package's Partial types. Only Vectorize and ReduceContains are restricted, because
 // they need the validity mask that simd.Int8s does not carry.
