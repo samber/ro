@@ -192,7 +192,7 @@ shape, where it is inferred. The shipped API uses Q6's shape for exactly that re
 
 `go doc simd.Int8s` shows **no scalar-operand method and no constructor method** — every
 binary op takes another vector, and the only non-vector-arg methods are `Len`, `Store`,
-`StorePart`, `String`, `ToArch`, `ToBits`, `ToMask`. Broadcasting is a package *function*
+`StorePart`, `String`, `ToArch`, `ToBits`, `ToMask`. Broadcasting is a package _function_
 (`simd.BroadcastInt8s`), not reachable through a type parameter.
 
 So an operator taking a plain `int8` cannot build the operand vector for an opaque `V`, and
@@ -202,8 +202,15 @@ both.
 
 ## Design rules this establishes
 
-1. Never declare a function whose signature names a concrete simd-containing type — not as
-   a return type, not as a callback parameter. Keep every declaration generic over `S`.
+1. Never declare a function that puts a concrete simd-containing type inside another
+   package's generic type — `ro.Observable[PartialInt8s]` fails both as a return type
+   (P7-native) and as a callback parameter (Q2). Keep those declarations generic over `S`.
+
+   The hazard is the foreign generic container, not the simd type by itself: the shipped
+   package declares `fullMaskInt8() simd.Mask8s` and `prefixMaskInt8(n int) simd.Mask8s`
+   as plain functions, and they compile. Do not read this rule more broadly than the
+   probes support.
+
 2. The concrete type belongs at the call site as an explicit type argument, nowhere else.
 3. `simd.*` calls and struct-literal construction live in **methods** on the concrete type,
    reached only through the constraint interface.
