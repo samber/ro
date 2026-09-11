@@ -182,8 +182,9 @@ func ExampleAddInt8With() {
 	left := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](1, 2, 3))
 	right := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](10, 20, 30))
 
-	obs := ro.Pipe2[rosimd.PartialInt8s, []int8, int8](
-		rosimd.AddInt8With(right)(left),
+	obs := ro.Pipe3[rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
+		left,
+		rosimd.AddInt8With(right),
 		rosimd.ToScalar[rosimd.PartialInt8s](),
 		ro.Flatten[int8](),
 	)
@@ -203,8 +204,9 @@ func ExampleDivFloat64With() {
 	left := rosimd.VectorizeFloat64[rosimd.PartialFloat64s]()(ro.Just[float64](10, 20, 30))
 	right := rosimd.VectorizeFloat64[rosimd.PartialFloat64s]()(ro.Just[float64](2, 4, 5))
 
-	obs := ro.Pipe2[rosimd.PartialFloat64s, []float64, float64](
-		rosimd.DivFloat64With(right)(left),
+	obs := ro.Pipe3[rosimd.PartialFloat64s, rosimd.PartialFloat64s, []float64, float64](
+		left,
+		rosimd.DivFloat64With(right),
 		rosimd.ToScalar[rosimd.PartialFloat64s](),
 		ro.Flatten[float64](),
 	)
@@ -223,26 +225,27 @@ func ExampleDivFloat64With() {
 // The operators are generic over an interface that the standard library's own vector
 // types satisfy too, so a stream of simd.Int8s needs no wrapping. Only Vectorize and
 // ReduceContains are restricted to the Partial types, because they need the validity
-// mask that simd.Int8s does not carry.
+// mask that simd.Int8s does not carry. Flatten brings the result back to scalars, exactly
+// as it would for a Partial type.
 func ExampleAddInt8_standardLibraryVector() {
 	input := make([]int8, simd.BroadcastInt8s(0).Len())
 	for i := range input {
 		input[i] = int8(i + 1)
 	}
 
-	obs := ro.Pipe1(
-		ro.Just(simd.LoadInt8s(input)),
-		rosimd.AddInt8(simd.BroadcastInt8s(100)),
+	values, err := ro.Collect(
+		ro.Pipe2(
+			ro.Just(simd.LoadInt8s(input)),
+			rosimd.AddInt8(simd.BroadcastInt8s(100)),
+			rosimd.Flatten[simd.Int8s](),
+		),
 	)
+	if err != nil {
+		panic(err)
+	}
 
-	sub := obs.Subscribe(ro.OnNext(func(vector simd.Int8s) {
-		var lanes [64]int8
-		vector.StorePart(lanes[:])
-
-		// Lane count varies by architecture, so only the first few are shown.
-		fmt.Println(lanes[:3])
-	}))
-	defer sub.Unsubscribe()
+	// Lane count varies by architecture, so only the first few are shown.
+	fmt.Println(values[:3])
 
 	// Output: [101 102 103]
 }

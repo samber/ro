@@ -94,8 +94,9 @@ func ExampleMinInt8With() {
 	left := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](1, 50, 100))
 	right := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](10, 10, 10))
 
-	obs := ro.Pipe2[rosimd.PartialInt8s, []int8, int8](
-		rosimd.MinInt8With(right)(left),
+	obs := ro.Pipe3[rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
+		left,
+		rosimd.MinInt8With(right),
 		rosimd.ToScalar[rosimd.PartialInt8s](),
 		ro.Flatten[int8](),
 	)
@@ -161,26 +162,27 @@ func ExampleMinUint64() {
 	// 500
 }
 
-// Like the arithmetic operators, Min accepts the standard library's vector type.
+// Like the arithmetic operators, Min accepts the standard library's vector type. Flatten
+// brings the result back to scalars, exactly as it would for a Partial type.
 func ExampleMinInt8_standardLibraryVector() {
 	input := make([]int8, simd.BroadcastInt8s(0).Len())
 	for i := range input {
 		input[i] = int8(i + 1)
 	}
 
-	obs := ro.Pipe1(
-		ro.Just(simd.LoadInt8s(input)),
-		rosimd.MinInt8(simd.BroadcastInt8s(2)),
+	values, err := ro.Collect(
+		ro.Pipe2(
+			ro.Just(simd.LoadInt8s(input)),
+			rosimd.MinInt8(simd.BroadcastInt8s(2)),
+			rosimd.Flatten[simd.Int8s](),
+		),
 	)
+	if err != nil {
+		panic(err)
+	}
 
-	sub := obs.Subscribe(ro.OnNext(func(vector simd.Int8s) {
-		var lanes [64]int8
-		vector.StorePart(lanes[:])
-
-		// Lane count varies by architecture, so only the first few are shown.
-		fmt.Println(lanes[:3])
-	}))
-	defer sub.Unsubscribe()
+	// Lane count varies by architecture, so only the first few are shown.
+	fmt.Println(values[:3])
 
 	// Output: [1 2 2]
 }
