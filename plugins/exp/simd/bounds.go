@@ -342,141 +342,141 @@ func ClampFloat64[V Float64Vector[V]](lower, upper V) func(ro.Observable[V]) ro.
 	}
 }
 
-// MinWithInt8 keeps the smaller of each lane pair from two vector streams.
-func MinWithInt8[V Int8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MinInt8With keeps the smaller of each lane pair from two vector streams.
+func MinInt8With[V Int8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Min(right) })
 	}
 }
 
-// MinWithInt16 keeps the smaller of each lane pair from two vector streams.
-func MinWithInt16[V Int16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MinInt16With keeps the smaller of each lane pair from two vector streams.
+func MinInt16With[V Int16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Min(right) })
 	}
 }
 
-// MinWithInt32 keeps the smaller of each lane pair from two vector streams.
-func MinWithInt32[V Int32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MinInt32With keeps the smaller of each lane pair from two vector streams.
+func MinInt32With[V Int32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Min(right) })
 	}
 }
 
-// MinWithInt64 keeps the smaller of each lane pair from two vector streams.
-func MinWithInt64[V Int64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MinInt64With keeps the smaller of each lane pair from two vector streams.
+func MinInt64With[V Int64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Min(right) })
 	}
 }
 
-// MinWithUint8 keeps the smaller of each lane pair from two vector streams.
-func MinWithUint8[V Uint8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MinUint8With keeps the smaller of each lane pair from two vector streams.
+func MinUint8With[V Uint8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Min(right) })
 	}
 }
 
-// MinWithUint16 keeps the smaller of each lane pair from two vector streams.
-func MinWithUint16[V Uint16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MinUint16With keeps the smaller of each lane pair from two vector streams.
+func MinUint16With[V Uint16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Min(right) })
 	}
 }
 
-// MinWithUint32 keeps the smaller of each lane pair from two vector streams.
-func MinWithUint32[V Uint32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MinUint32With keeps the smaller of each lane pair from two vector streams.
+func MinUint32With[V Uint32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Min(right) })
 	}
 }
 
-// MinWithUint64 keeps the smaller of each lane pair from two vector streams.
-func MinWithUint64[V Uint64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MinUint64With keeps the smaller of each lane pair from two vector streams.
+func MinUint64With[V Uint64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Min(right) })
 	}
 }
 
-// MinWithFloat32 keeps the smaller of each lane pair from two vector streams.
-func MinWithFloat32[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MinFloat32With keeps the smaller of each lane pair from two vector streams.
+func MinFloat32With[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Min(right) })
 	}
 }
 
-// MinWithFloat64 keeps the smaller of each lane pair from two vector streams.
-func MinWithFloat64[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MinFloat64With keeps the smaller of each lane pair from two vector streams.
+func MinFloat64With[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Min(right) })
 	}
 }
 
-// MaxWithInt8 keeps the larger of each lane pair from two vector streams.
-func MaxWithInt8[V Int8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MaxInt8With keeps the larger of each lane pair from two vector streams.
+func MaxInt8With[V Int8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Max(right) })
 	}
 }
 
-// MaxWithInt16 keeps the larger of each lane pair from two vector streams.
-func MaxWithInt16[V Int16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MaxInt16With keeps the larger of each lane pair from two vector streams.
+func MaxInt16With[V Int16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Max(right) })
 	}
 }
 
-// MaxWithInt32 keeps the larger of each lane pair from two vector streams.
-func MaxWithInt32[V Int32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MaxInt32With keeps the larger of each lane pair from two vector streams.
+func MaxInt32With[V Int32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Max(right) })
 	}
 }
 
-// MaxWithInt64 keeps the larger of each lane pair from two vector streams.
-func MaxWithInt64[V Int64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MaxInt64With keeps the larger of each lane pair from two vector streams.
+func MaxInt64With[V Int64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Max(right) })
 	}
 }
 
-// MaxWithUint8 keeps the larger of each lane pair from two vector streams.
-func MaxWithUint8[V Uint8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MaxUint8With keeps the larger of each lane pair from two vector streams.
+func MaxUint8With[V Uint8Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Max(right) })
 	}
 }
 
-// MaxWithUint16 keeps the larger of each lane pair from two vector streams.
-func MaxWithUint16[V Uint16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MaxUint16With keeps the larger of each lane pair from two vector streams.
+func MaxUint16With[V Uint16Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Max(right) })
 	}
 }
 
-// MaxWithUint32 keeps the larger of each lane pair from two vector streams.
-func MaxWithUint32[V Uint32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MaxUint32With keeps the larger of each lane pair from two vector streams.
+func MaxUint32With[V Uint32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Max(right) })
 	}
 }
 
-// MaxWithUint64 keeps the larger of each lane pair from two vector streams.
-func MaxWithUint64[V Uint64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MaxUint64With keeps the larger of each lane pair from two vector streams.
+func MaxUint64With[V Uint64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Max(right) })
 	}
 }
 
-// MaxWithFloat32 keeps the larger of each lane pair from two vector streams.
-func MaxWithFloat32[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MaxFloat32With keeps the larger of each lane pair from two vector streams.
+func MaxFloat32With[V Float32Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Max(right) })
 	}
 }
 
-// MaxWithFloat64 keeps the larger of each lane pair from two vector streams.
-func MaxWithFloat64[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
+// MaxFloat64With keeps the larger of each lane pair from two vector streams.
+func MaxFloat64With[V Float64Vector[V]](other ro.Observable[V]) func(ro.Observable[V]) ro.Observable[V] {
 	return func(source ro.Observable[V]) ro.Observable[V] {
 		return zipVector(source, other, func(left, right V) V { return left.Max(right) })
 	}

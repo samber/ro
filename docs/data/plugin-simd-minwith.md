@@ -5,28 +5,28 @@ sourceRef: plugins/exp/simd/bounds.go#L346
 type: plugin
 category: simd
 signatures:
-  - "func MinWithInt8[V Int8Vector[V]](other Observable[V])"
-  - "func MinWithInt16[V Int16Vector[V]](other Observable[V])"
-  - "func MinWithInt32[V Int32Vector[V]](other Observable[V])"
-  - "func MinWithInt64[V Int64Vector[V]](other Observable[V])"
-  - "func MinWithUint8[V Uint8Vector[V]](other Observable[V])"
-  - "func MinWithUint16[V Uint16Vector[V]](other Observable[V])"
-  - "func MinWithUint32[V Uint32Vector[V]](other Observable[V])"
-  - "func MinWithUint64[V Uint64Vector[V]](other Observable[V])"
-  - "func MinWithFloat32[V Float32Vector[V]](other Observable[V])"
-  - "func MinWithFloat64[V Float64Vector[V]](other Observable[V])"
+  - "func MinInt8With[V Int8Vector[V]](other Observable[V])"
+  - "func MinInt16With[V Int16Vector[V]](other Observable[V])"
+  - "func MinInt32With[V Int32Vector[V]](other Observable[V])"
+  - "func MinInt64With[V Int64Vector[V]](other Observable[V])"
+  - "func MinUint8With[V Uint8Vector[V]](other Observable[V])"
+  - "func MinUint16With[V Uint16Vector[V]](other Observable[V])"
+  - "func MinUint32With[V Uint32Vector[V]](other Observable[V])"
+  - "func MinUint64With[V Uint64Vector[V]](other Observable[V])"
+  - "func MinFloat32With[V Float32Vector[V]](other Observable[V])"
+  - "func MinFloat64With[V Float64Vector[V]](other Observable[V])"
 playUrl:
 variantHelpers:
-  - plugin#simd#minwithint8
-  - plugin#simd#minwithint16
-  - plugin#simd#minwithint32
-  - plugin#simd#minwithint64
-  - plugin#simd#minwithuint8
-  - plugin#simd#minwithuint16
-  - plugin#simd#minwithuint32
-  - plugin#simd#minwithuint64
-  - plugin#simd#minwithfloat32
-  - plugin#simd#minwithfloat64
+  - plugin#simd#minint8with
+  - plugin#simd#minint16with
+  - plugin#simd#minint32with
+  - plugin#simd#minint64with
+  - plugin#simd#minuint8with
+  - plugin#simd#minuint16with
+  - plugin#simd#minuint32with
+  - plugin#simd#minuint64with
+  - plugin#simd#minfloat32with
+  - plugin#simd#minfloat64with
 similarHelpers:
   - plugin#simd#min
   - plugin#simd#maxwith
@@ -49,7 +49,7 @@ left := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](1, 50, 100))
 right := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](10, 10, 10))
 
 obs := ro.Pipe2[rosimd.PartialInt8s, []int8, int8](
-    rosimd.MinWithInt8(right)(left),
+    rosimd.MinInt8With(right)(left),
     rosimd.ToScalar[rosimd.PartialInt8s](),
     ro.Flatten[int8](),
 )

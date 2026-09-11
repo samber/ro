@@ -5,24 +5,24 @@ sourceRef: plugins/exp/simd/arithmetic.go#L486
 type: plugin
 category: simd
 signatures:
-  - "func MulWithInt8[V Int8Vector[V]](other Observable[V])"
-  - "func MulWithInt16[V Int16Vector[V]](other Observable[V])"
-  - "func MulWithInt32[V Int32Vector[V]](other Observable[V])"
-  - "func MulWithUint8[V Uint8Vector[V]](other Observable[V])"
-  - "func MulWithUint16[V Uint16Vector[V]](other Observable[V])"
-  - "func MulWithUint32[V Uint32Vector[V]](other Observable[V])"
-  - "func MulWithFloat32[V Float32Vector[V]](other Observable[V])"
-  - "func MulWithFloat64[V Float64Vector[V]](other Observable[V])"
+  - "func MulInt8With[V Int8Vector[V]](other Observable[V])"
+  - "func MulInt16With[V Int16Vector[V]](other Observable[V])"
+  - "func MulInt32With[V Int32Vector[V]](other Observable[V])"
+  - "func MulUint8With[V Uint8Vector[V]](other Observable[V])"
+  - "func MulUint16With[V Uint16Vector[V]](other Observable[V])"
+  - "func MulUint32With[V Uint32Vector[V]](other Observable[V])"
+  - "func MulFloat32With[V Float32Vector[V]](other Observable[V])"
+  - "func MulFloat64With[V Float64Vector[V]](other Observable[V])"
 playUrl:
 variantHelpers:
-  - plugin#simd#mulwithint8
-  - plugin#simd#mulwithint16
-  - plugin#simd#mulwithint32
-  - plugin#simd#mulwithuint8
-  - plugin#simd#mulwithuint16
-  - plugin#simd#mulwithuint32
-  - plugin#simd#mulwithfloat32
-  - plugin#simd#mulwithfloat64
+  - plugin#simd#mulint8with
+  - plugin#simd#mulint16with
+  - plugin#simd#mulint32with
+  - plugin#simd#muluint8with
+  - plugin#simd#muluint16with
+  - plugin#simd#muluint32with
+  - plugin#simd#mulfloat32with
+  - plugin#simd#mulfloat64with
 similarHelpers:
   - plugin#simd#mul
   - plugin#simd#divwith
@@ -47,7 +47,7 @@ left := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](1, 2, 3))
 right := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](10, 20, 30))
 
 obs := ro.Pipe2[rosimd.PartialInt8s, []int8, int8](
-    rosimd.MulWithInt8(right)(left),
+    rosimd.MulInt8With(right)(left),
     rosimd.ToScalar[rosimd.PartialInt8s](),
     ro.Flatten[int8](),
 )
