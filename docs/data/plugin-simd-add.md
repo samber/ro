@@ -1,7 +1,7 @@
 ---
 name: Add
 slug: add
-sourceRef: plugins/exp/simd/int8.go#L274
+sourceRef: plugins/exp/simd/arithmetic.go#L33
 type: plugin
 category: simd
 signatures:

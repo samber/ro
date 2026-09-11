@@ -1,7 +1,7 @@
 ---
 name: ReduceContains
 slug: reducecontains
-sourceRef: plugins/exp/simd/int8.go#L414
+sourceRef: plugins/exp/simd/contains.go#L36
 type: plugin
 category: simd
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: MinWith
 slug: minwith
-sourceRef: plugins/exp/simd/int8.go#L351
+sourceRef: plugins/exp/simd/bounds.go#L346
 type: plugin
 category: simd
 signatures:
