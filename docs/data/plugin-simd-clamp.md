@@ -1,81 +1,41 @@
 ---
 name: Clamp
 slug: clamp
-sourceRef: plugins/exp/simd/math_avx.go
+sourceRef: plugins/exp/simd/int8.go#L320
 type: plugin
 category: simd
 signatures:
-  - "func ClampInt8x16[T ~int8](minValue, maxValue T)"
-  - "func ClampInt16x8[T ~int16](minValue, maxValue T)"
-  - "func ClampInt32x4[T ~int32](minValue, maxValue T)"
-  - "func ClampInt64x2[T ~int64](minValue, maxValue T)"
-  - "func ClampUint8x16[T ~uint8](minValue, maxValue T)"
-  - "func ClampUint16x8[T ~uint16](minValue, maxValue T)"
-  - "func ClampUint32x4[T ~uint32](minValue, maxValue T)"
-  - "func ClampUint64x2[T ~uint64](minValue, maxValue T)"
-  - "func ClampFloat32x4[T ~float32](minValue, maxValue T)"
-  - "func ClampFloat64x2[T ~float64](minValue, maxValue T)"
-  - "func ClampInt8x32[T ~int8](minValue, maxValue T)"
-  - "func ClampInt16x16[T ~int16](minValue, maxValue T)"
-  - "func ClampInt32x8[T ~int32](minValue, maxValue T)"
-  - "func ClampInt64x4[T ~int64](minValue, maxValue T)"
-  - "func ClampUint8x32[T ~uint8](minValue, maxValue T)"
-  - "func ClampUint16x16[T ~uint16](minValue, maxValue T)"
-  - "func ClampUint32x8[T ~uint32](minValue, maxValue T)"
-  - "func ClampUint64x4[T ~uint64](minValue, maxValue T)"
-  - "func ClampFloat32x8[T ~float32](minValue, maxValue T)"
-  - "func ClampFloat64x4[T ~float64](minValue, maxValue T)"
-  - "func ClampInt8x64[T ~int8](minValue, maxValue T)"
-  - "func ClampInt16x32[T ~int16](minValue, maxValue T)"
-  - "func ClampInt32x16[T ~int32](minValue, maxValue T)"
-  - "func ClampInt64x8[T ~int64](minValue, maxValue T)"
-  - "func ClampUint8x64[T ~uint8](minValue, maxValue T)"
-  - "func ClampUint16x32[T ~uint16](minValue, maxValue T)"
-  - "func ClampUint32x16[T ~uint32](minValue, maxValue T)"
-  - "func ClampUint64x8[T ~uint64](minValue, maxValue T)"
-  - "func ClampFloat32x16[T ~float32](minValue, maxValue T)"
-  - "func ClampFloat64x8[T ~float64](minValue, maxValue T)"
+  - "func ClampInt8[V Int8Vector[V]](lower, upper V)"
+  - "func ClampInt16[V Int16Vector[V]](lower, upper V)"
+  - "func ClampInt32[V Int32Vector[V]](lower, upper V)"
+  - "func ClampInt64[V Int64Vector[V]](lower, upper V)"
+  - "func ClampUint8[V Uint8Vector[V]](lower, upper V)"
+  - "func ClampUint16[V Uint16Vector[V]](lower, upper V)"
+  - "func ClampUint32[V Uint32Vector[V]](lower, upper V)"
+  - "func ClampUint64[V Uint64Vector[V]](lower, upper V)"
+  - "func ClampFloat32[V Float32Vector[V]](lower, upper V)"
+  - "func ClampFloat64[V Float64Vector[V]](lower, upper V)"
 playUrl:
 variantHelpers:
-  - plugin#simd#clampint8x16
-  - plugin#simd#clampint16x8
-  - plugin#simd#clampint32x4
-  - plugin#simd#clampint64x2
-  - plugin#simd#clampuint8x16
-  - plugin#simd#clampuint16x8
-  - plugin#simd#clampuint32x4
-  - plugin#simd#clampuint64x2
-  - plugin#simd#clampfloat32x4
-  - plugin#simd#clampfloat64x2
-  - plugin#simd#clampint8x32
-  - plugin#simd#clampint16x16
-  - plugin#simd#clampint32x8
-  - plugin#simd#clampint64x4
-  - plugin#simd#clampuint8x32
-  - plugin#simd#clampuint16x16
-  - plugin#simd#clampuint32x8
-  - plugin#simd#clampuint64x4
-  - plugin#simd#clampfloat32x8
-  - plugin#simd#clampfloat64x4
-  - plugin#simd#clampint8x64
-  - plugin#simd#clampint16x32
-  - plugin#simd#clampint32x16
-  - plugin#simd#clampint64x8
-  - plugin#simd#clampuint8x64
-  - plugin#simd#clampuint16x32
-  - plugin#simd#clampuint32x16
-  - plugin#simd#clampuint64x8
-  - plugin#simd#clampfloat32x16
-  - plugin#simd#clampfloat64x8
+  - plugin#simd#clampint8
+  - plugin#simd#clampint16
+  - plugin#simd#clampint32
+  - plugin#simd#clampint64
+  - plugin#simd#clampuint8
+  - plugin#simd#clampuint16
+  - plugin#simd#clampuint32
+  - plugin#simd#clampuint64
+  - plugin#simd#clampfloat32
+  - plugin#simd#clampfloat64
 similarHelpers:
-  - plugin#simd#add
-  - plugin#simd#sub
   - plugin#simd#min
   - plugin#simd#max
-position: 40
+position: 110
 ---
 
-Clamps all lanes in SIMD vectors to a specified range [minValue, maxValue] using SIMD instructions for parallel computation.
+Bounds every lane to `[lower, upper]`.
+
+The operand is a vector, not a scalar. SIMD has no scalar-operand arithmetic, so widen the value at the call site with the matching `Broadcast` — which is also what lets the type argument be inferred, keeping the call free of an explicit `[rosimd.PartialInt8s]`.
 
 ```go
 import (
@@ -85,76 +45,24 @@ import (
     rosimd "github.com/samber/ro/plugins/exp/simd"
 )
 
-obs := ro.Pipe[float32, float32](
-    ro.Just(
-        float32(-200), float32(-100), float32(0), float32(100),
-    ),
-    rosimd.ScalarToFloat32x4[float32](),
-    rosimd.ClampFloat32x4[float32](-50, 50),
-    rosimd.Float32x4ToScalar[float32](),
+obs := ro.Pipe4[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
+    ro.Just[int8](1, 50, 100),
+    rosimd.VectorizeInt8,
+    rosimd.ClampInt8(rosimd.BroadcastInt8(10), rosimd.BroadcastInt8(60)),
+    ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+    ro.Flatten[int8](),
 )
 
-sub := obs.Subscribe(ro.NewObserver[float32](
-    func(v float32) {
-        fmt.Printf("Next: %.1f\n", v)
-    },
-    ro.OnError(func(err error) {
-        fmt.Printf("Error: %v\n", err)
-    }),
-    ro.OnComplete(func() {
-        fmt.Println("Completed")
-    }),
-))
+sub := obs.Subscribe(ro.OnNext(func(value int8) {
+    fmt.Println(value)
+}))
 defer sub.Unsubscribe()
 
-// Next: -50.0
-// Next: -50.0
-// Next: 0.0
-// Next: 50.0
-// Completed
+// 10
+// 50
+// 60
 ```
 
-## AVX variants (128-bit vectors)
+Passing `lower` greater than `upper` is a programmer error. Unlike core `ro.Clamp`, which rejects it at construction with a panic, this cannot detect it: the bounds are opaque vectors that a generic operator may not inspect. The composition is `Max(lower)` then `Min(upper)`, so inverted bounds collapse every lane to `upper`.
 
-Available on all x86_64 CPUs with AVX support (basically all modern x86_64 CPUs).
-
-- ClampFloat32x4
-- ClampFloat64x2
-- ClampInt8x16
-- ClampInt16x8
-- ClampInt32x4
-- ClampInt64x2
-- ClampUint8x16
-- ClampUint16x8
-- ClampUint32x4
-- ClampUint64x2
-
-## AVX2 variants (256-bit vectors)
-
-Requires AVX2 CPU support (Intel Haswell [2013]+, AMD Ryzen [2017]+).
-
-- ClampFloat32x8
-- ClampFloat64x4
-- ClampInt8x32
-- ClampInt16x16
-- ClampInt32x8
-- ClampUint8x32
-- ClampUint16x16
-- ClampUint32x8
-
-## AVX-512 variants (512-bit vectors)
-
-Requires AVX-512 CPU support (Intel Skylake-X/Xeon [2017]+, AMD Zen 4 [2022]+).
-
-- ClampFloat32x16
-- ClampFloat64x8
-- ClampInt8x64
-- ClampInt16x32
-- ClampInt32x16
-- ClampInt64x4 (256-bit; requires AVX-512 for int64 min/max)
-- ClampInt64x8
-- ClampUint8x64
-- ClampUint16x32
-- ClampUint32x16
-- ClampUint64x4 (256-bit; requires AVX-512 for uint64 min/max)
-- ClampUint64x8
+The operator is generic over an interface satisfied by both this package's `Partial` types and the standard library's own vector types, so a stream of `simd.Int8s` flows through it just as well — broadcast the operand with `simd.BroadcastInt8s` in that case.
