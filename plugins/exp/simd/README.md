@@ -1,299 +1,139 @@
-# exp/simd - SIMD-Accelerated Operators for ro
+# exp/simd — SIMD vector operators for ro
 
-This package provides SIMD-accelerated mathematical operators for the [ro](../../) reactive observables library, leveraging Go's experimental SIMD support for high-performance data processing on AMD64 processors.
+SIMD operators for [ro](../../), built on the portable `simd` package introduced in Go 1.27. Portable means one implementation compiles for amd64, arm64 and wasm, with a pure-Go fallback — there are no per-ISA kernels here.
+
+> **Experimental.** This package tracks a Go experiment. Its API may change with the toolchain, and it is excluded from the workspace build.
 
 ## Requirements
 
-- Go 1.26 or later
-- AMD64 architecture
-- `GOEXPERIMENT=simd` environment variable must be set
+- Go 1.27 or later
+- `GOEXPERIMENT=simd`
+
+The plugin is deliberately left out of `go.work`, so build and test it on its own:
 
 ```bash
-export GOEXPERIMENT=simd
+cd plugins/exp/simd
+GOWORK=off GOEXPERIMENT=simd go test ./...
 ```
 
-## Architecture
+## The idea
 
-The package automatically detects available CPU features at runtime and dispatches to the most efficient implementation:
+A stream carries one value at a time; SIMD works on a whole register at once. `VectorizeInt8` bridges the two by batching scalars into vectors.
 
-| Instruction Set | Vector Width | Lanes (int8) | Lanes (float32) | Detection               |
-| --------------- | ------------ | ------------ | --------------- | ----------------------- |
-| None (fallback) | N/A          | 1            | 1               | Default                 |
-| AVX             | 128-bit      | 16           | 4               | `archsimd.X86.AVX()`    |
-| AVX2            | 256-bit      | 32           | 8               | `archsimd.X86.AVX2()`   |
-| AVX-512         | 512-bit      | 64           | 16              | `archsimd.X86.AVX512()` |
-
-CPU feature detection is performed once at package initialization for maximum performance.
-
-## Supported Types
-
-All integer and floating-point types are supported:
-
-- **Signed integers**: `int8`, `int16`, `int32`, `int64`
-- **Unsigned integers**: `uint8`, `uint16`, `uint32`, `uint64`
-- **Floating-point**: `float32`, `float64`
-
-## API
-
-### Working with SIMD Vectors
-
-This library operates on SIMD vector types (e.g., `Int32x4`, `Float32x4`) rather than scalar values. To process scalar data:
-
-1. **Convert scalars to SIMD vectors** using `ScalarTo[Type]x[N]`
-2. **Apply operations** to the vectors
-3. **Convert back to scalars** using `[Type]x[N]ToScalar`
-
-### Arithmetic Operators
-
-Add or subtract a constant value from each element:
+Streams rarely deliver a multiple of the lane width, so the last vector of a batch is short. That is the problem `PartialInt8s` solves: it carries a validity mask alongside its lanes, so a short vector is an ordinary value rather than a special case. Every operation leaves padded lanes at their previous value, and nothing downstream can observe them.
 
 ```go
-// Add 10 to each int32 value
-result := ro.Pipe(
-    ro.Just(1, 2, 3, 4, 5, 6, 7, 8),
-    rosimd.ScalarToInt32x4[int32](),
-    rosimd.AddInt32x4[int32](10),
-    rosimd.Int32x4ToScalar[int32](),
-).Collect() // [11, 12, 13, 14, 15, 16, 17, 18]
-
-// Subtract 5 from each float32 value
-result := ro.Pipe(
-    ro.Just(1.5, 2.5, 3.5, 4.5),
-    rosimd.ScalarToFloat32x4[float32](),
-    rosimd.SubFloat32x4[float32](5.0),
-    rosimd.Float32x4ToScalar[float32](),
-).Collect() // [-3.5, -2.5, -1.5, -0.5]
-```
-
-### Comparison Operators
-
-Clamp values to a range:
-
-```go
-// Clamp int8 values between 0 and 100
-result := ro.Pipe(
-    ro.Just(-5, 50, 150, -10, 200),
-    rosimd.ScalarToInt8x16[int8](),
-    rosimd.ClampInt8x16[int8](0, 100),
-    rosimd.Int8x16ToScalar[int8](),
-).Collect() // [0, 50, 100, 0, 100, ...]
-```
-
-Apply minimum/maximum constraints:
-
-```go
-// Ensure no value is below -10
-result := ro.Pipe(
-    ro.Just(-20, -5, 10, -30),
-    rosimd.ScalarToInt32x4[int32](),
-    rosimd.MinInt32x4[int32](-10),
-    rosimd.Int32x4ToScalar[int32](),
-).Collect() // [-10, -5, 10, -10]
-
-// Ensure no value is above 100
-result := ro.Pipe(
-    ro.Just(50, 100, 150, 200),
-    rosimd.ScalarToInt32x4[int32](),
-    rosimd.MaxInt32x4[int32](100),
-    rosimd.Int32x4ToScalar[int32](),
-).Collect() // [50, 100, 100, 100]
-```
-
-### Reduction Operators
-
-Compute aggregates efficiently:
-
-```go
-// Sum all int32 values
-sum := ro.Pipe(
-    ro.Just(1, 2, 3, 4, 5, 6, 7, 8),
-    rosimd.ScalarToInt32x4[int32](),
-    rosimd.ReduceSumInt32x4[int32](),
-).Collect() // 36
-
-// Find minimum float64 value
-min := ro.Pipe(
-    ro.Just(1.5, 0.5, 2.5, 3.0),
-    rosimd.ScalarToFloat64x2[float64](),
-    rosimd.ReduceMinFloat64x2[float64](),
-).Collect() // 0.5
-
-// Find maximum int8 value
-max := ro.Pipe(
-    ro.Just(10, 20, 15, 5, 25, 30, 12, 18, 8, 22, 14, 16, 3, 28, 7, 19),
-    rosimd.ScalarToInt8x16[int8](),
-    rosimd.ReduceMaxInt8x16[int8](),
-).Collect() // 30
-```
-
-### Available Operators
-
-Operators are available for all numeric types with vector width suffixes:
-
-| Type    | Vectors   | Arithmetic | Comparison      | Reduction                       |
-| ------- | --------- | ---------- | --------------- | ------------------------------- |
-| int8    | Int8x16   | Add, Sub   | Clamp, Min, Max | ReduceSum, ReduceMin, ReduceMax |
-| int16   | Int16x8   | Add, Sub   | Clamp, Min, Max | ReduceSum, ReduceMin, ReduceMax |
-| int32   | Int32x4   | Add, Sub   | Clamp, Min, Max | ReduceSum, ReduceMin, ReduceMax |
-| int64   | Int64x2   | Add, Sub   | Clamp, Min, Max | ReduceSum, ReduceMin, ReduceMax |
-| uint8   | Uint8x16  | Add, Sub   | Clamp, Min, Max | ReduceSum, ReduceMin, ReduceMax |
-| uint16  | Uint16x8  | Add, Sub   | Clamp, Min, Max | ReduceSum, ReduceMin, ReduceMax |
-| uint32  | Uint32x4  | Add, Sub   | Clamp, Min, Max | ReduceSum, ReduceMin, ReduceMax |
-| uint64  | Uint64x2  | Add, Sub   | Clamp, Min, Max | ReduceSum, ReduceMin, ReduceMax |
-| float32 | Float32x4 | Add, Sub   | Clamp, Min, Max | ReduceSum, ReduceMin, ReduceMax |
-| float64 | Float64x2 | Add, Sub   | Clamp, Min, Max | ReduceSum, ReduceMin, ReduceMax |
-
-## Performance Characteristics
-
-SIMD operations provide significant speedup for:
-
-- **Batch operations**: Processing many elements at once
-- **Large datasets**: Data larger than cache lines benefits most
-- **Parallel-friendly patterns**: Element-wise operations
-
-Performance improvements scale with:
-1. **Vector width**: AVX-512 (512-bit) > AVX2 (256-bit) > AVX (128-bit)
-2. **Element size**: `int8` (64 lanes) > `float32` (16 lanes) > `float64` (8 lanes)
-
-### Example Benchmarks
-
-Typical speedup on AVX-512 systems:
-
-| Operation | Type    | Speedup vs Baseline |
-| --------- | ------- | ------------------- |
-| Add       | int8    | ~50-60x             |
-| Add       | float32 | ~12-15x             |
-| ReduceSum | int8    | ~40-50x             |
-| ReduceSum | float32 | ~10-12x             |
-
-*Actual performance varies by CPU model, data size, and memory access patterns.*
-
-## Implementation Notes
-
-### Scalar Broadcasting for Add/Sub
-
-Arithmetic operators (`Add`, `Sub`) now use efficient scalar broadcasting internally. When adding or subtracting a scalar value, the value is broadcast across all lanes of the SIMD vector:
-
-```go
-// Example: AddInt8x16 implementation
-vector := archsimd.BroadcastInt8x16(int8(number))
-added := value.Add(vector)
-```
-
-This approach provides:
-- **Cleaner API**: You pass scalar values directly
-- **Optimal performance**: Single broadcast instruction before vectorized operation
-- **Consistent semantics**: Same interface as non-SIMD fallback
-
-### Conversion Operators
-
-The package includes `ScalarTo[Type]x[N]` and `[Type]x[N]ToScalar` operators for converting between scalar streams and SIMD vectors:
-
-```go
-// Convert scalar stream to Int8x16 vectors
-vectors := ro.Pipe(
-    ro.Just(1, 2, ..., 16, 17, 18, ...),
-    rosimd.ScalarToInt8x16[int8](),
+import (
+    "github.com/samber/ro"
+    rosimd "github.com/samber/ro/plugins/exp/simd"
 )
 
-// Convert Int8x16 vectors back to scalars
-scalars := ro.Pipe(
-    vectors,
-    rosimd.Int8x16ToScalar[int8](),
+sum, _ := ro.Collect(
+    ro.Pipe3[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, int8](
+        ro.FromSlice([]int8{1, 2, 3, 4, 5}),
+        rosimd.VectorizeInt8,
+        rosimd.AddInt8(rosimd.BroadcastInt8(10)),
+        rosimd.ReduceSumInt8,
+    ),
+)
+// [65]
+```
+
+## Operands are vectors, not scalars
+
+SIMD has no scalar-operand arithmetic — `Add` takes another vector — and a generic operator cannot widen a scalar for itself without breaking the compiler's specialization pass. Widen constants at the call site:
+
+```go
+rosimd.AddInt8(rosimd.BroadcastInt8(42))
+```
+
+This is also what lets the type argument be inferred, so call sites stay free of `[rosimd.PartialInt8s]`.
+
+## Works with standard library vectors too
+
+Operators are generic over an interface satisfied by both `rosimd.PartialInt8s` and the standard library's own `simd.Int8s`:
+
+```go
+ro.Pipe1(vectorStream, rosimd.AddInt8(simd.BroadcastInt8s(42)))
+```
+
+Operators that need the validity mask — `VectorizeInt8`, `ReduceContainsInt8` — accept only the `Partial` types, because `simd.Int8s` carries no mask.
+
+## Methods or operators
+
+Element-wise work is available both ways. Methods chain inside `ro.Map` and need no type arguments, which is usually shorter:
+
+```go
+ro.Map(func(v rosimd.PartialInt8s) []int8 {
+    return v.Add(rosimd.BroadcastInt8(42)).Min(rosimd.BroadcastInt8(50)).Values()
+})
+```
+
+## Comparing lanes
+
+`Contains` is element-wise, like every other method: it returns a **mask** — SIMD's vector of booleans — saying which lanes matched, already intersected with the validity mask so padding is never reported. `Select` consumes that mask:
+
+```go
+ro.Map(func(v rosimd.PartialInt8s) []int8 {
+    matched := v.Contains(rosimd.BroadcastInt8(7))
+
+    return v.Select(matched, rosimd.BroadcastInt8(0)).Values()
+})
+// lanes equal to 7 keep their value, every other lane becomes 0
+```
+
+To collapse a whole stream to a single answer instead, use the `ReduceContains` operator.
+
+## Leaving vector space
+
+There is no devectorize operator. Use `ro.Map` plus `ro.Flatten`, or one of the `Reduce` operators:
+
+```go
+ro.Pipe3[int8, rosimd.PartialInt8s, []int8, int8](
+    source,
+    rosimd.VectorizeInt8,
+    ro.Map(func(v rosimd.PartialInt8s) []int8 { return v.Values() }),
+    ro.Flatten[int8](),
 )
 ```
 
-### Buffer-Based Reductions
+## Operator coverage
 
-Reduce operations use a buffer-based approach for maximum efficiency:
+The standard library's vector types are not uniform, so neither is this package. An operator exists only where the underlying operation does.
 
-```go
-var buf [lanes]int32
-accumulation.Store(&buf)
-total := int32(0)
-for i := uint(0); i < lanes; i++ {
-    total += buf[i]
-}
-```
+Ten element types are covered: `Int8`, `Int16`, `Int32`, `Int64`, `Uint8`, `Uint16`, `Uint32`, `Uint64`, `Float32`, `Float64`.
 
-This avoids the overhead of element-wise `GetElem` calls.
+| Operation | Available for |
+| --- | --- |
+| `Vectorize`, `Broadcast` | every element type |
+| `Add`, `Sub`, `Min`, `Max`, `Clamp` | every element type |
+| `Contains`, `Select` (methods) | every `Partial` type — `Contains` returns a mask, `Select` consumes one |
+| `Mul` | every type except `Int64` and `Uint64` — the standard library has no 64-bit lane multiply |
+| `Div` | `Float32` and `Float64` only |
+| `ReduceSum`, `ReduceMin`, `ReduceMax`, `ReduceContains` | every element type |
 
-### Fallback Behavior
+Each element-wise operator also has a `With` variant that combines two vector streams in lockstep, following `ro.ZipWith`'s naming — `AddWithInt8`, `MinWithFloat64`, and so on.
 
-On systems without SIMD support or non-AMD64 architectures, all operators fall back to equivalent `ro.Map` and `ro.Reduce` implementations, ensuring correctness everywhere while maximizing performance on supported hardware.
+`Int64` and `Uint64` accept only the `Partial` types. `simd.Int64s` and `simd.Uint64s` have no `Min` or `Max`, so the `Partial` types synthesize them from `Less` and `IfElse` — which is precisely what the wrapper is for, since the standard library's per-type method sets are not uniform. Every other element type accepts stdlib vectors too.
 
-## Testing
+### NaN
 
-Run tests with SIMD experiment enabled and Go workspace disabled:
+For `Float32` and `Float64`, element-wise `Min` and `Max` are architecture-dependent in hardware: x86 discards NaN, arm64 propagates it. The `Partial` types detect NaN lanes explicitly and force it into the result, so behaviour is identical everywhere and matches Go's own `min`/`max` builtins. Passing a stdlib `simd.Float64s` through the same operator uses the raw instruction and does **not** carry that guarantee.
 
-```bash
-export GOWORK=off
-export GOEXPERIMENT=simd
-go test ./plugins/exp/simd/...
-```
+Reductions deliberately behave the other way. `ReduceMin` and `ReduceMax` compare with `<` and `>`, both false for NaN, so a NaN never displaces the accumulator — matching core `ro.Min` and `ro.Max` exactly rather than Go's NaN-propagating builtins.
 
-Run benchmarks:
+## Performance
 
-```bash
-export GOWORK=off
-export GOEXPERIMENT=simd
-go test -bench=. ./plugins/exp/simd/...
-```
-
-### Test Files
-
-- `simd_test.go` - Core operator tests
-- `math_avx_test.go` - AVX-specific math tests
-- `math_avx2_test.go` - AVX2-specific math tests
-- `math_avx512_test.go` - AVX-512-specific math tests
-- `conversion_avx_test.go` - AVX conversion operator tests
-- `conversion_avx2_test.go` - AVX2 conversion operator tests
-- `conversion_avx512_test.go` - AVX-512 conversion operator tests
-- `math_bench_test.go` - Performance benchmarks
-- `cpu_amd64_test.go` - CPU feature detection tests
-
-## Building
-
-Build your application with SIMD support:
-
-```bash
-export GOEXPERIMENT=simd
-go build ./...
-```
-
-For Windows:
-```powershell
-$env:GOEXPERIMENT="simd"; go build ./...
-```
-
-## File Organization
-
-```
-plugins/exp/simd/
-├── README.md                    # This file
-├── go.mod                       # Module definition with SIMD dependency
-├── simd.go                      # Fallback for non-amd64 systems
-├── cpu_amd64.go                 # CPU feature detection
-├── math_avx.go                  # AVX implementations (128-bit)
-├── math_avx2.go                 # AVX2 implementations (256-bit)
-├── math_avx512.go               # AVX-512 implementations (512-bit)
-├── conversion_avx.go            # AVX conversion operators
-├── conversion_avx2.go           # AVX2 conversion operators
-├── conversion_avx512.go         # AVX-512 conversion operators
-├── *test.go                     # Test and benchmark files
-└── *.go                         # Additional utilities
-```
+Vectorizing does not automatically make a `ro` pipeline faster. Measurements on the previous implementation showed the reactive machinery — per-item dispatch, context propagation, channel handoff — dominating the arithmetic at every input size tested. Batching amortises that cost, which is the point of this design, but benchmark your own pipeline rather than assuming a win.
 
 ## Contributing
 
-When adding new operators:
+The Go 1.27 compiler rewrites every function that touches a simd type into a dispatcher plus per-width clones, and several ordinary-looking Go constructs do not survive that rewrite. The "Editing this package" section of the [package doc](https://pkg.go.dev/github.com/samber/ro/plugins/exp/simd) states the rules; [COMPILER-CONSTRAINTS.md](./COMPILER-CONSTRAINTS.md) records the probes that established them, including the exact error each rejected shape produces. Read the latter before concluding a rule is wrong — several shapes that look obviously fine do not compile.
 
-1. Implement in `math_avx.go`, `math_avx2.go`, and `math_avx512.go`
-2. Add tests in each architecture-specific test file (`math_avx_test.go`, `math_avx2_test.go`, `math_avx512_test.go`)
-3. Add benchmarks in `math_bench_test.go`
-4. Ensure fallback behavior works correctly (non-AMD64 platforms)
-5. Add documentation in /docs/data and /docs/static/llms.txt
+The short version:
 
-## License
-
-Same as parent [ro](../../) project.
+1. No function may name a concrete simd-containing type in its own signature.
+2. The concrete type belongs at the call site, as an explicit type argument, never inside the declaration itself.
+3. `simd.*` calls and struct-literal construction live in methods on the concrete type, never inside a generic function's own body.
+4. Prefer stage functions that take the source directly over curried ones — only the former let Go infer the type argument.
+5. Every file with simd-dependent code must import `simd` and touch it in a function body.
