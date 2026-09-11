@@ -14,9 +14,9 @@ A stream carries one value at a time; SIMD works on a whole register at once. `V
 ```go
 ro.Pipe3[int8, rosimd.PartialInt8s, rosimd.PartialInt8s, int8](
     ro.FromSlice([]int8{1, 2, 3, 4, 5}),
-    rosimd.VectorizeInt8,
+    rosimd.VectorizeInt8[rosimd.PartialInt8s](),
     rosimd.AddInt8(rosimd.BroadcastInt8(10)),
-    rosimd.ReduceSumInt8,
+    rosimd.ReduceSumInt8[rosimd.PartialInt8s](),
 )
 // 65
 ```
