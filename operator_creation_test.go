@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"context"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -184,6 +185,57 @@ func TestOperatorCreationIntervalWithInitial(t *testing.T) { //nolint:parallelte
 			is.InDelta(expected[i].Interval, output[i].Interval, float64(15*time.Millisecond))
 		}
 	})
+}
+
+func TestOperatorCreationIntervalWithZeroInitial(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, time.Second)
+	is := assert.New(t)
+
+	values := make(chan int64, 1)
+	sub := IntervalWithInitial(0, time.Hour).Subscribe(OnNext(func(value int64) {
+		values <- value
+	}))
+	defer sub.Unsubscribe()
+
+	select {
+	case value := <-values:
+		is.Equal(int64(0), value)
+	default:
+		t.Fatal("initial value must be emitted before Subscribe returns")
+	}
+	sub.Unsubscribe()
+	is.True(sub.IsClosed())
+
+	output, err := Collect(Take[int64](1)(IntervalWithInitial(0, time.Hour)))
+	is.NoError(err)
+	is.Equal([]int64{0}, output)
+
+	output, err = Collect(Take[int64](3)(IntervalWithInitial(0, 10*time.Millisecond)))
+	is.NoError(err)
+	is.Equal([]int64{0, 1, 2}, output)
+}
+
+func TestOperatorCreationIntervalWithZeroInitialCancellation(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, time.Second)
+	is := assert.New(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	values := []int64{}
+	var emittedCtx context.Context
+	sub := IntervalWithInitial(0, time.Hour).SubscribeWithContext(ctx, OnNextWithContext(func(actualCtx context.Context, value int64) {
+		emittedCtx = actualCtx
+		values = append(values, value)
+		cancel()
+	}))
+	defer sub.Unsubscribe()
+	sub.Wait()
+
+	is.Equal([]int64{0}, values)
+	is.Equal(ctx, emittedCtx)
+	is.True(sub.IsClosed())
 }
 
 func TestOperatorCreationRange(t *testing.T) {
