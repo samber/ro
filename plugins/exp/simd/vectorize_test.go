@@ -598,6 +598,62 @@ func TestPartialLenMatchesStdlibWidth(t *testing.T) {
 	assert.Equal(t, simd.BroadcastFloat64s(0).Len(), PartialFloat64s{}.Len())
 }
 
+// Count describes the batching rather than the data: one value per vector, every one a
+// full register except the last of a stream, and the counts summing to the input length.
+func TestCountReportsBatchShape(t *testing.T) {
+	t.Parallel()
+
+	lanes := lanesInt8()
+
+	for _, size := range sizeSweepInt8() {
+		counts, err := ro.Collect(
+			ro.Pipe2[int8, PartialInt8s, int](
+				ro.FromSlice(rampInt8(size)),
+				VectorizeInt8[PartialInt8s](),
+				Count[PartialInt8s](),
+			),
+		)
+		assert.NoError(t, err)
+
+		total := 0
+		for i, count := range counts {
+			total += count
+
+			if i < len(counts)-1 {
+				assert.Equal(t, lanes, count, "size %d batch %d must be full", size, i)
+			} else {
+				// A final batch of exactly lanes items is full, not short.
+				assert.Positive(t, count, "size %d final batch must not be empty", size)
+				assert.LessOrEqual(t, count, lanes, "size %d final batch", size)
+			}
+		}
+
+		assert.Equal(t, size, total, "size %d counts must sum to the input length", size)
+	}
+}
+
+// An empty source produces no vector, so there is nothing to count.
+func TestCountEmpty(t *testing.T) {
+	t.Parallel()
+
+	counts, err := ro.Collect(
+		ro.Pipe2[int8, PartialInt8s, int](ro.Empty[int8](), VectorizeInt8[PartialInt8s](), Count[PartialInt8s]()),
+	)
+	assert.NoError(t, err)
+	assert.Empty(t, counts)
+}
+
+// An error reaches the subscriber rather than being swallowed by the batching.
+func TestCountPropagatesError(t *testing.T) {
+	t.Parallel()
+
+	counts, err := ro.Collect(
+		ro.Pipe2[int8, PartialInt8s, int](ro.Throw[int8](assert.AnError), VectorizeInt8[PartialInt8s](), Count[PartialInt8s]()),
+	)
+	assert.EqualError(t, err, assert.AnError.Error())
+	assert.Empty(t, counts)
+}
+
 // Flatten is Vectorize's inverse, so a stream that goes in and comes back out must be
 // unchanged at every size — the short final batch above all, where a forgotten mask
 // would emit padding as if it were data.
@@ -633,7 +689,7 @@ func TestToScalarInt8MatchesBatches(t *testing.T) {
 			ro.Pipe2[int8, PartialInt8s, int](
 				ro.FromSlice(input),
 				VectorizeInt8[PartialInt8s](),
-				ro.Map(func(v PartialInt8s) int { return v.Count() }),
+				Count[PartialInt8s](),
 			),
 		)
 		assert.NoError(t, err)
@@ -683,7 +739,7 @@ func TestToScalarInt16MatchesBatches(t *testing.T) {
 			ro.Pipe2[int16, PartialInt16s, int](
 				ro.FromSlice(input),
 				VectorizeInt16[PartialInt16s](),
-				ro.Map(func(v PartialInt16s) int { return v.Count() }),
+				Count[PartialInt16s](),
 			),
 		)
 		assert.NoError(t, err)
@@ -733,7 +789,7 @@ func TestToScalarInt32MatchesBatches(t *testing.T) {
 			ro.Pipe2[int32, PartialInt32s, int](
 				ro.FromSlice(input),
 				VectorizeInt32[PartialInt32s](),
-				ro.Map(func(v PartialInt32s) int { return v.Count() }),
+				Count[PartialInt32s](),
 			),
 		)
 		assert.NoError(t, err)
@@ -783,7 +839,7 @@ func TestToScalarInt64MatchesBatches(t *testing.T) {
 			ro.Pipe2[int64, PartialInt64s, int](
 				ro.FromSlice(input),
 				VectorizeInt64[PartialInt64s](),
-				ro.Map(func(v PartialInt64s) int { return v.Count() }),
+				Count[PartialInt64s](),
 			),
 		)
 		assert.NoError(t, err)
@@ -833,7 +889,7 @@ func TestToScalarUint8MatchesBatches(t *testing.T) {
 			ro.Pipe2[uint8, PartialUint8s, int](
 				ro.FromSlice(input),
 				VectorizeUint8[PartialUint8s](),
-				ro.Map(func(v PartialUint8s) int { return v.Count() }),
+				Count[PartialUint8s](),
 			),
 		)
 		assert.NoError(t, err)
@@ -883,7 +939,7 @@ func TestToScalarUint16MatchesBatches(t *testing.T) {
 			ro.Pipe2[uint16, PartialUint16s, int](
 				ro.FromSlice(input),
 				VectorizeUint16[PartialUint16s](),
-				ro.Map(func(v PartialUint16s) int { return v.Count() }),
+				Count[PartialUint16s](),
 			),
 		)
 		assert.NoError(t, err)
@@ -933,7 +989,7 @@ func TestToScalarUint32MatchesBatches(t *testing.T) {
 			ro.Pipe2[uint32, PartialUint32s, int](
 				ro.FromSlice(input),
 				VectorizeUint32[PartialUint32s](),
-				ro.Map(func(v PartialUint32s) int { return v.Count() }),
+				Count[PartialUint32s](),
 			),
 		)
 		assert.NoError(t, err)
@@ -983,7 +1039,7 @@ func TestToScalarUint64MatchesBatches(t *testing.T) {
 			ro.Pipe2[uint64, PartialUint64s, int](
 				ro.FromSlice(input),
 				VectorizeUint64[PartialUint64s](),
-				ro.Map(func(v PartialUint64s) int { return v.Count() }),
+				Count[PartialUint64s](),
 			),
 		)
 		assert.NoError(t, err)
@@ -1033,7 +1089,7 @@ func TestToScalarFloat32MatchesBatches(t *testing.T) {
 			ro.Pipe2[float32, PartialFloat32s, int](
 				ro.FromSlice(input),
 				VectorizeFloat32[PartialFloat32s](),
-				ro.Map(func(v PartialFloat32s) int { return v.Count() }),
+				Count[PartialFloat32s](),
 			),
 		)
 		assert.NoError(t, err)
@@ -1083,7 +1139,7 @@ func TestToScalarFloat64MatchesBatches(t *testing.T) {
 			ro.Pipe2[float64, PartialFloat64s, int](
 				ro.FromSlice(input),
 				VectorizeFloat64[PartialFloat64s](),
-				ro.Map(func(v PartialFloat64s) int { return v.Count() }),
+				Count[PartialFloat64s](),
 			),
 		)
 		assert.NoError(t, err)

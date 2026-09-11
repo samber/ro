@@ -145,6 +145,14 @@ type LaneStore[T any] interface {
 	StorePart(dst []T) int
 }
 
+// LaneCount is a vector that knows how many of its lanes hold data.
+//
+// Only this package's Partial types satisfy it. A standard library vector carries no
+// validity mask, so it has no count distinct from its capacity.
+type LaneCount interface {
+	Count() int
+}
+
 // LaneBuffer is a LaneStore that can also be built from a slice of scalars.
 //
 // Only this package's Partial types satisfy it. The standard library's vector types
