@@ -174,7 +174,7 @@ func TestOperatorCombiningMergeWith2(t *testing.T) { //nolint:paralleltest
 			Just[int64](42),
 		),
 	)
-	is.Empty(values)
+	is.Equal([]int64{42}, values)
 	is.EqualError(err, assert.AnError.Error())
 }
 
@@ -218,7 +218,7 @@ func TestOperatorCombiningMergeWith3(t *testing.T) { //nolint:paralleltest
 			Just[int64](42),
 		),
 	)
-	is.Empty(values)
+	is.Equal([]int64{42}, values)
 	is.EqualError(err, assert.AnError.Error())
 }
 
@@ -265,7 +265,7 @@ func TestOperatorCombiningMergeWith4(t *testing.T) { //nolint:paralleltest
 			Just[int64](42),
 		),
 	)
-	is.Empty(values)
+	is.Equal([]int64{42}, values)
 	is.EqualError(err, assert.AnError.Error())
 }
 
@@ -315,7 +315,7 @@ func TestOperatorCombiningMergeWith5(t *testing.T) { //nolint:paralleltest
 			Just[int64](42),
 		),
 	)
-	is.Empty(values)
+	is.Equal([]int64{42}, values)
 	is.EqualError(err, assert.AnError.Error())
 }
 
