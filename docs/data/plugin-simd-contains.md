@@ -1,7 +1,7 @@
 ---
 name: Contains
 slug: contains
-sourceRef: plugins/exp/simd/int8.go#L202
+sourceRef: plugins/exp/simd/int8.go#L211
 type: plugin
 category: simd
 signatures:

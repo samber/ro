@@ -49,6 +49,8 @@ rosimd.AddInt8(rosimd.BroadcastInt8(42))
 
 This is also what lets the type argument be inferred, so call sites stay free of `[rosimd.PartialInt8s]`.
 
+The `ReduceContains` operators take the scalar directly instead — `rosimd.ReduceContainsInt8[rosimd.PartialInt8s](7)` — a search target being one value rather than an operand. The bracket stays: a lone scalar cannot pin the vector type.
+
 ## Works with standard library vectors too
 
 Operators are generic over an interface satisfied by both `rosimd.PartialInt8s` and the standard library's own `simd.Int8s`:
@@ -114,7 +116,7 @@ ro.Pipe2[int8, rosimd.PartialInt8s, int8](
 )
 ```
 
-The `Reduce` operators are the other way out, collapsing a whole stream to a single value.
+The `Reduce` operators are the other way out, and the only operators that accumulate: everything else is a single vectorized streamed operation, a vector in and a vector out, with nothing carried between items. A `Reduce` is an Unvectorize — the opposite of `Vectorize` — accumulating across vectors and also horizontally within each, and collapsing the whole stream to one value on completion.
 
 Neither exit needs arithmetic, only the ability to report lanes, so both accept `simd.Int64s` and `simd.Uint64s` — which the arithmetic operators reject for want of `Min` and `Max`.
 

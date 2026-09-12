@@ -40,11 +40,13 @@ type Uint32Buffer[V any] interface {
 	LaneBuffer[V, uint32]
 }
 
-// Uint32Searchable is a Uint32Vector that can test its own lanes for a value. Only
+// Uint32Searchable is a Uint32Vector that can test its own lanes for a value and
+// widen a scalar to search for. Only
 // PartialUint32s satisfies it.
 type Uint32Searchable[V any] interface {
 	Uint32Vector[V]
 	LaneMatcher[V]
+	Broadcast(uint32) V
 }
 
 // PartialUint32s is a vector of uint32 lanes where only the first n are valid.
@@ -68,6 +70,14 @@ func BroadcastUint32(value uint32) PartialUint32s {
 	vec := simd.BroadcastUint32s(value)
 
 	return PartialUint32s{vec: vec, mask: fullMaskUint32(), n: vec.Len()}
+}
+
+// Broadcast is the method form of BroadcastUint32, so the Searchable constraint can
+// widen a scalar from inside a generic operator body — method dispatch through the
+// constraint is the one call shape the simd specializer handles there. The
+// receiver carries no state.
+func (p PartialUint32s) Broadcast(value uint32) PartialUint32s {
+	return BroadcastUint32(value)
 }
 
 // fullMaskUint32 is an all-true mask. Masks are shared per bit-width and

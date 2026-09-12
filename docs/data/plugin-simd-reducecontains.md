@@ -1,20 +1,20 @@
 ---
 name: ReduceContains
 slug: reducecontains
-sourceRef: plugins/exp/simd/contains.go#L38
+sourceRef: plugins/exp/simd/contains.go#L36
 type: plugin
 category: simd
 signatures:
-  - "func ReduceContainsInt8[V Int8Searchable[V]](target V)"
-  - "func ReduceContainsInt16[V Int16Searchable[V]](target V)"
-  - "func ReduceContainsInt32[V Int32Searchable[V]](target V)"
-  - "func ReduceContainsInt64[V Int64Searchable[V]](target V)"
-  - "func ReduceContainsUint8[V Uint8Searchable[V]](target V)"
-  - "func ReduceContainsUint16[V Uint16Searchable[V]](target V)"
-  - "func ReduceContainsUint32[V Uint32Searchable[V]](target V)"
-  - "func ReduceContainsUint64[V Uint64Searchable[V]](target V)"
-  - "func ReduceContainsFloat32[V Float32Searchable[V]](target V)"
-  - "func ReduceContainsFloat64[V Float64Searchable[V]](target V)"
+  - "func ReduceContainsInt8[V Int8Searchable[V]](target int8)"
+  - "func ReduceContainsInt16[V Int16Searchable[V]](target int16)"
+  - "func ReduceContainsInt32[V Int32Searchable[V]](target int32)"
+  - "func ReduceContainsInt64[V Int64Searchable[V]](target int64)"
+  - "func ReduceContainsUint8[V Uint8Searchable[V]](target uint8)"
+  - "func ReduceContainsUint16[V Uint16Searchable[V]](target uint16)"
+  - "func ReduceContainsUint32[V Uint32Searchable[V]](target uint32)"
+  - "func ReduceContainsUint64[V Uint64Searchable[V]](target uint64)"
+  - "func ReduceContainsFloat32[V Float32Searchable[V]](target float32)"
+  - "func ReduceContainsFloat64[V Float64Searchable[V]](target float64)"
 playUrl:
 variantHelpers:
   - plugin#simd#reducecontainsint8
@@ -33,9 +33,7 @@ similarHelpers:
 position: 210
 ---
 
-Reports whether any valid lane of the stream matches `target`.
-
-Widen the value with `Broadcast` so every lane of the target holds it:
+Reports whether any valid lane of the stream matches `target`, given as a plain scalar.
 
 ```go
 import (
@@ -48,7 +46,7 @@ import (
 obs := ro.Pipe2[int8, rosimd.PartialInt8s, bool](
     ro.Just[int8](1, 2, 3),
     rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-    rosimd.ReduceContainsInt8(rosimd.BroadcastInt8(2)),
+    rosimd.ReduceContainsInt8[rosimd.PartialInt8s](2),
 )
 
 sub := obs.Subscribe(ro.OnNext(func(found bool) {
@@ -72,7 +70,7 @@ import (
 obs := ro.Pipe2[int8, rosimd.PartialInt8s, bool](
     ro.Just[int8](1, 2, 3),
     rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-    rosimd.ReduceContainsInt8(rosimd.BroadcastInt8(9)),
+    rosimd.ReduceContainsInt8[rosimd.PartialInt8s](9),
 )
 
 sub := obs.Subscribe(ro.OnNext(func(found bool) {
@@ -82,6 +80,8 @@ defer sub.Unsubscribe()
 
 // false
 ```
+
+The vector type is written at the call site, since currying puts it out of inference's reach — the scalar alone cannot pin it.
 
 It emits as soon as a match is found rather than waiting for completion, so an unbounded stream still produces an answer.
 

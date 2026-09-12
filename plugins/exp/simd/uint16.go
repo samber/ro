@@ -40,11 +40,13 @@ type Uint16Buffer[V any] interface {
 	LaneBuffer[V, uint16]
 }
 
-// Uint16Searchable is a Uint16Vector that can test its own lanes for a value. Only
+// Uint16Searchable is a Uint16Vector that can test its own lanes for a value and
+// widen a scalar to search for. Only
 // PartialUint16s satisfies it.
 type Uint16Searchable[V any] interface {
 	Uint16Vector[V]
 	LaneMatcher[V]
+	Broadcast(uint16) V
 }
 
 // PartialUint16s is a vector of uint16 lanes where only the first n are valid.
@@ -68,6 +70,14 @@ func BroadcastUint16(value uint16) PartialUint16s {
 	vec := simd.BroadcastUint16s(value)
 
 	return PartialUint16s{vec: vec, mask: fullMaskUint16(), n: vec.Len()}
+}
+
+// Broadcast is the method form of BroadcastUint16, so the Searchable constraint can
+// widen a scalar from inside a generic operator body — method dispatch through the
+// constraint is the one call shape the simd specializer handles there. The
+// receiver carries no state.
+func (p PartialUint16s) Broadcast(value uint16) PartialUint16s {
+	return BroadcastUint16(value)
 }
 
 // fullMaskUint16 is an all-true mask. simd.Uint16s has no ToMask, but masks are per

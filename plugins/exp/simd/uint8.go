@@ -40,11 +40,13 @@ type Uint8Buffer[V any] interface {
 	LaneBuffer[V, uint8]
 }
 
-// Uint8Searchable is a Uint8Vector that can test its own lanes for a value. Only
+// Uint8Searchable is a Uint8Vector that can test its own lanes for a value and
+// widen a scalar to search for. Only
 // PartialUint8s satisfies it.
 type Uint8Searchable[V any] interface {
 	Uint8Vector[V]
 	LaneMatcher[V]
+	Broadcast(uint8) V
 }
 
 // PartialUint8s is a vector of uint8 lanes where only the first n are valid.
@@ -68,6 +70,14 @@ func BroadcastUint8(value uint8) PartialUint8s {
 	vec := simd.BroadcastUint8s(value)
 
 	return PartialUint8s{vec: vec, mask: fullMaskUint8(), n: vec.Len()}
+}
+
+// Broadcast is the method form of BroadcastUint8, so the Searchable constraint can
+// widen a scalar from inside a generic operator body — method dispatch through the
+// constraint is the one call shape the simd specializer handles there. The
+// receiver carries no state.
+func (p PartialUint8s) Broadcast(value uint8) PartialUint8s {
+	return BroadcastUint8(value)
 }
 
 // fullMaskUint8 is an all-true mask. simd.Uint8s has no ToMask, but masks are per
