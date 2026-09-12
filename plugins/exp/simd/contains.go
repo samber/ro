@@ -14,7 +14,11 @@
 
 package rosimd
 
-import "github.com/samber/ro"
+import (
+	"context"
+
+	"github.com/samber/ro"
+)
 
 // ReduceContains collapses a whole stream to a single bool.
 //
@@ -165,4 +169,54 @@ func ReduceContainsFloat64[V Float64Searchable[V]](target V) func(ro.Observable[
 	return func(source ro.Observable[V]) ro.Observable[bool] {
 		return containsAny(source, target)
 	}
+}
+
+// LaneMatcher is a vector type that can test its own valid lanes for a value.
+//
+// Only this package's Partial types satisfy it: answering the question needs the
+// validity mask, since padded lanes are zero-filled and would otherwise report a
+// false match when searching for zero, and the standard library's vector types carry
+// no mask to consult.
+//
+// The method is unexported deliberately. The exported Contains is element-wise and
+// returns a mask; collapsing that mask to one bool is a detail of the Reduce
+// operators, and an unexported method also keeps the constraint unsatisfiable from
+// outside this package, which matches the fact that only Partial types can implement
+// it correctly.
+type LaneMatcher[V any] interface {
+	anyMatch(V) bool
+}
+
+// containsAny reports whether any vector in the stream matches target, emitting as
+// soon as one does so an infinite stream still produces an answer.
+func containsAny[V LaneMatcher[V]](source ro.Observable[V], target V) ro.Observable[bool] {
+	return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[bool]) ro.Teardown {
+		found := false
+
+		sub := source.SubscribeWithContext(
+			subscriberCtx,
+			ro.NewObserverWithContext(
+				func(ctx context.Context, value V) {
+					if found || !value.anyMatch(target) {
+						return
+					}
+
+					found = true
+					destination.NextWithContext(ctx, true)
+					destination.CompleteWithContext(ctx)
+				},
+				destination.ErrorWithContext,
+				func(ctx context.Context) {
+					if found {
+						return
+					}
+
+					destination.NextWithContext(ctx, false)
+					destination.CompleteWithContext(ctx)
+				},
+			),
+		)
+
+		return sub.Unsubscribe
+	})
 }
