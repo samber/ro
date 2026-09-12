@@ -31,8 +31,14 @@ import (
     rosimd "github.com/samber/ro/plugins/exp/simd"
 )
 
-left := rosimd.VectorizeFloat64[rosimd.PartialFloat64s]()(ro.Just[float64](10, 20, 30))
-right := rosimd.VectorizeFloat64[rosimd.PartialFloat64s]()(ro.Just[float64](2, 4, 5))
+left := ro.Pipe1[float64, rosimd.PartialFloat64s](
+    ro.Just[float64](10, 20, 30),
+    rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
+)
+right := ro.Pipe1[float64, rosimd.PartialFloat64s](
+    ro.Just[float64](2, 4, 5),
+    rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
+)
 
 obs := ro.Pipe3[rosimd.PartialFloat64s, rosimd.PartialFloat64s, []float64, float64](
     left,

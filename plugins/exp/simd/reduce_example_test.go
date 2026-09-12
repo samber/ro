@@ -132,7 +132,10 @@ func ExampleReduceSumInt8_standardLibraryVector() {
 		input[i] = 1
 	}
 
-	obs := rosimd.ReduceSumInt8[simd.Int8s]()(ro.Just(simd.LoadInt8s(input)))
+	obs := ro.Pipe1[simd.Int8s, int8](
+		ro.Just(simd.LoadInt8s(input)),
+		rosimd.ReduceSumInt8[simd.Int8s](),
+	)
 
 	sub := obs.Subscribe(ro.OnNext(func(total int8) {
 		// The lane count varies by architecture, so compare rather than print.

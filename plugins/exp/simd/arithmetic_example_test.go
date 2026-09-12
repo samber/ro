@@ -179,8 +179,14 @@ func ExampleAddUint8_overflow() {
 // The With variants combine two vector streams in lockstep instead of a constant
 // operand, following ro.ZipWith's naming.
 func ExampleAddInt8With() {
-	left := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](1, 2, 3))
-	right := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](10, 20, 30))
+	left := ro.Pipe1[int8, rosimd.PartialInt8s](
+		ro.Just[int8](1, 2, 3),
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+	)
+	right := ro.Pipe1[int8, rosimd.PartialInt8s](
+		ro.Just[int8](10, 20, 30),
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+	)
 
 	obs := ro.Pipe3[rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
 		left,
@@ -201,8 +207,14 @@ func ExampleAddInt8With() {
 }
 
 func ExampleDivFloat64With() {
-	left := rosimd.VectorizeFloat64[rosimd.PartialFloat64s]()(ro.Just[float64](10, 20, 30))
-	right := rosimd.VectorizeFloat64[rosimd.PartialFloat64s]()(ro.Just[float64](2, 4, 5))
+	left := ro.Pipe1[float64, rosimd.PartialFloat64s](
+		ro.Just[float64](10, 20, 30),
+		rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
+	)
+	right := ro.Pipe1[float64, rosimd.PartialFloat64s](
+		ro.Just[float64](2, 4, 5),
+		rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
+	)
 
 	obs := ro.Pipe3[rosimd.PartialFloat64s, rosimd.PartialFloat64s, []float64, float64](
 		left,
