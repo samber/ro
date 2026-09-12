@@ -91,8 +91,14 @@ func ExampleClampInt8() {
 // MinWith takes the smaller of each lane pair from two streams rather than from a
 // constant.
 func ExampleMinInt8With() {
-	left := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](1, 50, 100))
-	right := rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Just[int8](10, 10, 10))
+	left := ro.Pipe1[int8, rosimd.PartialInt8s](
+		ro.Just[int8](1, 50, 100),
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+	)
+	right := ro.Pipe1[int8, rosimd.PartialInt8s](
+		ro.Just[int8](10, 10, 10),
+		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+	)
 
 	obs := ro.Pipe3[rosimd.PartialInt8s, rosimd.PartialInt8s, []int8, int8](
 		left,

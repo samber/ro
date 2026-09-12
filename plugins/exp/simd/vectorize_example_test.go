@@ -151,7 +151,12 @@ func ExampleFlatten_standardLibraryVector() {
 		input[i] = int8(i + 1)
 	}
 
-	values, err := ro.Collect(rosimd.Flatten[simd.Int8s]()(ro.Just(simd.LoadInt8s(input))))
+	values, err := ro.Collect(
+		ro.Pipe1[simd.Int8s, int8](
+			ro.Just(simd.LoadInt8s(input)),
+			rosimd.Flatten[simd.Int8s](),
+		),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -164,7 +169,12 @@ func ExampleFlatten_standardLibraryVector() {
 
 // An empty source emits no vector at all, rather than one made entirely of padding.
 func ExampleVectorizeInt8_empty() {
-	vectors, err := ro.Collect(rosimd.VectorizeInt8[rosimd.PartialInt8s]()(ro.Empty[int8]()))
+	vectors, err := ro.Collect(
+		ro.Pipe1[int8, rosimd.PartialInt8s](
+			ro.Empty[int8](),
+			rosimd.VectorizeInt8[rosimd.PartialInt8s](),
+		),
+	)
 	if err != nil {
 		panic(err)
 	}
