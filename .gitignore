@@ -34,4 +34,5 @@
 cover.out
 cover.html
 .vscode
+.claude/worktrees/
 .claude/
