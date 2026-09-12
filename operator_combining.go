@@ -1567,7 +1567,7 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 
 	for i := range sources {
 		j := i
-		zipInnerSubscription(outerCtx, sources[i], &mu, values[j], &(completed[j]), onUpdate, destination, subscriptions)
+		zipInnerSubscription(outerCtx, sources[i], &mu, values[j], &completed[j], onUpdate, destination, subscriptions)
 	}
 
 	return func() {

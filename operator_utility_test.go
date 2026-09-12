@@ -685,7 +685,7 @@ func TestOperatorSchedulerSubscribeOn(t *testing.T) { //nolint:paralleltest
 	sub.Unsubscribe()
 
 	mu.Do(func() {
-		is.Positive(len(collected))
+		is.NotEmpty(collected)
 	})
 }
 
@@ -795,6 +795,6 @@ func TestOperatorSchedulerObserveOn(t *testing.T) { //nolint:paralleltest
 	sub.Unsubscribe()
 
 	mu.Do(func() {
-		is.Positive(len(collected))
+		is.NotEmpty(collected)
 	})
 }

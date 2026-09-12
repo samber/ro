@@ -284,13 +284,13 @@ func (t *assertImpl[T]) ExpectDurationGreaterThan(duration time.Duration, msgAnd
 
 // ExpectDurationInRange expects the duration between consecutive Next notifications
 // to be within the given [min, max] range.
-func (t *assertImpl[T]) ExpectDurationInRange(min, max time.Duration, msgAndArgs ...any) AssertSpec[T] {
+func (t *assertImpl[T]) ExpectDurationInRange(mIn, mAx time.Duration, msgAndArgs ...any) AssertSpec[T] {
 	t.t.Helper()
 
 	assertion := gotestingAssertion[T]{
-		duration:      min,
+		duration:      mIn,
 		durationMatch: "in_range",
-		durationMax:   max,
+		durationMax:   mAx,
 		msgAndArgs:    msgAndArgs,
 	}
 	t.assertions = append(t.assertions, assertion)
