@@ -360,7 +360,16 @@ func GroupByIWithContext[T any, K comparable](iteratee func(ctx context.Context,
 							subject := NewUnicastSubject[T](UnicastSubjectUnlimitedBufferSize)
 							groups.Store(key, subject)
 							subject.NextWithContext(ctx, value)
-							destination.NextWithContext(ctx, subject)
+
+							groupObservable := NewObservableWithContext(func(subCtx context.Context, observer Observer[T]) Teardown {
+								sub := subject.SubscribeWithContext(subCtx, observer)
+								return func() {
+									sub.Unsubscribe()
+									groups.Delete(key)
+								}
+							})
+
+							destination.NextWithContext(ctx, groupObservable)
 						}
 					},
 					func(ctx context.Context, err error) {
