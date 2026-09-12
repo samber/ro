@@ -31,143 +31,113 @@ import (
 
 // ReduceContainsInt8 reports whether any valid lane of the stream matches target.
 //
-// Widen the value with BroadcastInt8 so every lane of target holds it:
-//
-//	rosimd.ReduceContainsInt8(rosimd.BroadcastInt8(42))
-//
 // It emits as soon as a match is found rather than waiting for completion, so an
 // infinite stream still produces an answer.
-func ReduceContainsInt8[V Int8Searchable[V]](target V) func(ro.Observable[V]) ro.Observable[bool] {
+func ReduceContainsInt8[V Int8Searchable[V]](target int8) func(ro.Observable[V]) ro.Observable[bool] {
 	return func(source ro.Observable[V]) ro.Observable[bool] {
-		return containsAny(source, target)
+		var proto V
+		return containsAny(source, proto.Broadcast(target))
 	}
 }
 
 // ReduceContainsInt16 reports whether any valid lane of the stream matches target.
 //
-// Widen the value with BroadcastInt16 so every lane of target holds it:
-//
-//	rosimd.ReduceContainsInt16(rosimd.BroadcastInt16(42))
-//
 // It emits as soon as a match is found rather than waiting for completion, so an
 // infinite stream still produces an answer.
-func ReduceContainsInt16[V Int16Searchable[V]](target V) func(ro.Observable[V]) ro.Observable[bool] {
+func ReduceContainsInt16[V Int16Searchable[V]](target int16) func(ro.Observable[V]) ro.Observable[bool] {
 	return func(source ro.Observable[V]) ro.Observable[bool] {
-		return containsAny(source, target)
+		var proto V
+		return containsAny(source, proto.Broadcast(target))
 	}
 }
 
 // ReduceContainsInt32 reports whether any valid lane of the stream matches target.
 //
-// Widen the value with BroadcastInt32 so every lane of target holds it:
-//
-//	rosimd.ReduceContainsInt32(rosimd.BroadcastInt32(42))
-//
 // It emits as soon as a match is found rather than waiting for completion, so an
 // infinite stream still produces an answer.
-func ReduceContainsInt32[V Int32Searchable[V]](target V) func(ro.Observable[V]) ro.Observable[bool] {
+func ReduceContainsInt32[V Int32Searchable[V]](target int32) func(ro.Observable[V]) ro.Observable[bool] {
 	return func(source ro.Observable[V]) ro.Observable[bool] {
-		return containsAny(source, target)
+		var proto V
+		return containsAny(source, proto.Broadcast(target))
 	}
 }
 
 // ReduceContainsInt64 reports whether any valid lane of the stream matches target.
 //
-// Widen the value with BroadcastInt64 so every lane of target holds it:
-//
-//	rosimd.ReduceContainsInt64(rosimd.BroadcastInt64(42))
-//
 // It emits as soon as a match is found rather than waiting for completion, so an
 // infinite stream still produces an answer.
-func ReduceContainsInt64[V Int64Searchable[V]](target V) func(ro.Observable[V]) ro.Observable[bool] {
+func ReduceContainsInt64[V Int64Searchable[V]](target int64) func(ro.Observable[V]) ro.Observable[bool] {
 	return func(source ro.Observable[V]) ro.Observable[bool] {
-		return containsAny(source, target)
+		var proto V
+		return containsAny(source, proto.Broadcast(target))
 	}
 }
 
 // ReduceContainsUint8 reports whether any valid lane of the stream matches target.
 //
-// Widen the value with BroadcastUint8 so every lane of target holds it:
-//
-//	rosimd.ReduceContainsUint8(rosimd.BroadcastUint8(42))
-//
 // It emits as soon as a match is found rather than waiting for completion, so an
 // infinite stream still produces an answer.
-func ReduceContainsUint8[V Uint8Searchable[V]](target V) func(ro.Observable[V]) ro.Observable[bool] {
+func ReduceContainsUint8[V Uint8Searchable[V]](target uint8) func(ro.Observable[V]) ro.Observable[bool] {
 	return func(source ro.Observable[V]) ro.Observable[bool] {
-		return containsAny(source, target)
+		var proto V
+		return containsAny(source, proto.Broadcast(target))
 	}
 }
 
 // ReduceContainsUint16 reports whether any valid lane of the stream matches target.
 //
-// Widen the value with BroadcastUint16 so every lane of target holds it:
-//
-//	rosimd.ReduceContainsUint16(rosimd.BroadcastUint16(42))
-//
 // It emits as soon as a match is found rather than waiting for completion, so an
 // infinite stream still produces an answer.
-func ReduceContainsUint16[V Uint16Searchable[V]](target V) func(ro.Observable[V]) ro.Observable[bool] {
+func ReduceContainsUint16[V Uint16Searchable[V]](target uint16) func(ro.Observable[V]) ro.Observable[bool] {
 	return func(source ro.Observable[V]) ro.Observable[bool] {
-		return containsAny(source, target)
+		var proto V
+		return containsAny(source, proto.Broadcast(target))
 	}
 }
 
 // ReduceContainsUint32 reports whether any valid lane of the stream matches target.
 //
-// Widen the value with BroadcastUint32 so every lane of target holds it:
-//
-//	rosimd.ReduceContainsUint32(rosimd.BroadcastUint32(42))
-//
 // It emits as soon as a match is found rather than waiting for completion, so an
 // infinite stream still produces an answer.
-func ReduceContainsUint32[V Uint32Searchable[V]](target V) func(ro.Observable[V]) ro.Observable[bool] {
+func ReduceContainsUint32[V Uint32Searchable[V]](target uint32) func(ro.Observable[V]) ro.Observable[bool] {
 	return func(source ro.Observable[V]) ro.Observable[bool] {
-		return containsAny(source, target)
+		var proto V
+		return containsAny(source, proto.Broadcast(target))
 	}
 }
 
 // ReduceContainsUint64 reports whether any valid lane of the stream matches target.
 //
-// Widen the value with BroadcastUint64 so every lane of target holds it:
-//
-//	rosimd.ReduceContainsUint64(rosimd.BroadcastUint64(42))
-//
 // It emits as soon as a match is found rather than waiting for completion, so an
 // infinite stream still produces an answer.
-func ReduceContainsUint64[V Uint64Searchable[V]](target V) func(ro.Observable[V]) ro.Observable[bool] {
+func ReduceContainsUint64[V Uint64Searchable[V]](target uint64) func(ro.Observable[V]) ro.Observable[bool] {
 	return func(source ro.Observable[V]) ro.Observable[bool] {
-		return containsAny(source, target)
+		var proto V
+		return containsAny(source, proto.Broadcast(target))
 	}
 }
 
 // ReduceContainsFloat32 reports whether any valid lane of the stream matches target.
 //
-// Widen the value with BroadcastFloat32 so every lane of target holds it:
-//
-//	rosimd.ReduceContainsFloat32(rosimd.BroadcastFloat32(4.2))
-//
 // It emits as soon as a match is found rather than waiting for completion, so an
 // infinite stream still produces an answer. Searching for NaN always reports false,
 // since NaN equals nothing, not even itself.
-func ReduceContainsFloat32[V Float32Searchable[V]](target V) func(ro.Observable[V]) ro.Observable[bool] {
+func ReduceContainsFloat32[V Float32Searchable[V]](target float32) func(ro.Observable[V]) ro.Observable[bool] {
 	return func(source ro.Observable[V]) ro.Observable[bool] {
-		return containsAny(source, target)
+		var proto V
+		return containsAny(source, proto.Broadcast(target))
 	}
 }
 
 // ReduceContainsFloat64 reports whether any valid lane of the stream matches target.
 //
-// Widen the value with BroadcastFloat64 so every lane of target holds it:
-//
-//	rosimd.ReduceContainsFloat64(rosimd.BroadcastFloat64(4.2))
-//
 // It emits as soon as a match is found rather than waiting for completion, so an
 // infinite stream still produces an answer. Searching for NaN always reports false,
 // since NaN equals nothing, not even itself.
-func ReduceContainsFloat64[V Float64Searchable[V]](target V) func(ro.Observable[V]) ro.Observable[bool] {
+func ReduceContainsFloat64[V Float64Searchable[V]](target float64) func(ro.Observable[V]) ro.Observable[bool] {
 	return func(source ro.Observable[V]) ro.Observable[bool] {
-		return containsAny(source, target)
+		var proto V
+		return containsAny(source, proto.Broadcast(target))
 	}
 }
 

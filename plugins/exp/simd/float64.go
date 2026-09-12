@@ -44,11 +44,13 @@ type Float64Buffer[V any] interface {
 	LaneBuffer[V, float64]
 }
 
-// Float64Searchable is a Float64Vector that can test its own lanes for a value. Only
+// Float64Searchable is a Float64Vector that can test its own lanes for a value and
+// widen a scalar to search for. Only
 // PartialFloat64s satisfies it.
 type Float64Searchable[V any] interface {
 	Float64Vector[V]
 	LaneMatcher[V]
+	Broadcast(float64) V
 }
 
 // PartialFloat64s is a vector of float64 lanes where only the first n are valid.
@@ -72,6 +74,14 @@ func BroadcastFloat64(value float64) PartialFloat64s {
 	vec := simd.BroadcastFloat64s(value)
 
 	return PartialFloat64s{vec: vec, mask: fullMaskFloat64(), n: vec.Len()}
+}
+
+// Broadcast is the method form of BroadcastFloat64, so the Searchable constraint can
+// widen a scalar from inside a generic operator body — method dispatch through the
+// constraint is the one call shape the simd specializer handles there. The
+// receiver carries no state.
+func (p PartialFloat64s) Broadcast(value float64) PartialFloat64s {
+	return BroadcastFloat64(value)
 }
 
 // fullMaskFloat64 is an all-true mask. simd.Float64s has no ToMask, so it is built

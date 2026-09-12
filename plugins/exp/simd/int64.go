@@ -45,11 +45,13 @@ type Int64Buffer[V any] interface {
 	LaneBuffer[V, int64]
 }
 
-// Int64Searchable is an Int64Vector that can test its own lanes for a value. Only
+// Int64Searchable is an Int64Vector that can test its own lanes for a value and
+// widen a scalar to search for. Only
 // PartialInt64s satisfies it.
 type Int64Searchable[V any] interface {
 	Int64Vector[V]
 	LaneMatcher[V]
+	Broadcast(int64) V
 }
 
 // PartialInt64s is a vector of int64 lanes where only the first n are valid.
@@ -73,6 +75,14 @@ func BroadcastInt64(value int64) PartialInt64s {
 	vec := simd.BroadcastInt64s(value)
 
 	return PartialInt64s{vec: vec, mask: fullMaskInt64(), n: vec.Len()}
+}
+
+// Broadcast is the method form of BroadcastInt64, so the Searchable constraint can
+// widen a scalar from inside a generic operator body — method dispatch through the
+// constraint is the one call shape the simd specializer handles there. The
+// receiver carries no state.
+func (p PartialInt64s) Broadcast(value int64) PartialInt64s {
+	return BroadcastInt64(value)
 }
 
 // fullMaskInt64 is an all-true mask. ToMask compares against zero, so broadcasting

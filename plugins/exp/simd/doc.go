@@ -32,7 +32,9 @@
 // Operators accept either PartialInt8s or the standard library's own simd.Int8s,
 // because they are generic over an interface both satisfy. Operands are vectors
 // rather than scalars — SIMD has no scalar-operand arithmetic — so widen constants
-// with BroadcastInt8 at the call site.
+// with BroadcastInt8 at the call site. ReduceContains is the one that takes a scalar
+// directly, as in ReduceContainsInt8[PartialInt8s](7): a search target is a single
+// value, not an operand.
 //
 // # Element types
 //
@@ -92,8 +94,13 @@
 //
 // Leaving vector space is ToScalar, which hands each vector's valid lanes back as a
 // slice, or Flatten, which emits them one at a time — ToScalar followed by ro.Flatten in
-// a single stage. The Reduce operators are the other way out, collapsing a whole stream
-// to one value.
+// a single stage.
+//
+// The Reduce operators are the other way out, and the only ones that accumulate:
+// everything else is a single vectorized streamed operation, a vector in and a vector
+// out, with nothing carried between items. A Reduce is an Unvectorize, the opposite of
+// Vectorize — it accumulates across vectors and also horizontally within each vector,
+// and collapses the whole stream to one value on completion.
 //
 // Count is the operator for when the batching itself is the question rather than the
 // data: one lane count per vector, short only for a stream's final batch.

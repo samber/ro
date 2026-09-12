@@ -116,7 +116,7 @@ func ExampleReduceContainsInt8() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, bool](
 		ro.Just[int8](1, 2, 3),
 		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		rosimd.ReduceContainsInt8(rosimd.BroadcastInt8(2)),
+		rosimd.ReduceContainsInt8[rosimd.PartialInt8s](2),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(found bool) {
@@ -132,7 +132,7 @@ func ExampleReduceContainsInt8_absent() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, bool](
 		ro.Just[int8](1, 2, 3),
 		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		rosimd.ReduceContainsInt8(rosimd.BroadcastInt8(9)),
+		rosimd.ReduceContainsInt8[rosimd.PartialInt8s](9),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(found bool) {
@@ -149,7 +149,7 @@ func ExampleReduceContainsInt8_zero() {
 	obs := ro.Pipe2[int8, rosimd.PartialInt8s, bool](
 		ro.Just[int8](1, 2, 3),
 		rosimd.VectorizeInt8[rosimd.PartialInt8s](),
-		rosimd.ReduceContainsInt8(rosimd.BroadcastInt8(0)),
+		rosimd.ReduceContainsInt8[rosimd.PartialInt8s](0),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(found bool) {
@@ -166,7 +166,7 @@ func ExampleReduceContainsFloat64_nan() {
 	obs := ro.Pipe2[float64, rosimd.PartialFloat64s, bool](
 		ro.Just(1.0, math.NaN(), 3.0),
 		rosimd.VectorizeFloat64[rosimd.PartialFloat64s](),
-		rosimd.ReduceContainsFloat64(rosimd.BroadcastFloat64(math.NaN())),
+		rosimd.ReduceContainsFloat64[rosimd.PartialFloat64s](math.NaN()),
 	)
 
 	sub := obs.Subscribe(ro.OnNext(func(found bool) {
