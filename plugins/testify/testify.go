@@ -31,12 +31,22 @@ type testify[T any] struct {
 	source     ro.Observable[T]
 }
 
+type durationMatch int
+
+const (
+	durationMatchNone      durationMatch = iota // no duration assertion
+	durationMatchEpsilon                         // epsilon
+	durationMatchLessThan                         // less_than
+	durationMatchGreaterThan                      // greater_than
+	durationMatchInRange                          // in_range
+)
+
 type testifyAssertion[T any] struct {
 	notification ro.Notification[T]
 	msgAndArgs   []any
 	// Duration assertion fields (zero value means not a duration assertion)
 	duration      time.Duration
-	durationMatch string // "epsilon", "less_than", "greater_than", "in_range"
+	durationMatch durationMatch // epsilon, less_than, greater_than, in_range
 	durationMax   time.Duration // for in_range
 }
 
@@ -139,7 +149,7 @@ func (t *testify[T]) ExpectComplete(msgAndArgs ...any) rotesting.AssertSpec[T] {
 func (t *testify[T]) ExpectDurationEpsilon(duration time.Duration, epsilon time.Duration, msgAndArgs ...any) rotesting.AssertSpec[T] {
 	assertion := testifyAssertion[T]{
 		duration:      duration,
-		durationMatch: "epsilon",
+		durationMatch: durationMatchEpsilon,
 		durationMax:   epsilon,
 		msgAndArgs:    msgAndArgs,
 	}
@@ -152,7 +162,7 @@ func (t *testify[T]) ExpectDurationEpsilon(duration time.Duration, epsilon time.
 func (t *testify[T]) ExpectDurationLessThan(duration time.Duration, msgAndArgs ...any) rotesting.AssertSpec[T] {
 	assertion := testifyAssertion[T]{
 		duration:      duration,
-		durationMatch: "less_than",
+		durationMatch: durationMatchLessThan,
 		msgAndArgs:    msgAndArgs,
 	}
 	t.assertions = append(t.assertions, assertion)
@@ -164,7 +174,7 @@ func (t *testify[T]) ExpectDurationLessThan(duration time.Duration, msgAndArgs .
 func (t *testify[T]) ExpectDurationGreaterThan(duration time.Duration, msgAndArgs ...any) rotesting.AssertSpec[T] {
 	assertion := testifyAssertion[T]{
 		duration:      duration,
-		durationMatch: "greater_than",
+		durationMatch: durationMatchGreaterThan,
 		msgAndArgs:    msgAndArgs,
 	}
 	t.assertions = append(t.assertions, assertion)
@@ -176,7 +186,7 @@ func (t *testify[T]) ExpectDurationGreaterThan(duration time.Duration, msgAndArg
 func (t *testify[T]) ExpectDurationInRange(min, max time.Duration, msgAndArgs ...any) rotesting.AssertSpec[T] {
 	assertion := testifyAssertion[T]{
 		duration:      min,
-		durationMatch: "in_range",
+		durationMatch: durationMatchInRange,
 		durationMax:   max,
 		msgAndArgs:    msgAndArgs,
 	}
@@ -205,7 +215,7 @@ func (t *testify[T]) VerifyWithContext(ctx context.Context) {
 				now := time.Now()
 				assertion, ok := t.popAssertion()
 
-				if !firstEmit && assertion.durationMatch != "" {
+				if !firstEmit && assertion.durationMatch != durationMatchNone {
 					elapsed := now.Sub(lastEmitTime)
 					ok = t.verifyDuration(assertion, elapsed)
 					if !ok {
@@ -241,14 +251,15 @@ func (t *testify[T]) VerifyWithContext(ctx context.Context) {
 
 func (t *testify[T]) verifyDuration(assertion testifyAssertion[T], elapsed time.Duration) bool {
 	switch assertion.durationMatch {
-	case "epsilon":
+	case durationMatchEpsilon:
 		return t.is.True(elapsed >= assertion.duration-assertion.durationMax && elapsed <= assertion.duration+assertion.durationMax, assertion.msgAndArgs...)
-	case "less_than":
+	case durationMatchLessThan:
 		return t.is.True(elapsed < assertion.duration, assertion.msgAndArgs...)
-	case "greater_than":
+	case durationMatchGreaterThan:
 		return t.is.True(elapsed > assertion.duration, assertion.msgAndArgs...)
-	case "in_range":
+	case durationMatchInRange:
 		return t.is.True(elapsed >= assertion.duration && elapsed <= assertion.durationMax, assertion.msgAndArgs...)
+	default:
+		panic("unexpected durationMatch value")
 	}
-	return true
 }
