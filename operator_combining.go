@@ -1128,9 +1128,14 @@ func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T
 
 					*completed = true
 
-					mu.Unlock()
+					if values.Len() == 0 {
+						mu.Unlock()
+						destination.CompleteWithContext(ctx)
+					} else {
+						mu.Unlock()
+					}
 
-					onUpdate(ctx)
+					subscriptions.Unsubscribe()
 				},
 			),
 		),
@@ -1517,85 +1522,63 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observable[T], destination Observer[[]T]) Teardown {
 	var mu sync.Mutex
 
-	type latestValue struct {
-		value    T
-		hasValue bool
+	values := make([]xqueue.Queue[T], len(sources))
+	for i := range values {
+		values[i] = xqueue.NewQueue[T]()
 	}
-	latest := make([]latestValue, len(sources))
 	completed := make([]bool, len(sources))
-	hasError := false
+
+	onUpdate := func(ctx context.Context) {
+		mu.Lock()
+
+		hasEmptyQueue := false
+
+		for i := range sources {
+			if values[i].Len() == 0 {
+				hasEmptyQueue = true
+				break
+			}
+		}
+
+		if !hasEmptyQueue {
+			result := make([]T, len(sources))
+			for i := range sources {
+				result[i] = values[i].Pop()
+			}
+
+			mu.Unlock() // unlock before calling destination.Next to prevent long locks
+
+			destination.NextWithContext(ctx, result) // @TODO: Send the last context ?
+
+			mu.Lock()
+
+			for i := range sources {
+				if completed[i] && values[i].Len() == 0 {
+					destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
+					break
+				}
+			}
+		}
+
+		mu.Unlock()
+	}
 
 	subscriptions := NewSubscription(nil)
 
-	emitIfReady := func(ctx context.Context) {
-		mu.Lock()
-		for j := range sources {
-			if !latest[j].hasValue {
-				mu.Unlock()
-				return
-			}
-		}
-		result := make([]T, len(sources))
-		for j := range sources {
-			result[j] = latest[j].value
-		}
-		mu.Unlock()
-
-		destination.NextWithContext(ctx, result)
-	}
-
-	checkComplete := func(ctx context.Context) {
-		mu.Lock()
-		allDone := true
-		for j := range sources {
-			if !completed[j] {
-				allDone = false
-			}
-		}
-		mu.Unlock()
-
-		if allDone {
-			destination.CompleteWithContext(ctx)
-		}
-	}
-
 	for i := range sources {
-		i := i                                               // capture loop variable
-		sub := sources[i].SubscribeWithContext(
-			outerCtx,
-			NewObserverWithContext(
-				func(ctx context.Context, v T) {
-					mu.Lock()
-					latest[i] = latestValue{value: v, hasValue: true}
-					mu.Unlock()
-					emitIfReady(ctx)
-				},
-				func(ctx context.Context, err error) {
-					mu.Lock()
-					if !hasError {
-						hasError = true
-					}
-					mu.Unlock()
-					destination.ErrorWithContext(ctx, err)
-					subscriptions.Unsubscribe()
-				},
-				func(ctx context.Context) {
-					mu.Lock()
-					completed[i] = true
-					mu.Unlock()
-					checkComplete(ctx)
-				},
-			),
-		)
-		subscriptions.AddUnsubscribable(sub)
+		j := i
+		zipInnerSubscription(outerCtx, sources[i], &mu, values[j], &(completed[j]), onUpdate, destination, subscriptions)
 	}
 
 	return func() {
 		subscriptions.Unsubscribe()
 
+		// free memory
 		mu.Lock()
-		latest = nil
+
 		completed = nil
+		values = nil
+
 		mu.Unlock()
 	}
 }

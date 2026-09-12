@@ -586,7 +586,7 @@ func TestOperatorUtilityDematerialize(t *testing.T) {
 
 func TestOperatorSchedulerSubscribeOn(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
-	testWithTimeout(t, 400*time.Millisecond)
+	testWithTimeout(t, 700*time.Millisecond)
 	is := assert.New(t)
 
 	is.PanicsWithError(
@@ -653,7 +653,40 @@ func TestOperatorSchedulerSubscribeOn(t *testing.T) { //nolint:paralleltest
 	is.InDelta(150*time.Millisecond, time.Since(start), float64(15*time.Millisecond))
 	is.True(sub.IsClosed())
 
-	// @TODO: write some tests for channel buffer overflow
+	// check channel buffer overflow: buffer size 1 should still deliver all items
+	values, err = Collect(
+		Pipe2(
+			Just[int64](1, 2, 3),
+			SubscribeOn[int64](1),
+			Map(func(x int64) int64 {
+				return x
+			}),
+		),
+	)
+	is.Equal([]int64{1, 2, 3}, values)
+	is.NoError(err)
+
+	// check that buffer overflow blocks upstream when downstream is slow
+	mu = lo.Synchronize()
+	var collected []int64
+	obs = Pipe2(
+		Range(1, 4),
+		SubscribeOn[int64](1),
+		Map(func(x int64) int64 { return x }),
+	)
+	sub = obs.Subscribe(OnNext(func(value int64) {
+		time.Sleep(50 * time.Millisecond) // simulate slow consumer
+		mu.Do(func() {
+			collected = append(collected, value)
+		})
+	}))
+
+	time.Sleep(200 * time.Millisecond)
+	sub.Unsubscribe()
+
+	mu.Do(func() {
+		is.Positive(len(collected))
+	})
 }
 
 func TestOperatorSchedulerObserveOn(t *testing.T) { //nolint:paralleltest
@@ -728,5 +761,40 @@ func TestOperatorSchedulerObserveOn(t *testing.T) { //nolint:paralleltest
 	is.InDelta(150*time.Millisecond, time.Since(start), float64(15*time.Millisecond))
 	is.True(sub.IsClosed())
 
-	// @TODO: write some tests for channel buffer overflow
+	// check channel buffer overflow: buffer size 1 should still deliver all items
+	values, err = Collect(
+		Pipe2(
+			Just[int64](1, 2, 3),
+			ObserveOn[int64](1),
+			Map(func(x int64) int64 {
+				return x
+			}),
+		),
+	)
+	is.Equal([]int64{1, 2, 3}, values)
+	is.NoError(err)
+
+	// check that buffer overflow backpressures upstream when consumer is slow
+	mu = lo.Synchronize()
+	var collected []int64
+	obs = Pipe2(
+		RangeWithInterval(0, 5, 10*time.Millisecond),
+		ObserveOn[int64](1),
+		Map(func(x int64) int64 {
+			time.Sleep(50 * time.Millisecond) // simulate slow consumer
+			mu.Do(func() {
+				collected = append(collected, x)
+			})
+			return x
+		}),
+	)
+	sub = obs.Subscribe(NoopObserver[int64]())
+
+	time.Sleep(250 * time.Millisecond)
+	is.False(sub.IsClosed())
+	sub.Unsubscribe()
+
+	mu.Do(func() {
+		is.Positive(len(collected))
+	})
 }

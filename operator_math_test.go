@@ -102,8 +102,42 @@ func TestOperatorMathSum(t *testing.T) {
 	is.EqualError(err, assert.AnError.Error())
 }
 
-func TestOperatorMathRound(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+func TestOperatorMathRound(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	values, err := Collect(
+		Round()(Just(1.5, 2.3, -1.5, -2.7, 0.0)),
+	)
+	is.Equal([]float64{2, 2, -2, -3, 0}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Round()(Just(math.Inf(1), math.Inf(-1))),
+	)
+	is.NoError(err)
+	is.Len(values, 2)
+	is.True(math.IsInf(values[0], 1))
+	is.True(math.IsInf(values[1], -1))
+
+	values, err = Collect(
+		Round()(Just(math.NaN())),
+	)
+	is.NoError(err)
+	is.Len(values, 1)
+	is.True(math.IsNaN(values[0]))
+
+	values, err = Collect(
+		Round()(Empty[float64]()),
+	)
+	is.Equal([]float64{}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Round()(Throw[float64](assert.AnError)),
+	)
+	is.Equal([]float64{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorMathMin(t *testing.T) {
@@ -164,16 +198,121 @@ func TestOperatorMathMax(t *testing.T) {
 	is.EqualError(err, assert.AnError.Error())
 }
 
-func TestOperatorMathClamp(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+func TestOperatorMathClamp(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	values, err := Collect(
+		Clamp(0, 10)(Just(-5, 0, 5, 10, 15)),
+	)
+	is.Equal([]int{0, 0, 5, 10, 10}, values)
+	is.NoError(err)
+
+	var floatValues []float64
+	floatValues, err = Collect(
+		Clamp(0.0, 1.0)(Just(-0.5, 0.0, 0.5, 1.0, 1.5)),
+	)
+	is.InDeltaSlice([]float64{0.0, 0.0, 0.5, 1.0, 1.0}, floatValues, 1e-9)
+	is.NoError(err)
+
+	values, err = Collect(
+		Clamp(-42, 42)(Just(0)),
+	)
+	is.Equal([]int{0}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Clamp(0, 10)(Empty[int]()),
+	)
+	is.Equal([]int{}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Clamp(0, 10)(Throw[int](assert.AnError)),
+	)
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
-func TestOperatorMathAbs(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+func TestOperatorMathAbs(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	values, err := Collect(
+		Abs()(Just(-3.0, -1.5, 0.0, 1.5, 3.0)),
+	)
+	is.Equal([]float64{3, 1.5, 0, 1.5, 3}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Abs()(Just(math.Inf(-1))),
+	)
+	is.NoError(err)
+	is.Len(values, 1)
+	is.True(math.IsInf(values[0], 1))
+
+	values, err = Collect(
+		Abs()(Just(math.NaN())),
+	)
+	is.NoError(err)
+	is.Len(values, 1)
+	is.True(math.IsNaN(values[0]))
+
+	values, err = Collect(
+		Abs()(Empty[float64]()),
+	)
+	is.Equal([]float64{}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Abs()(Throw[float64](assert.AnError)),
+	)
+	is.Equal([]float64{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
-func TestOperatorMathFloor(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+func TestOperatorMathFloor(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	values, err := Collect(
+		Floor()(Just(1.9, -1.9, 2.0, -2.0, 0.0)),
+	)
+	is.Equal([]float64{1, -2, 2, -2, 0}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Floor()(Just(math.Inf(1))),
+	)
+	is.NoError(err)
+	is.Len(values, 1)
+	is.True(math.IsInf(values[0], 1))
+
+	values, err = Collect(
+		Floor()(Just(math.Inf(-1))),
+	)
+	is.NoError(err)
+	is.Len(values, 1)
+	is.True(math.IsInf(values[0], -1))
+
+	values, err = Collect(
+		Floor()(Just(math.NaN())),
+	)
+	is.NoError(err)
+	is.Len(values, 1)
+	is.True(math.IsNaN(values[0]))
+
+	values, err = Collect(
+		Floor()(Empty[float64]()),
+	)
+	is.Equal([]float64{}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Floor()(Throw[float64](assert.AnError)),
+	)
+	is.Equal([]float64{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorMathFloorWithPrecision(t *testing.T) {
@@ -567,8 +706,43 @@ func TestOperatorMathCeilWithPrecisionMinInt(t *testing.T) {
 	is.True(math.IsNaN(values[5]))
 }
 
-func TestOperatorMathTrunc(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+func TestOperatorMathTrunc(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	values, err := Collect(
+		Trunc()(Just(3.2, 4.7, -2.3, -5.8, 0.0, 7.0)),
+	)
+	is.Equal([]float64{3, 4, -2, -5, 0, 7}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Trunc()(Just(math.Inf(-1), -42.7, math.Inf(1))),
+	)
+	is.NoError(err)
+	is.Len(values, 3)
+	is.True(math.IsInf(values[0], -1))
+	is.Equal(float64(-42), values[1])
+	is.True(math.IsInf(values[2], 1))
+
+	values, err = Collect(
+		Trunc()(Just(math.NaN())),
+	)
+	is.NoError(err)
+	is.Len(values, 1)
+	is.True(math.IsNaN(values[0]))
+
+	values, err = Collect(
+		Trunc()(Throw[float64](assert.AnError)),
+	)
+	is.Equal([]float64{}, values)
+	is.EqualError(err, assert.AnError.Error())
+
+	values, err = Collect(
+		Trunc()(Empty[float64]()),
+	)
+	is.Equal([]float64{}, values)
+	is.NoError(err)
 }
 
 func TestMaxPow10ChunkValue(t *testing.T) {

@@ -16,6 +16,7 @@ package rotesting
 
 import (
 	"context"
+	"time"
 
 	"github.com/samber/ro"
 )
@@ -31,6 +32,10 @@ type AssertSpec[T any] interface {
 	ExpectNextSeq(items ...T) AssertSpec[T]
 	ExpectError(err error, msgAndArgs ...any) AssertSpec[T]
 	ExpectComplete(msgAndArgs ...any) AssertSpec[T]
+	ExpectDurationEpsilon(duration, epsilon time.Duration, msgAndArgs ...any) AssertSpec[T]
+	ExpectDurationLessThan(duration time.Duration, msgAndArgs ...any) AssertSpec[T]
+	ExpectDurationGreaterThan(duration time.Duration, msgAndArgs ...any) AssertSpec[T]
+	ExpectDurationInRange(min, max time.Duration, msgAndArgs ...any) AssertSpec[T]
 	Verify()
 	VerifyWithContext(ctx context.Context)
 }

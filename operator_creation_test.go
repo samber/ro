@@ -294,13 +294,27 @@ func TestOperatorCreationRangeWithStep(t *testing.T) {
 	is.NoError(err)
 }
 
-func TestOperatorCreationRangeWithInterval(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 200*time.Millisecond)
+func TestOperatorCreationRangeWithInterval(t *testing.T) { //nolint:paralleltest
+	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
 
-	// @TODO: test duration
+	interval := 50 * time.Millisecond
 
+	// duration testing — verify that values are emitted at the expected interval
+	intervalValues, err := Collect(
+		Pipe1(
+			RangeWithInterval(1, 4, interval),
+			TimeInterval[int64](),
+		),
+	)
+	is.Len(intervalValues, 3)
+	is.NoError(err)
+	for i := 0; i < 3; i++ {
+		is.Equal(int64(1+i), intervalValues[i].Value)
+		is.InDelta(interval, intervalValues[i].Interval, float64(25*time.Millisecond))
+	}
+
+	// value testing
 	values, err := Collect(
 		RangeWithInterval(1, 5, 10*time.Millisecond),
 	)
@@ -320,13 +334,26 @@ func TestOperatorCreationRangeWithInterval(t *testing.T) {
 	is.NoError(err)
 }
 
-func TestOperatorCreationRangeWithStepAndInterval(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 200*time.Millisecond)
+func TestOperatorCreationRangeWithStepAndInterval(t *testing.T) { //nolint:paralleltest
+	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
 
-	// @TODO: test duration
+	interval := 50 * time.Millisecond
 
+	// duration testing — verify that values are emitted at the expected interval
+	intervalValues, err := Collect(
+		Pipe1(
+			RangeWithStepAndInterval(1, 4, 0.5, interval),
+			TimeInterval[float64](),
+		),
+	)
+	is.Len(intervalValues, 6) // [1, 4) with step 0.5 = 6 values
+	is.NoError(err)
+	for i := 0; i < 6; i++ {
+		is.InDelta(interval, intervalValues[i].Interval, float64(25*time.Millisecond))
+	}
+
+	// panics
 	is.PanicsWithError("ro.RangeWithStepAndInterval: step must be greater than 0", func() {
 		RangeWithStepAndInterval(1, 5, 0, 10*time.Millisecond)
 	})
@@ -335,6 +362,7 @@ func TestOperatorCreationRangeWithStepAndInterval(t *testing.T) {
 		RangeWithStepAndInterval(1, 5, -42, 10*time.Millisecond)
 	})
 
+	// value testing
 	values, err := Collect(
 		RangeWithStepAndInterval(1, 5, 0.5, 10*time.Millisecond),
 	)
@@ -389,7 +417,49 @@ func TestOperatorCreationRepeat(t *testing.T) {
 }
 
 func TestOperatorCreationRepeatWithInterval(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 500*time.Millisecond)
+	is := assert.New(t)
+
+	interval := 50 * time.Millisecond
+
+	// basic values
+	values, err := Collect(
+		RepeatWithInterval(1, 3, interval),
+	)
+	is.Equal([]int{1, 1, 1}, values)
+	is.NoError(err)
+
+	// empty
+	stringValues, err := Collect(
+		RepeatWithInterval("foobar", 0, interval),
+	)
+	is.Equal([]string{}, stringValues)
+	is.NoError(err)
+
+	// error values
+	errorValues, err := Collect(
+		RepeatWithInterval(assert.AnError, 3, interval),
+	)
+	is.Equal([]error{assert.AnError, assert.AnError, assert.AnError}, errorValues)
+	is.NoError(err)
+
+	// panic on negative count
+	is.PanicsWithError("ro.RepeatWithInterval: count must be greater or equal to 0", func() {
+		RepeatWithInterval(1, -1, interval)
+	})
+
+	// duration testing
+	intervalValues, err := Collect(
+		Pipe1(
+			RepeatWithInterval(0, 3, interval),
+			TimeInterval[int](),
+		),
+	)
+	is.Len(intervalValues, 3)
+	is.NoError(err)
+	for i := 0; i < 3; i++ {
+		is.InDelta(interval, intervalValues[i].Interval, float64(25*time.Millisecond))
+	}
 }
 
 func TestOperatorCreationFromChannel(t *testing.T) { //nolint:paralleltest
@@ -693,47 +763,446 @@ func TestOperatorCreationMerge(t *testing.T) { //nolint:paralleltest
 }
 
 func TestOperatorCreationCombineLatest2(t *testing.T) { //nolint:paralleltest
-	// @TODO
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// basic case
+	values, err := Collect(
+		CombineLatest2(
+			Of(1),
+			Of(2),
+		),
+	)
+	is.Equal([]lo.Tuple2[int, int]{lo.T2(1, 2)}, values)
+	is.NoError(err)
+
+	// empty sources
+	values, err = Collect(
+		CombineLatest2(
+			Empty[int](),
+			Empty[int](),
+		),
+	)
+	is.Equal([]lo.Tuple2[int, int]{}, values)
+	is.NoError(err)
+
+	// error propagation
+	values, err = Collect(
+		CombineLatest2(
+			Throw[int](assert.AnError),
+			Of(2),
+		),
+	)
+	is.Equal([]lo.Tuple2[int, int]{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationCombineLatest3(t *testing.T) { //nolint:paralleltest
-	// @TODO
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// basic case
+	values, err := Collect(
+		CombineLatest3(
+			Of(1),
+			Of(2),
+			Of(3),
+		),
+	)
+	is.Equal([]lo.Tuple3[int, int, int]{lo.T3(1, 2, 3)}, values)
+	is.NoError(err)
+
+	// empty sources
+	values, err = Collect(
+		CombineLatest3(
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+		),
+	)
+	is.Equal([]lo.Tuple3[int, int, int]{}, values)
+	is.NoError(err)
+
+	// error propagation
+	values, err = Collect(
+		CombineLatest3(
+			Throw[int](assert.AnError),
+			Of(2),
+			Of(3),
+		),
+	)
+	is.Equal([]lo.Tuple3[int, int, int]{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationCombineLatest4(t *testing.T) { //nolint:paralleltest
-	// @TODO
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// basic case
+	values, err := Collect(
+		CombineLatest4(
+			Of(1),
+			Of(2),
+			Of(3),
+			Of(4),
+		),
+	)
+	is.Equal([]lo.Tuple4[int, int, int, int]{lo.T4(1, 2, 3, 4)}, values)
+	is.NoError(err)
+
+	// empty sources
+	values, err = Collect(
+		CombineLatest4(
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+		),
+	)
+	is.Equal([]lo.Tuple4[int, int, int, int]{}, values)
+	is.NoError(err)
+
+	// error propagation
+	values, err = Collect(
+		CombineLatest4(
+			Throw[int](assert.AnError),
+			Of(2),
+			Of(3),
+			Of(4),
+		),
+	)
+	is.Equal([]lo.Tuple4[int, int, int, int]{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationCombineLatest5(t *testing.T) { //nolint:paralleltest
-	// @TODO
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// basic case
+	values, err := Collect(
+		CombineLatest5(
+			Of(1),
+			Of(2),
+			Of(3),
+			Of(4),
+			Of(5),
+		),
+	)
+	is.Equal([]lo.Tuple5[int, int, int, int, int]{lo.T5(1, 2, 3, 4, 5)}, values)
+	is.NoError(err)
+
+	// empty sources
+	values, err = Collect(
+		CombineLatest5(
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+		),
+	)
+	is.Equal([]lo.Tuple5[int, int, int, int, int]{}, values)
+	is.NoError(err)
+
+	// error propagation
+	values, err = Collect(
+		CombineLatest5(
+			Throw[int](assert.AnError),
+			Of(2),
+			Of(3),
+			Of(4),
+			Of(5),
+		),
+	)
+	is.Equal([]lo.Tuple5[int, int, int, int, int]{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationCombineLatestAny(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// basic case
+	values, err := Collect(
+		CombineLatestAny(
+			Of[any](1),
+			Of[any]("foo"),
+		),
+	)
+	is.Equal([][]any{{1, "foo"}}, values)
+	is.NoError(err)
+
+	// empty sources
+	values, err = Collect(
+		CombineLatestAny(
+			Empty[any](),
+			Empty[any](),
+		),
+	)
+	is.Equal([][]any{}, values)
+	is.NoError(err)
+
+	// error propagation
+	values, err = Collect(
+		CombineLatestAny(
+			Throw[any](assert.AnError),
+			Of[any]("foo"),
+		),
+	)
+	is.Equal([][]any{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationZip(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// basic case
+	values, err := Collect(
+		Zip(
+			Of(1, 2),
+			Of(3, 4),
+		),
+	)
+	is.Equal([][]int{{1, 3}, {2, 4}}, values)
+	is.NoError(err)
+
+	// empty source
+	values, err = Collect(
+		Zip(
+			Empty[int](),
+			Of(1),
+		),
+	)
+	is.Equal([][]int{}, values)
+	is.NoError(err)
+
+	// single value per source
+	values, err = Collect(
+		Zip(
+			Of(1),
+			Of(2),
+		),
+	)
+	is.Equal([][]int{{1, 2}}, values)
+	is.NoError(err)
+
+	// error propagation
+	values, err = Collect(
+		Zip(
+			Throw[int](assert.AnError),
+			Of(1),
+		),
+	)
+	is.Equal([][]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationZip2(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// basic case
+	values, err := Collect(
+		Zip2(
+			Of(1),
+			Of(2),
+		),
+	)
+	is.Equal([]lo.Tuple2[int, int]{lo.T2(1, 2)}, values)
+	is.NoError(err)
+
+	// empty sources
+	values, err = Collect(
+		Zip2(
+			Empty[int](),
+			Empty[int](),
+		),
+	)
+	is.Equal([]lo.Tuple2[int, int]{}, values)
+	is.NoError(err)
+
+	// error propagation
+	values, err = Collect(
+		Zip2(
+			Throw[int](assert.AnError),
+			Of(2),
+		),
+	)
+	is.Equal([]lo.Tuple2[int, int]{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationZip3(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// basic case
+	values, err := Collect(
+		Zip3(
+			Of(1),
+			Of(2),
+			Of(3),
+		),
+	)
+	is.Equal([]lo.Tuple3[int, int, int]{lo.T3(1, 2, 3)}, values)
+	is.NoError(err)
+
+	// empty sources
+	values, err = Collect(
+		Zip3(
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+		),
+	)
+	is.Equal([]lo.Tuple3[int, int, int]{}, values)
+	is.NoError(err)
+
+	// error propagation
+	values, err = Collect(
+		Zip3(
+			Throw[int](assert.AnError),
+			Of(2),
+			Of(3),
+		),
+	)
+	is.Equal([]lo.Tuple3[int, int, int]{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationZip4(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// basic case
+	values, err := Collect(
+		Zip4(
+			Of(1),
+			Of(2),
+			Of(3),
+			Of(4),
+		),
+	)
+	is.Equal([]lo.Tuple4[int, int, int, int]{lo.T4(1, 2, 3, 4)}, values)
+	is.NoError(err)
+
+	// empty sources
+	values, err = Collect(
+		Zip4(
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+		),
+	)
+	is.Equal([]lo.Tuple4[int, int, int, int]{}, values)
+	is.NoError(err)
+
+	// error propagation
+	values, err = Collect(
+		Zip4(
+			Throw[int](assert.AnError),
+			Of(2),
+			Of(3),
+			Of(4),
+		),
+	)
+	is.Equal([]lo.Tuple4[int, int, int, int]{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationZip5(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// basic case
+	values, err := Collect(
+		Zip5(
+			Of(1),
+			Of(2),
+			Of(3),
+			Of(4),
+			Of(5),
+		),
+	)
+	is.Equal([]lo.Tuple5[int, int, int, int, int]{lo.T5(1, 2, 3, 4, 5)}, values)
+	is.NoError(err)
+
+	// empty sources
+	values, err = Collect(
+		Zip5(
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+		),
+	)
+	is.Equal([]lo.Tuple5[int, int, int, int, int]{}, values)
+	is.NoError(err)
+
+	// error propagation
+	values, err = Collect(
+		Zip5(
+			Throw[int](assert.AnError),
+			Of(2),
+			Of(3),
+			Of(4),
+			Of(5),
+		),
+	)
+	is.Equal([]lo.Tuple5[int, int, int, int, int]{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationZip6(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// basic case
+	values, err := Collect(
+		Zip6(
+			Of(1),
+			Of(2),
+			Of(3),
+			Of(4),
+			Of(5),
+			Of(6),
+		),
+	)
+	is.Equal([]lo.Tuple6[int, int, int, int, int, int]{lo.T6(1, 2, 3, 4, 5, 6)}, values)
+	is.NoError(err)
+
+	// empty sources
+	values, err = Collect(
+		Zip6(
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+			Empty[int](),
+		),
+	)
+	is.Equal([]lo.Tuple6[int, int, int, int, int, int]{}, values)
+	is.NoError(err)
+
+	// error propagation
+	values, err = Collect(
+		Zip6(
+			Throw[int](assert.AnError),
+			Of(2),
+			Of(3),
+			Of(4),
+			Of(5),
+			Of(6),
+		),
+	)
+	is.Equal([]lo.Tuple6[int, int, int, int, int, int]{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationConcat(t *testing.T) {
@@ -764,11 +1233,77 @@ func TestOperatorCreationConcat(t *testing.T) {
 }
 
 func TestOperatorCreationRace(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 500*time.Millisecond)
+	is := assert.New(t)
+
+	// First source to emit wins
+	values, err := Collect(
+		Race(
+			RangeWithInterval(0, 2, 100*time.Millisecond),
+			Just[int64](99),
+		),
+	)
+	is.Equal([]int64{99}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Race(
+			Just[int64](1, 2, 3),
+			Just[int64](4, 5, 6),
+		),
+	)
+	is.Equal([]int64{1, 2, 3}, values)
+	is.NoError(err)
+
+	// Empty source
+	values, err = Collect(
+		Race(Empty[int64]()),
+	)
+	is.Equal([]int64{}, values)
+	is.NoError(err)
+
+	// Error source
+	values, err = Collect(
+		Race(Throw[int64](assert.AnError)),
+	)
+	is.Equal([]int64{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationAmb(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	testWithTimeout(t, 500*time.Millisecond)
+	is := assert.New(t)
+
+	// Amb is an alias for Race — first source to emit wins
+	values, err := Collect(
+		Amb(
+			RangeWithInterval(0, 2, 100*time.Millisecond),
+			Just[int64](99),
+		),
+	)
+	is.Equal([]int64{99}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Amb(
+			Just[int64](1, 2, 3),
+			Just[int64](4, 5, 6),
+		),
+	)
+	is.Equal([]int64{1, 2, 3}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Amb(Empty[int64]()),
+	)
+	is.Equal([]int64{}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Amb(Throw[int64](assert.AnError)),
+	)
+	is.Equal([]int64{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorCreationRandIntN(t *testing.T) {

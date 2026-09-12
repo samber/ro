@@ -24,7 +24,76 @@ import (
 )
 
 func TestOperatorConnectableShare(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	// t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
+	is := assert.New(t)
+
+	mu := lo.Synchronize()
+	a := []int{}
+	b := []int{}
+	c := []string{}
+	d := []string{}
+
+	source := Pipe3(
+		Just(1, 2, 3),
+		TapOnNext(func(value int) {
+			mu.Do(func() {
+				a = append(a, value)
+			})
+		}),
+		Delay[int](10*time.Millisecond),
+		Share[int](),
+	)
+
+	sub1 := source.Subscribe(OnNext(func(item int) {
+		mu.Do(func() {
+			b = append(b, item*2)
+		})
+	}))
+	sub2 := source.Subscribe(OnNext(func(item int) {
+		mu.Do(func() {
+			c = append(c, strconv.Itoa(item))
+		})
+	}))
+	sub3 := source.Subscribe(OnNext(func(item int) {
+		mu.Do(func() {
+			d = append(d, strconv.Itoa(item))
+		})
+	}))
+
+	mu.Do(func() {
+		is.Equal([]int{1, 2, 3}, a)
+		is.Equal([]int{}, b)
+		is.Equal([]string{}, c)
+		is.Equal([]string{}, d)
+	})
+
+	is.False(sub1.IsClosed())
+	is.False(sub2.IsClosed())
+	is.False(sub3.IsClosed())
+
+	sub1.Unsubscribe()
+	is.True(sub1.IsClosed())
+	is.False(sub2.IsClosed())
+	is.False(sub3.IsClosed())
+
+	sub2.Unsubscribe()
+	is.True(sub1.IsClosed())
+	is.True(sub2.IsClosed())
+	is.False(sub3.IsClosed())
+
+	time.Sleep(50 * time.Millisecond)
+	mu.Do(func() {
+		is.Equal([]int{1, 2, 3}, a)
+		is.Equal([]int{}, b)
+		is.Equal([]string{}, c)
+		is.Equal([]string{"1", "2", "3"}, d)
+	})
+
+	sub3.Unsubscribe()
+	is.True(sub1.IsClosed())
+	is.True(sub2.IsClosed())
+	is.True(sub3.IsClosed())
 }
 
 func TestOperatorConnectableShareWithConfig(t *testing.T) { //nolint:paralleltest
@@ -738,5 +807,52 @@ func TestOperatorConnectableShareReplay_smallBuffer(t *testing.T) { //nolint:par
 }
 
 func TestOperatorConnectableShareReplayWithConfig(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+	// t.Parallel()
+	testWithTimeout(t, 1000*time.Millisecond)
+	is := assert.New(t)
+
+	mu := lo.Synchronize()
+	a := []int64{}
+	b := []int64{}
+	c := []int64{}
+
+	source := Pipe2(
+		RangeWithInterval(0, 5, 50*time.Millisecond),
+		TapOnNext(func(value int64) {
+			mu.Do(func() {
+				a = append(a, value)
+			})
+		}),
+		ShareReplayWithConfig[int64](2, ShareReplayConfig{
+			ResetOnRefCountZero: true,
+		}),
+	)
+
+	sub1 := source.Subscribe(
+		OnNext(func(item int64) {
+			mu.Do(func() {
+				b = append(b, item*2)
+			})
+		}),
+	)
+
+	time.Sleep(125 * time.Millisecond)
+
+	sub2 := source.Subscribe(
+		OnNext(func(item int64) {
+			mu.Do(func() {
+				c = append(c, item*4)
+			})
+		}),
+	)
+
+	time.Sleep(200 * time.Millisecond)
+
+	mu.Do(func() {
+		is.Equal([]int64{0, 1, 2, 3, 4}, a)
+		is.Equal([]int64{0, 2, 4, 6, 8}, b)
+		is.Equal([]int64{0, 4, 8, 12, 16}, c)
+	})
+	is.True(sub1.IsClosed())
+	is.True(sub2.IsClosed())
 }

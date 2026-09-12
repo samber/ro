@@ -16,6 +16,7 @@ package rotesting
 
 import (
 	"testing"
+	"time"
 
 	"github.com/samber/ro"
 	"github.com/stretchr/testify/assert"
@@ -72,5 +73,66 @@ func TestAssert(t *testing.T) {
 		ExpectNext(2).
 		ExpectNext(3).
 		ExpectError(assert.AnError).
+		Verify()
+
+	// ExpectDurationEpsilon: duration between emissions should be approximately equal
+	Assert[int](t).
+		Source(ro.NewObservable(func(destination ro.Observer[int]) ro.Teardown {
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				destination.Next(1)
+				time.Sleep(10 * time.Millisecond)
+				destination.Next(2)
+			}()
+			return nil
+		})).
+		ExpectNext(1).
+		ExpectDurationEpsilon(10*time.Millisecond, 5*time.Millisecond).
+		ExpectNext(2).
+		Verify()
+
+	// ExpectDurationLessThan: duration between emissions should be less than threshold
+	Assert[int](t).
+		Source(ro.NewObservable(func(destination ro.Observer[int]) ro.Teardown {
+			go func() {
+				time.Sleep(5 * time.Millisecond)
+				destination.Next(1)
+				time.Sleep(5 * time.Millisecond)
+				destination.Next(2)
+			}()
+			return nil
+		})).
+		ExpectNext(1).
+		ExpectDurationLessThan(20 * time.Millisecond).
+		ExpectNext(2).
+		Verify()
+
+	// ExpectDurationGreaterThan: duration between emissions should be greater than threshold
+	Assert[int](t).
+		Source(ro.NewObservable(func(destination ro.Observer[int]) ro.Teardown {
+			go func() {
+				time.Sleep(15 * time.Millisecond)
+				destination.Next(1)
+			}()
+			return nil
+		})).
+		ExpectNext(1).
+		ExpectDurationGreaterThan(10 * time.Millisecond).
+		Verify()
+
+	// ExpectDurationInRange: duration between emissions should be within range
+	Assert[int](t).
+		Source(ro.NewObservable(func(destination ro.Observer[int]) ro.Teardown {
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				destination.Next(1)
+				time.Sleep(10 * time.Millisecond)
+				destination.Next(2)
+			}()
+			return nil
+		})).
+		ExpectNext(1).
+		ExpectDurationInRange(5*time.Millisecond, 20*time.Millisecond).
+		ExpectNext(2).
 		Verify()
 }
