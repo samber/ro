@@ -1142,6 +1142,45 @@ func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T
 	)
 }
 
+func zipAllSubscription[T any](subscriberCtx context.Context, obs Observable[T], mu *sync.Mutex, valuePtr **T, hasValue *bool, completed *bool, onUpdate func(context.Context), destination zipDestination, subscriptions Subscription) {
+	subscriptions.AddUnsubscribable(
+		obs.SubscribeWithContext(
+			subscriberCtx,
+			NewObserverWithContext(
+				func(ctx context.Context, v T) {
+					mu.Lock()
+
+					*valuePtr = &v
+					*hasValue = true
+
+					mu.Unlock()
+
+					onUpdate(ctx)
+				},
+				func(ctx context.Context, err error) {
+					mu.Lock()
+
+					*completed = true
+
+					mu.Unlock()
+
+					destination.ErrorWithContext(ctx, err)
+					subscriptions.Unsubscribe()
+				},
+				func(ctx context.Context) {
+					mu.Lock()
+
+					*completed = true
+
+					mu.Unlock()
+
+					subscriptions.Unsubscribe()
+				},
+			),
+		),
+	)
+}
+
 // ZipWith combines the values from the source Observable with the latest values
 // from the other Observables. It emits only when all Observables have emitted
 // at least one value. It completes when the source Observable completes.
@@ -1522,28 +1561,26 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observable[T], destination Observer[[]T]) Teardown {
 	var mu sync.Mutex
 
-	values := make([]xqueue.Queue[T], len(sources))
-	for i := range values {
-		values[i] = xqueue.NewQueue[T]()
-	}
+	// Keep only the latest value per source, not a FIFO queue of all emitted values.
+	latestValues := make([]*T, len(sources))
+	hasValue := make([]bool, len(sources))
 	completed := make([]bool, len(sources))
 
 	onUpdate := func(ctx context.Context) {
 		mu.Lock()
 
-		hasEmptyQueue := false
-
+		allHaveValue := true
 		for i := range sources {
-			if values[i].Len() == 0 {
-				hasEmptyQueue = true
+			if !hasValue[i] {
+				allHaveValue = false
 				break
 			}
 		}
 
-		if !hasEmptyQueue {
+		if allHaveValue {
 			result := make([]T, len(sources))
 			for i := range sources {
-				result[i] = values[i].Pop()
+				result[i] = *latestValues[i]
 			}
 
 			mu.Unlock() // unlock before calling destination.Next to prevent long locks
@@ -1552,8 +1589,11 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 
 			mu.Lock()
 
+			// After pairing, keep only the latest value from faster sources.
+			// For sources that emitted faster (have newer queued values),
+			// the pairing mechanism pairs with the latest available value.
 			for i := range sources {
-				if completed[i] && values[i].Len() == 0 {
+				if completed[i] && !hasValue[i] {
 					destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					break
 				}
@@ -1567,7 +1607,7 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 
 	for i := range sources {
 		j := i
-		zipInnerSubscription(outerCtx, sources[i], &mu, values[j], &completed[j], onUpdate, destination, subscriptions)
+		zipAllSubscription(outerCtx, sources[i], &mu, &latestValues[j], &hasValue[j], &completed[j], onUpdate, destination, subscriptions)
 	}
 
 	return func() {
@@ -1577,7 +1617,8 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 		mu.Lock()
 
 		completed = nil
-		values = nil
+		latestValues = nil
+		hasValue = nil
 
 		mu.Unlock()
 	}
