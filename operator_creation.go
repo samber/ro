@@ -290,7 +290,7 @@ func RangeWithStepAndInterval(start, end, step float64, interval time.Duration) 
 		Map(func(v int64) float64 {
 			return start + (float64(v) * sign * step)
 		}),
-		Take[float64](int64(math.Floor(((end*sign)-(start*sign))/(step)))),
+		Take[float64](int64(math.Floor(((end*sign)-(start*sign))/step))),
 	)
 }
 

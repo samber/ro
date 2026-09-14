@@ -17,6 +17,7 @@ package rotestify
 
 import (
 	"context"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/samber/ro"
@@ -30,9 +31,23 @@ type testify[T any] struct {
 	source     ro.Observable[T]
 }
 
+type durationMatch int
+
+const (
+	durationMatchNone      durationMatch = iota // no duration assertion
+	durationMatchEpsilon                         // epsilon
+	durationMatchLessThan                         // less_than
+	durationMatchGreaterThan                      // greater_than
+	durationMatchInRange                          // in_range
+)
+
 type testifyAssertion[T any] struct {
 	notification ro.Notification[T]
 	msgAndArgs   []any
+	// Duration assertion fields (zero value means not a duration assertion)
+	duration      time.Duration
+	durationMatch durationMatch // epsilon, less_than, greater_than, in_range
+	durationMax   time.Duration // for in_range
 }
 
 // Testify creates a new instance of test. It is used to assert the behavior of an
@@ -129,6 +144,56 @@ func (t *testify[T]) ExpectComplete(msgAndArgs ...any) rotesting.AssertSpec[T] {
 	return t
 }
 
+// ExpectDurationEpsilon expects the duration between consecutive Next notifications
+// to be approximately equal to the given duration (within epsilon).
+func (t *testify[T]) ExpectDurationEpsilon(duration time.Duration, epsilon time.Duration, msgAndArgs ...any) rotesting.AssertSpec[T] {
+	assertion := testifyAssertion[T]{
+		duration:      duration,
+		durationMatch: durationMatchEpsilon,
+		durationMax:   epsilon,
+		msgAndArgs:    msgAndArgs,
+	}
+	t.assertions = append(t.assertions, assertion)
+	return t
+}
+
+// ExpectDurationLessThan expects the duration between consecutive Next notifications
+// to be less than the given duration.
+func (t *testify[T]) ExpectDurationLessThan(duration time.Duration, msgAndArgs ...any) rotesting.AssertSpec[T] {
+	assertion := testifyAssertion[T]{
+		duration:      duration,
+		durationMatch: durationMatchLessThan,
+		msgAndArgs:    msgAndArgs,
+	}
+	t.assertions = append(t.assertions, assertion)
+	return t
+}
+
+// ExpectDurationGreaterThan expects the duration between consecutive Next notifications
+// to be greater than the given duration.
+func (t *testify[T]) ExpectDurationGreaterThan(duration time.Duration, msgAndArgs ...any) rotesting.AssertSpec[T] {
+	assertion := testifyAssertion[T]{
+		duration:      duration,
+		durationMatch: durationMatchGreaterThan,
+		msgAndArgs:    msgAndArgs,
+	}
+	t.assertions = append(t.assertions, assertion)
+	return t
+}
+
+// ExpectDurationInRange expects the duration between consecutive Next notifications
+// to be within the given [min, max] range.
+func (t *testify[T]) ExpectDurationInRange(min, max time.Duration, msgAndArgs ...any) rotesting.AssertSpec[T] {
+	assertion := testifyAssertion[T]{
+		duration:      min,
+		durationMatch: durationMatchInRange,
+		durationMax:   max,
+		msgAndArgs:    msgAndArgs,
+	}
+	t.assertions = append(t.assertions, assertion)
+	return t
+}
+
 // Verify subscribes to the source observable and verifies the assertions.
 // It fails the test if the source observable emits a value, an error, or completes
 // before all assertions are verified.
@@ -136,19 +201,36 @@ func (t *testify[T]) Verify() {
 	t.VerifyWithContext(context.Background())
 }
 
-// Verify subscribes to the source observable and verifies the assertions.
+// VerifyWithContext subscribes to the source observable and verifies the assertions.
 // It fails the test if the source observable emits a value, an error, or completes
 // before all assertions are verified.
 func (t *testify[T]) VerifyWithContext(ctx context.Context) {
+	var lastEmitTime time.Time
+	firstEmit := true
+
 	t.source.SubscribeWithContext(
 		ctx,
 		ro.NewObserverWithContext(
 			func(ctx context.Context, value T) {
+				now := time.Now()
 				assertion, ok := t.popAssertion()
 
-				ok = ok && t.is.Equal(ro.KindNext, assertion.notification.Kind, "expected '%s' notification, got 'Next'", assertion.notification.Kind)
-				ok = ok && t.is.Equal(assertion.notification.Value, value, assertion.msgAndArgs...)
+				if !firstEmit && assertion.durationMatch != durationMatchNone {
+					elapsed := now.Sub(lastEmitTime)
+					ok = t.verifyDuration(assertion, elapsed)
+					if !ok {
+						return
+					}
+				}
+
+				if assertion.notification.Kind == ro.KindNext {
+					ok = ok && t.is.Equal(ro.KindNext, assertion.notification.Kind, "expected '%s' notification, got 'Next'", assertion.notification.Kind)
+					ok = ok && t.is.Equal(assertion.notification.Value, value, assertion.msgAndArgs...)
+				}
 				_ = ok
+
+				lastEmitTime = now
+				firstEmit = false
 			},
 			func(ctx context.Context, err error) {
 				assertion, ok := t.popAssertion()
@@ -165,4 +247,19 @@ func (t *testify[T]) VerifyWithContext(ctx context.Context) {
 			},
 		),
 	)
+}
+
+func (t *testify[T]) verifyDuration(assertion testifyAssertion[T], elapsed time.Duration) bool {
+	switch assertion.durationMatch {
+	case durationMatchEpsilon:
+		return t.is.True(elapsed >= assertion.duration-assertion.durationMax && elapsed <= assertion.duration+assertion.durationMax, assertion.msgAndArgs...)
+	case durationMatchLessThan:
+		return t.is.True(elapsed < assertion.duration, assertion.msgAndArgs...)
+	case durationMatchGreaterThan:
+		return t.is.True(elapsed > assertion.duration, assertion.msgAndArgs...)
+	case durationMatchInRange:
+		return t.is.True(elapsed >= assertion.duration && elapsed <= assertion.durationMax, assertion.msgAndArgs...)
+	default:
+		panic("unexpected durationMatch value")
+	}
 }

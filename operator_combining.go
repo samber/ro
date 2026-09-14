@@ -1128,14 +1128,17 @@ func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T
 
 					*completed = true
 
+					// Only tear down the sibling sources once this source is drained: an
+					// empty, completed source can never contribute another pair, so the
+					// whole zip is done. A non-empty one may still have buffered values
+					// waiting to be paired once the slower siblings catch up.
 					if values.Len() == 0 {
 						mu.Unlock()
 						destination.CompleteWithContext(ctx)
+						subscriptions.Unsubscribe()
 					} else {
 						mu.Unlock()
 					}
-
-					subscriptions.Unsubscribe()
 				},
 			),
 		),
@@ -1522,27 +1525,30 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observable[T], destination Observer[[]T]) Teardown {
 	var mu sync.Mutex
 
+	// Buffer every emitted value per source in a FIFO queue, so items are
+	// paired positionally (1st with 1st, 2nd with 2nd...) instead of by
+	// whichever value happens to be the most recent when all sources are ready.
 	values := make([]xqueue.Queue[T], len(sources))
+	completed := make([]bool, len(sources))
+
 	for i := range values {
 		values[i] = xqueue.NewQueue[T]()
 	}
-	completed := make([]bool, len(sources))
 
 	onUpdate := func(ctx context.Context) {
 		mu.Lock()
 
-		hasEmptyQueue := false
-
-		for i := range sources {
+		allHaveValue := true
+		for i := range values {
 			if values[i].Len() == 0 {
-				hasEmptyQueue = true
+				allHaveValue = false
 				break
 			}
 		}
 
-		if !hasEmptyQueue {
+		if allHaveValue {
 			result := make([]T, len(sources))
-			for i := range sources {
+			for i := range values {
 				result[i] = values[i].Pop()
 			}
 
@@ -1552,12 +1558,24 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 
 			mu.Lock()
 
-			for i := range sources {
+			// A source that already completed can't refill its queue, so once it
+			// runs dry no further pair can ever be produced.
+			shouldComplete := false
+			for i := range values {
 				if completed[i] && values[i].Len() == 0 {
-					destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
+					shouldComplete = true
 					break
 				}
 			}
+
+			mu.Unlock() // unlock before calling destination.Complete: it may synchronously
+			// unwind through this observable's own teardown, which re-acquires mu.
+
+			if shouldComplete {
+				destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
+			}
+
+			return
 		}
 
 		mu.Unlock()
@@ -1566,8 +1584,7 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 	subscriptions := NewSubscription(nil)
 
 	for i := range sources {
-		j := i
-		zipInnerSubscription(outerCtx, sources[i], &mu, values[j], &(completed[j]), onUpdate, destination, subscriptions)
+		zipInnerSubscription(outerCtx, sources[i], &mu, values[i], &completed[i], onUpdate, destination, subscriptions)
 	}
 
 	return func() {
@@ -1576,8 +1593,9 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 		// free memory
 		mu.Lock()
 
-		completed = nil
-		values = nil
+		for i := range values {
+			values[i].Reset()
+		}
 
 		mu.Unlock()
 	}
@@ -1598,6 +1616,14 @@ func ZipAll[T any]() func(Observable[Observable[T]]) Observable[[]T] {
 					subscriberCtx,
 					NewObserverWithContext(
 						func(ctx context.Context, flattenSources []Observable[T]) {
+							if len(flattenSources) == 0 {
+								// Nothing to zip: complete right away instead of
+								// waiting on zipAllInnerSubscriptions, which is never
+								// invoked in this case.
+								destination.CompleteWithContext(ctx)
+								return
+							}
+
 							innerSub.Add(
 								// ...then we zip all inner observables.
 								zipAllInnerSubscriptions(ctx, flattenSources, destination),
@@ -1606,9 +1632,12 @@ func ZipAll[T any]() func(Observable[Observable[T]]) Observable[[]T] {
 						func(ctx context.Context, err error) {
 							destination.ErrorWithContext(ctx, err)
 						},
-						func(ctx context.Context) {
-							destination.CompleteWithContext(ctx)
-						},
+						// Collecting the list of sources into a slice always completes
+						// synchronously right after it starts, well before the inner
+						// sources themselves finish pairing. Forwarding that completion
+						// here would tear down the zip before it ever emits: completion
+						// of the zip itself is signaled by zipAllInnerSubscriptions.
+						nil,
 					),
 				)
 

@@ -1324,10 +1324,113 @@ func TestPipeX(t *testing.T) {
 	}
 }
 
-func TestPipeOp(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+func TestPipeOp(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	values, err := Collect(
+		PipeOp[int, int](
+			Map(func(x int) int { return x * 2 }),
+			Take[int](2),
+		)(Just(1, 2, 3)),
+	)
+	is.Equal([]int{2, 4}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		PipeOp[int, int](
+			Map(func(x int) int { return x * 2 }),
+			Take[int](2),
+		)(Throw[int](assert.AnError)),
+	)
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
+
+	values, err = Collect(
+		PipeOp[int, int](
+			Map(func(x int) int { return x * 2 }),
+			Take[int](2),
+		)(Empty[int]()),
+	)
+	is.Equal([]int{}, values)
+	is.NoError(err)
+
+	is.PanicsWithError("ro.Pipe: int is not an operator", func() {
+		_, _ = Collect(
+			PipeOp[int, int](
+				Map(func(x int) int { return x * 2 }),
+				42, // should break here
+			)(Just(1, 2, 3)),
+		)
+	})
+
+	is.PanicsWithError("ro.Pipe: func() is not an operator", func() {
+		_, _ = Collect(
+			PipeOp[int, int](
+				Map(func(x int) int { return x * 2 }),
+				func() { panic("never") }, // should break here
+			)(Just(1, 2, 3)),
+		)
+	})
 }
 
-func TestPipeOpX(t *testing.T) { //nolint:paralleltest
-	// @TODO: implement
+func TestPipeOpX(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	// PipeOp1
+	{
+		values, err := Collect(
+			PipeOp1[int, int](
+				Map(func(x int) int { return x * 2 }),
+			)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{2, 4, 6}, values)
+		is.NoError(err)
+	}
+
+	// PipeOp2
+	{
+		values, err := Collect(
+			PipeOp2[int, int, int](
+				Map(func(x int) int { return x * 2 }),
+				Take[int](2),
+			)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{2, 4}, values)
+		is.NoError(err)
+	}
+
+	// PipeOp3
+	{
+		values, err := Collect(
+			PipeOp3[int, int, int, string](
+				Map(func(x int) int { return x * 2 }),
+				Take[int](2),
+				Map(strconv.Itoa),
+			)(Just(1, 2, 3)),
+		)
+		is.Equal([]string{"2", "4"}, values)
+		is.NoError(err)
+	}
+
+	// PipeOpX with error source
+	values, err := Collect(
+		PipeOp1[int, int](
+			Map(func(x int) int { return x * 2 }),
+		)(Throw[int](assert.AnError)),
+	)
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
+
+	// PipeOpX with empty source
+	values, err = Collect(
+		PipeOp1(
+			Map(func(x int) int { return x * 2 }),
+		)(Empty[int]()),
+	)
+	is.Equal([]int{}, values)
+	is.NoError(err)
 }

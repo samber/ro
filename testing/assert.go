@@ -17,16 +17,11 @@ package rotesting
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/samber/ro"
 )
-
-// @TODO: Add new methods:
-// - ExpectDurationEpsilon
-// - ExpectDurationLessThan
-// - ExpectDurationGreaterThan
-// - ExpectDurationInRange
 
 var _ AssertSpec[int] = (*assertImpl[int])(nil)
 
@@ -39,6 +34,10 @@ type assertImpl[T any] struct {
 type gotestingAssertion[T any] struct {
 	notification ro.Notification[T]
 	msgAndArgs   []any
+	// Duration assertion fields (zero value means not a duration assertion)
+	duration      time.Duration
+	durationMatch string        // "epsilon", "less_than", "greater_than", "in_range"
+	durationMax   time.Duration // for in_range
 }
 
 // Assert creates a new instance of test. It is used to assert the behavior of an
@@ -177,15 +176,32 @@ func (t *assertImpl[T]) Verify() {
 func (t *assertImpl[T]) VerifyWithContext(ctx context.Context) {
 	t.t.Helper()
 
+	var lastEmitTime time.Time
+	firstEmit := true
+
 	t.source.SubscribeWithContext(
 		ctx,
 		ro.NewObserverWithContext(
 			func(ctx context.Context, value T) {
+				now := time.Now()
 				assertion, ok := t.popAssertion()
 
-				ok = ok && t.equal(ro.KindNext, assertion.notification.Kind, "expected '%s' notification, got 'Next'", assertion.notification.Kind)
-				ok = ok && t.equal(assertion.notification.Value, value, assertion.msgAndArgs...)
+				if !firstEmit && assertion.durationMatch != "" {
+					elapsed := now.Sub(lastEmitTime)
+					ok = t.verifyDuration(assertion, elapsed)
+					if !ok {
+						return
+					}
+				}
+
+				if assertion.notification.Kind == ro.KindNext {
+					ok = ok && t.equal(ro.KindNext, assertion.notification.Kind, "expected '%s' notification, got 'Next'", assertion.notification.Kind)
+					ok = ok && t.equal(assertion.notification.Value, value, assertion.msgAndArgs...)
+				}
 				_ = ok
+
+				lastEmitTime = now
+				firstEmit = false
 			},
 			func(ctx context.Context, err error) {
 				assertion, ok := t.popAssertion()
@@ -202,4 +218,82 @@ func (t *assertImpl[T]) VerifyWithContext(ctx context.Context) {
 			},
 		),
 	)
+}
+
+func (t *assertImpl[T]) verifyDuration(assertion gotestingAssertion[T], elapsed time.Duration) bool {
+	t.t.Helper()
+
+	switch assertion.durationMatch {
+	case "epsilon":
+		return t.equal(true, elapsed >= assertion.duration-assertion.durationMax && elapsed <= assertion.duration+assertion.durationMax, assertion.msgAndArgs...)
+	case "less_than":
+		return t.equal(true, elapsed < assertion.duration, assertion.msgAndArgs...)
+	case "greater_than":
+		return t.equal(true, elapsed > assertion.duration, assertion.msgAndArgs...)
+	case "in_range":
+		return t.equal(true, elapsed >= assertion.duration && elapsed <= assertion.durationMax, assertion.msgAndArgs...)
+	}
+	return true
+}
+
+// ExpectDurationEpsilon expects the duration between consecutive Next notifications
+// to be approximately equal to the given duration (within epsilon).
+func (t *assertImpl[T]) ExpectDurationEpsilon(duration, epsilon time.Duration, msgAndArgs ...any) AssertSpec[T] {
+	t.t.Helper()
+
+	assertion := gotestingAssertion[T]{
+		duration:      duration,
+		durationMatch: "epsilon",
+		durationMax:   epsilon,
+		msgAndArgs:    msgAndArgs,
+	}
+	t.assertions = append(t.assertions, assertion)
+
+	return t
+}
+
+// ExpectDurationLessThan expects the duration between consecutive Next notifications
+// to be less than the given duration.
+func (t *assertImpl[T]) ExpectDurationLessThan(duration time.Duration, msgAndArgs ...any) AssertSpec[T] {
+	t.t.Helper()
+
+	assertion := gotestingAssertion[T]{
+		duration:      duration,
+		durationMatch: "less_than",
+		msgAndArgs:    msgAndArgs,
+	}
+	t.assertions = append(t.assertions, assertion)
+
+	return t
+}
+
+// ExpectDurationGreaterThan expects the duration between consecutive Next notifications
+// to be greater than the given duration.
+func (t *assertImpl[T]) ExpectDurationGreaterThan(duration time.Duration, msgAndArgs ...any) AssertSpec[T] {
+	t.t.Helper()
+
+	assertion := gotestingAssertion[T]{
+		duration:      duration,
+		durationMatch: "greater_than",
+		msgAndArgs:    msgAndArgs,
+	}
+	t.assertions = append(t.assertions, assertion)
+
+	return t
+}
+
+// ExpectDurationInRange expects the duration between consecutive Next notifications
+// to be within the given [min, max] range.
+func (t *assertImpl[T]) ExpectDurationInRange(mIn, mAx time.Duration, msgAndArgs ...any) AssertSpec[T] {
+	t.t.Helper()
+
+	assertion := gotestingAssertion[T]{
+		duration:      mIn,
+		durationMatch: "in_range",
+		durationMax:   mAx,
+		msgAndArgs:    msgAndArgs,
+	}
+	t.assertions = append(t.assertions, assertion)
+
+	return t
 }
