@@ -1142,7 +1142,7 @@ func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T
 	)
 }
 
-func zipAllSubscription[T any](subscriberCtx context.Context, obs Observable[T], mu *sync.Mutex, valuePtr **T, hasValue *bool, completed *bool, onUpdate func(context.Context), destination zipDestination, subscriptions Subscription) {
+func zipAllSubscription[T any](subscriberCtx context.Context, obs Observable[T], mu *sync.Mutex, valuePtr **T, hasValue, completed *bool, onUpdate func(context.Context), destination zipDestination, subscriptions Subscription) {
 	subscriptions.AddUnsubscribable(
 		obs.SubscribeWithContext(
 			subscriberCtx,
