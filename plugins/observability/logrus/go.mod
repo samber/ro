@@ -1,10 +1,10 @@
 module github.com/samber/ro/plugins/observability/logrus
 
-go 1.18
+go 1.23
 
 require (
 	github.com/samber/ro v0.0.0
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.2
 )
 
 require (
