@@ -1,6 +1,6 @@
 module github.com/samber/ro/plugins/ozzo/ozzo-validation
 
-go 1.18
+go 1.24.0
 
 require (
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
