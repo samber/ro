@@ -1547,7 +1547,10 @@ func TestOperatorCombiningZipAll(t *testing.T) { //nolint:paralleltest
 			),
 		),
 	)
-	is.Equal([][]int64{{0, 0}, {0, 1}, {1, 1}}, values)
+	// Zip pairs positionally (1st with 1st, 2nd with 2nd), buffering the faster
+	// source's values until the slower one catches up. It never reuses a value
+	// already paired, regardless of which source is faster.
+	is.Equal([][]int64{{0, 0}, {1, 1}}, values)
 	is.NoError(err)
 
 	values, err = Collect(
@@ -1558,7 +1561,7 @@ func TestOperatorCombiningZipAll(t *testing.T) { //nolint:paralleltest
 			),
 		),
 	)
-	is.Equal([][]int64{{0, 1}, {1, 1}}, values)
+	is.Equal([][]int64{{0, 0}, {1, 1}}, values)
 	is.NoError(err)
 
 	values, err = Collect(
@@ -1569,7 +1572,9 @@ func TestOperatorCombiningZipAll(t *testing.T) { //nolint:paralleltest
 			),
 		),
 	)
-	is.Equal([][]int64{{0, 2}, {1, 2}}, values)
+	// The 2-item source completes after 2 pairs: the faster source's 3rd
+	// buffered value is discarded, since it can never be paired.
+	is.Equal([][]int64{{0, 0}, {1, 1}}, values)
 	is.NoError(err)
 
 	values, err = Collect(
