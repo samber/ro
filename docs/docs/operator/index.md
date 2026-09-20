@@ -1,5 +1,5 @@
 ---
-title: Introduction
+title: Go reactive operators overview
 description: Declarative and composable API
 sidebar_position: 0
 hide_table_of_contents: true

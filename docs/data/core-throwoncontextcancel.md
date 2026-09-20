@@ -126,7 +126,7 @@ obs := ro.Pipe[string, string](
             }),
         )
     }),
-    ro.RetryWithConfig[string](RetryConfig{
+    ro.RetryWithConfig[string](ro.RetryConfig{
         MaxRetries: 3,
         Delay:      100 * time.Millisecond,
     }),

@@ -94,7 +94,7 @@ Method chaining works but can become hard to read. Each operator takes the sourc
 
 ```go
 // Chain operators directly
-source := ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+source := ro.Just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 
 obs1 := ro.Filter(func(x int) bool {
     return x%2 == 0
@@ -157,7 +157,7 @@ var pipeline = ro.PipeOp4(
         }
         return strings.ToUpper(item), nil
     }),
-    ro.RetryWithConfig(RetryConfig{
+    ro.RetryWithConfig[string](ro.RetryConfig{
         MaxRetries: 3,
         Delay:      100 * time.Millisecond,
     }),

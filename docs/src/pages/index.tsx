@@ -4,6 +4,7 @@ import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import Heading from '@theme/Heading';
+import CodeBlock from '@theme/CodeBlock';
 import styles from './index.module.css';
 
 type FeatureItem = {
@@ -18,8 +19,10 @@ const FeatureList: FeatureItem[] = [
     Svg: require('@site/static/img/tram.svg').default,
     description: (
       <>
-        Take Go channels further with fully composable reactive streams. Easily
-        handle asynchronous data flows without getting tangled in goroutines.
+        You already know channels and goroutines. <code>ro</code> adds
+        what's missing: a vocabulary of composable operators, so you
+        describe what a stream does instead of coding the concurrency
+        around it by hand.
       </>
     ),
   },
@@ -28,22 +31,46 @@ const FeatureList: FeatureItem[] = [
     Svg: require('@site/static/img/street-sign.svg').default,
     description: (
       <>
-        Apply multiple transformations to your data in a clean, readable chain. Map,
-        filter, and reduce streams fluently with a single pipeline.
+        Compose <code>Map</code>, <code>Filter</code>, and 200+ other
+        operators into a single fluent pipeline. Every step is fully
+        generic-typed, so a mismatched transformation is a compile error,
+        not a runtime surprise.
       </>
     ),
   },
   {
-    title: 'Powerful developer experience',
+    title: 'A small core, a powerful developer experience',
     Svg: require('@site/static/img/drawing.svg').default,
     description: (
       <>
-        A minimal yet expressive API that gives you full control over your reactive pipelines.
-        Build complex workflows without sacrificing clarity or performance.
+        A minimal yet expressive API that gives you full control over your
+        reactive pipelines, without sacrificing clarity or performance.
+        Everything beyond the core lives in opt-in plugin modules with
+        their own dependencies.
       </>
     ),
   },
 ];
+
+const HERO_EXAMPLE = `observable := ro.Pipe[int64, string](
+    ro.RangeWithInterval(0, 5, 1*time.Second),
+    ro.Filter(func(x int64) bool {
+        return x%2 == 0
+    }),
+    ro.Map(func(x int64) string {
+        return fmt.Sprintf("even-%d", x)
+    }),
+)
+
+observable.Subscribe(ro.NewObserver(
+    func(s string) { fmt.Println(s) },
+    func(err error) { fmt.Println(err.Error()) },
+    func() { fmt.Println("Completed!") },
+))
+// "even-0"
+// "even-2"
+// "even-4"
+// "Completed!"`;
 
 function Feature({title, Svg, description}: FeatureItem) {
   return (
@@ -81,18 +108,20 @@ function HomepageHeader() {
         <Heading as="h1" className="hero__title">
           {siteConfig.title}
         </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
-        <div className={styles.buttons} style={{marginBottom: '10px'}}>
-          <Link
-            className="button button--secondary button--lg"
-            to="/docs/about">
-            Intro
-          </Link>
+        <p className="hero__subtitle">
+          Compose event-driven pipelines in Go - Observables, 200+
+          type-safe operators, and dozens of plugins.
+        </p>
+        <div className={styles.heroCode}>
+          <CodeBlock language="go">
+            {HERO_EXAMPLE}
+          </CodeBlock>
         </div>
-        <div className={styles.buttons}>
-          <Link
-            className="button button--secondary button--lg"
-            to="/docs/getting-started">
+        <div className={clsx(styles.buttons, 'margin-top--md')}>
+          <Link className="button button--secondary button--lg" to="/docs/about">
+            About
+          </Link>
+          <Link className="button button--secondary button--lg" to="/docs/getting-started">
             Getting started - 5min ⏱️
           </Link>
         </div>
@@ -101,15 +130,62 @@ function HomepageHeader() {
   );
 }
 
+type ExploreCard = {
+  title: string;
+  description: string;
+  to: string;
+};
+
+const EXPLORE_CARDS: ExploreCard[] = [
+  {
+    title: '👷 Operators',
+    description: '200+ creation, transformation, filtering, and combining operators.',
+    to: '/docs/operator',
+  },
+  {
+    title: '🔍 Plugins',
+    description: 'JSON, CSV, HTTP, rate limiting, structured logging, and more - opt-in modules.',
+    to: '/docs/plugins',
+  },
+  {
+    title: '📊 Comparisons',
+    description: 'How ro relates to channels, iter, samber/lo, RxGo, and RxJS.',
+    to: '/docs/comparison',
+  },
+];
+
+function ExploreSection(): ReactNode {
+  return (
+    <section className={styles.explore}>
+      <div className="container">
+        <div className="row">
+          {EXPLORE_CARDS.map((card) => (
+            <div key={card.to} className="col col--4 margin-bottom--lg">
+              <Link to={card.to} className={clsx('card', styles.exploreCard)}>
+                <div className="card__header">
+                  <Heading as="h3">{card.title}</Heading>
+                </div>
+                <div className="card__body">
+                  <p>{card.description}</p>
+                </div>
+              </Link>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Home(): JSX.Element {
-  const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title={`🌊 ${siteConfig.title}: ${siteConfig.tagline}`}
-      description="Streams and reactive programming for Go">
+      title="Type-safe async pipelines for Go"
+      description="ro is a Go implementation of the ReactiveX spec: Observables, Observers, and 200+ type-safe operators, built on Go 1.18+ generics, for event-driven and asynchronous applications.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />
+        <ExploreSection />
       </main>
     </Layout>
   );

@@ -51,13 +51,13 @@ Build reusable pipelines with `ro.PipeOpX(...)` variants, then invoke them with 
 ```go
 // Feature
 var pipeline = ro.PipeOp3(
-    ro.Filter(func(x int) int {
+    ro.Filter(func(x int) bool {
         return x%2 == 1
-    })
+    }),
     ro.Map(func(x int) string {
         return fmt.Sprintf("processed-%d", x)
     }),
-    ro.DelayEach[string](100 * time.Millisecond)
+    ro.DelayEach[string](100 * time.Millisecond),
 )
 ```
 

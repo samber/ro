@@ -3,6 +3,7 @@ title: samber/oops
 description: Error operators for ro — Go reactive streams. Wrap stream errors with samber/oops context, hints, and stack traces for production-grade diagnostics.
 sidebar_position: 270
 hide_table_of_contents: true
+draft: true
 ---
 
 # samber/oops - Plugin operators

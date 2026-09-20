@@ -1,5 +1,5 @@
 ---
-title: Introduction
+title: Troubleshooting guide
 description: Diagnose and resolve common issues with samber/ro
 sidebar_position: 1
 ---
@@ -25,7 +25,7 @@ observable := ro.Pipe2(
 // Add temporary debugging to see what's happening
 observable = ro.Pipe3(
     observable,
-    ro.TapOnNext(func(v T) { log.Printf("Next: %v", v) }),
+    ro.TapOnNext(func(v string) { log.Printf("Next: %v", v) }),
     ro.TapOnError(func(e error) { log.Printf("Error: %v", e) }),
     ro.TapOnComplete(func() { log.Printf("Complete") }),
 )
