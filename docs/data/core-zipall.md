@@ -1,7 +1,7 @@
 ---
 name: ZipAll
 slug: zipall
-sourceRef: operator_combining.go#L1590
+sourceRef: operator_combining.go#L1643
 type: core
 category: combining
 signatures:

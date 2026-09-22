@@ -59,7 +59,7 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - `Merge` - Merge multiple Observables (static version)
 - `CombineLatest2/3/4/5` - Combine latest values from 2-5 Observables
 - `CombineLatestAny` - Combine latest values from any Observables
-- `Zip2/3/4/5/6` - Combine values from 2-6 Observables in order
+- `Zip2/3/4/5/6` - Pair values from 2-6 Observables in order, completing when any completed source is drained
 - `Zip` - Combine values from multiple Observables in order
 - `Concat` - Concatenate Observables sequentially
 - `Race` - Emit from first Observable to emit
@@ -118,7 +118,7 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - `CombineLatestAll` - Combine all Observables from higher-order Observable
 - `CombineLatestAllAny` - CombineLatestAll for any type
 - `ZipWith` - Zip with 1 Observable (alias for ZipWith1)
-- `ZipWith1/2/3/4/5` - Zip with 1-5 Observables
+- `ZipWith1/2/3/4/5` - Zip with 1-5 Observables, completing when any completed source is drained
 - `ZipAll` - Zips all Observables from higher-order Observable
 - `Race` - Emit from first Observable to emit
 - `RaceWith` - Races with other Observables
