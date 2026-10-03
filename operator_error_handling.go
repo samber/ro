@@ -156,15 +156,14 @@ type RetryConfig struct {
 func RetryWithConfig[T any](opts RetryConfig) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
-			subscriptions := NewSubscription(nil)
 			retries := uint64(0)
 
-			for !subscriptions.IsClosed() {
+			for {
 				// Check for context cancellation before retrying
 				select {
 				case <-subscriberCtx.Done():
 					destination.ErrorWithContext(subscriberCtx, subscriberCtx.Err())
-					return subscriptions.Unsubscribe
+					return nil
 				default:
 				}
 
@@ -191,7 +190,8 @@ func RetryWithConfig[T any](opts RetryConfig) func(Observable[T]) Observable[T] 
 					),
 				)
 
-				subscriptions.AddUnsubscribable(sub)
+				// Wait returns once sub is closed, so it is not retained: keeping
+				// every iteration's subscription would grow memory without bound.
 				sub.Wait()
 
 				if lastErr != nil {
@@ -203,7 +203,7 @@ func RetryWithConfig[T any](opts RetryConfig) func(Observable[T]) Observable[T] 
 								// Continue to next iteration
 							case <-subscriberCtx.Done():
 								destination.ErrorWithContext(subscriberCtx, subscriberCtx.Err())
-								return subscriptions.Unsubscribe
+								return nil
 							}
 						}
 						// Continue to next iteration
@@ -214,7 +214,7 @@ func RetryWithConfig[T any](opts RetryConfig) func(Observable[T]) Observable[T] 
 				break
 			}
 
-			return subscriptions.Unsubscribe
+			return nil
 		})
 	}
 }
@@ -292,16 +292,11 @@ func DoWhileIWithContext[T any](condition func(ctx context.Context, index int64)
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			i := int64(0)
-			subscriptions := NewSubscription(nil)
 			currentCtx := subscriberCtx
 			shouldContinue := true
 			var lastErr error
 
 			for shouldContinue {
-				if subscriptions.IsClosed() {
-					break
-				}
-
 				var completed bool
 
 				sub := source.SubscribeWithContext(
@@ -320,7 +315,8 @@ func DoWhileIWithContext[T any](condition func(ctx context.Context, index int64)
 					),
 				)
 
-				subscriptions.AddUnsubscribable(sub)
+				// Wait returns once sub is closed, so it is not retained: keeping
+				// every iteration's subscription would grow memory without bound.
 				sub.Wait()
 
 				if lastErr != nil {
@@ -338,7 +334,7 @@ func DoWhileIWithContext[T any](condition func(ctx context.Context, index int64)
 				destination.CompleteWithContext(currentCtx)
 			}
 
-			return subscriptions.Unsubscribe
+			return nil
 		})
 	}
 }
@@ -384,11 +380,10 @@ func WhileIWithContext[T any](condition func(ctx context.Context, index int64) (
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			i := int64(0)
-			subscriptions := NewSubscription(nil)
 			currentCtx := subscriberCtx
 			var lastErr error
 
-			for !subscriptions.IsClosed() {
+			for {
 				var nextCtx context.Context
 				var shouldContinue bool
 				nextCtx, shouldContinue = condition(currentCtx, i)
@@ -414,7 +409,8 @@ func WhileIWithContext[T any](condition func(ctx context.Context, index int64) (
 					),
 				)
 
-				subscriptions.AddUnsubscribable(sub)
+				// Wait returns once sub is closed, so it is not retained: keeping
+				// every iteration's subscription would grow memory without bound.
 				sub.Wait()
 
 				if lastErr != nil {
@@ -429,7 +425,7 @@ func WhileIWithContext[T any](condition func(ctx context.Context, index int64) (
 				destination.CompleteWithContext(currentCtx)
 			}
 
-			return subscriptions.Unsubscribe
+			return nil
 		})
 	}
 }
