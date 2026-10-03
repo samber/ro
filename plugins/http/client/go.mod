@@ -1,6 +1,6 @@
 module github.com/samber/ro/plugins/http/client
 
-go 1.18
+go 1.24
 
 require (
 	github.com/samber/ro v0.0.0
