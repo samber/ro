@@ -16,6 +16,7 @@ package ro
 
 import (
 	"io/fs"
+	"math"
 	"os"
 	"testing"
 	"time"
@@ -861,4 +862,13 @@ func TestOperatorTransformationThrottleTime(t *testing.T) { //nolint:paralleltes
 	)
 	is.Equal([]int64{}, values)
 	is.EqualError(err, assert.AnError.Error())
+}
+
+func TestOperatorTransformationBufferWithCountHugeSize(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	chunks, err := Collect(BufferWithCount[int](math.MaxInt)(Just(1, 2, 3)))
+	is.Equal([][]int{{1, 2, 3}}, chunks)
+	is.NoError(err)
 }

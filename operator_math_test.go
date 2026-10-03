@@ -844,3 +844,32 @@ func TestOperatorMathReduceI(t *testing.T) {
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
 }
+
+func TestOperatorMathMinMaxNaN(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	nan := math.NaN()
+	inputs := [][]float64{
+		{nan, 1, 2},
+		{1, nan, 2},
+		{1, 2, nan},
+		{nan},
+	}
+
+	for _, in := range inputs {
+		values, err := Collect(Min[float64]()(FromSlice(in)))
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsNaN(values[0]), "Min %v", in)
+
+		values, err = Collect(Max[float64]()(FromSlice(in)))
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsNaN(values[0]), "Max %v", in)
+	}
+
+	values, err := Collect(Max[float64]()(FromSlice([]float64{1, 3, 2})))
+	is.Equal([]float64{3}, values)
+	is.NoError(err)
+}

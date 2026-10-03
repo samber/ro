@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"math"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -589,4 +590,15 @@ func TestUnicastSubject_implBufferOverflow(t *testing.T) {
 	// unsubscribe all
 	subscription1.Unsubscribe()
 	subscription2.Unsubscribe()
+}
+
+func TestUnicastSubject_invalidBufferSize(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	is.PanicsWithValue(ErrUnicastSubjectWrongBufferSize, func() { NewUnicastSubject[int](-2) })
+	is.PanicsWithValue(ErrUnicastSubjectWrongBufferSize, func() { NewUnicastSubject[int](math.MinInt) })
+
+	is.NotPanics(func() { NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize) })
+	is.NotPanics(func() { NewUnicastSubject[int](0) })
 }

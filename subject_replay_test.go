@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"math"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -621,4 +622,15 @@ func TestReplaySubject_implBufferOverflow(t *testing.T) {
 	// unsubscribe all
 	subscription1.Unsubscribe()
 	subscription2.Unsubscribe()
+}
+
+func TestReplaySubject_invalidBufferSize(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	is.PanicsWithValue(ErrReplaySubjectWrongBufferSize, func() { NewReplaySubject[int](-2) })
+	is.PanicsWithValue(ErrReplaySubjectWrongBufferSize, func() { NewReplaySubject[int](math.MinInt) })
+
+	is.NotPanics(func() { NewReplaySubject[int](ReplaySubjectUnlimitedBufferSize) })
+	is.NotPanics(func() { NewReplaySubject[int](0) })
 }
