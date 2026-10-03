@@ -1,6 +1,6 @@
 module github.com/samber/ro/plugins/encoding/json
 
-go 1.18
+go 1.23
 
 require (
 	github.com/samber/ro v0.0.0

@@ -1,6 +1,6 @@
 module github.com/samber/ro/plugins/observability/zerolog
 
-go 1.18
+go 1.23
 
 require (
 	github.com/rs/zerolog v1.33.0

@@ -1,6 +1,6 @@
 module github.com/samber/ro/plugins/fsnotify
 
-go 1.18
+go 1.23
 
 require (
 	github.com/fsnotify/fsnotify v1.9.0
