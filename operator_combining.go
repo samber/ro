@@ -1099,7 +1099,7 @@ type zipDestination interface {
 }
 
 // This code is dirty but much more concise than the original implementation.
-func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T], mu *sync.Mutex, values xqueue.Queue[T], completed *bool, onUpdate func(context.Context), destination zipDestination, subscriptions Subscription) {
+func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T], mu *sync.Mutex, values xqueue.Queue[T], completed *bool, pending *int, onUpdate func(context.Context), destination zipDestination, subscriptions Subscription) {
 	subscriptions.AddUnsubscribable(
 		obs.SubscribeWithContext(
 			subscriberCtx,
@@ -1132,7 +1132,10 @@ func zipInnerSubscription[T any](subscriberCtx context.Context, obs Observable[T
 					// empty, completed source can never contribute another pair, so the
 					// whole zip is done. A non-empty one may still have buffered values
 					// waiting to be paired once the slower siblings catch up.
-					if values.Len() == 0 {
+					// A value popped by onUpdate may also still be on its way to the
+					// destination (*pending > 0): completing now would drop it, so the
+					// goroutine delivering it completes once it is done.
+					if values.Len() == 0 && *pending == 0 {
 						mu.Unlock()
 						destination.CompleteWithContext(ctx)
 						subscriptions.Unsubscribe()
@@ -1165,6 +1168,11 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple2[A, B]]) Teardown {
 			var mu sync.Mutex
 
+			// Number of popped values whose Next call is still running outside mu. A source
+			// completing meanwhile must not complete the zip: it would drop those values.
+			// Guarded by mu.
+			var pending int
+
 			valueA := xqueue.NewQueue[A]()
 			valueB := xqueue.NewQueue[B]()
 
@@ -1178,14 +1186,20 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 					a := valueA.Pop()
 					b := valueB.Pop()
 
+					pending++
 					mu.Unlock() // unlock before calling destination.Next to prevent long locks
 
 					destination.NextWithContext(ctx, lo.T2(a, b)) // @TODO: Send the last context ?
 
 					mu.Lock()
 
+					pending--
+
 					shouldComplete := (completedA && valueA.Len() == 0) ||
 						(completedB && valueB.Len() == 0)
+
+					// Another goroutine may still be delivering a popped value: it completes in its turn.
+					shouldComplete = shouldComplete && pending == 0
 
 					// Completion runs teardown synchronously, which re-acquires mu.
 					mu.Unlock()
@@ -1201,8 +1215,8 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 			}
 
 			subscriptions := NewSubscription(nil)
-			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
 
 			return func() {
 				subscriptions.Unsubscribe()
@@ -1232,6 +1246,11 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple3[A, B, C]]) Teardown {
 			var mu sync.Mutex
 
+			// Number of popped values whose Next call is still running outside mu. A source
+			// completing meanwhile must not complete the zip: it would drop those values.
+			// Guarded by mu.
+			var pending int
+
 			valueA := xqueue.NewQueue[A]()
 			valueB := xqueue.NewQueue[B]()
 			valueC := xqueue.NewQueue[C]()
@@ -1248,15 +1267,21 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 					b := valueB.Pop()
 					c := valueC.Pop()
 
+					pending++
 					mu.Unlock() // unlock before calling destination.Next to prevent long locks
 
 					destination.NextWithContext(ctx, lo.T3(a, b, c)) // @TODO: Send the last context ?
 
 					mu.Lock()
 
+					pending--
+
 					shouldComplete := (completedA && valueA.Len() == 0) ||
 						(completedB && valueB.Len() == 0) ||
 						(completedC && valueC.Len() == 0)
+
+					// Another goroutine may still be delivering a popped value: it completes in its turn.
+					shouldComplete = shouldComplete && pending == 0
 
 					// Completion runs teardown synchronously, which re-acquires mu.
 					mu.Unlock()
@@ -1272,9 +1297,9 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 			}
 
 			subscriptions := NewSubscription(nil)
-			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, &pending, onUpdate, destination, subscriptions)
 
 			return func() {
 				subscriptions.Unsubscribe()
@@ -1305,6 +1330,11 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple4[A, B, C, D]]) Teardown {
 			var mu sync.Mutex
 
+			// Number of popped values whose Next call is still running outside mu. A source
+			// completing meanwhile must not complete the zip: it would drop those values.
+			// Guarded by mu.
+			var pending int
+
 			valueA := xqueue.NewQueue[A]()
 			valueB := xqueue.NewQueue[B]()
 			valueC := xqueue.NewQueue[C]()
@@ -1324,16 +1354,22 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 					c := valueC.Pop()
 					d := valueD.Pop()
 
+					pending++
 					mu.Unlock() // unlock before calling destination.Next to prevent long locks
 
 					destination.NextWithContext(ctx, lo.T4(a, b, c, d)) // @TODO: Send the last context ?
 
 					mu.Lock()
 
+					pending--
+
 					shouldComplete := (completedA && valueA.Len() == 0) ||
 						(completedB && valueB.Len() == 0) ||
 						(completedC && valueC.Len() == 0) ||
 						(completedD && valueD.Len() == 0)
+
+					// Another goroutine may still be delivering a popped value: it completes in its turn.
+					shouldComplete = shouldComplete && pending == 0
 
 					// Completion runs teardown synchronously, which re-acquires mu.
 					mu.Unlock()
@@ -1349,10 +1385,10 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 			}
 
 			subscriptions := NewSubscription(nil)
-			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, &pending, onUpdate, destination, subscriptions)
 
 			return func() {
 				subscriptions.Unsubscribe()
@@ -1385,6 +1421,11 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple5[A, B, C, D, E]]) Teardown {
 			var mu sync.Mutex
 
+			// Number of popped values whose Next call is still running outside mu. A source
+			// completing meanwhile must not complete the zip: it would drop those values.
+			// Guarded by mu.
+			var pending int
+
 			valueA := xqueue.NewQueue[A]()
 			valueB := xqueue.NewQueue[B]()
 			valueC := xqueue.NewQueue[C]()
@@ -1407,17 +1448,23 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 					d := valueD.Pop()
 					e := valueE.Pop()
 
+					pending++
 					mu.Unlock() // unlock before calling destination.Next to prevent long locks
 
 					destination.NextWithContext(ctx, lo.T5(a, b, c, d, e)) // @TODO: Send the last context ?
 
 					mu.Lock()
 
+					pending--
+
 					shouldComplete := (completedA && valueA.Len() == 0) ||
 						(completedB && valueB.Len() == 0) ||
 						(completedC && valueC.Len() == 0) ||
 						(completedD && valueD.Len() == 0) ||
 						(completedE && valueE.Len() == 0)
+
+					// Another goroutine may still be delivering a popped value: it completes in its turn.
+					shouldComplete = shouldComplete && pending == 0
 
 					// Completion runs teardown synchronously, which re-acquires mu.
 					mu.Unlock()
@@ -1433,11 +1480,11 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 			}
 
 			subscriptions := NewSubscription(nil)
-			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsE, &mu, valueE, &completedE, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsE, &mu, valueE, &completedE, &pending, onUpdate, destination, subscriptions)
 
 			return func() {
 				subscriptions.Unsubscribe()
@@ -1473,6 +1520,11 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple6[A, B, C, D, E, F]]) Teardown {
 			var mu sync.Mutex
 
+			// Number of popped values whose Next call is still running outside mu. A source
+			// completing meanwhile must not complete the zip: it would drop those values.
+			// Guarded by mu.
+			var pending int
+
 			valueA := xqueue.NewQueue[A]()
 			valueB := xqueue.NewQueue[B]()
 			valueC := xqueue.NewQueue[C]()
@@ -1498,11 +1550,14 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 					e := valueE.Pop()
 					f := valueF.Pop()
 
+					pending++
 					mu.Unlock() // unlock before calling destination.Next to prevent long locks
 
 					destination.NextWithContext(ctx, lo.T6(a, b, c, d, e, f)) // @TODO: Send the last context ?
 
 					mu.Lock()
+
+					pending--
 
 					shouldComplete := (completedA && valueA.Len() == 0) ||
 						(completedB && valueB.Len() == 0) ||
@@ -1510,6 +1565,9 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 						(completedD && valueD.Len() == 0) ||
 						(completedE && valueE.Len() == 0) ||
 						(completedF && valueF.Len() == 0)
+
+					// Another goroutine may still be delivering a popped value: it completes in its turn.
+					shouldComplete = shouldComplete && pending == 0
 
 					// Completion runs teardown synchronously, which re-acquires mu.
 					mu.Unlock()
@@ -1525,12 +1583,12 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 			}
 
 			subscriptions := NewSubscription(nil)
-			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsE, &mu, valueE, &completedE, onUpdate, destination, subscriptions)
-			zipInnerSubscription(subscriberCtx, obsF, &mu, valueF, &completedF, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsE, &mu, valueE, &completedE, &pending, onUpdate, destination, subscriptions)
+			zipInnerSubscription(subscriberCtx, obsF, &mu, valueF, &completedF, &pending, onUpdate, destination, subscriptions)
 
 			return func() {
 				subscriptions.Unsubscribe()
@@ -1560,6 +1618,11 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observable[T], destination Observer[[]T]) Teardown {
 	var mu sync.Mutex
 
+	// Number of popped values whose Next call is still running outside mu. A source
+	// completing meanwhile must not complete the zip: it would drop those values.
+	// Guarded by mu.
+	var pending int
+
 	// Buffer every emitted value per source in a FIFO queue, so items are
 	// paired positionally (1st with 1st, 2nd with 2nd...) instead of by
 	// whichever value happens to be the most recent when all sources are ready.
@@ -1587,11 +1650,14 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 				result[i] = values[i].Pop()
 			}
 
+			pending++
 			mu.Unlock() // unlock before calling destination.Next to prevent long locks
 
 			destination.NextWithContext(ctx, result) // @TODO: Send the last context ?
 
 			mu.Lock()
+
+			pending--
 
 			// A source that already completed can't refill its queue, so once it
 			// runs dry no further pair can ever be produced.
@@ -1602,6 +1668,9 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 					break
 				}
 			}
+
+			// Another goroutine may still be delivering a popped value: it completes in its turn.
+			shouldComplete = shouldComplete && pending == 0
 
 			mu.Unlock() // unlock before calling destination.Complete: it may synchronously
 			// unwind through this observable's own teardown, which re-acquires mu.
@@ -1619,7 +1688,7 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 	subscriptions := NewSubscription(nil)
 
 	for i := range sources {
-		zipInnerSubscription(outerCtx, sources[i], &mu, values[i], &completed[i], onUpdate, destination, subscriptions)
+		zipInnerSubscription(outerCtx, sources[i], &mu, values[i], &completed[i], &pending, onUpdate, destination, subscriptions)
 	}
 
 	return func() {
