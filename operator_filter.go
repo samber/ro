@@ -261,14 +261,19 @@ func SkipWhileIWithContext[T any](predicate func(ctx context.Context, item T, in
 // will not emit any items. If the count is zero, SkipLast will emit all items.
 // Play: https://go.dev/play/p/oK3Xy9FNnNI
 func SkipLast[T any](count int) func(Observable[T]) Observable[T] {
-	if count < 1 {
+	if count < 0 {
 		panic(ErrSkipLastWrongCount)
 	}
 
 	return func(source Observable[T]) Observable[T] {
+		if count == 0 {
+			return source
+		}
+
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
-			// Use a circular buffer approach to avoid memory allocations
-			buffer := make([]lo.Tuple2[context.Context, T], count)
+			// Circular buffer grown lazily: count may be huge (eg: math.MaxInt), so
+			// never allocate it upfront.
+			buffer := []lo.Tuple2[context.Context, T]{}
 			size := 0
 			index := 0
 
@@ -277,7 +282,7 @@ func SkipLast[T any](count int) func(Observable[T]) Observable[T] {
 				NewObserverWithContext(
 					func(ctx context.Context, value T) {
 						if size < count {
-							buffer[index] = lo.T2(ctx, value)
+							buffer = append(buffer, lo.T2(ctx, value))
 							size++
 						} else {
 							// Buffer is full, emit the oldest item
@@ -471,8 +476,9 @@ func TakeLast[T any](count int) func(Observable[T]) Observable[T] {
 		}
 
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
-			// Use a circular buffer to avoid memory allocations
-			buffer := make([]lo.Tuple2[context.Context, T], count)
+			// Circular buffer grown lazily: count may be huge (eg: math.MaxInt), so
+			// never allocate it upfront.
+			buffer := []lo.Tuple2[context.Context, T]{}
 			size := 0
 			index := 0
 
@@ -480,11 +486,13 @@ func TakeLast[T any](count int) func(Observable[T]) Observable[T] {
 				subscriberCtx,
 				NewObserverWithContext(
 					func(ctx context.Context, value T) {
-						buffer[index] = lo.T2(ctx, value)
-						index = (index + 1) % count
 						if size < count {
+							buffer = append(buffer, lo.T2(ctx, value))
 							size++
+						} else {
+							buffer[index] = lo.T2(ctx, value)
 						}
+						index = (index + 1) % count
 					},
 					destination.ErrorWithContext,
 					func(ctx context.Context) {

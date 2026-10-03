@@ -1,7 +1,7 @@
 ---
 name: Head
 slug: head
-sourceRef: operator_filter.go#L562
+sourceRef: operator_filter.go#L570
 type: core
 category: filtering
 signatures:
@@ -42,7 +42,7 @@ obs := ro.Pipe[string, string](
 sub := obs.Subscribe(ro.PrintObserver[string]())
 defer sub.Unsubscribe()
 
-// Error: head of empty observable
+// Error: ro.Head: empty
 ```
 
 ### With single item

@@ -188,7 +188,7 @@ func TestOperatorMathMax(t *testing.T) {
 	values, err = Collect(
 		Max[int]()(Empty[int]()),
 	)
-	is.Equal([]int{0}, values)
+	is.Equal([]int{}, values)
 	is.NoError(err)
 
 	values, err = Collect(

@@ -13,7 +13,7 @@ similarHelpers: []
 position: 130
 ---
 
-Finds the minimum value in an observable sequence.
+Finds the minimum value in an observable sequence. If any value is NaN, the result is NaN.
 
 ```go
 obs := ro.Pipe[int, int](

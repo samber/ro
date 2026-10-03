@@ -1,7 +1,7 @@
 ---
 name: Tail
 slug: tail
-sourceRef: operator_filter.go#L586
+sourceRef: operator_filter.go#L594
 type: core
 category: filtering
 signatures:
@@ -54,7 +54,7 @@ obs := ro.Pipe[string, string](
 sub := obs.Subscribe(ro.PrintObserver[string]())
 defer sub.Unsubscribe()
 
-// Error: tail of empty observable
+// Error: ro.Tail: empty
 ```
 
 ### With numbers

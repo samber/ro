@@ -666,7 +666,7 @@ func TestOperatorFilterHead(t *testing.T) {
 		Head[int]()(Empty[int]()),
 	)
 	is.Equal([]int{}, values)
-	is.EqualError(err, ErrFirstEmpty.Error())
+	is.EqualError(err, ErrHeadEmpty.Error())
 
 	values, err = Collect(
 		Head[int]()(Throw[int](assert.AnError)),
@@ -695,7 +695,7 @@ func TestOperatorFilterTail(t *testing.T) {
 		Tail[int]()(Empty[int]()),
 	)
 	is.Equal([]int{}, values)
-	is.EqualError(err, ErrLastEmpty.Error())
+	is.EqualError(err, ErrTailEmpty.Error())
 
 	values, err = Collect(
 		Tail[int]()(Throw[int](assert.AnError)),

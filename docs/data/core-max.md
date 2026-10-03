@@ -1,7 +1,7 @@
 ---
 name: Max
 slug: max
-sourceRef: operator_math.go#L191
+sourceRef: operator_math.go#L192
 type: core
 category: math
 signatures:
@@ -13,7 +13,7 @@ similarHelpers: []
 position: 140
 ---
 
-Finds the maximum value in an observable sequence.
+Finds the maximum value in an observable sequence. If any value is NaN, the result is NaN. An empty sequence emits no value.
 
 ```go
 obs := ro.Pipe[int, int](
