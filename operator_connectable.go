@@ -157,7 +157,10 @@ func ShareWithConfig[T any](config ShareConfig[T]) func(Observable[T]) Observabl
 				)
 
 				// Subscription between the source and the subject.
-				sourceSubscription.AddUnsubscribable(
+				// Use the local handle: `sourceSubscription` is shared and may be
+				// reset or replaced concurrently. If this handle was already reset,
+				// the source subscription is closed immediately.
+				currentSourceSubscription.AddUnsubscribable(
 					source.SubscribeWithContext(subscriberCtx, proxy),
 				)
 			}
