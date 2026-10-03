@@ -165,6 +165,40 @@ Feel free to write benchmarks.
 
 Sources can be unbounded and might run for a very long time. If you expect a big memory footprint, please warn developers in the operator comment.
 
+## Memory leaks
+
+Streams can run forever, so any state that grows with the number of items, subscriptions or iterations is a leak.
+
+- Return a teardown that releases every resource the subscription acquired: upstream subscription, timers, tickers, goroutines, channels.
+- Stop every goroutine on unsubscription, completion and error. Tie it to `subscriberCtx` or a `done` channel.
+- Declare state inside the subscribe callback, never outside: state shared between subscriptions outlives them.
+- Bound buffers, queues, caches and maps, or warn in the operator comment when they cannot be bounded.
+- Drop references (items, contexts, closures) once they are no longer needed. Clear slices and map entries instead of re-slicing.
+- Call `Stop()` on timers and `cancel()` on derived contexts.
+- Do not recurse without a bound: non-tail recursion on an infinite stream grows the stack.
+- Test with `goleak` and a long run of subscribe/unsubscribe cycles.
+
+## Higher-order Observables: races and memory leaks
+
+Operators consuming an `Observable[Observable[T]]` (`MergeAll`, `ConcatAll`, `MergeMap`, `FlatMap`...) or resubscribing in a loop (`Retry`, `While`, `DoWhile`, `Repeat`...) create one inner subscription per outer item or iteration. On a long-lived or unbounded source, the number of inner subscriptions is unbounded too.
+
+**Memory leaks.** Never keep every inner subscription in an aggregate that is only torn down when the operator ends. A finished inner subscription still pins its subscriber and closures, so memory grows with the number of inner Observables, not with the number of active ones.
+
+- Release each inner subscription as soon as it completes, errors or is unsubscribed (remove it from the aggregate, or never add it when it is already closed).
+- Keep only what is still active. Memory must be bounded by the number of concurrent inner Observables.
+- Do not retain inner values, contexts or closures after the inner Observable is done.
+- Buffered inner Observables (e.g. waiting in `ConcatAll`) are unbounded when the outer source is faster than the inner ones: document it in the operator comment.
+- When the loop is synchronous and each subscription is already closed on return, there is nothing to aggregate: return a `nil` teardown.
+
+**Races.** Outer and inner Observables may emit concurrently, and a new inner Observable may arrive while the downstream is unsubscribing.
+
+- Guard shared state (active counter, aggregate, parent context) with a mutex or atomics.
+- Count the outer Observable as an active source, so completion fires exactly once, when the outer and every inner Observable are done.
+- Check `IsClosed()` before subscribing to a late inner Observable. Unsubscribe it immediately if the downstream is already closed.
+- Never call `destination.Next*` from two goroutines at once without serialization (see `NewSafeObservable` and `Serialize`).
+
+**Tests.** Run them with `-race` and `goleak`. Add a case with a large number of short-lived inner Observables, and one that unsubscribes while inner Observables are still emitting.
+
 ## Core vs plugins
 
 **Never add a third-party library dependency to the core `ro` package.** If an operator requires wrapping an external library, it must live in a dedicated plugin under `plugins/` with its own `go.mod`. The core package only depends on `samber/lo`.
