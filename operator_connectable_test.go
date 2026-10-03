@@ -16,6 +16,7 @@ package ro
 
 import (
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -804,6 +805,47 @@ func TestOperatorConnectableShareReplay_smallBuffer(t *testing.T) { //nolint:par
 	})
 	is.True(sub1.IsClosed())
 	is.True(sub2.IsClosed())
+}
+
+// hammerShare subscribes and unsubscribes to `source` from many goroutines at
+// once. Enough goroutines and rounds are used for the race detector to observe
+// unsynchronized access to the state shared by Share.
+func hammerShare[T any](source Observable[T]) {
+	const (
+		concurrentSubscribers = 100
+		roundsPerSubscriber   = 50
+	)
+
+	var wg sync.WaitGroup
+
+	wg.Add(concurrentSubscribers)
+
+	for i := 0; i < concurrentSubscribers; i++ {
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < roundsPerSubscriber; j++ {
+				source.Subscribe(NoopObserver[T]()).Unsubscribe()
+			}
+		}()
+	}
+
+	wg.Wait()
+}
+
+func TestOperatorConnectableShareConcurrentSubscribe(t *testing.T) { //nolint:paralleltest
+	testWithTimeout(t, 10*time.Second)
+
+	// Completes synchronously during subscription, so every round resets the
+	// shared state while other goroutines are creating it.
+	t.Run("sync source", func(t *testing.T) { //nolint:paralleltest
+		hammerShare(Pipe1(Just(1, 2, 3), Share[int]()))
+	})
+
+	// Stays alive, so resets only come from the ref count reaching zero.
+	t.Run("async source", func(t *testing.T) { //nolint:paralleltest
+		hammerShare(Pipe1(Never(), Share[struct{}]()))
+	})
 }
 
 func TestOperatorConnectableShareReplayWithConfig(t *testing.T) { //nolint:paralleltest
