@@ -149,6 +149,11 @@ func Round() func(Observable[float64]) Observable[float64] {
 	}
 }
 
+// isNaNNumeric reports whether v is NaN. Integers are never NaN: their float64 conversion is always a number.
+func isNaNNumeric[T constraints.Numeric](v T) bool {
+	return math.IsNaN(float64(v))
+}
+
 // Min emits the minimum value emitted by the source Observable.
 // It emits the minimum value when the source completes. If the source is empty,
 // it emits no value.
@@ -164,7 +169,8 @@ func Min[T constraints.Numeric]() func(Observable[T]) Observable[T] {
 				subscriberCtx,
 				NewObserverWithContext(
 					func(ctx context.Context, value T) {
-						if first || value < mIn.B {
+						// NaN is sticky (like the min builtin): once seen, it is the result.
+						if first || (value < mIn.B && !isNaNNumeric(mIn.B)) || isNaNNumeric(value) {
 							mIn = lo.T2(ctx, value)
 							first = false
 						}
@@ -199,14 +205,18 @@ func Max[T constraints.Numeric]() func(Observable[T]) Observable[T] {
 				subscriberCtx,
 				NewObserverWithContext(
 					func(ctx context.Context, value T) {
-						if first || value > mAx.B {
+						// NaN is sticky (like the max builtin): once seen, it is the result.
+						if first || (value > mAx.B && !isNaNNumeric(mAx.B)) || isNaNNumeric(value) {
 							mAx = lo.T2(ctx, value)
 							first = false
 						}
 					},
 					destination.ErrorWithContext,
 					func(ctx context.Context) {
-						destination.NextWithContext(mAx.A, mAx.B)
+						if !first {
+							destination.NextWithContext(mAx.A, mAx.B)
+						}
+
 						destination.CompleteWithContext(ctx)
 					},
 				),

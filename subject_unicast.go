@@ -29,7 +29,12 @@ var _ Subject[int] = (*unicastSubjectImpl[int])(nil)
 // NewUnicastSubject queues up events until a single Observer subscribes to it,
 // replays those events to it until the Observer catches up and then switches
 // to relaying events live to this single Observer.
+// bufferSize must be UnicastSubjectUnlimitedBufferSize (-1) or greater or equal to 0, otherwise it panics.
 func NewUnicastSubject[T any](bufferSize int) Subject[T] {
+	if bufferSize < UnicastSubjectUnlimitedBufferSize {
+		panic(ErrUnicastSubjectWrongBufferSize)
+	}
+
 	return &unicastSubjectImpl[T]{
 		mu:     sync.Mutex{},
 		status: KindNext,

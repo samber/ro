@@ -1,7 +1,7 @@
 ---
 name: BufferWhen
 slug: bufferwhen
-sourceRef: operator_transformations.go#L396
+sourceRef: operator_transformations.go#L405
 type: core
 category: transformation
 signatures:

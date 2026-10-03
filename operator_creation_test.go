@@ -16,6 +16,7 @@ package ro
 
 import (
 	"context"
+	"math"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1338,5 +1339,26 @@ func TestOperatorCreationRandFloat64(t *testing.T) {
 		is.True(v >= 0 && v < 1)
 	}
 
+	is.NoError(err)
+}
+
+func TestOperatorCreationRangeExtremes(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Enumerating Range(0, MinInt64) is not feasible (Take cannot stop a synchronous source),
+	// so check the loop condition directly at the boundaries.
+	is.True(rangeHasNext(0, math.MinInt64, -1))
+	is.True(rangeHasNext(math.MinInt64+1, math.MinInt64, -1))
+	is.False(rangeHasNext(math.MinInt64, math.MinInt64, -1))
+	is.True(rangeHasNext(math.MaxInt64-1, math.MaxInt64, 1))
+	is.False(rangeHasNext(math.MaxInt64, math.MaxInt64, 1))
+
+	values, err := Collect(Range(math.MaxInt64-2, math.MaxInt64))
+	is.Equal([]int64{math.MaxInt64 - 2, math.MaxInt64 - 1}, values)
+	is.NoError(err)
+
+	values, err = Collect(Range(math.MinInt64+2, math.MinInt64))
+	is.Equal([]int64{math.MinInt64 + 2, math.MinInt64 + 1}, values)
 	is.NoError(err)
 }

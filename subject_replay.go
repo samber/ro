@@ -29,7 +29,12 @@ var _ Subject[int] = (*replaySubjectImpl[int])(nil)
 
 // NewReplaySubject emits old values to new subscribers.
 // After error or completion, new subscriptions receive values from the buffer then the error or the completion.
+// bufferSize must be ReplaySubjectUnlimitedBufferSize (-1) or greater or equal to 0, otherwise it panics.
 func NewReplaySubject[T any](bufferSize int) Subject[T] {
+	if bufferSize < ReplaySubjectUnlimitedBufferSize {
+		panic(ErrReplaySubjectWrongBufferSize)
+	}
+
 	return &replaySubjectImpl[T]{
 		mu:     sync.Mutex{},
 		status: KindNext,
@@ -134,11 +139,6 @@ func (s *replaySubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
 				s.values[s.head] = lo.T2(ctx, value)
 				s.head = (s.head + 1) % s.bufferSize
 			}
-		default:
-			// bufferSize < -1 is invalid; kept as-is from the previous implementation.
-			s.values = append(s.values, lo.T2(ctx, value))
-			OnDroppedNotification(ctx, NewNotificationNext(s.values[0].B))
-			s.values = s.values[len(s.values)-s.bufferSize:]
 		}
 	} else {
 		OnDroppedNotification(ctx, NewNotificationNext(value))

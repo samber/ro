@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -666,7 +667,7 @@ func TestOperatorFilterHead(t *testing.T) {
 		Head[int]()(Empty[int]()),
 	)
 	is.Equal([]int{}, values)
-	is.EqualError(err, ErrFirstEmpty.Error())
+	is.EqualError(err, ErrHeadEmpty.Error())
 
 	values, err = Collect(
 		Head[int]()(Throw[int](assert.AnError)),
@@ -695,7 +696,7 @@ func TestOperatorFilterTail(t *testing.T) {
 		Tail[int]()(Empty[int]()),
 	)
 	is.Equal([]int{}, values)
-	is.EqualError(err, ErrLastEmpty.Error())
+	is.EqualError(err, ErrTailEmpty.Error())
 
 	values, err = Collect(
 		Tail[int]()(Throw[int](assert.AnError)),
@@ -894,4 +895,36 @@ func TestOperatorFilterElementAtOrDefault(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+}
+
+func TestOperatorFilterSkipLastZero(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	values, err := Collect(SkipLast[int](0)(Just(1, 2, 3)))
+	is.Equal([]int{1, 2, 3}, values)
+	is.NoError(err)
+
+	values, err = Collect(SkipLast[int](0)(Empty[int]()))
+	is.Equal([]int{}, values)
+	is.NoError(err)
+
+	values, err = Collect(SkipLast[int](0)(Throw[int](assert.AnError)))
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
+
+	is.PanicsWithValue(ErrSkipLastWrongCount, func() { SkipLast[int](-1) })
+}
+
+func TestOperatorFilterTakeLastSkipLastHugeCount(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	values, err := Collect(TakeLast[int](math.MaxInt)(Just(1, 2, 3)))
+	is.Equal([]int{1, 2, 3}, values)
+	is.NoError(err)
+
+	values, err = Collect(SkipLast[int](math.MaxInt)(Just(1, 2, 3)))
+	is.Equal([]int{}, values)
+	is.NoError(err)
 }

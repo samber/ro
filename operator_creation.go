@@ -187,17 +187,24 @@ func Range(start, end int64) Observable[int64] {
 	}
 
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
-		cursor := start
-
-		for cursor*sign < end*sign {
+		for cursor := start; rangeHasNext(cursor, end, sign); cursor += sign {
 			destination.NextWithContext(ctx, cursor)
-			cursor += sign
 		}
 
 		destination.CompleteWithContext(ctx)
 
 		return nil
 	})
+}
+
+// rangeHasNext reports whether cursor has not reached end yet, walking in the direction of sign.
+// It compares directly instead of multiplying by sign, because end*sign overflows for math.MinInt64.
+func rangeHasNext(cursor, end, sign int64) bool {
+	if sign > 0 {
+		return cursor < end
+	}
+
+	return cursor > end
 }
 
 // RangeWithStep creates an Observable that emits a range of floats.

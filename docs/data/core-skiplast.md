@@ -15,7 +15,7 @@ similarHelpers:
 position: 262
 ---
 
-Suppresses the last n items emitted by an Observable.
+Suppresses the last n items emitted by an Observable. `SkipLast(0)` emits everything; a negative count panics.
 
 ```go
 obs := ro.Pipe[int, int](

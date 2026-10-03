@@ -400,7 +400,7 @@ func GroupByIWithContext[T any, K comparable](iteratee func(ctx context.Context,
 // BufferWhen buffers the items emitted by an Observable until a second Observable emits an item.
 // Then it emits the buffer and starts a new buffer. It repeats this process until the source Observable completes.
 // If the boundary Observable completes, the buffer is emitted and the source Observable completes.
-// If the source Observable errors, the buffer is emitted and the error is propagated.
+// If the source Observable errors, the pending buffer is dropped and the error is propagated.
 // Play: https://go.dev/play/p/w8c_zuaLl9l
 func BufferWhen[T, B any](boundary Observable[B]) func(Observable[T]) Observable[[]T] {
 	return func(source Observable[T]) Observable[[]T] {
@@ -472,7 +472,7 @@ func BufferWhen[T, B any](boundary Observable[B]) func(Observable[T]) Observable
 
 // BufferWithTimeOrCount buffers the items emitted by an Observable for a specified time or count.
 // It emits the buffer and starts a new buffer. It repeats this process until the source Observable completes.
-// If the source Observable errors, the buffer is emitted and the error is propagated. If the source Observable completes,
+// If the source Observable errors, the pending buffer is dropped and the error is propagated. If the source Observable completes,
 // the buffer is emitted and the complete notification is propagated. If the specified time or count is reached,
 // the buffer is emitted and a new buffer is started.
 // Play: https://go.dev/play/p/NyiF19jUdQD
@@ -557,9 +557,22 @@ func BufferWithTimeOrCount[T any](size int, duration time.Duration) func(Observa
 	}
 }
 
+// bufferWithCountMaxInitialCap bounds the upfront allocation of BufferWithCount, because size can be
+// huge (eg: math.MaxInt) while the stream is short. 1024 items keeps common sizes fully preallocated
+// without risking a makeslice panic or a giant allocation; larger buffers grow through append.
+const bufferWithCountMaxInitialCap = 1024
+
+func bufferWithCountInitialCap(size int) int {
+	if size > bufferWithCountMaxInitialCap {
+		return bufferWithCountMaxInitialCap
+	}
+
+	return size
+}
+
 // BufferWithCount buffers the items emitted by an Observable until the buffer is full.
 // Then it emits the buffer and starts a new buffer. It repeats this process until the
-// source Observable completes. If the source Observable errors, the buffer is emitted
+// source Observable completes. If the source Observable errors, the pending buffer is dropped
 // and the error is propagated. If the source Observable completes, the buffer is emitted
 // and the complete notification is propagated. If the specified count is reached, the buffer
 // is emitted and a new buffer is started.
@@ -571,7 +584,7 @@ func BufferWithCount[T any](size int) func(Observable[T]) Observable[[]T] {
 
 	return func(source Observable[T]) Observable[[]T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
-			buffer := make([]T, 0, size)
+			buffer := make([]T, 0, bufferWithCountInitialCap(size))
 
 			sub := source.SubscribeWithContext(
 				subscriberCtx,
@@ -580,7 +593,7 @@ func BufferWithCount[T any](size int) func(Observable[T]) Observable[[]T] {
 						buffer = append(buffer, value)
 						if len(buffer) >= size {
 							destination.NextWithContext(ctx, buffer)
-							buffer = make([]T, 0, size)
+							buffer = make([]T, 0, bufferWithCountInitialCap(size))
 						}
 					},
 					destination.ErrorWithContext,
@@ -605,7 +618,7 @@ func BufferWithCount[T any](size int) func(Observable[T]) Observable[[]T] {
 
 // BufferWithTime buffers the items emitted by an Observable for a specified time.
 // It emits the buffer and starts a new buffer. It repeats this process until the source
-// Observable completes. If the source Observable errors, the buffer is emitted and the error
+// Observable completes. If the source Observable errors, the pending buffer is dropped and the error
 // is propagated. If the source Observable completes, the buffer is emitted and the complete
 // notification is propagated. If the specified time is reached, the buffer is emitted and a new buffer is started.
 // Play: https://go.dev/play/p/TfOhP-f_O45
