@@ -1184,10 +1184,17 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 
 					mu.Lock()
 
-					if (completedA && valueA.Len() == 0) ||
-						(completedB && valueB.Len() == 0) {
+					shouldComplete := (completedA && valueA.Len() == 0) ||
+						(completedB && valueB.Len() == 0)
+
+					// Completion runs teardown synchronously, which re-acquires mu.
+					mu.Unlock()
+
+					if shouldComplete {
 						destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					}
+
+					return
 				}
 
 				mu.Unlock()
@@ -1247,11 +1254,18 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 
 					mu.Lock()
 
-					if (completedA && valueA.Len() == 0) ||
+					shouldComplete := (completedA && valueA.Len() == 0) ||
 						(completedB && valueB.Len() == 0) ||
-						(completedC && valueC.Len() == 0) {
+						(completedC && valueC.Len() == 0)
+
+					// Completion runs teardown synchronously, which re-acquires mu.
+					mu.Unlock()
+
+					if shouldComplete {
 						destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					}
+
+					return
 				}
 
 				mu.Unlock()
@@ -1316,12 +1330,19 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 
 					mu.Lock()
 
-					if (completedA && valueA.Len() == 0) ||
+					shouldComplete := (completedA && valueA.Len() == 0) ||
 						(completedB && valueB.Len() == 0) ||
 						(completedC && valueC.Len() == 0) ||
-						(completedD && valueD.Len() == 0) {
+						(completedD && valueD.Len() == 0)
+
+					// Completion runs teardown synchronously, which re-acquires mu.
+					mu.Unlock()
+
+					if shouldComplete {
 						destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					}
+
+					return
 				}
 
 				mu.Unlock()
@@ -1392,13 +1413,20 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 
 					mu.Lock()
 
-					if (completedA && valueA.Len() == 0) ||
+					shouldComplete := (completedA && valueA.Len() == 0) ||
 						(completedB && valueB.Len() == 0) ||
 						(completedC && valueC.Len() == 0) ||
 						(completedD && valueD.Len() == 0) ||
-						(completedE && valueE.Len() == 0) {
+						(completedE && valueE.Len() == 0)
+
+					// Completion runs teardown synchronously, which re-acquires mu.
+					mu.Unlock()
+
+					if shouldComplete {
 						destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					}
+
+					return
 				}
 
 				mu.Unlock()
@@ -1476,14 +1504,21 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 
 					mu.Lock()
 
-					if (completedA && valueA.Len() == 0) ||
+					shouldComplete := (completedA && valueA.Len() == 0) ||
 						(completedB && valueB.Len() == 0) ||
 						(completedC && valueC.Len() == 0) ||
 						(completedD && valueD.Len() == 0) ||
 						(completedE && valueE.Len() == 0) ||
-						(completedF && valueF.Len() == 0) {
+						(completedF && valueF.Len() == 0)
+
+					// Completion runs teardown synchronously, which re-acquires mu.
+					mu.Unlock()
+
+					if shouldComplete {
 						destination.CompleteWithContext(ctx) // @TODO: Send the last context ?
 					}
+
+					return
 				}
 
 				mu.Unlock()

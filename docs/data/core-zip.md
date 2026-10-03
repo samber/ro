@@ -28,6 +28,8 @@ position: 20
 
 Creates an Observable that combines the values from multiple source Observables by emitting tuples or arrays of values in the order they were zipped.
 
+Values are paired in source order. A completed source keeps its buffered values until they are paired. Once any completed source has no values left, the output completes and unsubscribes from every source, even if the others have not completed. This also applies to asynchronous sources such as `Future`.
+
 ### Zip2
 
 ```go

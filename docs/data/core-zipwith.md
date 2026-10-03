@@ -1,7 +1,7 @@
 ---
 name: ZipWith
 slug: zipwith
-sourceRef: operator_combining.go#L1151
+sourceRef: operator_combining.go#L1154
 type: core
 category: combining
 signatures:
@@ -27,6 +27,8 @@ position: 21
 ---
 
 Creates an Observable that combines values from the source Observable with other source Observables using a pipe operator pattern, emitting tuples of zipped values.
+
+Values are paired in source order. A completed source keeps its buffered values until they are paired. Once any completed source has no values left, the output completes and unsubscribes from every source, even if the others have not completed. This also applies to asynchronous sources such as `Future`.
 
 ### ZipWith
 
