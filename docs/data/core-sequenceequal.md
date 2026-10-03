@@ -1,7 +1,7 @@
 ---
 name: SequenceEqual
 slug: sequenceequal
-sourceRef: operator_conditional.go#L234
+sourceRef: operator_conditional.go#L243
 type: core
 category: conditional
 signatures:
@@ -13,7 +13,7 @@ similarHelpers: []
 position: 50
 ---
 
-Determines whether two observable sequences emit the same sequence of values.
+Determines whether two observable sequences emit the same sequence of values. Sequences of different lengths are never equal.
 
 ```go
 source := ro.Just(1, 2, 3)

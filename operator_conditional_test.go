@@ -367,7 +367,7 @@ func TestOperatorConditionalSequenceEqual(t *testing.T) {
 			SequenceEqual(Just(1, 2, 3)),
 		),
 	)
-	is.Equal([]bool{true}, values)
+	is.Equal([]bool{false}, values)
 	is.NoError(err)
 
 	values, err = Collect(
@@ -376,7 +376,35 @@ func TestOperatorConditionalSequenceEqual(t *testing.T) {
 			SequenceEqual(Empty[int]()),
 		),
 	)
+	is.Equal([]bool{false}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Pipe1(
+			Empty[int](),
+			SequenceEqual(Empty[int]()),
+		),
+	)
 	is.Equal([]bool{true}, values)
+	is.NoError(err)
+
+	// Different lengths with a common prefix: the shorter sequence is a prefix of the longer one.
+	values, err = Collect(
+		Pipe1(
+			Just(1, 2),
+			SequenceEqual(Just(1, 2, 3)),
+		),
+	)
+	is.Equal([]bool{false}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Pipe1(
+			Just(1, 2, 3),
+			SequenceEqual(Just(1, 2)),
+		),
+	)
+	is.Equal([]bool{false}, values)
 	is.NoError(err)
 
 	values, err = Collect(
