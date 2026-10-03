@@ -118,7 +118,16 @@ func MergeAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 			var parentCtx context.Context
 			var parentCtxMu sync.Mutex // atomic.Value has been introduced in go 1.19 and this library support go 1.18
 
-			subscriptions := NewSubscription(nil)
+			// Active inner subscriptions, keyed by arrival order. A finished inner
+			// removes itself: keeping every inner until teardown would grow memory
+			// with the total number of inners, not the number of active ones.
+			// A nil value is a placeholder for an inner still being subscribed to.
+			var innersMu sync.Mutex
+			inners := map[uint64]Unsubscribable{}
+			nextInnerID := uint64(0)
+			closed := false
+
+			var outerSub Subscription
 
 			// default value is not 0, because it counts the outer Observable `sources`
 			subscriptionsCount := int32(1)
@@ -134,39 +143,80 @@ func MergeAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 				}
 			}
 
-			subscriptions.AddUnsubscribable(
-				sources.SubscribeWithContext(
-					subscriberCtx,
-					NewObserverWithContext(
-						func(ctx context.Context, source Observable[T]) {
-							atomic.AddInt32(&subscriptionsCount, 1)
+			outerSub = sources.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, source Observable[T]) {
+						innersMu.Lock()
+						if closed {
+							innersMu.Unlock()
+							return
+						}
+						id := nextInnerID
+						nextInnerID++
+						inners[id] = nil
+						innersMu.Unlock()
 
-							subscriptions.AddUnsubscribable(
-								source.SubscribeWithContext(
-									ctx,
-									NewObserverWithContext(
-										destination.NextWithContext,
-										destination.ErrorWithContext,
-										func(ctx context.Context) {
-											onDone()
-										},
-									),
-								),
-							)
-						},
-						destination.ErrorWithContext,
-						func(ctx context.Context) {
-							parentCtxMu.Lock()
-							parentCtx = ctx
-							parentCtxMu.Unlock()
+						atomic.AddInt32(&subscriptionsCount, 1)
 
-							onDone()
-						},
-					),
+						sub := source.SubscribeWithContext(
+							ctx,
+							NewObserverWithContext(
+								destination.NextWithContext,
+								destination.ErrorWithContext,
+								func(ctx context.Context) {
+									innersMu.Lock()
+									delete(inners, id)
+									innersMu.Unlock()
+
+									onDone()
+								},
+							),
+						)
+
+						innersMu.Lock()
+						if closed {
+							innersMu.Unlock()
+							sub.Unsubscribe()
+
+							return
+						}
+						// The entry is missing when the inner completed during
+						// SubscribeWithContext: nothing left to retain.
+						if _, active := inners[id]; active {
+							inners[id] = sub
+						}
+						innersMu.Unlock()
+					},
+					destination.ErrorWithContext,
+					func(ctx context.Context) {
+						parentCtxMu.Lock()
+						parentCtx = ctx
+						parentCtxMu.Unlock()
+
+						onDone()
+					},
 				),
 			)
 
-			return subscriptions.Unsubscribe
+			return func() {
+				innersMu.Lock()
+				closed = true
+				active := make([]Unsubscribable, 0, len(inners))
+				for _, sub := range inners {
+					if sub != nil {
+						active = append(active, sub)
+					}
+				}
+				inners = nil
+				innersMu.Unlock()
+
+				// Run outside the lock: unsubscribing may re-enter the callbacks above.
+				outerSub.Unsubscribe()
+				for _, sub := range active {
+					sub.Unsubscribe()
+				}
+			}
 		})
 	}
 }

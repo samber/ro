@@ -17,7 +17,9 @@ package ro
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -376,6 +378,98 @@ func TestOperatorCombiningMergeAll(t *testing.T) { //nolint:paralleltest
 	)
 	is.Equal([]int64{}, values)
 	is.EqualError(err, assert.AnError.Error())
+}
+
+func TestOperatorCombiningMergeAllReleasesCompletedInners(t *testing.T) { //nolint:paralleltest
+	// Not parallel: it measures the process-wide heap.
+	is := assert.New(t)
+
+	// Retaining one completed inner costs hundreds of bytes, so the old
+	// behavior grows the heap by tens of MB for this many inners.
+	const (
+		innerCount   = 100_000
+		maxHeapGrowB = 8 << 20
+	)
+
+	heapAlloc := func() uint64 {
+		runtime.GC()
+		runtime.GC()
+
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+
+		return m.HeapAlloc
+	}
+
+	outer := NewPublishSubject[Observable[int]]()
+	received := int64(0)
+	completed := false
+
+	sub := MergeAll[int]()(outer).Subscribe(NewObserver(
+		func(int) { received++ },
+		func(error) {},
+		func() { completed = true },
+	))
+
+	before := heapAlloc()
+
+	for i := 0; i < innerCount; i++ {
+		outer.Next(Just(i))
+	}
+
+	after := heapAlloc()
+
+	is.Equal(int64(innerCount), received)
+	is.Less(int64(after)-int64(before), int64(maxHeapGrowB))
+
+	outer.Complete()
+	sub.Wait()
+	is.True(completed)
+}
+
+func TestOperatorCombiningMergeAllInnerLifecycle(t *testing.T) { //nolint:paralleltest
+	testWithTimeout(t, 2000*time.Millisecond)
+	is := assert.New(t)
+
+	// teardowns counts inner teardowns; the inner never completes by itself.
+	var teardowns int32
+	pending := func() Observable[int] {
+		return NewUnsafeObservable(func(Observer[int]) Teardown {
+			return func() { atomic.AddInt32(&teardowns, 1) }
+		})
+	}
+
+	// early unsubscription tears down active inners, and not the finished ones
+	outer := NewPublishSubject[Observable[int]]()
+	sub := MergeAll[int]()(outer).Subscribe(OnNext(func(int) {}))
+	outer.Next(pending())
+	outer.Next(Just(1)) // completes synchronously during subscription
+	outer.Next(pending())
+	is.Equal(int32(0), atomic.LoadInt32(&teardowns))
+	sub.Unsubscribe()
+	is.Equal(int32(2), atomic.LoadInt32(&teardowns))
+
+	// an inner emitted after teardown is not subscribed to
+	subscribed := false
+	outer.Next(NewUnsafeObservable(func(Observer[int]) Teardown {
+		subscribed = true
+		return nil
+	}))
+	is.False(subscribed)
+
+	// an inner error tears down sibling inners
+	atomic.StoreInt32(&teardowns, 0)
+	outer = NewPublishSubject[Observable[int]]()
+	var gotErr error
+	MergeAll[int]()(outer).Subscribe(NewObserver(
+		func(int) {},
+		func(err error) { gotErr = err },
+		func() {},
+	))
+	outer.Next(pending())
+	outer.Next(Throw[int](assert.AnError))
+	is.EqualError(gotErr, assert.AnError.Error())
+	is.Equal(int32(1), atomic.LoadInt32(&teardowns))
 }
 
 func TestOperatorCombiningMergeMap(t *testing.T) { //nolint:paralleltest
