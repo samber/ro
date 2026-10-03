@@ -229,26 +229,47 @@ func DefaultIfEmptyWithContext[T any](defaultCtx context.Context, defaultValue T
 	}
 }
 
+// sequenceEqualItem wraps an item of a SequenceEqual source. The end marker is
+// appended after the last item so that Zip2 pairs it against a real item of the
+// longer sequence, instead of silently dropping the surplus items.
+type sequenceEqualItem[T comparable] struct {
+	value T
+	end   bool
+}
+
 // SequenceEqual determines whether two observable sequences are equal by comparing the elements pairwise.
+// Sequences of different lengths are never equal.
 // Play: https://go.dev/play/p/cBIQlH01byQ
 func SequenceEqual[T comparable](obsB Observable[T]) func(Observable[T]) Observable[bool] {
+	wrap := func(obs Observable[T]) Observable[sequenceEqualItem[T]] {
+		return Pipe2(
+			obs,
+			Map(func(value T) sequenceEqualItem[T] { return sequenceEqualItem[T]{value: value} }),
+			EndWith(sequenceEqualItem[T]{end: true}),
+		)
+	}
+
 	return func(source Observable[T]) Observable[bool] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[bool]) Teardown {
-			sub := Zip2(source, obsB).
+			sub := Zip2(wrap(source), wrap(obsB)).
 				SubscribeWithContext(
 					subscriberCtx,
 					NewObserverWithContext(
-						func(ctx context.Context, values lo.Tuple2[T, T]) {
+						func(ctx context.Context, values lo.Tuple2[sequenceEqualItem[T], sequenceEqualItem[T]]) {
 							if values.A != values.B {
 								destination.NextWithContext(ctx, false)
+								destination.CompleteWithContext(ctx)
+								return
+							}
+
+							// Both end markers met: every previous pair matched.
+							if values.A.end {
+								destination.NextWithContext(ctx, true)
 								destination.CompleteWithContext(ctx)
 							}
 						},
 						destination.ErrorWithContext,
-						func(ctx context.Context) {
-							destination.NextWithContext(ctx, true)
-							destination.CompleteWithContext(ctx)
-						},
+						destination.CompleteWithContext,
 					),
 				)
 
