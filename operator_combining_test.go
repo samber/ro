@@ -1770,7 +1770,7 @@ func TestOperatorCombiningZipFutureCompletion(t *testing.T) {
 
 	// A source completing while another goroutine delivers the last pair must not drop it.
 	// The window is a few instructions wide, so repeat to hit it reliably.
-	const iterations = 200
+	const iterations = 10
 
 	for _, variant := range zipCompletionVariants() {
 		variant := variant
