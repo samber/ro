@@ -15,6 +15,8 @@
 package ro
 
 import (
+	"context"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -1620,4 +1622,283 @@ func TestOperatorCombiningZipAll(t *testing.T) { //nolint:paralleltest
 	)
 	is.Equal([][]int64{}, values)
 	is.EqualError(err, assert.AnError.Error())
+}
+
+// zipVariant wraps one zip operator behind a common shape, so every test runs against all of them.
+type zipVariant struct {
+	name  string
+	arity int
+	// zip emits each group of paired values as a slice, whatever the operator's output type.
+	zip func(sources []Observable[int]) Observable[[]int]
+}
+
+func zipCompletionVariants() []zipVariant {
+	return []zipVariant{
+		{"Zip", 2, func(s []Observable[int]) Observable[[]int] { return Zip(s...) }},
+		{"ZipAll", 2, func(s []Observable[int]) Observable[[]int] { return ZipAll[int]()(Just(s...)) }},
+		{"Zip2", 2, func(s []Observable[int]) Observable[[]int] {
+			return Map(func(v lo.Tuple2[int, int]) []int { return []int{v.A, v.B} })(Zip2(s[0], s[1]))
+		}},
+		{"Zip3", 3, func(s []Observable[int]) Observable[[]int] {
+			return Map(func(v lo.Tuple3[int, int, int]) []int { return []int{v.A, v.B, v.C} })(Zip3(s[0], s[1], s[2]))
+		}},
+		{"Zip4", 4, func(s []Observable[int]) Observable[[]int] {
+			return Map(func(v lo.Tuple4[int, int, int, int]) []int { return []int{v.A, v.B, v.C, v.D} })(Zip4(s[0], s[1], s[2], s[3]))
+		}},
+		{"Zip5", 5, func(s []Observable[int]) Observable[[]int] {
+			return Map(func(v lo.Tuple5[int, int, int, int, int]) []int { return []int{v.A, v.B, v.C, v.D, v.E} })(Zip5(s[0], s[1], s[2], s[3], s[4]))
+		}},
+		{"Zip6", 6, func(s []Observable[int]) Observable[[]int] {
+			return Map(func(v lo.Tuple6[int, int, int, int, int, int]) []int { return []int{v.A, v.B, v.C, v.D, v.E, v.F} })(Zip6(s[0], s[1], s[2], s[3], s[4], s[5]))
+		}},
+	}
+}
+
+// manualSources are sources that emit nothing by themselves: tests push values through emitters.
+type manualSources struct {
+	observables []Observable[int]
+	// emitters[i] is set once source i is subscribed.
+	emitters []Observer[int]
+}
+
+// newManualSources builds arity sources. onSubscribe (optional) runs when source i is subscribed,
+// and onTeardown (optional) runs when its teardown is called.
+func newManualSources(
+	arity int,
+	onSubscribe func(ctx context.Context, i int, destination Observer[int]),
+	onTeardown func(i int),
+) *manualSources {
+	m := &manualSources{
+		observables: make([]Observable[int], arity),
+		emitters:    make([]Observer[int], arity),
+	}
+	for i := range m.observables {
+		i := i
+		m.observables[i] = NewObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+			m.emitters[i] = destination
+			if onSubscribe != nil {
+				onSubscribe(ctx, i, destination)
+			}
+			return func() {
+				if onTeardown != nil {
+					onTeardown(i)
+				}
+			}
+		})
+	}
+	return m
+}
+
+// zipRow is the group zip emits for the given round when source i emitted round*10+i.
+func zipRow(round, arity int) []int {
+	row := make([]int, arity)
+	for i := range row {
+		row[i] = round*10 + i
+	}
+	return row
+}
+
+func TestOperatorCombiningZipCompletedSource(t *testing.T) {
+	t.Parallel()
+
+	for _, variant := range zipCompletionVariants() {
+		variant := variant
+		for short := 0; short < variant.arity; short++ {
+			short := short
+			t.Run(fmt.Sprintf("%s/source%d", variant.name, short), func(t *testing.T) {
+				t.Parallel()
+				testWithTimeout(t, 5*time.Second)
+				is := assert.New(t)
+
+				type contextKey struct{}
+				subscriberCtx := context.WithValue(context.Background(), contextKey{}, "subscriber")
+				emissionCtx := context.WithValue(subscriberCtx, contextKey{}, "last value")
+
+				teardowns := make([]int, variant.arity)
+				sources := newManualSources(variant.arity,
+					func(ctx context.Context, i int, destination Observer[int]) {
+						is.Equal(subscriberCtx, ctx)
+						// Source `short` emits two values, then completes, as soon as it is subscribed.
+						if i == short {
+							destination.NextWithContext(ctx, 10+i)
+							destination.NextWithContext(ctx, 20+i)
+							destination.CompleteWithContext(ctx)
+						}
+					},
+					func(i int) { teardowns[i]++ },
+				)
+
+				values := [][]int{}
+				completions := 0
+				sub := variant.zip(sources.observables).SubscribeWithContext(subscriberCtx, NewObserverWithContext(
+					func(ctx context.Context, value []int) {
+						is.Equal(emissionCtx, ctx)
+						values = append(values, value)
+					},
+					func(_ context.Context, err error) { is.NoError(err) },
+					func(ctx context.Context) {
+						is.Equal(emissionCtx, ctx)
+						completions++
+					},
+				))
+				defer sub.Unsubscribe()
+
+				// Subscribe has returned, so completion now runs Zip's teardown.
+				// The completed source must retain its second value until it is paired.
+				for round := 1; round <= 2; round++ {
+					for i, emitter := range sources.emitters {
+						if i != short {
+							emitter.NextWithContext(emissionCtx, round*10+i)
+						}
+					}
+					is.Len(values, round)
+					is.Equal(round-1, completions)
+				}
+
+				is.Equal([][]int{zipRow(1, variant.arity), zipRow(2, variant.arity)}, values)
+				is.True(sub.IsClosed())
+				for _, count := range teardowns {
+					is.Equal(1, count)
+				}
+			})
+		}
+	}
+}
+
+func TestOperatorCombiningZipFutureCompletion(t *testing.T) {
+	t.Parallel()
+
+	for _, variant := range zipCompletionVariants() {
+		variant := variant
+		t.Run(variant.name, func(t *testing.T) {
+			t.Parallel()
+			testWithTimeout(t, 5*time.Second)
+			is := assert.New(t)
+
+			release := make(chan struct{})
+			sources := make([]Observable[int], variant.arity)
+			for i := range sources {
+				i := i
+				sources[i] = Future(func() (int, error) {
+					<-release
+					return i, nil
+				})
+			}
+
+			// Collect blocks until completion, so release the futures concurrently.
+			go close(release)
+			values, err := Collect(variant.zip(sources))
+			is.NoError(err)
+
+			want := make([]int, variant.arity)
+			for i := range want {
+				want[i] = i
+			}
+			is.Equal([][]int{want}, values)
+		})
+	}
+}
+
+func TestOperatorCombiningZipUnsubscribeFromNext(t *testing.T) {
+	t.Parallel()
+
+	for _, variant := range zipCompletionVariants() {
+		variant := variant
+		t.Run(variant.name, func(t *testing.T) {
+			t.Parallel()
+			testWithTimeout(t, 5*time.Second)
+			is := assert.New(t)
+
+			teardowns := 0
+			sources := newManualSources(variant.arity, nil, func(int) { teardowns++ })
+
+			values := 0
+			completions := 0
+			var sub Subscription
+			sub = variant.zip(sources.observables).Subscribe(NewObserver(
+				func(_ []int) {
+					values++
+					sub.Unsubscribe()
+				},
+				func(err error) { is.NoError(err) },
+				func() { completions++ },
+			))
+			defer sub.Unsubscribe()
+
+			for _, emitter := range sources.emitters {
+				emitter.Next(1)
+			}
+
+			is.Equal(1, values)
+			is.Zero(completions)
+			is.True(sub.IsClosed())
+			is.Equal(variant.arity, teardowns)
+		})
+	}
+}
+
+func TestOperatorCombiningZipTerminalCleanup(t *testing.T) {
+	t.Parallel()
+
+	for _, variant := range zipCompletionVariants() {
+		variant := variant
+		for _, terminal := range []string{"complete", "error", "cancel"} {
+			terminal := terminal
+			t.Run(variant.name+"/"+terminal, func(t *testing.T) {
+				t.Parallel()
+				testWithTimeout(t, 5*time.Second)
+				is := assert.New(t)
+
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				// Teardown may run asynchronously (on cancel), so signal it through a channel.
+				teardowns := make(chan struct{}, variant.arity)
+				sources := newManualSources(variant.arity, nil, func(int) { teardowns <- struct{}{} })
+				observables := sources.observables
+				if terminal == "cancel" {
+					last := len(observables) - 1
+					observables[last] = ThrowOnContextCancel[int]()(observables[last])
+				}
+
+				values := 0
+				completions := 0
+				var gotErr error
+				sub := variant.zip(observables).SubscribeWithContext(ctx, NewObserver(
+					func(_ []int) { values++ },
+					func(err error) { gotErr = err },
+					func() { completions++ },
+				))
+				defer sub.Unsubscribe()
+
+				// Any source can end the stream: use the last one subscribed.
+				last := sources.emitters[len(sources.emitters)-1]
+				switch terminal {
+				case "complete":
+					last.Complete()
+				case "error":
+					last.Error(assert.AnError)
+				case "cancel":
+					cancel()
+				}
+				for range observables {
+					<-teardowns
+				}
+
+				is.Zero(values)
+				is.True(sub.IsClosed())
+				switch terminal {
+				case "complete":
+					is.Equal(1, completions)
+					is.NoError(gotErr)
+				case "error":
+					is.Zero(completions)
+					is.ErrorIs(gotErr, assert.AnError)
+				case "cancel":
+					is.Zero(completions)
+					is.ErrorIs(gotErr, context.Canceled)
+				}
+			})
+		}
+	}
 }
