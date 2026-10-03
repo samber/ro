@@ -58,7 +58,9 @@ func OnErrorResumeNextWith[T any](finally ...Observable[T]) func(Observable[T]) 
 			return source
 		}
 
-		finally = append([]Observable[T]{source}, finally...)
+		// Local copy: reassigning the captured `finally` would grow the chain each time
+		// the returned operator is applied.
+		chain := append([]Observable[T]{source}, finally...)
 
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			subscriptions := NewSubscription(nil)
@@ -67,14 +69,14 @@ func OnErrorResumeNextWith[T any](finally ...Observable[T]) func(Observable[T]) 
 
 			var err error
 
-			for i := range finally {
+			for i := range chain {
 				if subscriptions.IsClosed() {
 					break
 				}
 
 				err = nil
 
-				sub := finally[i].SubscribeWithContext(
+				sub := chain[i].SubscribeWithContext(
 					subscriberCtx,
 					NewObserverWithContext(
 						destination.NextWithContext,
