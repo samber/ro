@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package xtest holds helpers shared by the fuzz tests of the whole repository.
-package xtest
+// Package xfuzz holds helpers shared by the fuzz tests of the whole repository.
+package xfuzz
 
 import (
 	"os"

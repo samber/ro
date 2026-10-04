@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/samber/ro"
+	"github.com/samber/ro/internal/xfuzz"
 )
 
 const (
@@ -100,7 +101,7 @@ func recoverInto(errs chan<- string) {
 func FuzzCronUnsubscribeFromNext(f *testing.F) {
 	f.Skip("race: cron-shutdown-self-wait; remove when fixed")
 
-	addSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i / 2)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i / 2)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8, slowNext uint8) {
 		var (
@@ -156,7 +157,7 @@ func FuzzCronUnsubscribeFromNext(f *testing.F) {
 func FuzzCronNewJobFailureLeak(f *testing.F) {
 	f.Skip("race: cron-newjob-error-leaks-scheduler; remove when fixed")
 
-	addSeeds(f, func(i int) []any { return []any{uint8(i), uint8(i / 2)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{uint8(i), uint8(i / 2)} })
 
 	f.Fuzz(func(t *testing.T, kind uint8, repeat uint8) {
 		var def gocron.JobDefinition
@@ -203,7 +204,7 @@ func FuzzCronNewJobFailureLeak(f *testing.F) {
 // Next may still be running: no Next may be delivered after Unsubscribe returns
 // and no goroutine may outlive the subscription.
 func FuzzCronUnsubscribeWhileJobRunning(f *testing.F) {
-	addSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i / 2)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i / 2)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8, slowNext uint8) {
 		before := runtime.NumGoroutine()
@@ -267,7 +268,7 @@ func FuzzCronUnsubscribeWhileJobRunning(f *testing.F) {
 func FuzzCronOverlappingRuns(f *testing.F) {
 	f.Skip("race: cron-counter-out-of-order; remove when fixed")
 
-	addSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i / 2)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i / 2)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8, slowNext uint8) {
 		const wantTicks = 4

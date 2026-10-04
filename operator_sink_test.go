@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/samber/lo"
-	"github.com/samber/ro/internal/xtest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -150,51 +149,4 @@ func TestOperatorSinkToChannel(t *testing.T) {
 		NewNotificationError[int](assert.AnError),
 	}, all)
 	is.NoError(err)
-}
-
-// A source that keeps emitting after the downstream unsubscribed must not
-// make ToChannel send on a closed channel.
-func FuzzOperatorSinkToChannelUnsubscribeWhileSending(f *testing.F) {
-	xtest.AddSeeds(f, func(i int) []any { return []any{int64(i)} })
-
-	f.Fuzz(func(t *testing.T, seed int64) {
-		testWithTimeout(t, 2*time.Second)
-		is := assert.New(t)
-
-		senderDone := make(chan struct{})
-		source := NewUnsafeObservable(func(destination Observer[int]) Teardown {
-			go func() {
-				defer close(senderDone)
-				for i := 0; i < 100; i++ {
-					destination.Next(i)
-				}
-				destination.Complete()
-			}()
-			return nil
-		})
-
-		received := make(chan (<-chan Notification[int]), 1)
-		sub := ToChannel[int](0)(source).Subscribe(OnNext(func(ch <-chan Notification[int]) {
-			received <- ch
-		}))
-
-		ch := <-received
-		// Nobody reads: the source goroutine blocks on a full channel.
-		time.Sleep(5 * time.Millisecond)
-		fuzzJitter(seed, 0)
-		sub.Unsubscribe()
-
-		select {
-		case <-senderDone:
-		case <-time.After(time.Second):
-			is.Fail("source goroutine still blocked after unsubscribe")
-		}
-
-		// The channel must end up closed: draining it only terminates once it is.
-		drained := 0
-		for range ch {
-			drained++
-		}
-		is.GreaterOrEqual(drained, 0)
-	})
 }

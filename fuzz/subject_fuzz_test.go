@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ro
+package fuzz
 
 import (
 	"errors"
@@ -21,7 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samber/ro/internal/xtest"
+	"github.com/samber/ro"
+	"github.com/samber/ro/internal/xfuzz"
 )
 
 const (
@@ -49,27 +50,27 @@ var errFuzzSubj = errors.New("fuzzSubj: boom")
 
 // fuzzSubjNew builds one of the 5 subject types. bufSize feeds the replay and unicast buffers
 // and covers -1 (unlimited), 0 and small positive values.
-func fuzzSubjNew(kind, bufSize uint8) Subject[int] {
+func fuzzSubjNew(kind, bufSize uint8) ro.Subject[int] {
 	size := int(bufSize%5) - 1
 
 	switch kind % fuzzSubjKindCount {
 	case 0:
-		return NewPublishSubject[int]()
+		return ro.NewPublishSubject[int]()
 	case 1:
-		return NewBehaviorSubject(-1)
+		return ro.NewBehaviorSubject(-1)
 	case 2:
-		return NewReplaySubject[int](size)
+		return ro.NewReplaySubject[int](size)
 	case 3:
-		return NewAsyncSubject[int]()
+		return ro.NewAsyncSubject[int]()
 	default:
-		return NewUnicastSubject[int](size)
+		return ro.NewUnicastSubject[int](size)
 	}
 }
 
 // fuzzSubjFeed pipes fuzzSource(0..n-1) into subject and terminates it with Complete, or Error when
 // fail is set. A synchronous source emits inside Subscribe, an asynchronous one from its own goroutine.
 // wg is released once the subject has been terminated.
-func fuzzSubjFeed(wg *sync.WaitGroup, seed int64, subject Subject[int], n int, async, fail bool) {
+func fuzzSubjFeed(wg *sync.WaitGroup, seed int64, subject ro.Subject[int], n int, async, fail bool) {
 	done := make(chan struct{})
 
 	wg.Add(1)
@@ -77,7 +78,7 @@ func fuzzSubjFeed(wg *sync.WaitGroup, seed int64, subject Subject[int], n int, a
 	go func() {
 		defer wg.Done()
 
-		sub := fuzzSource(seed, n, async).Subscribe(NewObserver(
+		sub := fuzzSource(seed, n, async).Subscribe(ro.NewObserver(
 			subject.Next,
 			subject.Error,
 			func() {
@@ -137,8 +138,8 @@ func (r *fuzzSubjRecorder) begin() {
 	}
 }
 
-func (r *fuzzSubjRecorder) observer() Observer[int] {
-	return NewObserver(
+func (r *fuzzSubjRecorder) observer() ro.Observer[int] {
+	return ro.NewObserver(
 		func(value int) {
 			r.begin()
 			defer r.guard.leave()
@@ -238,16 +239,16 @@ func fuzzSubjWithin(t *testing.T, what string, fn func()) {
 // fuzzSubjHolder hands a Subscription to a callback that may run before Subscribe returns.
 type fuzzSubjHolder struct {
 	mu  sync.Mutex
-	sub Subscription
+	sub ro.Subscription
 }
 
-func (h *fuzzSubjHolder) set(sub Subscription) {
+func (h *fuzzSubjHolder) set(sub ro.Subscription) {
 	h.mu.Lock()
 	h.sub = sub
 	h.mu.Unlock()
 }
 
-func (h *fuzzSubjHolder) get() Subscription {
+func (h *fuzzSubjHolder) get() ro.Subscription {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -257,7 +258,7 @@ func (h *fuzzSubjHolder) get() Subscription {
 func fuzzSubjSeeds(f *testing.F) {
 	f.Helper()
 
-	xtest.AddSeeds(f, func(i int) []any {
+	xfuzz.AddSeeds(f, func(i int) []any {
 		return []any{int64(i), uint8(i), uint8(i / 5), uint8(i / 3), uint8(i * 37), uint8(i * 11), uint8(i * 13)}
 	})
 }
@@ -495,7 +496,7 @@ func fuzzSubjReentrant(f *testing.F, op int) {
 			case 1:
 				subject.Next(fuzzSubjReentrantValue)
 			default:
-				subject.Subscribe(OnNext(func(int) {})).Unsubscribe()
+				subject.Subscribe(ro.OnNext(func(int) {})).Unsubscribe()
 			}
 		}
 
@@ -548,7 +549,7 @@ func FuzzSubjUnicastClosedSubscriber(f *testing.F) {
 	f.Fuzz(func(t *testing.T, seed int64, kind, subs, items, mask, extra, amask uint8) {
 		t.Parallel()
 
-		subject := NewUnicastSubject[int](int(extra%5) - 1)
+		subject := ro.NewUnicastSubject[int](int(extra%5) - 1)
 		nItems := fuzzBound(int64(items), 0, fuzzMaxItems)
 
 		for i := 0; i < nItems; i++ {
@@ -563,7 +564,7 @@ func FuzzSubjUnicastClosedSubscriber(f *testing.F) {
 		}
 
 		closed := &fuzzSubjRecorder{}
-		sub := NewSubscriber(closed.observer())
+		sub := ro.NewSubscriber(closed.observer())
 		sub.Unsubscribe()
 
 		fuzzSubjWithin(t, "Subscribe with a closed Subscriber", func() {
@@ -599,7 +600,7 @@ func FuzzSubjUnicastReplayUnsubscribe(f *testing.F) {
 	f.Fuzz(func(t *testing.T, seed int64, kind, subs, items, mask, extra, amask uint8) {
 		t.Parallel()
 
-		subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
+		subject := ro.NewUnicastSubject[int](ro.UnicastSubjectUnlimitedBufferSize)
 		nItems := fuzzBound(int64(items), 1, fuzzMaxItems)
 		stopAt := fuzzBound(int64(extra), 0, nItems-1)
 
@@ -609,7 +610,7 @@ func FuzzSubjUnicastReplayUnsubscribe(f *testing.F) {
 
 		rec := &fuzzSubjRecorder{}
 
-		var sub Subscriber[int]
+		var sub ro.Subscriber[int]
 
 		rec.onNext = func(value int) {
 			if value == stopAt {
@@ -617,7 +618,7 @@ func FuzzSubjUnicastReplayUnsubscribe(f *testing.F) {
 				atomic.StoreInt32(&rec.unsubbed, 1)
 			}
 		}
-		sub = NewSubscriber(rec.observer())
+		sub = ro.NewSubscriber(rec.observer())
 
 		fuzzSubjWithin(t, "Subscribe unsubscribing during replay", func() {
 			subject.Subscribe(sub)
@@ -645,7 +646,7 @@ func FuzzSubjUnicastResubscribe(f *testing.F) {
 		t.Parallel()
 
 		bufSize := int(extra%5) - 1
-		subject := NewUnicastSubject[int](bufSize)
+		subject := ro.NewUnicastSubject[int](bufSize)
 		nGap := fuzzBound(int64(items), 0, fuzzMaxItems)
 		nLive := fuzzBound(int64(subs), 0, fuzzMaxItems)
 
@@ -678,7 +679,7 @@ func FuzzSubjUnicastResubscribe(f *testing.F) {
 		// buffered, in order) followed by every live value.
 		replayed := len(got) - nLive
 
-		if replayed < 0 || replayed > nGap || (bufSize != UnicastSubjectUnlimitedBufferSize && replayed > bufSize) {
+		if replayed < 0 || replayed > nGap || (bufSize != ro.UnicastSubjectUnlimitedBufferSize && replayed > bufSize) {
 			t.Fatalf("second subscriber saw %d replayed values for %d buffered (buffer %d): %v", replayed, nGap, bufSize, got)
 		}
 
@@ -726,7 +727,7 @@ func FuzzSubjLongLock(f *testing.F) {
 
 		var once sync.Once
 
-		blocker := OnNext(func(value int) {
+		blocker := ro.OnNext(func(value int) {
 			if value == trigger {
 				once.Do(func() { close(entered) })
 				<-release
@@ -761,7 +762,7 @@ func FuzzSubjLongLock(f *testing.F) {
 				if (mask>>(uint(i)%8))&1 == 1 {
 					_ = subject.IsClosed()
 				} else {
-					subject.Subscribe(OnNext(func(int) {})).Unsubscribe()
+					subject.Subscribe(ro.OnNext(func(int) {})).Unsubscribe()
 				}
 			}(i)
 		}
