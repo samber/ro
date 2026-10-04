@@ -150,3 +150,47 @@ func TestOperatorSinkToChannel(t *testing.T) {
 	}, all)
 	is.NoError(err)
 }
+
+// A source that keeps emitting after the downstream unsubscribed must not
+// make ToChannel send on a closed channel.
+func TestOperatorSinkToChannelUnsubscribeWhileSending(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 2*time.Second)
+	is := assert.New(t)
+
+	const iterations = 50
+
+	for n := 0; n < iterations; n++ {
+		senderDone := make(chan struct{})
+		source := NewUnsafeObservable(func(destination Observer[int]) Teardown {
+			go func() {
+				defer close(senderDone)
+				for i := 0; i < 100; i++ {
+					destination.Next(i)
+				}
+				destination.Complete()
+			}()
+			return nil
+		})
+
+		received := make(chan (<-chan Notification[int]), 1)
+		sub := ToChannel[int](0)(source).Subscribe(OnNext(func(ch <-chan Notification[int]) {
+			received <- ch
+		}))
+
+		ch := <-received
+		// Nobody reads: the source goroutine blocks on a full channel.
+		time.Sleep(5 * time.Millisecond)
+		sub.Unsubscribe()
+
+		select {
+		case <-senderDone:
+		case <-time.After(time.Second):
+			is.Fail("source goroutine still blocked after unsubscribe")
+		}
+
+		// The channel must end up closed.
+		for range ch {
+		}
+	}
+}
