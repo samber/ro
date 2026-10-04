@@ -299,7 +299,7 @@ func TestOperatorCreationRangeWithStep(t *testing.T) {
 // the range is [start:end), so `end` is never emitted and every value strictly below it is.
 func TestOperatorCreationRangeWithStepFloatPrecision(t *testing.T) {
 	t.Parallel()
-	// The timeout covers the 14 parallel subtests, which wait for the whole package to schedule them.
+	// The timeout covers the 16 parallel subtests, which wait for the whole package to schedule them.
 	testWithTimeout(t, 5*time.Second)
 
 	tests := []struct {
@@ -314,6 +314,7 @@ func TestOperatorCreationRangeWithStepFloatPrecision(t *testing.T) {
 		{"0.07/0.01 is 7.000000000000001", 0, 0.07, 0.01, []float64{0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06}},
 		{"descending 0.1 steps", 1, 0, 0.1, []float64{1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1}},
 		{"descending end is not a multiple of step", 1, 0, 0.3, []float64{1, 0.7, 0.4, 0.1}},
+		{"large offset, small step", 1e6, 1000000.02, 0.01, []float64{1e6, 1000000.01}},
 		{"step bigger than range", 0, 1, 5, []float64{0}},
 	}
 

@@ -207,18 +207,29 @@ func rangeHasNext(cursor, end, sign int64) bool {
 	return cursor > end
 }
 
-// rangeWithStepEpsilon absorbs the float64 rounding error of (end-start)/step. Without it, a
-// quotient that should be an exact integer can land just above it and ceil rounds up to one
+// float64Epsilon is the machine epsilon of float64 (2^-52): the relative spacing of float64
+// values around 1. A decimal literal such as 0.07 is stored with a relative error up to half of it.
+const float64Epsilon = 0x1p-52
+
+// rangeWithStepEpsilonFactor leaves room for the roundings of the subtraction and the division,
+// on top of the representation error of start, end and step.
+const rangeWithStepEpsilonFactor = 4
+
+// rangeWithStepEpsilon returns the rounding error to absorb in (end-start)/step. Without it, a
+// quotient that should be an exact integer can land just above it, and ceil rounds up to one
 // value too many: 0.07/0.01 = 7.000000000000001 would emit 8 values instead of 7.
-// 1e-9 is far above the ~1e-16 relative error of one division. It is an absolute tolerance,
-// so it stops covering the division error once the quotient exceeds ~1e7 steps.
-const rangeWithStepEpsilon = 1e-9
+// The error scales with (|start|+|end|)/step, which also covers the cancellation in end-start
+// when both bounds are large and close. A fixed tolerance would be too loose for small ranges
+// and too tight for large offsets or large quotients.
+func rangeWithStepEpsilon(start, end, step float64) float64 {
+	return rangeWithStepEpsilonFactor * float64Epsilon * (math.Abs(start) + math.Abs(end)) / step
+}
 
 // rangeWithStepCount returns the number of values in [start:end) walked by step.
 // It is shared by RangeWithStep and RangeWithStepAndInterval, so both always emit
 // the same number of values. start and end must differ and step must be positive.
 func rangeWithStepCount(start, end, step float64) int64 {
-	count := int64(math.Ceil(math.Abs(end-start)/step - rangeWithStepEpsilon))
+	count := int64(math.Ceil(math.Abs(end-start)/step - rangeWithStepEpsilon(start, end, step)))
 
 	// start differs from end, so the range always contains at least `start`.
 	if count < 1 {
