@@ -17,6 +17,7 @@ package ro
 import (
 	"context"
 	"math"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -344,6 +345,166 @@ func TestOperatorCreationRangeWithStepFloatPrecision(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOperatorCreationRangeWithStepEpsilon(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Anchor: with |start|+|end| = 1 and step = 1, the epsilon is the factor times the machine epsilon.
+	is.Equal(rangeWithStepEpsilonFactor*float64Epsilon, rangeWithStepEpsilon(0, 1, 1))
+
+	// Both bounds at zero: nothing to absorb.
+	is.Equal(0.0, rangeWithStepEpsilon(0, 0, 1))
+
+	// Linear in the magnitude of the bounds.
+	is.InEpsilon(10*rangeWithStepEpsilon(0, 1, 1), rangeWithStepEpsilon(0, 10, 1), 1e-12)
+	is.InEpsilon(1000*rangeWithStepEpsilon(0, 1, 1), rangeWithStepEpsilon(0, 1000, 1), 1e-12)
+
+	// Inversely proportional to the step.
+	is.InEpsilon(2*rangeWithStepEpsilon(0, 1, 0.1), rangeWithStepEpsilon(0, 1, 0.05), 1e-12)
+
+	// Direction and sign of the bounds do not matter, only their magnitude.
+	is.Equal(rangeWithStepEpsilon(0, 1, 0.1), rangeWithStepEpsilon(1, 0, 0.1))
+	is.Equal(rangeWithStepEpsilon(0, 10, 1), rangeWithStepEpsilon(-5, 5, 1))
+	is.Equal(rangeWithStepEpsilon(0, 10, 1), rangeWithStepEpsilon(-10, 0, 1))
+
+	// Tighter than a fixed 1e-9 on small ranges, so a genuine fraction of a step is never swallowed...
+	is.Less(rangeWithStepEpsilon(0, 1, 0.1), 1e-9)
+	// ...and looser on large offsets, where the subtraction error exceeds 1e-9.
+	is.Greater(rangeWithStepEpsilon(1e6, 1e6+1, 0.01), 1e-9)
+	is.Greater(rangeWithStepEpsilon(1e9, 1e9+1, 0.1), 1e-9)
+
+	// Stays far below one step for every realistic input, so it can never drop a whole value.
+	is.Less(rangeWithStepEpsilon(1e9, 1e9+1, 0.1), 0.5)
+}
+
+func TestOperatorCreationRangeWithStepCount(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		start, end float64
+		step       float64
+		expected   int64
+	}{
+		{"exact multiple of an exact step", 0, 1, 0.5, 2},
+		{"0.1 steps never reach end", 0, 1, 0.1, 10},
+		{"end is not a multiple of step", 0, 1, 0.3, 4},
+		{"0.3/0.1 is 2.9999999999999996", 0, 0.3, 0.1, 3},
+		{"0.07/0.01 is 7.000000000000001", 0, 0.07, 0.01, 7},
+		{"1.1/0.1 emits 11 values", 0, 1.1, 0.1, 11},
+		{"descending 0.1 steps", 1, 0, 0.1, 10},
+		{"descending end is not a multiple of step", 1, 0, 0.3, 4},
+		{"negative bounds, ascending", -1, 0, 0.1, 10},
+		{"negative bounds, descending", -0.3, -0.6, 0.1, 3},
+		{"bounds around zero", -0.5, 0.5, 0.25, 4},
+		{"large offset, small step", 1e6, 1000000.02, 0.01, 2},
+		{"huge offset, one step", 1e9, 1000000000.1, 0.1, 1},
+		// A fraction of a step above a multiple is a genuine extra value: 1 < 1.000000001.
+		{"end just above a multiple of step", 0, 1 + 1e-9, 1, 2},
+		{"end just below a multiple of step", 0, 1 - 1e-9, 1, 1},
+		// start != end, so the range always holds at least start.
+		{"step equal to range", 0, 1, 1, 1},
+		{"step bigger than range", 0, 1, 5, 1},
+		{"tiny range", 0, 1e-300, 1, 1},
+		// The epsilon (~1.8e-6) exceeds the quotient (~1e-6): ceil would give 0 without the clamp.
+		{"gap smaller than the epsilon at a large offset", 1e9, 1e9 + 1e-6, 1, 1},
+		{"gap smaller than the epsilon at a large offset, descending", 1e9 + 1e-6, 1e9, 1, 1},
+		{"tiny range, descending", 0, -1e-300, 1, 1},
+	}
+
+	for _, tt := range tests {
+		tt := tt // go.mod predates Go 1.22 per-iteration loop variables
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, rangeWithStepCount(tt.start, tt.end, tt.step))
+		})
+	}
+}
+
+// The count does not depend on the walking direction.
+func TestOperatorCreationRangeWithStepCountSymmetry(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	for _, step := range []float64{0.1, 0.3, 0.7, 1, 2.5} {
+		for _, bound := range []float64{0.07, 0.3, 1, 1.1, 5, 42.5} {
+			is.Equal(rangeWithStepCount(0, bound, step), rangeWithStepCount(bound, 0, step), "step=%v bound=%v", step, bound)
+			is.Equal(rangeWithStepCount(-bound, bound, step), rangeWithStepCount(bound, -bound, step), "step=%v bound=%v", step, bound)
+		}
+	}
+}
+
+// For an end written as the decimal literal of offset+k*step, the count is exactly k.
+func TestOperatorCreationRangeWithStepCountDecimalLiterals(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	const maxK = 200
+
+	for _, step := range []float64{0.1, 0.01, 0.001, 0.05, 0.2, 0.3, 0.7} {
+		for _, offset := range []float64{0, -3, 1e3, 1e6} {
+			for k := 1; k <= maxK; k++ {
+				// Round-trip through a decimal string to get the literal a caller would type.
+				end, err := strconv.ParseFloat(strconv.FormatFloat(offset+float64(k)*step, 'f', 6, 64), 64)
+				is.NoError(err)
+
+				if !is.Equal(int64(k), rangeWithStepCount(offset, end, step), "offset=%v step=%v k=%d end=%v", offset, step, k, end) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func TestOperatorCreationRangeWithStepValue(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// The first value is start itself, whatever the direction and the step.
+	is.Equal(0.0, rangeWithStepValue(0, 0.1, 1, 0))
+	is.Equal(0.0, rangeWithStepValue(0, 0.1, -1, 0))
+	is.Equal(1.0, rangeWithStepValue(1, 0.1, -1, 0))
+	is.Equal(-2.5, rangeWithStepValue(-2.5, 7, 1, 0))
+	is.Equal(1e9, rangeWithStepValue(1e9, 0.1, 1, 0))
+
+	// Ascending and descending.
+	is.InDelta(0.3, rangeWithStepValue(0, 0.1, 1, 3), 1e-12)
+	is.InDelta(0.7, rangeWithStepValue(1, 0.1, -1, 3), 1e-12)
+	is.InDelta(0.9, rangeWithStepValue(0, 0.3, 1, 3), 1e-12)
+
+	// Negative start.
+	is.InDelta(0.0, rangeWithStepValue(-1, 0.5, 1, 2), 1e-12)
+	is.InDelta(-1.5, rangeWithStepValue(-1, 0.5, -1, 1), 1e-12)
+
+	// Step bigger than any range stays exact.
+	is.Equal(5.0, rangeWithStepValue(0, 5, 1, 1))
+	is.Equal(-5.0, rangeWithStepValue(0, 5, -1, 1))
+}
+
+// Computing start + i*step keeps the error independent from i, whereas accumulating the step does not.
+func TestOperatorCreationRangeWithStepValueNoDrift(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	const (
+		iterations = 1_000_000
+		step       = 0.1
+		tolerance  = 1e-9
+	)
+
+	accumulated := 0.0
+	for i := 0; i < iterations; i++ {
+		accumulated += step
+	}
+
+	// Guards the premise: the naive sum has drifted beyond the tolerance.
+	is.Greater(math.Abs(accumulated-iterations*step), tolerance)
+
+	is.InDelta(iterations*step, rangeWithStepValue(0, step, 1, iterations), tolerance)
+	is.InDelta(-iterations*step, rangeWithStepValue(0, step, -1, iterations), tolerance)
 }
 
 func TestOperatorCreationRangeWithInterval(t *testing.T) { //nolint:paralleltest
