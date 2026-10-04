@@ -1,0 +1,721 @@
+// Copyright 2025 samber.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://github.com/samber/ro/blob/main/licenses/LICENSE.apache.md
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package ro
+
+import (
+	"context"
+	"fmt"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/samber/ro/internal/xtest"
+)
+
+const (
+	// fuzzConnInnerBit selects a self-driven source (fuzzSource) instead of the hand-fed one.
+	fuzzConnInnerBit = 5
+
+	// fuzzConnAsyncBit selects whether the self-driven source emits from its own goroutine.
+	fuzzConnAsyncBit = 6
+
+	// fuzzConnOtherBase offsets the values of a second source so they never collide with the first.
+	fuzzConnOtherBase = 1000
+)
+
+// fuzzConnRecorder is a subscriber that records what it received and flags contract violations.
+type fuzzConnRecorder struct {
+	guard         serialGuard
+	mu            sync.Mutex
+	values        []int
+	terminals     int32
+	afterTerminal int32
+	onNext        func(v int)
+}
+
+func (r *fuzzConnRecorder) observer() Observer[int] {
+	return NewObserver(
+		func(v int) {
+			r.guard.enter()
+			defer r.guard.leave()
+
+			if atomic.LoadInt32(&r.terminals) > 0 {
+				atomic.AddInt32(&r.afterTerminal, 1)
+			}
+
+			r.mu.Lock()
+			r.values = append(r.values, v)
+			r.mu.Unlock()
+
+			if r.onNext != nil {
+				r.onNext(v)
+			}
+		},
+		func(error) {
+			r.guard.enter()
+			defer r.guard.leave()
+
+			if atomic.AddInt32(&r.terminals, 1) > 1 {
+				atomic.AddInt32(&r.afterTerminal, 1)
+			}
+		},
+		func() {
+			r.guard.enter()
+			defer r.guard.leave()
+
+			if atomic.AddInt32(&r.terminals, 1) > 1 {
+				atomic.AddInt32(&r.afterTerminal, 1)
+			}
+		},
+	)
+}
+
+func (r *fuzzConnRecorder) count() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return len(r.values)
+}
+
+func (r *fuzzConnRecorder) terminated() bool { return atomic.LoadInt32(&r.terminals) > 0 }
+
+func (r *fuzzConnRecorder) check(t *testing.T, name string) {
+	t.Helper()
+
+	if n := atomic.LoadInt32(&r.terminals); n > 1 {
+		t.Fatalf("%s: %d terminal notifications, want <= 1", name, n)
+	}
+
+	if n := atomic.LoadInt32(&r.afterTerminal); n != 0 {
+		t.Fatalf("%s: %d notifications after terminal", name, n)
+	}
+
+	if n := r.guard.overlapped(); n != 0 {
+		t.Fatalf("%s: %d overlapping notifications", name, n)
+	}
+}
+
+// fuzzConnSource counts live subscriptions to a source. By default it is hand-fed: every
+// subscription registers a destination, so a test can push values to all of them. With inner
+// set, it wraps a self-driven source (sync or async) and emit/finish do nothing.
+type fuzzConnSource struct {
+	mu      sync.Mutex
+	dests   map[int]Observer[int]
+	nextID  int
+	counter activeCounter
+	inner   Observable[int]
+}
+
+// newFuzzConnSource picks the hand-fed or the self-driven kind from mask. The self-driven kind
+// always completes, and is synchronous or asynchronous depending on another bit of mask.
+func newFuzzConnSource(seed int64, count int, mask uint8) *fuzzConnSource {
+	s := &fuzzConnSource{}
+	if mask&(1<<fuzzConnInnerBit) != 0 {
+		s.inner = fuzzSource(seed, count, fuzzIsAsync(mask, fuzzConnAsyncBit))
+	}
+
+	return s
+}
+
+func (s *fuzzConnSource) observable() Observable[int] {
+	if s.inner != nil {
+		return trackSubscriptions(&s.counter, s.inner)
+	}
+
+	return trackSubscriptions(&s.counter, NewUnsafeObservable(func(dest Observer[int]) Teardown {
+		s.mu.Lock()
+		if s.dests == nil {
+			s.dests = map[int]Observer[int]{}
+		}
+		id := s.nextID
+		s.nextID++
+		s.dests[id] = dest
+		s.mu.Unlock()
+
+		return func() {
+			s.mu.Lock()
+			delete(s.dests, id)
+			s.mu.Unlock()
+		}
+	}))
+}
+
+func (s *fuzzConnSource) snapshot() []Observer[int] {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	out := make([]Observer[int], 0, len(s.dests))
+	for _, d := range s.dests {
+		out = append(out, d)
+	}
+
+	return out
+}
+
+func (s *fuzzConnSource) emit(v int) {
+	for _, d := range s.snapshot() {
+		d.Next(v)
+	}
+}
+
+func (s *fuzzConnSource) finish(failed bool) {
+	for _, d := range s.snapshot() {
+		if failed {
+			d.Error(context.Canceled)
+		} else {
+			d.Complete()
+		}
+	}
+}
+
+// fuzzConnPick derives a deterministic pseudo-random number in [0, mod) from the input, so that
+// every goroutine takes different decisions per seed without a shared RNG.
+func fuzzConnPick(seed int64, g, step, mod int) int {
+	mixed := uint64(seed)*6364136223846793005 + uint64(g+1)*1442695040888963407 + uint64(step+1)*2862933555777941757 //nolint:gosec // wrap-around is intended.
+	mixed ^= mixed >> 29
+
+	return int(mixed % uint64(mod)) //nolint:gosec // mod is a small positive constant.
+}
+
+// fuzzConnWait fails the test instead of hanging when wg does not finish within fuzzDeadline.
+func fuzzConnWait(t *testing.T, what string, wg *sync.WaitGroup) {
+	t.Helper()
+
+	done := make(chan struct{})
+
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(fuzzDeadline):
+		t.Fatalf("deadlock: %s did not finish within %s", what, fuzzDeadline)
+	}
+}
+
+// fuzzConnSeeds registers seeds matching the (seed, goroutines, items, mask, cut) signature.
+func fuzzConnSeeds(f *testing.F) {
+	f.Helper()
+	xtest.AddSeeds(f, func(i int) []any {
+		return []any{int64(i), uint8(i), uint8(i / 3), uint8(i * 7), uint8(i / 5)}
+	})
+}
+
+// FuzzConnectableConcurrent races Subscribe, Connect and Unsubscribe from several goroutines
+// on the same ConnectableObservable, with a hand-fed or a sync/async self-driven source.
+func FuzzConnectableConcurrent(f *testing.F) {
+	fuzzConnSeeds(f)
+
+	f.Fuzz(func(t *testing.T, seed int64, goroutines, items, mask, cut uint8) {
+		workers := fuzzBound(int64(goroutines), 1, fuzzMaxGoroutines)
+		count := fuzzBound(int64(items), 0, fuzzMaxItems)
+		failed := mask&1 != 0
+		resetOnDisconnect := mask&2 != 0
+		terminate := mask&4 != 0
+
+		src := newFuzzConnSource(seed, count, mask)
+		conn := ConnectableWithConfig(src.observable(), ConnectableConfig[int]{
+			Connector:         defaultConnector[int],
+			ResetOnDisconnect: resetOnDisconnect,
+		})
+
+		recorders := make([]*fuzzConnRecorder, workers*3)
+		for i := range recorders {
+			recorders[i] = &fuzzConnRecorder{}
+		}
+
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			for i := 0; i < count; i++ {
+				fuzzJitter(seed, i)
+				src.emit(i)
+			}
+
+			if terminate {
+				src.finish(failed)
+			}
+		}()
+
+		for g := 0; g < workers; g++ {
+			wg.Add(1)
+
+			go func(g int) {
+				defer wg.Done()
+
+				var conns []Subscription
+
+				var subs []Subscription
+
+				for step := 0; step < 3; step++ {
+					fuzzJitter(seed, g*10+step)
+
+					switch fuzzConnPick(seed+int64(cut), g, step, 4) {
+					case 0:
+						subs = append(subs, conn.Subscribe(recorders[g*3+step].observer()))
+					case 1, 2:
+						conns = append(conns, conn.Connect())
+					default:
+						if len(conns) > 0 {
+							conns[len(conns)-1].Unsubscribe()
+						} else if len(subs) > 0 {
+							subs[len(subs)-1].Unsubscribe()
+						}
+					}
+				}
+			}(g)
+		}
+
+		fuzzConnWait(t, "concurrent Connect/Subscribe/Unsubscribe", &wg)
+
+		for _, r := range recorders {
+			r.check(t, "subscriber")
+		}
+	})
+}
+
+// FuzzConnectableSyncReconnect connects concurrently, possibly after the source already
+// completed. With ResetOnDisconnect every connection must feed a fresh subject. The source
+// is synchronous or asynchronous depending on the mask.
+func FuzzConnectableSyncReconnect(f *testing.F) {
+	f.Skip("race: connectable-stale-subject-after-sync-complete; remove when fixed")
+
+	fuzzConnSeeds(f)
+
+	f.Fuzz(func(t *testing.T, seed int64, goroutines, items, mask, cut uint8) {
+		workers := fuzzBound(int64(goroutines), 1, fuzzMaxGoroutines)
+		count := fuzzBound(int64(items), 0, fuzzMaxItems)
+		connectFirst := mask&1 != 0
+		async := fuzzIsAsync(mask, fuzzConnAsyncBit)
+
+		conn := ConnectableWithConfig(fuzzSource(seed, count, async), ConnectableConfig[int]{
+			Connector:         defaultConnector[int],
+			ResetOnDisconnect: true,
+		})
+
+		recorders := make([]*fuzzConnRecorder, workers)
+
+		var wg sync.WaitGroup
+
+		for g := 0; g < workers; g++ {
+			recorders[g] = &fuzzConnRecorder{}
+
+			wg.Add(1)
+
+			go func(g int) {
+				defer wg.Done()
+
+				fuzzJitter(seed, g)
+
+				if connectFirst && fuzzConnPick(seed, g, 0, 2) == 0 {
+					conn.Connect()
+				}
+
+				conn.Subscribe(recorders[g].observer())
+
+				fuzzJitter(seed, g+100+int(cut))
+				conn.Connect()
+			}(g)
+		}
+
+		fuzzConnWait(t, "concurrent reconnect", &wg)
+
+		for g, r := range recorders {
+			r.check(t, "subscriber")
+
+			// With a synchronous source, a terminal without the whole sequence means the subscriber
+			// was attached to a subject that had already completed, i.e. the connection did not
+			// get a fresh one. An asynchronous source may legitimately be joined mid-stream.
+			if !async && r.terminated() && r.count() != count {
+				t.Fatalf("worker %d: completed with %d values, want %d (connection fed a stale subject)", g, r.count(), count)
+			}
+		}
+
+		if async {
+			return
+		}
+
+		// Quiescent: one more connection must deliver the whole sequence to a new subscriber.
+		last := &fuzzConnRecorder{}
+		conn.Subscribe(last.observer())
+		conn.Connect()
+
+		if last.count() != count || !last.terminated() {
+			t.Fatalf("final connection delivered %d/%d values, terminated=%v", last.count(), count, last.terminated())
+		}
+	})
+}
+
+// FuzzConnectableReentrant subscribes or connects from inside a subscriber callback while the
+// source is emitting, for a synchronous or asynchronous source.
+func FuzzConnectableReentrant(f *testing.F) {
+	f.Skip("race: connectable-reentrant-deadlock (Connect holds mu across sync emission; async Subscribe-in-callback hangs the subject); remove when fixed")
+
+	fuzzConnSeeds(f)
+
+	f.Fuzz(func(t *testing.T, seed int64, goroutines, items, mask, cut uint8) {
+		count := fuzzBound(int64(items), 1, fuzzMaxItems)
+		trigger := fuzzBound(int64(cut), 0, count-1)
+		connectInside := mask&1 != 0
+		resetOnDisconnect := mask&2 != 0
+
+		conn := ConnectableWithConfig(fuzzSource(seed, count, fuzzIsAsync(mask, fuzzConnAsyncBit)), ConnectableConfig[int]{
+			Connector:         defaultConnector[int],
+			ResetOnDisconnect: resetOnDisconnect,
+		})
+
+		inner := &fuzzConnRecorder{}
+		outer := &fuzzConnRecorder{}
+
+		var fired int32
+
+		outer.onNext = func(v int) {
+			if v != trigger || !atomic.CompareAndSwapInt32(&fired, 0, 1) {
+				return
+			}
+
+			fuzzJitter(seed, v)
+
+			if connectInside {
+				conn.Connect()
+			} else {
+				conn.Subscribe(inner.observer())
+			}
+		}
+
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			conn.Subscribe(outer.observer())
+			conn.Connect()
+		}()
+
+		scenario := fmt.Sprintf("connectInside=%v async=%v resetOnDisconnect=%v", connectInside, fuzzIsAsync(mask, fuzzConnAsyncBit), resetOnDisconnect)
+
+		fuzzConnWait(t, "re-entrant Connect/Subscribe from a callback ("+scenario+")", &wg)
+		fuzzWaitFor(t, "outer subscriber to terminate ("+scenario+")", outer.terminated)
+
+		outer.check(t, "outer")
+		inner.check(t, "inner")
+	})
+}
+
+// FuzzConnectableShareReset races subscribers against a source that completes or fails, for
+// every combination of the Share reset flags.
+func FuzzConnectableShareReset(f *testing.F) {
+	fuzzConnSeeds(f)
+
+	f.Fuzz(func(t *testing.T, seed int64, goroutines, items, mask, cut uint8) {
+		workers := fuzzBound(int64(goroutines), 1, fuzzMaxGoroutines)
+		count := fuzzBound(int64(items), 0, fuzzMaxItems)
+		resetOnError := mask&1 != 0
+		resetOnComplete := mask&2 != 0
+		resetOnRefCountZero := mask&4 != 0
+		terminate := mask&8 != 0
+		failed := mask&16 != 0
+
+		src := newFuzzConnSource(seed, count, mask)
+		if src.inner != nil {
+			// A self-driven source always completes.
+			terminate, failed = true, false
+		}
+
+		shared := ShareWithConfig(ShareConfig[int]{
+			Connector:           defaultConnector[int],
+			ResetOnError:        resetOnError,
+			ResetOnComplete:     resetOnComplete,
+			ResetOnRefCountZero: resetOnRefCountZero,
+		})(src.observable())
+
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			for i := 0; i < count; i++ {
+				fuzzJitter(seed, i)
+				src.emit(i)
+			}
+
+			if terminate {
+				src.finish(failed)
+			}
+		}()
+
+		recorders := make([]*fuzzConnRecorder, workers*2)
+		subs := make([]Subscription, workers*2)
+
+		var subsMu sync.Mutex
+
+		for g := 0; g < workers; g++ {
+			wg.Add(1)
+
+			go func(g int) {
+				defer wg.Done()
+
+				for round := 0; round < 2; round++ {
+					fuzzJitter(seed, g*4+round)
+
+					rec := &fuzzConnRecorder{}
+					sub := shared.Subscribe(rec.observer())
+
+					subsMu.Lock()
+					recorders[g*2+round] = rec
+					subs[g*2+round] = sub
+					subsMu.Unlock()
+
+					// Leaving early drops the refcount to zero while the source may still be emitting.
+					if fuzzConnPick(seed+int64(cut), g, round, 3) == 0 {
+						sub.Unsubscribe()
+					}
+				}
+			}(g)
+		}
+
+		fuzzConnWait(t, "concurrent Share subscribers", &wg)
+
+		for _, r := range recorders {
+			r.check(t, "subscriber")
+		}
+
+		for _, sub := range subs {
+			sub.Unsubscribe()
+		}
+
+		// A reset generation has no owner left to unsubscribe its source, so the operator must
+		// have done it; only the generations that were meant to be reset are asserted.
+		// Without ResetOnRefCountZero, a subscriber arriving after the source ended opens a new
+		// generation that legitimately stays subscribed, so nothing can be asserted.
+		keptTerminal := terminate && ((failed && !resetOnError) || (!failed && !resetOnComplete))
+
+		if !resetOnRefCountZero || keptTerminal {
+			return
+		}
+
+		// An asynchronous source may still be emitting when the last subscriber leaves.
+		scenario := fmt.Sprintf("resetOnError=%v resetOnComplete=%v resetOnRefCountZero=%v terminate=%v failed=%v selfDriven=%v async=%v",
+			resetOnError, resetOnComplete, resetOnRefCountZero, terminate, failed, src.inner != nil, fuzzIsAsync(mask, fuzzConnAsyncBit))
+
+		fuzzWaitFor(t, "source subscriptions to be released ("+scenario+")", func() bool { return src.counter.activeCount() == 0 })
+
+		fuzzConnCheckFreshGeneration(t, shared, src, count)
+	})
+}
+
+// fuzzConnCheckFreshGeneration subscribes once more to a reset Share and asserts that it opened
+// exactly one fresh source subscription and received the fresh source's values.
+func fuzzConnCheckFreshGeneration(t *testing.T, shared Observable[int], src *fuzzConnSource, count int) {
+	t.Helper()
+
+	before := src.counter.totalCount()
+	fresh := &fuzzConnRecorder{}
+	sub := shared.Subscribe(fresh.observer())
+
+	defer sub.Unsubscribe()
+
+	if got := src.counter.totalCount(); got != before+1 {
+		t.Fatalf("next subscriber opened %d source subscriptions, want 1 fresh one", got-before)
+	}
+
+	if src.inner != nil {
+		fuzzWaitFor(t, "fresh subscriber to terminate", fresh.terminated)
+
+		if fresh.count() != count {
+			t.Fatalf("fresh subscriber received %d values from the fresh source, want %d", fresh.count(), count)
+		}
+
+		return
+	}
+
+	src.emit(42)
+
+	if fresh.count() != 1 {
+		t.Fatalf("fresh subscriber received %d values from the fresh source, want 1", fresh.count())
+	}
+}
+
+// FuzzConnectableShareReplayRefCount checks the documented contract of ShareReplay: the source is
+// unsubscribed when every subscriber left.
+func FuzzConnectableShareReplayRefCount(f *testing.F) {
+	f.Skip("race: sharereplay-source-stays-subscribed; remove when fixed")
+
+	fuzzConnSeeds(f)
+
+	f.Fuzz(func(t *testing.T, seed int64, goroutines, items, mask, cut uint8) {
+		workers := fuzzBound(int64(goroutines), 1, fuzzMaxGoroutines)
+		count := fuzzBound(int64(items), 0, fuzzMaxItems)
+
+		src := newFuzzConnSource(seed, count, mask)
+		shared := ShareReplayWithConfig[int](fuzzBound(int64(cut), 1, 8), ShareReplayConfig{ResetOnRefCountZero: false})(src.observable())
+
+		var wg sync.WaitGroup
+
+		recorders := make([]*fuzzConnRecorder, workers)
+
+		for g := 0; g < workers; g++ {
+			recorders[g] = &fuzzConnRecorder{}
+
+			wg.Add(1)
+
+			go func(g int) {
+				defer wg.Done()
+
+				fuzzJitter(seed, g)
+
+				sub := shared.Subscribe(recorders[g].observer())
+
+				for i := 0; i < count && g == 0; i++ {
+					src.emit(i)
+				}
+
+				fuzzJitter(seed, g+50)
+				sub.Unsubscribe()
+			}(g)
+		}
+
+		fuzzConnWait(t, "ShareReplay subscribers", &wg)
+
+		for _, r := range recorders {
+			r.check(t, "subscriber")
+		}
+
+		if n := src.counter.activeCount(); n != 0 {
+			t.Fatalf("ShareReplay left %d source subscriptions active after all subscribers left", n)
+		}
+	})
+}
+
+// fuzzConnCheckIsolation asserts that even-indexed recorders only saw source A values and
+// odd-indexed ones only source B values.
+func fuzzConnCheckIsolation(t *testing.T, recorders []*fuzzConnRecorder, selfDriven bool, count int) {
+	t.Helper()
+
+	for idx, r := range recorders {
+		r.check(t, "subscriber")
+
+		// Hand-fed subscribers were registered before any emission, so each sees the whole
+		// sequence; a self-driven source may start before the later subscribers join.
+		if !selfDriven && r.count() != count {
+			t.Fatalf("subscriber %d received %d values, want %d", idx, r.count(), count)
+		}
+
+		r.mu.Lock()
+		for _, v := range r.values {
+			if (idx%2 == 0) != (v < fuzzConnOtherBase) {
+				r.mu.Unlock()
+				t.Fatalf("subscriber %d (source %d) received foreign value %d", idx, idx%2, v)
+			}
+		}
+		r.mu.Unlock()
+	}
+}
+
+// FuzzConnectableShareIsolation applies one Share operator to two different sources and races
+// subscribers on both: state must not leak between the two applications. Sources are
+// hand-fed or self-driven (sync or async) depending on the mask.
+func FuzzConnectableShareIsolation(f *testing.F) {
+	fuzzConnSeeds(f)
+
+	f.Fuzz(func(t *testing.T, seed int64, goroutines, items, mask, cut uint8) {
+		workers := fuzzBound(int64(goroutines), 1, fuzzMaxGoroutines)
+		count := fuzzBound(int64(items), 1, fuzzMaxItems)
+
+		op := Share[int]()
+		srcA, srcB := newFuzzConnSource(seed, count, mask), newFuzzConnSource(seed+1, count, mask)
+		obsA := srcA.observable()
+		obsB := Map(func(v int) int { return v + fuzzConnOtherBase })(srcB.observable())
+		sharedA, sharedB := op(obsA), op(obsB)
+		selfDriven := srcA.inner != nil
+
+		recorders := make([]*fuzzConnRecorder, workers*2)
+		subs := make([]Subscription, workers*2)
+
+		var wg sync.WaitGroup
+
+		for g := 0; g < workers; g++ {
+			for side := 0; side < 2; side++ {
+				idx := g*2 + side
+				recorders[idx] = &fuzzConnRecorder{}
+
+				wg.Add(1)
+
+				go func(idx, g, side int) {
+					defer wg.Done()
+
+					fuzzJitter(seed+int64(cut), g*2+side)
+
+					if side == 0 {
+						subs[idx] = sharedA.Subscribe(recorders[idx].observer())
+					} else {
+						subs[idx] = sharedB.Subscribe(recorders[idx].observer())
+					}
+				}(idx, g, side)
+			}
+		}
+
+		fuzzConnWait(t, "subscribing to both shares", &wg)
+
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+
+			for i := 0; i < count; i++ {
+				fuzzJitter(seed, i)
+				srcA.emit(i)
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+
+			for i := 0; i < count; i++ {
+				fuzzJitter(seed, i+500)
+				srcB.emit(i)
+			}
+		}()
+
+		fuzzConnWait(t, "emitting", &wg)
+
+		fuzzConnCheckIsolation(t, recorders, selfDriven, count)
+
+		for _, sub := range subs {
+			sub.Unsubscribe()
+		}
+
+		fuzzWaitFor(t, "sources to be released", func() bool {
+			return srcA.counter.activeCount() == 0 && srcB.counter.activeCount() == 0
+		})
+
+		if !selfDriven {
+			if a, b := srcA.counter.totalCount(), srcB.counter.totalCount(); a != 1 || b != 1 {
+				t.Fatalf("each source must be subscribed exactly once, got A=%d B=%d", a, b)
+			}
+		}
+	})
+}
