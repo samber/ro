@@ -44,6 +44,10 @@ jobs:
         run: |
           make test || make test
 
+      - name: Fuzz
+        run: make fuzz RO_FUZZ_ITERATIONS=1000
+        if: matrix.go == 'stable'
+
       - name: Test coverage
         run: make coverage
         if: matrix.go == 'stable'
