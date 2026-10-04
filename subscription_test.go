@@ -82,6 +82,25 @@ func TestSubscriptionAdd(t *testing.T) {
 	is.True(called2) // Should be called immediately
 }
 
+func TestSubscriptionAddReentrantOnClosedSubscription(t *testing.T) {
+	// @TODO: Known bug. Add runs the teardown of a closed subscription while
+	// holding s.mu, so a teardown that calls Add again deadlocks. Unskip once Add
+	// releases the lock before running the teardown.
+	t.Skip("known deadlock: Add runs the teardown of a closed subscription under its mutex")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	sub := NewSubscription(nil)
+	sub.Unsubscribe()
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		sub.Add(func() {
+			sub.Add(func() {}) // takes s.mu again
+		})
+	}), "Add deadlocked on re-entrant Add")
+}
+
 func TestSubscriptionAddUnsubscribable(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
