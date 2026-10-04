@@ -474,6 +474,26 @@ func TestUnicastSubject_complete(t *testing.T) {
 	subscription4.Unsubscribe()
 }
 
+func TestUnicastSubject_reentrantCallFromObserver(t *testing.T) {
+	// @TODO: Known bug. Next, Error and Complete deliver outside s.mu, but
+	// SubscribeWithContext replays the buffered values while holding it. An
+	// observer calling back into the subject (here HasObserver) during that replay
+	// deadlocks. Unskip once the replay runs outside the lock.
+	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewUnicastSubject[int](1)
+	subject.Next(1) // buffered, no observer yet
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(int) {
+			_ = subject.HasObserver() // takes s.mu again
+		}))
+	}), "Subscribe deadlocked on re-entrant HasObserver while replaying")
+}
+
 func TestUnicastSubject_replay(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)

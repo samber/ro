@@ -508,6 +508,23 @@ func TestReplaySubject_complete(t *testing.T) {
 	subscription4.Unsubscribe()
 }
 
+func TestReplaySubject_reentrantCallFromObserver(t *testing.T) {
+	// @TODO: Known bug. NextWithContext holds s.mu while it runs observer
+	// callbacks, so an observer calling back into the subject (here IsClosed)
+	// deadlocks. Unskip once the subject stops holding its lock across user code.
+	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewReplaySubject[int](1)
+	subject.Subscribe(OnNext(func(int) {
+		_ = subject.IsClosed() // takes s.mu again
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Next(1) }), "Next deadlocked on re-entrant IsClosed")
+}
+
 func TestReplaySubject_replay(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)

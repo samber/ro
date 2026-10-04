@@ -87,6 +87,8 @@ func returnsWithin(timeout time.Duration, fn func()) bool {
 // NewObserver recover callback panics, so they would never reach the subject.
 type panickingObserver struct{}
 
+var _ Observer[int] = (*panickingObserver)(nil)
+
 func (panickingObserver) Next(int)                                { panic("boom") }
 func (panickingObserver) NextWithContext(context.Context, int)    { panic("boom") }
 func (panickingObserver) Error(error)                             {}
