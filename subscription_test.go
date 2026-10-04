@@ -82,7 +82,7 @@ func TestSubscriptionAdd(t *testing.T) {
 	is.True(called2) // Should be called immediately
 }
 
-func TestSubscriptionAddReentrantOnClosedSubscription(t *testing.T) {
+func TestSubscription_Add_reentrantOnClosedSubscription(t *testing.T) {
 	// @TODO: Known bug. Add runs the teardown of a closed subscription while
 	// holding s.mu, so a teardown that calls Add again deadlocks. Unskip once Add
 	// releases the lock before running the teardown.
