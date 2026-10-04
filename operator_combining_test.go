@@ -2005,6 +2005,43 @@ func TestOperatorCombiningZipTerminalCleanup(t *testing.T) {
 	}
 }
 
+// A source completing without any value makes a tuple impossible: the result
+// must complete at once instead of waiting for the other sources.
+func TestOperatorCombiningCombineLatestEmptyAndNever(t *testing.T) { //nolint:paralleltest
+	testWithTimeout(t, 1000*time.Millisecond)
+	is := assert.New(t)
+
+	values1, err := Collect(CombineLatest2(Empty[int](), Never()))
+	is.Equal([]lo.Tuple2[int, struct{}]{}, values1)
+	is.NoError(err)
+
+	values1b, err := Collect(CombineLatest2(Never(), Empty[int]()))
+	is.Equal([]lo.Tuple2[struct{}, int]{}, values1b)
+	is.NoError(err)
+
+	values3, err := Collect(CombineLatest3(Never(), Empty[int](), Never()))
+	is.Equal([]lo.Tuple3[struct{}, int, struct{}]{}, values3)
+	is.NoError(err)
+
+	values4, err := Collect(CombineLatest4(Never(), Never(), Never(), Empty[int]()))
+	is.Equal([]lo.Tuple4[struct{}, struct{}, struct{}, int]{}, values4)
+	is.NoError(err)
+
+	values5, err := Collect(CombineLatest5(Never(), Never(), Never(), Never(), Empty[int]()))
+	is.Equal([]lo.Tuple5[struct{}, struct{}, struct{}, struct{}, int]{}, values5)
+	is.NoError(err)
+
+	neverAny := NewObservable(func(Observer[any]) Teardown { return nil })
+
+	valuesAll, err := Collect(CombineLatestAny(Empty[any](), neverAny))
+	is.Equal([][]any{}, valuesAll)
+	is.NoError(err)
+
+	valuesAll, err = Collect(CombineLatestAny(neverAny, Empty[any]()))
+	is.Equal([][]any{}, valuesAll)
+	is.NoError(err)
+}
+
 func TestOperatorCombiningMergeMapIIndexIsPerSubscription(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
