@@ -518,6 +518,9 @@ type connectableObservableImpl[T any] struct {
 	source       Observable[T]
 	subject      Subject[T]
 	subscription Subscription
+	// generation counts Connect calls that opened a new subscription. It lets a
+	// teardown detect that a newer connection replaced the one it belongs to.
+	generation uint64
 }
 
 // Connect connects the ConnectableObservable. When connected, the ConnectableObservable
@@ -544,19 +547,36 @@ func (s *connectableObservableImpl[T]) Connect() Subscription {
 // The Subscription might be already disposed when the Connect method returns.
 func (s *connectableObservableImpl[T]) ConnectWithContext(ctx context.Context) Subscription {
 	s.mu.Lock()
-	if s.subscription == nil || s.subscription.IsClosed() {
-		s.subscription = s.source.SubscribeWithContext(ctx, s.subject)
+	if s.subscription != nil && !s.subscription.IsClosed() {
+		sub := s.subscription
 		s.mu.Unlock()
-		s.subscription.Add(func() {
-			if s.config.ResetOnDisconnect {
-				s.subject = s.config.Connector()
-			}
-		})
-	} else {
-		s.mu.Unlock()
+
+		return sub
 	}
 
-	return s.subscription
+	s.generation++
+	generation := s.generation
+	sub := s.source.SubscribeWithContext(ctx, s.subject)
+	s.subscription = sub
+	s.mu.Unlock()
+
+	// The teardown must be registered outside the lock: on an already-closed
+	// subscription, Add runs it immediately and it locks s.mu itself.
+	sub.Add(func() {
+		if !s.config.ResetOnDisconnect {
+			return
+		}
+
+		s.mu.Lock()
+		defer s.mu.Unlock()
+
+		// A newer Connect owns the current subject: resetting it would detach its observers.
+		if s.generation == generation {
+			s.subject = s.config.Connector()
+		}
+	})
+
+	return sub
 }
 
 func (s *connectableObservableImpl[T]) Subscribe(observer Observer[T]) Subscription {
@@ -564,5 +584,9 @@ func (s *connectableObservableImpl[T]) Subscribe(observer Observer[T]) Subscript
 }
 
 func (s *connectableObservableImpl[T]) SubscribeWithContext(ctx context.Context, observer Observer[T]) Subscription {
-	return s.subject.SubscribeWithContext(ctx, observer)
+	s.mu.Lock()
+	subject := s.subject
+	s.mu.Unlock()
+
+	return subject.SubscribeWithContext(ctx, observer)
 }
