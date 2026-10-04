@@ -448,3 +448,21 @@ func TestOperatorErrorHandlingWhile(t *testing.T) {
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
 }
+
+func TestOperatorErrorHandlingOnErrorResumeNextWithReuse(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	op := OnErrorResumeNextWith(Just(2))
+
+	// Applying the same operator twice must not grow its chain.
+	for i := 0; i < 2; i++ {
+		values, err := Collect(op(Just(1)))
+		is.Equal([]int{1, 2}, values)
+		is.NoError(err)
+	}
+
+	values, err := Collect(op(op(Just(1))))
+	is.Equal([]int{1, 2, 2}, values)
+	is.NoError(err)
+}

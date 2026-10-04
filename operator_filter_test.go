@@ -418,7 +418,53 @@ func TestOperatorFilterSkipUntil(t *testing.T) { //nolint:paralleltest
 		),
 	)
 	is.Equal([]int64{}, values)
+	is.EqualError(err, assert.AnError.Error())
+}
+
+func TestOperatorFilterSkipUntilSignalOrder(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// The signal is subscribed before the source: a synchronous signal opens
+	// the gate before a synchronous source emits.
+	values, err := Collect(
+		Pipe1(
+			Just(1, 2, 3),
+			SkipUntil[int](Just("go")),
+		),
+	)
+	is.Equal([]int{1, 2, 3}, values)
 	is.NoError(err)
+
+	// A signal that only completes never opens the gate.
+	values, err = Collect(
+		Pipe1(
+			Just(1, 2, 3),
+			SkipUntil[int](Empty[string]()),
+		),
+	)
+	is.Equal([]int{}, values)
+	is.NoError(err)
+
+	// A signal error terminates the stream, even when the source is synchronous.
+	values, err = Collect(
+		Pipe1(
+			Just(1, 2, 3),
+			SkipUntil[int](Throw[string](assert.AnError)),
+		),
+	)
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
+
+	// The source error wins when the signal stays silent.
+	values, err = Collect(
+		Pipe1(
+			Throw[int](assert.AnError),
+			SkipUntil[int](Never()),
+		),
+	)
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorFilterTake(t *testing.T) {
@@ -643,8 +689,54 @@ func TestOperatorFilterTakeUntil(t *testing.T) { //nolint:paralleltest
 			TakeUntil[int64](Throw[int64](assert.AnError)),
 		),
 	)
-	is.Equal([]int64{0, 1, 2}, values)
+	is.Equal([]int64{}, values)
+	is.EqualError(err, assert.AnError.Error())
+}
+
+func TestOperatorFilterTakeUntilSignalOrder(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// The signal is subscribed before the source: a synchronous signal
+	// completes the stream before a synchronous source emits.
+	values, err := Collect(
+		Pipe1(
+			Just(1, 2, 3),
+			TakeUntil[int](Just("stop")),
+		),
+	)
+	is.Equal([]int{}, values)
 	is.NoError(err)
+
+	// A signal that only completes never stops the stream.
+	values, err = Collect(
+		Pipe1(
+			Just(1, 2, 3),
+			TakeUntil[int](Empty[string]()),
+		),
+	)
+	is.Equal([]int{1, 2, 3}, values)
+	is.NoError(err)
+
+	// A signal error terminates the stream, even when the source is synchronous.
+	values, err = Collect(
+		Pipe1(
+			Just(1, 2, 3),
+			TakeUntil[int](Throw[string](assert.AnError)),
+		),
+	)
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
+
+	// The source error wins when the signal stays silent.
+	values, err = Collect(
+		Pipe1(
+			Throw[int](assert.AnError),
+			TakeUntil[int](Never()),
+		),
+	)
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
 }
 
 func TestOperatorFilterHead(t *testing.T) {

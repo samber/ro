@@ -253,10 +253,11 @@ func MergeMapI[T, R any](projection func(item T, index int64) Observable[R]) fun
 // Play: https://go.dev/play/p/8Ih5mCaDbB8
 func MergeMapIWithContext[T, R any](projection func(ctx context.Context, item T, index int64) (context.Context, Observable[R])) func(Observable[T]) Observable[R] {
 	return func(source Observable[T]) Observable[R] {
-		i := int64(0)
-
 		return MergeAll[R]()(
 			NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[Observable[R]]) Teardown {
+				// Index is per subscription: declaring it outside would share it between subscribers.
+				i := int64(0)
+
 				sub := source.SubscribeWithContext(
 					subscriberCtx,
 					NewObserverWithContext(

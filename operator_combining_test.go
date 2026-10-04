@@ -2041,3 +2041,19 @@ func TestOperatorCombiningCombineLatestEmptyAndNever(t *testing.T) { //nolint:pa
 	is.Equal([][]any{}, valuesAll)
 	is.NoError(err)
 }
+
+func TestOperatorCombiningMergeMapIIndexIsPerSubscription(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	obs := MergeMapI(func(item string, index int64) Observable[int64] {
+		return Just(index)
+	})(Just("a", "b", "c"))
+
+	// Each subscription must restart its index at 0.
+	for i := 0; i < 2; i++ {
+		values, err := Collect(obs)
+		is.Equal([]int64{0, 1, 2}, values)
+		is.NoError(err)
+	}
+}

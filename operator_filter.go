@@ -302,9 +302,9 @@ func SkipLast[T any](count int) func(Observable[T]) Observable[T] {
 }
 
 // SkipUntil suppresses items emitted by an Observable until a second Observable
-// emits an item or completes. It will then emit all the subsequent items. If the
-// second Observable is empty, SkipUntil will not emit any items. If the second
-// Observable emits an item or completes, SkipUntil will emit all items.
+// emits an item. It will then emit all the subsequent items. If the second
+// Observable completes without emitting, SkipUntil will not emit any items. If
+// the second Observable emits an error, SkipUntil will emit this error.
 // Play: https://go.dev/play/p/tAwg2LT3Hqn
 func SkipUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
@@ -312,6 +312,27 @@ func SkipUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T]
 			ready := uint32(0)
 
 			subscriptions := NewSubscription(nil)
+
+			// The signal is subscribed first, so a synchronous signal opens the
+			// gate before a synchronous source emits its items.
+			subscriptions.AddUnsubscribable(
+				signal.SubscribeWithContext(
+					subscriberCtx,
+					NewObserverWithContext(
+						func(ctx context.Context, value S) {
+							atomic.StoreUint32(&ready, 1)
+						},
+						destination.ErrorWithContext,
+						func(ctx context.Context) {
+							// The signal completing without emitting never opens the gate.
+						},
+					),
+				),
+			)
+
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
 
 			subscriptions.AddUnsubscribable(
 				source.SubscribeWithContext(
@@ -324,17 +345,6 @@ func SkipUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T]
 						},
 						destination.ErrorWithContext,
 						destination.CompleteWithContext,
-					),
-				),
-			)
-
-			subscriptions.AddUnsubscribable(
-				signal.SubscribeWithContext(
-					subscriberCtx,
-					OnNextWithContext(
-						func(ctx context.Context, value S) {
-							atomic.StoreUint32(&ready, 1)
-						},
 					),
 				),
 			)
@@ -518,10 +528,9 @@ func TakeLast[T any](count int) func(Observable[T]) Observable[T] {
 }
 
 // TakeUntil emits items emitted by an Observable until a second Observable emits
-// an item or completes. It will then complete. If the second Observable is empty,
-// TakeUntil will emit all items. If the second Observable emits an item or completes,
-// TakeUntil will emit all items. If the second Observable emits an item or completes,
-// TakeUntil will complete.
+// an item. It will then complete. If the second Observable completes without
+// emitting, TakeUntil will emit all items. If the second Observable emits an
+// error, TakeUntil will emit this error.
 // Play: https://go.dev/play/p/moJPw7uKjrz
 func TakeUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
@@ -529,6 +538,28 @@ func TakeUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T]
 			ready := uint32(0)
 
 			subscriptions := NewSubscription(nil)
+
+			// The signal is subscribed first, so a synchronous signal stops the
+			// stream before a synchronous source emits its items.
+			subscriptions.AddUnsubscribable(
+				signal.SubscribeWithContext(
+					subscriberCtx,
+					NewObserverWithContext(
+						func(ctx context.Context, value S) {
+							atomic.StoreUint32(&ready, 1)
+							destination.CompleteWithContext(ctx)
+						},
+						destination.ErrorWithContext,
+						func(ctx context.Context) {
+							// The signal completing without emitting never stops the stream.
+						},
+					),
+				),
+			)
+
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
 
 			subscriptions.AddUnsubscribable(
 				source.SubscribeWithContext(
@@ -543,18 +574,6 @@ func TakeUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T]
 						},
 						destination.ErrorWithContext,
 						destination.CompleteWithContext,
-					),
-				),
-			)
-
-			subscriptions.AddUnsubscribable(
-				signal.SubscribeWithContext(
-					subscriberCtx,
-					OnNextWithContext(
-						func(ctx context.Context, value S) {
-							atomic.StoreUint32(&ready, 1)
-							destination.CompleteWithContext(ctx)
-						},
 					),
 				),
 			)

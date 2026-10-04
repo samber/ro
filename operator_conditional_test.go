@@ -16,6 +16,7 @@ package ro
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -57,6 +58,32 @@ func TestOperatorConditionalAll(t *testing.T) {
 	)
 	is.Equal([]bool{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// Short-circuit: the predicate must not run again after the first failure.
+	calls := 0
+	values, err = Collect(
+		All(func(v int) bool {
+			calls++
+			return v < 2
+		})(Just(1, 2, 3, 4, 5)),
+	)
+	is.Equal([]bool{false}, values)
+	is.NoError(err)
+	is.Equal(2, calls)
+
+	// Short-circuit: a failing item must unsubscribe from an unbounded source.
+	values, err = Collect(
+		All(func(v int64) bool { return v < 3 })(Interval(time.Millisecond)),
+	)
+	is.Equal([]bool{false}, values)
+	is.NoError(err)
+
+	// Short-circuit: an error after the first failure is never observed.
+	values, err = Collect(
+		All(odd)(Concat(Just(1), Throw[int](assert.AnError))),
+	)
+	is.Equal([]bool{false}, values)
+	is.NoError(err)
 }
 
 func TestOperatorConditionalAllI(t *testing.T) {
@@ -367,7 +394,7 @@ func TestOperatorConditionalSequenceEqual(t *testing.T) {
 			SequenceEqual(Just(1, 2, 3)),
 		),
 	)
-	is.Equal([]bool{true}, values)
+	is.Equal([]bool{false}, values)
 	is.NoError(err)
 
 	values, err = Collect(
@@ -376,7 +403,35 @@ func TestOperatorConditionalSequenceEqual(t *testing.T) {
 			SequenceEqual(Empty[int]()),
 		),
 	)
+	is.Equal([]bool{false}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Pipe1(
+			Empty[int](),
+			SequenceEqual(Empty[int]()),
+		),
+	)
 	is.Equal([]bool{true}, values)
+	is.NoError(err)
+
+	// Different lengths with a common prefix: the shorter sequence is a prefix of the longer one.
+	values, err = Collect(
+		Pipe1(
+			Just(1, 2),
+			SequenceEqual(Just(1, 2, 3)),
+		),
+	)
+	is.Equal([]bool{false}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		Pipe1(
+			Just(1, 2, 3),
+			SequenceEqual(Just(1, 2)),
+		),
+	)
+	is.Equal([]bool{false}, values)
 	is.NoError(err)
 
 	values, err = Collect(
