@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/samber/ro/internal/xtest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -866,27 +867,35 @@ func TestConnectableWithConfig(t *testing.T) {
 	is.Equal([]string{"1", "2", "3"}, c)
 }
 
-func TestConnectableObservable_concurrentConnectSubscribe(t *testing.T) {
-	t.Parallel()
-
+func FuzzConnectableObservableConcurrentConnectSubscribe(f *testing.F) {
 	const goroutines = 16
-	const iterations = 200
+	// Each seed runs a short burst per goroutine; many seeds replace the former long loop.
+	const maxBurst = 4
 
-	connectable := Connectable(Just(1, 2, 3))
+	xtest.AddSeeds(f, func(i int) []any { return []any{int64(i)} })
 
-	var wg sync.WaitGroup
-	for i := 0; i < goroutines; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	f.Fuzz(func(t *testing.T, seed int64) {
+		burst := fuzzBound(seed, 1, maxBurst)
 
-			for j := 0; j < iterations; j++ {
-				// Connect completes synchronously and its teardown resets the subject,
-				// racing with concurrent Connect and Subscribe calls.
-				connectable.Connect().Unsubscribe()
-				connectable.Subscribe(OnNext(func(int) {})).Unsubscribe()
-			}
-		}()
-	}
-	wg.Wait()
+		connectable := Connectable(Just(1, 2, 3))
+
+		var wg sync.WaitGroup
+		for i := 0; i < goroutines; i++ {
+			i := i
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				for j := 0; j < burst; j++ {
+					// Connect completes synchronously and its teardown resets the subject,
+					// racing with concurrent Connect and Subscribe calls.
+					fuzzJitter(seed, i)
+					connectable.Connect().Unsubscribe()
+					fuzzJitter(seed, i+goroutines)
+					connectable.Subscribe(OnNext(func(int) {})).Unsubscribe()
+				}
+			}()
+		}
+		wg.Wait()
+	})
 }

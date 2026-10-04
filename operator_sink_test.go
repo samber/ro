@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"github.com/samber/ro/internal/xtest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -153,14 +154,13 @@ func TestOperatorSinkToChannel(t *testing.T) {
 
 // A source that keeps emitting after the downstream unsubscribed must not
 // make ToChannel send on a closed channel.
-func TestOperatorSinkToChannel_unsubscribeWhileSending(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 2*time.Second)
-	is := assert.New(t)
+func FuzzOperatorSinkToChannelUnsubscribeWhileSending(f *testing.F) {
+	xtest.AddSeeds(f, func(i int) []any { return []any{int64(i)} })
 
-	const iterations = 50
+	f.Fuzz(func(t *testing.T, seed int64) {
+		testWithTimeout(t, 2*time.Second)
+		is := assert.New(t)
 
-	for n := 0; n < iterations; n++ {
 		senderDone := make(chan struct{})
 		source := NewUnsafeObservable(func(destination Observer[int]) Teardown {
 			go func() {
@@ -181,6 +181,7 @@ func TestOperatorSinkToChannel_unsubscribeWhileSending(t *testing.T) {
 		ch := <-received
 		// Nobody reads: the source goroutine blocks on a full channel.
 		time.Sleep(5 * time.Millisecond)
+		fuzzJitter(seed, 0)
 		sub.Unsubscribe()
 
 		select {
@@ -195,5 +196,5 @@ func TestOperatorSinkToChannel_unsubscribeWhileSending(t *testing.T) {
 			drained++
 		}
 		is.GreaterOrEqual(drained, 0)
-	}
+	})
 }
