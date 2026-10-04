@@ -8,6 +8,13 @@ test:
 	go test -race ${MODULES} ./...
 	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && GOWORK=off GOEXPERIMENT=simd go test -race ./...; fi
 
+# Runs every fuzz target on RO_FUZZ_ITERATIONS seeds (see internal/xtest). Example: `make fuzz RO_FUZZ_ITERATIONS=10000`.
+RO_FUZZ_ITERATIONS ?= 1000
+
+fuzz:
+	RO_FUZZ_ITERATIONS=$(RO_FUZZ_ITERATIONS) go test -race -run=^Fuzz ${MODULES} ./...
+	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && RO_FUZZ_ITERATIONS=$(RO_FUZZ_ITERATIONS) GOWORK=off GOEXPERIMENT=simd go test -race -run=^Fuzz ./...; fi
+
 watch-test:
 	reflex -t 50ms -s -- sh -c 'gotest -timeout 300s -race ${MODULES} ./...'
 
