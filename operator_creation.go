@@ -59,19 +59,15 @@ func Start[T any](cb func() T) Observable[T] {
 func Timer(duration time.Duration) Observable[time.Duration] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[time.Duration]) Teardown {
 		timer := time.NewTimer(duration)
+		// Release the timer on every path, including context cancellation.
+		defer timer.Stop()
 
 		select {
 		case <-timer.C:
 			destination.NextWithContext(ctx, duration)
 			destination.CompleteWithContext(ctx)
 		case <-ctx.Done():
-			if ctx.Err() != nil {
-				destination.ErrorWithContext(ctx, ctx.Err())
-				break
-			}
-
-			timer.Stop()
-			destination.CompleteWithContext(ctx)
+			destination.ErrorWithContext(ctx, ctx.Err())
 		}
 
 		return nil

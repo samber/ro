@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"context"
 	"errors"
 	"sync/atomic"
 	"testing"
@@ -310,6 +311,64 @@ func TestOperatorErrorHandlingRetryWithConfig(t *testing.T) { //nolint:parallelt
 	)
 	is.Equal([]int{1, 2, 1, 2, 1, 2, 1}, values)
 	is.EqualError(err, "ro.Observer: "+assert.AnError.Error())
+}
+
+func TestOperatorErrorHandlingRetryWithConfigFinalErrorContext(t *testing.T) {
+	t.Parallel()
+
+	type ctxKey string
+
+	key := ctxKey("attempt")
+
+	tests := []struct {
+		name          string
+		maxRetries    uint64
+		expectedValue int
+	}{
+		{name: "one retry", maxRetries: 1, expectedValue: 2},
+		{name: "two retries", maxRetries: 2, expectedValue: 3},
+	}
+
+	for _, tt := range tests {
+		tt := tt // go.mod predates per-iteration loop variables
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+
+			// The source tags the context of its error with the attempt number: the
+			// final error must reach the destination with that context, not with the
+			// subscriber's one.
+			attempts := 0
+			source := NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+				attempts++
+				destination.ErrorWithContext(context.WithValue(ctx, key, attempts), assert.AnError)
+
+				return nil
+			})
+
+			var errCtx context.Context
+
+			var gotErr error
+
+			sub := Pipe1(source, RetryWithConfig[int](RetryConfig{MaxRetries: tt.maxRetries})).SubscribeWithContext(
+				context.Background(),
+				NewObserverWithContext(
+					func(ctx context.Context, value int) {},
+					func(ctx context.Context, err error) {
+						errCtx = ctx
+						gotErr = err
+					},
+					func(ctx context.Context) {},
+				),
+			)
+			sub.Wait()
+
+			is.ErrorIs(gotErr, assert.AnError)
+			is.NotNil(errCtx)
+			is.Equal(tt.expectedValue, errCtx.Value(key))
+		})
+	}
 }
 
 func TestOperatorErrorHandlingThrowIfEmpty(t *testing.T) {
