@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 make build                    # Build all modules
 make test                     # Run all tests with race detector
+make fuzz                     # Run all fuzz targets on RO_FUZZ_ITERATIONS seeds (default 1000)
 make lint                     # Run golangci-lint + license header check
 make lint-fix                 # Auto-fix lint issues
 make bench                    # Run benchmarks
@@ -108,6 +109,9 @@ Other naming patterns:
 - Test files follow Go convention: `foo_test.go` alongside `foo.go`
 - Example tests use `_example_test.go` suffix
 - The `plugins/testify` plugin provides reactive stream assertion helpers
+- Write race tests as native `FuzzXxx` targets, seeded via `internal/xtest`; `RO_FUZZ_ITERATIONS` sets the seed count everywhere. See [Race condition patterns](docs/docs/contributing.md#race-condition-patterns)
+- Cover both sync and async sources in every fuzz target (`fuzzSource`, `fuzzIsAsync`)
+- Always run tests with `-race`
 
 Typical test pattern — use `Collect()` to gather all emitted values and assert:
 
