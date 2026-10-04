@@ -355,6 +355,13 @@ func CombineLatestWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observ
 				),
 			)
 
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			subscriptions.AddUnsubscribable(
 				obsB.SubscribeWithContext(
 					subscriberCtx,
@@ -463,6 +470,13 @@ func CombineLatestWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) fun
 				),
 			)
 
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			subscriptions.AddUnsubscribable(
 				obsB.SubscribeWithContext(
 					subscriberCtx,
@@ -488,6 +502,13 @@ func CombineLatestWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) fun
 					),
 				),
 			)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
 
 			subscriptions.AddUnsubscribable(
 				obsC.SubscribeWithContext(
@@ -603,6 +624,13 @@ func CombineLatestWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], 
 				),
 			)
 
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			subscriptions.AddUnsubscribable(
 				obsB.SubscribeWithContext(
 					subscriberCtx,
@@ -629,6 +657,13 @@ func CombineLatestWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], 
 				),
 			)
 
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			subscriptions.AddUnsubscribable(
 				obsC.SubscribeWithContext(
 					subscriberCtx,
@@ -654,6 +689,13 @@ func CombineLatestWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], 
 					),
 				),
 			)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
 
 			subscriptions.AddUnsubscribable(
 				obsD.SubscribeWithContext(
@@ -774,6 +816,13 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 				),
 			)
 
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			subscriptions.AddUnsubscribable(
 				obsB.SubscribeWithContext(
 					subscriberCtx,
@@ -799,6 +848,13 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 					),
 				),
 			)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
 
 			subscriptions.AddUnsubscribable(
 				obsC.SubscribeWithContext(
@@ -826,6 +882,13 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 				),
 			)
 
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			subscriptions.AddUnsubscribable(
 				obsD.SubscribeWithContext(
 					subscriberCtx,
@@ -851,6 +914,13 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 					),
 				),
 			)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
 
 			subscriptions.AddUnsubscribable(
 				obsE.SubscribeWithContext(
@@ -943,6 +1013,13 @@ func CombineLatestAll[T any]() func(Observable[Observable[T]]) Observable[[]T] {
 				// inner subscriptions
 				for i := range observables {
 					j := i
+
+					// The destination is closed when a previous source is synchronous and
+					// already completed or failed. Subscribing to the next source would only
+					// start work nobody listens to.
+					if destination.IsClosed() {
+						return
+					}
 
 					subscriptions.AddUnsubscribable(
 						observables[j].SubscribeWithContext(
@@ -1358,6 +1435,14 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 
 			subscriptions := NewSubscription(nil)
 			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
 
 			return func() {
@@ -1440,7 +1525,23 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 
 			subscriptions := NewSubscription(nil)
 			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, &pending, onUpdate, destination, subscriptions)
 
 			return func() {
@@ -1528,8 +1629,32 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 
 			subscriptions := NewSubscription(nil)
 			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, &pending, onUpdate, destination, subscriptions)
 
 			return func() {
@@ -1623,9 +1748,41 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 
 			subscriptions := NewSubscription(nil)
 			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsE, &mu, valueE, &completedE, &pending, onUpdate, destination, subscriptions)
 
 			return func() {
@@ -1726,10 +1883,50 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 
 			subscriptions := NewSubscription(nil)
 			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsE, &mu, valueE, &completedE, &pending, onUpdate, destination, subscriptions)
+
+			// The destination is closed when a previous source is synchronous and
+			// already completed or failed. Subscribing to the next source would only
+			// start work nobody listens to.
+			if destination.IsClosed() {
+				return subscriptions.Unsubscribe
+			}
+
 			zipInnerSubscription(subscriberCtx, obsF, &mu, valueF, &completedF, &pending, onUpdate, destination, subscriptions)
 
 			return func() {
@@ -1830,6 +2027,14 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 	subscriptions := NewSubscription(nil)
 
 	for i := range sources {
+
+		// The destination is closed when a previous source is synchronous and
+		// already completed or failed. Subscribing to the next source would only
+		// start work nobody listens to.
+		if destination.IsClosed() {
+			break
+		}
+
 		zipInnerSubscription(outerCtx, sources[i], &mu, values[i], &completed[i], &pending, onUpdate, destination, subscriptions)
 	}
 

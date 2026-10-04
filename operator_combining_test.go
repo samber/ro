@@ -2057,3 +2057,52 @@ func TestOperatorCombiningMergeMapIIndexIsPerSubscription(t *testing.T) {
 		is.NoError(err)
 	}
 }
+
+// A synchronous first source that fails closes the destination: the remaining sources must not be subscribed.
+func TestOperatorCombiningSkipSubscriptionWhenDestinationClosed(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		build func(late Observable[int]) Observable[int]
+	}{
+		{"CombineLatestWith1", func(late Observable[int]) Observable[int] {
+			return Pipe2(Throw[int](assert.AnError), CombineLatestWith1[int](late), Map(func(lo.Tuple2[int, int]) int { return 0 }))
+		}},
+		{"CombineLatestWith4", func(late Observable[int]) Observable[int] {
+			return Pipe2(Throw[int](assert.AnError), CombineLatestWith4[int](late, late, late, late), Map(func(lo.Tuple5[int, int, int, int, int]) int { return 0 }))
+		}},
+		{"CombineLatestAll", func(late Observable[int]) Observable[int] {
+			return Pipe2(Just(Throw[int](assert.AnError), late, late), CombineLatestAll[int](), Map(func([]int) int { return 0 }))
+		}},
+		{"ZipWith1", func(late Observable[int]) Observable[int] {
+			return Pipe2(Throw[int](assert.AnError), ZipWith1[int](late), Map(func(lo.Tuple2[int, int]) int { return 0 }))
+		}},
+		{"ZipWith5", func(late Observable[int]) Observable[int] {
+			return Pipe2(Throw[int](assert.AnError), ZipWith5[int](late, late, late, late, late), Map(func(lo.Tuple6[int, int, int, int, int, int]) int { return 0 }))
+		}},
+		{"ZipAll", func(late Observable[int]) Observable[int] {
+			return Pipe2(Just(Throw[int](assert.AnError), late, late), ZipAll[int](), Map(func([]int) int { return 0 }))
+		}},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+
+			var subscribed int32
+
+			late := Defer(func() Observable[int] {
+				atomic.AddInt32(&subscribed, 1)
+				return Just(1)
+			})
+
+			_, err := Collect(tt.build(late))
+			is.EqualError(err, assert.AnError.Error())
+			is.Equal(int32(0), atomic.LoadInt32(&subscribed))
+		})
+	}
+}
