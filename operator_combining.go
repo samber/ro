@@ -2027,7 +2027,6 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 	subscriptions := NewSubscription(nil)
 
 	for i := range sources {
-
 		// The destination is closed when a previous source is synchronous and
 		// already completed or failed. Subscribing to the next source would only
 		// start work nobody listens to.
