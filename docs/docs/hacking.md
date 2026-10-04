@@ -320,7 +320,7 @@ Follow this checklist in order when adding a new operator or porting one from a 
    - `Throw[T](assert.AnError)` (error propagation)
    - Early unsubscription
    - Context propagation and cancellation
-   - Fuzz targets for every applicable race pattern, with sync and async sources (see contributing.md, [Race condition patterns](./contributing#race-condition-patterns))
+   - Fuzz targets for every applicable race pattern, with sync and async sources, in `fuzz/<file>_fuzz_test.go` (core) or `plugins/<x>/<file>_fuzz_test.go` (plugin) (see contributing.md, [Race condition patterns](./contributing#race-condition-patterns))
 4. **Godoc example**: add an example function in `ro_example_test.go` (core) or `plugins/<x>/operator_example_test.go` (plugin). It will appear on https://pkg.go.dev.
 5. **Go Playground link**: create a runnable snippet via the `mcp__go-playground__run_and_share_go_code` MCP tool, verify it executes correctly, then add `// Play: https://go.dev/play/p/...` above the function signature. Leave the URL empty if the operator is not yet published (new code not yet released cannot compile on the Playground).
 6. **Markdown doc**: create `docs/data/(core|plugin)-<name>.md` with complete frontmatter (`sourceRef`, `signatures`, `variantHelpers`, `similarHelpers`, `playUrl`, `position`). See `docs/CLAUDE.md` at the repository root for the full format.
