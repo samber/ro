@@ -15,56 +15,34 @@
 package fuzz
 
 import (
-	"context"
-	"fmt"
-	"sync"
-	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/samber/ro"
 )
 
-// FuzzAverageEmptySource checks Average over an empty source: at most one value, then exactly one terminal.
-// The Subscriber absorbs every notification sent after the first terminal one, so the extra
-// Next/Complete of a missing return is only visible through ro.OnDroppedNotification.
+// FuzzAverageEmptySource averages an empty source, synchronous or asynchronous.
+//
+// Invariant: the average of nothing emits at most one value and then completes exactly once. A
+// second Next or Complete is absorbed by the closed Subscriber, so it is only visible through
+// ro.OnDroppedNotification, which the target requires to stay silent.
+//
+// Seeds: asyncSource alternates.
 func FuzzAverageEmptySource(f *testing.F) {
 	f.Skip("race: average-empty-double-emit (missing return after NaN+Complete); remove when fixed")
 
-	addShortCircuitSeeds(f)
+	fuzzSeeds(f, func(i int) []any {
+		return []any{i%2 == 0} // asyncSource
+	})
 
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		var dropped int32
+	f.Fuzz(func(t *testing.T, asyncSource bool) {
+		dropped := captureDroppedNotifications(t)
 
-		// The hook is a package-level variable: this target is not parallel, and it is restored on cleanup.
-		previous := ro.OnDroppedNotification
-		ro.OnDroppedNotification = func(context.Context, fmt.Stringer) { atomic.AddInt32(&dropped, 1) }
-		t.Cleanup(func() { ro.OnDroppedNotification = previous })
+		empty := newSource(0, asyncSource)
+		got := collect(t, ro.Average[int]()(empty.observable()), empty)
 
-		sink := &rawNotificationSink[float64]{}
-
-		runShortCircuitIteration(t, "AverageEmpty", func() error {
-			var wg sync.WaitGroup
-
-			sub := ro.Average[int]()(shortCircuitSource(seed, 0, fuzzIsAsync(mask, 0), true, false, &wg)).
-				SubscribeWithContext(context.Background(), sink)
-
-			wg.Wait()
-			time.Sleep(shortCircuitSettleDelay)
-
-			sub.Unsubscribe()
-
-			return nil
-		})
-
-		got := sink.snapshot()
-		errs := atomic.LoadInt32(&sink.errs)
-		comps := atomic.LoadInt32(&sink.comps)
-		after := atomic.LoadInt32(&sink.afterTerm) + atomic.LoadInt32(&dropped)
-
-		if len(got) > 1 || errs != 0 || comps != 1 || after != 0 {
-			t.Fatalf("AverageEmpty (async=%v): values=%v (want at most 1); errors=%d; completes=%d (want 1); notifications after terminal=%d",
-				fuzzIsAsync(mask, 0), got, errs, comps, after)
-		}
+		got.expectAtMostValues(t, 1)
+		got.expectCompletedOnce(t)
+		got.expectContract(t)
+		dropped.expectNone(t)
 	})
 }

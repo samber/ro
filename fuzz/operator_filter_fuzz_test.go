@@ -20,117 +20,200 @@ import (
 	"github.com/samber/ro"
 )
 
-func intRange(from, to int) []int {
-	out := []int{}
-	for i := from; i < to; i++ {
-		out = append(out, i)
-	}
+// fallbackItem is the default of ElementAtOrDefault. It is outside the range [0, count) of the source,
+// so a fallback cannot be mistaken for an emitted item.
+const fallbackItem = -1
 
-	return out
-}
-
+// FuzzFirst takes the first item >= decisionIndex of a source of `items` integers. The source is
+// synchronous or asynchronous, and may keep emitting after the operator decided.
+//
+// Invariant: First emits the first matching item and completes once, or fails once when none matches.
+// It never calls the predicate again after the call that matched.
+//
+// Seeds: items and decisionIndex spread over their range; asyncSource, sourceIgnoresStop and
+// withIndex (FirstI instead of First) alternate.
 func FuzzFirst(f *testing.F) {
 	f.Skip("race: first-predicate-after-decision (sync source keeps calling predicate); remove when fixed")
 
-	addShortCircuitSeeds(f)
+	fuzzSeeds(f, func(i int) []any {
+		// items, decisionIndex, asyncSource, sourceIgnoresStop, withIndex
+		return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0, i%4 < 2, i%3 == 0}
+	})
 
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, variant := decodeShortCircuitScenario(seed)
-		probe := &predicateCallCounter{}
+	f.Fuzz(func(t *testing.T, items, decisionIndex uint8, asyncSource, sourceIgnoresStop, withIndex bool) {
+		count := bounded(items, 0, maxItems)
+		decision := bounded(decisionIndex, 0, count+1) // decision >= count: no item matches
 
-		sink := runWithRawSink(t, "First", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
-			if variant == 0 {
-				return ro.First(func(v int) bool { probe.call(v >= k); return v >= k })(source)
-			}
+		numbers := newSource(count, asyncSource).ignoringStop(sourceIgnoresStop)
+		predicate := newCountingPredicate(true, func(item int) bool { return item >= decision })
 
-			return ro.FirstI(func(v int, _ int64) bool { probe.call(v >= k); return v >= k })(source)
-		})
+		first := ro.First(predicate.test)
+		if withIndex {
+			first = ro.FirstI(predicate.testIndexed)
+		}
 
-		checkSingleResult(t, "First", sink, probe, expectedItemAt(n, k), k >= n, mask)
+		got := collect(t, first(numbers.observable()), numbers)
+
+		got.expectValues(t, itemAt(decision, count))
+		expectSingleItemOrFailure(t, got, decision < count)
+		got.expectContract(t)
+		predicate.expectNoCallAfterDecision(t)
 	})
 }
 
+// expectSingleItemOrFailure checks the terminal notification of an operator that picks one item:
+// a completion when the item exists, one error otherwise.
+func expectSingleItemOrFailure(t *testing.T, got *recorder[int], itemExists bool) {
+	t.Helper()
+
+	if itemExists {
+		got.expectCompletedOnce(t)
+	} else {
+		got.expectFailedOnce(t)
+	}
+}
+
+// FuzzElementAt takes the item at `index` of a source of `items` integers. The source is
+// synchronous or asynchronous, and may keep emitting after the operator decided.
+//
+// Invariant: ElementAt emits the item at index and completes once, or fails once when the source is
+// shorter.
+//
+// Seeds: items and index spread over their range; asyncSource and sourceIgnoresStop alternate.
 func FuzzElementAt(f *testing.F) {
-	addShortCircuitSeeds(f)
+	fuzzSeeds(f, func(i int) []any {
+		// items, index, asyncSource, sourceIgnoresStop
+		return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0, i%4 < 2}
+	})
 
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, _ := decodeShortCircuitScenario(seed)
+	f.Fuzz(func(t *testing.T, items, index uint8, asyncSource, sourceIgnoresStop bool) {
+		count := bounded(items, 0, maxItems)
+		position := bounded(index, 0, count+1) // position >= count: the source is too short
 
-		sink := runWithRawSink(t, "ElementAt", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
-			return ro.ElementAt[int](k)(source)
-		})
+		numbers := newSource(count, asyncSource).ignoringStop(sourceIgnoresStop)
 
-		checkSingleResult(t, "ElementAt", sink, nil, expectedItemAt(n, k), k >= n, mask)
+		got := collect(t, ro.ElementAt[int](position)(numbers.observable()), numbers)
+
+		got.expectValues(t, itemAt(position, count))
+		expectSingleItemOrFailure(t, got, position < count)
+		got.expectContract(t)
 	})
 }
 
+// FuzzElementAtOrDefault takes the item at `index` of a source of `items` integers, or a fallback.
+// The source is synchronous or asynchronous, and may keep emitting after the operator decided.
+//
+// Invariant: ElementAtOrDefault emits exactly one value, the item at index or fallbackItem when the
+// source is shorter, and completes once.
+//
+// Seeds: same as FuzzElementAt.
 func FuzzElementAtOrDefault(f *testing.F) {
-	addShortCircuitSeeds(f)
+	fuzzSeeds(f, func(i int) []any {
+		// items, index, asyncSource, sourceIgnoresStop
+		return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0, i%4 < 2}
+	})
 
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, _ := decodeShortCircuitScenario(seed)
+	f.Fuzz(func(t *testing.T, items, index uint8, asyncSource, sourceIgnoresStop bool) {
+		count := bounded(items, 0, maxItems)
+		position := bounded(index, 0, count+1) // position >= count: the source is too short
 
-		sink := runWithRawSink(t, "ElementAtOrDefault", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
-			return ro.ElementAtOrDefault(int64(k), unreachableDefault)(source)
-		})
+		numbers := newSource(count, asyncSource).ignoringStop(sourceIgnoresStop)
 
-		want := []int{unreachableDefault}
-		if k < n {
-			want = []int{k}
+		got := collect(t, ro.ElementAtOrDefault(int64(position), fallbackItem)(numbers.observable()), numbers)
+
+		want := []int{fallbackItem}
+		if position < count {
+			want = []int{position}
 		}
 
-		checkSingleResult(t, "ElementAtOrDefault", sink, nil, want, false, mask)
+		got.expectValues(t, want)
+		got.expectCompletedOnce(t)
+		got.expectContract(t)
 	})
 }
 
+// FuzzHead takes the first item of a source of `items` integers. The source is synchronous or
+// asynchronous, and may keep emitting after the operator decided.
+//
+// Invariant: Head emits item 0 and completes once, or fails once when the source is empty.
+//
+// Seeds: items spreads over its range; asyncSource and sourceIgnoresStop alternate.
 func FuzzHead(f *testing.F) {
-	addShortCircuitSeeds(f)
+	fuzzSeeds(f, func(i int) []any {
+		// items, asyncSource, sourceIgnoresStop
+		return []any{seedByte(i, 0), i%2 == 0, i%4 < 2}
+	})
 
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, _, _ := decodeShortCircuitScenario(seed)
+	f.Fuzz(func(t *testing.T, items uint8, asyncSource, sourceIgnoresStop bool) {
+		count := bounded(items, 0, maxItems)
 
-		sink := runWithRawSink(t, "Head", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
-			return ro.Head[int]()(source)
-		})
+		numbers := newSource(count, asyncSource).ignoringStop(sourceIgnoresStop)
 
-		want := []int{}
-		if n > 0 {
-			want = []int{0}
+		got := collect(t, ro.Head[int]()(numbers.observable()), numbers)
+
+		got.expectValues(t, itemAt(0, count))
+		expectSingleItemOrFailure(t, got, count > 0)
+		got.expectContract(t)
+	})
+}
+
+// FuzzTake takes the first `limit` items of a source of `items` integers. The source is synchronous
+// or asynchronous, and may keep emitting after the operator decided.
+//
+// Invariant: Take emits the first min(limit, items) items in order and completes once, whatever the
+// source keeps emitting afterwards.
+//
+// Seeds: items and limit spread over their range; asyncSource and sourceIgnoresStop alternate.
+func FuzzTake(f *testing.F) {
+	fuzzSeeds(f, func(i int) []any {
+		// items, limit, asyncSource, sourceIgnoresStop
+		return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0, i%4 < 2}
+	})
+
+	f.Fuzz(func(t *testing.T, items, limit uint8, asyncSource, sourceIgnoresStop bool) {
+		count := bounded(items, 0, maxItems)
+		taken := bounded(limit, 0, count+1) // taken > count: the source ends first
+
+		numbers := newSource(count, asyncSource).ignoringStop(sourceIgnoresStop)
+
+		got := collect(t, ro.Take[int](int64(taken))(numbers.observable()), numbers)
+
+		got.expectValues(t, sequence(0, smaller(taken, count)))
+		got.expectCompletedOnce(t)
+		got.expectContract(t)
+	})
+}
+
+// FuzzTakeWhile takes the items < decisionIndex of a source of `items` integers. The source is
+// synchronous or asynchronous, and may keep emitting after the operator decided.
+//
+// Invariant: TakeWhile emits the leading items that satisfy the predicate and completes once, and it
+// never calls the predicate again after the call that failed.
+//
+// Seeds: same as FuzzFirst, with withIndex selecting TakeWhileI.
+func FuzzTakeWhile(f *testing.F) {
+	fuzzSeeds(f, func(i int) []any {
+		// items, decisionIndex, asyncSource, sourceIgnoresStop, withIndex
+		return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0, i%4 < 2, i%3 == 0}
+	})
+
+	f.Fuzz(func(t *testing.T, items, decisionIndex uint8, asyncSource, sourceIgnoresStop, withIndex bool) {
+		count := bounded(items, 0, maxItems)
+		decision := bounded(decisionIndex, 0, count+1) // decision >= count: every item passes
+
+		numbers := newSource(count, asyncSource).ignoringStop(sourceIgnoresStop)
+		predicate := newCountingPredicate(false, func(item int) bool { return item < decision })
+
+		takeWhile := ro.TakeWhile(predicate.test)
+		if withIndex {
+			takeWhile = ro.TakeWhileI(predicate.testIndexed)
 		}
 
-		checkSingleResult(t, "Head", sink, nil, want, n == 0, mask)
-	})
-}
+		got := collect(t, takeWhile(numbers.observable()), numbers)
 
-func FuzzTake(f *testing.F) {
-	addShortCircuitSeeds(f)
-
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, _ := decodeShortCircuitScenario(seed)
-
-		sink := runWithRawSink(t, "Take", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
-			return ro.Take[int](int64(k))(source)
-		})
-
-		checkSingleResult(t, "Take", sink, nil, intRange(0, minInt(k, n)), false, mask)
-	})
-}
-
-func FuzzTakeWhile(f *testing.F) {
-	addShortCircuitSeeds(f)
-
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, variant := decodeShortCircuitScenario(seed)
-		probe := &predicateCallCounter{}
-
-		sink := runWithRawSink(t, "TakeWhile", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
-			if variant == 0 {
-				return ro.TakeWhile(func(v int) bool { probe.call(v >= k); return v < k })(source)
-			}
-
-			return ro.TakeWhileI(func(v int, _ int64) bool { probe.call(v >= k); return v < k })(source)
-		})
-
-		checkSingleResult(t, "TakeWhile", sink, probe, intRange(0, minInt(k, n)), false, mask)
+		got.expectValues(t, sequence(0, smaller(decision, count)))
+		got.expectCompletedOnce(t)
+		got.expectContract(t)
+		predicate.expectNoCallAfterDecision(t)
 	})
 }
