@@ -254,7 +254,7 @@ Most patterns below follow from four facts:
 
 ### Pattern index
 
-Tests and reviews cite these patterns by number. Snippets qualify the library with `ro.`, as in a plugin; drop the prefix inside the core package. Most are fragments of the subscribe callback of the [skeleton](./hacking#skeleton).
+Tests and reviews cite these patterns by number. Snippets qualify the library with `ro.`, as in a plugin; drop the prefix inside the core package. Most are fragments of the subscribe callback of the Skeleton in [hacking](./hacking).
 
 | #   | Pattern                                                                  | Symptom                                                  |
 | --- | ------------------------------------------------------------------------ | -------------------------------------------------------- |
@@ -580,7 +580,7 @@ if !sub.IsClosed() { // an inner that already ended is never stored
 mu.Unlock()
 ```
 
-The teardown copies `active` under the lock, then unsubscribes each entry outside it. See also [Higher-order Observables](#higher-order-observables-races-and-memory-leaks).
+The teardown copies `active` under the lock, then unsubscribes each entry outside it. See also the section "Higher-order Observables: races and memory leaks" above.
 
 **How to test:** many short-lived inner Observables wrapped with `trackSubscriptions`. Assert `activeCounter.activeCount()` returns to 0.
 
