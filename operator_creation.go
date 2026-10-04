@@ -207,6 +207,27 @@ func rangeHasNext(cursor, end, sign int64) bool {
 	return cursor > end
 }
 
+// rangeWithStepEpsilon absorbs the float64 rounding error of (end-start)/step. Without it, a
+// quotient that should be an exact integer can land just above it and ceil rounds up to one
+// value too many: 0.07/0.01 = 7.000000000000001 would emit 8 values instead of 7.
+// 1e-9 is far above the ~1e-16 relative error of one division. It is an absolute tolerance,
+// so it stops covering the division error once the quotient exceeds ~1e7 steps.
+const rangeWithStepEpsilon = 1e-9
+
+// rangeWithStepCount returns the number of values in [start:end) walked by step.
+// It is shared by RangeWithStep and RangeWithStepAndInterval, so both always emit
+// the same number of values. start and end must differ and step must be positive.
+func rangeWithStepCount(start, end, step float64) int64 {
+	count := int64(math.Ceil(math.Abs(end-start)/step - rangeWithStepEpsilon))
+
+	// start differs from end, so the range always contains at least `start`.
+	if count < 1 {
+		return 1
+	}
+
+	return count
+}
+
 // RangeWithStep creates an Observable that emits a range of floats.
 // The range is [start:end), so `start` is emitted but not `end`.
 // If `start` is equal to `end`, an empty Observable is returned.
@@ -238,26 +259,6 @@ func RangeWithStep(start, end, step float64) Observable[float64] {
 
 		return nil
 	})
-}
-
-// rangeWithStepEpsilon absorbs the float64 rounding error of (end-start)/step. Without it,
-// 0.3/0.1 = 2.9999999999999996 and 1/0.1 = 10.000000000000002 would round to the wrong count.
-// 1e-9 is far above the ~1e-16 relative error of one division, and far below any step
-// ratio a caller can write by hand.
-const rangeWithStepEpsilon = 1e-9
-
-// rangeWithStepCount returns the number of values in [start:end) walked by step.
-// It is shared by RangeWithStep and RangeWithStepAndInterval, so both always emit
-// the same number of values. start and end must differ and step must be positive.
-func rangeWithStepCount(start, end, step float64) int64 {
-	count := int64(math.Ceil(math.Abs(end-start)/step - rangeWithStepEpsilon))
-
-	// start differs from end, so the range always contains at least `start`.
-	if count < 1 {
-		return 1
-	}
-
-	return count
 }
 
 // rangeWithStepValue returns the i-th value of the range. It multiplies instead of
