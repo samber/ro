@@ -1435,6 +1435,7 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 
 			subscriptions := NewSubscription(nil)
 			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1524,6 +1525,7 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 
 			subscriptions := NewSubscription(nil)
 			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1532,6 +1534,7 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 			}
 
 			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1626,6 +1629,7 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 
 			subscriptions := NewSubscription(nil)
 			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1634,6 +1638,7 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 			}
 
 			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1642,6 +1647,7 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 			}
 
 			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1742,6 +1748,7 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 
 			subscriptions := NewSubscription(nil)
 			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1750,6 +1757,7 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 			}
 
 			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1758,6 +1766,7 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 			}
 
 			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1766,6 +1775,7 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 			}
 
 			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1873,6 +1883,7 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 
 			subscriptions := NewSubscription(nil)
 			zipInnerSubscription(subscriberCtx, obsA, &mu, valueA, &completedA, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1881,6 +1892,7 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 			}
 
 			zipInnerSubscription(subscriberCtx, obsB, &mu, valueB, &completedB, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1889,6 +1901,7 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 			}
 
 			zipInnerSubscription(subscriberCtx, obsC, &mu, valueC, &completedC, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1897,6 +1910,7 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 			}
 
 			zipInnerSubscription(subscriberCtx, obsD, &mu, valueD, &completedD, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -1905,6 +1919,7 @@ func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD
 			}
 
 			zipInnerSubscription(subscriberCtx, obsE, &mu, valueE, &completedE, &pending, onUpdate, destination, subscriptions)
+
 			// The destination is closed when a previous source is synchronous and
 			// already completed or failed. Subscribing to the next source would only
 			// start work nobody listens to.
@@ -2012,6 +2027,7 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 	subscriptions := NewSubscription(nil)
 
 	for i := range sources {
+
 		// The destination is closed when a previous source is synchronous and
 		// already completed or failed. Subscribing to the next source would only
 		// start work nobody listens to.
