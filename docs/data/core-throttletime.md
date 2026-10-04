@@ -1,7 +1,7 @@
 ---
 name: ThrottleTime
 slug: throttletime
-sourceRef: operator_transformations.go#L829
+sourceRef: operator_transformations.go#L887
 type: core
 category: transformation
 signatures:
@@ -16,7 +16,7 @@ similarHelpers:
 position: 93
 ---
 
-Emits a value from the source Observable, then ignores subsequent source values for a fixed time duration.
+Emits a value from the source Observable, then ignores subsequent source values for a fixed time duration. Panics with `ErrThrottleTimeWrongInterval` when `interval` is zero or negative.
 
 ```go
 obs := ro.Pipe[int64, int64](
