@@ -343,7 +343,6 @@ func CombineLatestWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observ
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueA.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -370,7 +369,6 @@ func CombineLatestWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observ
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueB.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -453,7 +451,6 @@ func CombineLatestWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) fun
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueA.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -480,7 +477,6 @@ func CombineLatestWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) fun
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueB.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -507,7 +503,6 @@ func CombineLatestWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) fun
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueC.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -596,7 +591,6 @@ func CombineLatestWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], 
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueA.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -623,7 +617,6 @@ func CombineLatestWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], 
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueB.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -650,7 +643,6 @@ func CombineLatestWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], 
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueC.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -677,7 +669,6 @@ func CombineLatestWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], 
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueD.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -771,7 +762,6 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueA.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -798,7 +788,6 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueB.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -825,7 +814,6 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueC.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -852,7 +840,6 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueD.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
@@ -879,7 +866,6 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 						func(ctx context.Context) {
 							// no value ever emitted: no tuple can form, do not wait for other sources
 							if valueE.Load() == nil {
-								atomic.StoreInt32(&status, -1)
 								destination.CompleteWithContext(ctx)
 								return
 							}
