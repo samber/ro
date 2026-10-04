@@ -1,7 +1,7 @@
 ---
 name: TakeUntil
 slug: takeuntil
-sourceRef: operator_filter.go#L518
+sourceRef: operator_filter.go#L530
 type: core
 category: filtering
 signatures:
@@ -16,7 +16,9 @@ similarHelpers:
 position: 21
 ---
 
-Emits items from the source Observable until a signal Observable emits or completes.
+Emits items from the source Observable until a signal Observable emits.
+
+The signal is subscribed before the source. If the signal errors, the error is forwarded downstream. If the signal completes without emitting, all items are emitted.
 
 ```go
 signal := ro.Timer(200 * time.Millisecond)
