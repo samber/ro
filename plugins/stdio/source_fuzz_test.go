@@ -25,28 +25,8 @@ import (
 	"time"
 
 	"github.com/samber/ro"
+	"github.com/samber/ro/internal/xfuzz"
 )
-
-func waitDone(t *testing.T, ch <-chan struct{}, what string) {
-	t.Helper()
-	select {
-	case <-ch:
-	case <-time.After(fuzzWait):
-		t.Fatalf("%s: timed out after %s", what, fuzzWait)
-	}
-}
-
-// assertNoLeak fails when goroutines started by the scenario are still alive after a bounded settle loop.
-func assertNoLeak(t *testing.T, before int) {
-	t.Helper()
-	deadline := time.Now().Add(fuzzSettle)
-	for runtime.NumGoroutine() > before {
-		if time.Now().After(deadline) {
-			t.Fatalf("goroutine leak: before=%d after=%d", before, runtime.NumGoroutine())
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-}
 
 // countingInfiniteReader never blocks and never ends (until fuzzReadCap), repeating pattern.
 type countingInfiniteReader struct {
@@ -66,7 +46,7 @@ func (r *countingInfiniteReader) Read(p []byte) (int, error) {
 // like a terminal or a socket waiting for more input.
 func FuzzIOReaderStopsAfterTake(f *testing.F) {
 	f.Skip("race: stdio-reader-ignores-downstream-close; remove when fixed")
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		async := mask&maskAsync != 0
@@ -118,14 +98,14 @@ func FuzzIOReaderStopsAfterTake(f *testing.F) {
 			defer sub.Unsubscribe()
 		}()
 
-		waitDone(t, completed, "Take completion")
-		waitDone(t, returned, "read loop stop after Take")
+		xfuzz.WaitChan(t, completed, "Take completion")
+		xfuzz.WaitChan(t, returned, "read loop stop after Take")
 
 		if inf != nil && atomic.LoadInt64(&inf.reads) >= fuzzReadCap {
 			t.Fatalf("reader was drained to its cap (%d reads) for Take(%d)", fuzzReadCap, take)
 		}
 		release()
-		assertNoLeak(t, before)
+		xfuzz.AssertNoLeak(t, before)
 	})
 }
 
@@ -133,7 +113,7 @@ func FuzzIOReaderStopsAfterTake(f *testing.F) {
 // which an asynchronous downstream (ObserveOn) only consumes later.
 func FuzzIOReaderEmitsStableBuffers(f *testing.F) {
 	f.Skip("race: stdio-reader-shared-buffer; remove when fixed")
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		async := mask&maskAsync != 0
@@ -221,7 +201,7 @@ func (r *eofWithDataReader) Read(p []byte) (int, error) {
 // FuzzIOReaderKeepsDataReturnedWithEOF checks that bytes returned together with io.EOF are emitted.
 func FuzzIOReaderKeepsDataReturnedWithEOF(f *testing.F) {
 	f.Skip("race: stdio-reader-drops-final-bytes-with-eof; remove when fixed")
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		async := mask&maskAsync != 0
@@ -270,7 +250,7 @@ func FuzzIOReaderKeepsDataReturnedWithEOF(f *testing.F) {
 // Sync: the line is already in the pipe at subscription time. Async: it arrives after a goroutine delay.
 func FuzzPromptStopsAfterTake(f *testing.F) {
 	f.Skip("race: stdio-prompt-ignores-downstream-close; remove when fixed")
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		async := mask&maskAsync != 0
@@ -292,7 +272,7 @@ func FuzzPromptStopsAfterTake(f *testing.F) {
 			_ = stdinW.Close()
 			select {
 			case <-returned:
-			case <-time.After(fuzzSettle):
+			case <-time.After(xfuzz.SettleTime):
 			}
 			os.Stdin, os.Stdout = origIn, origOut
 			_ = stdinR.Close()
@@ -320,7 +300,7 @@ func FuzzPromptStopsAfterTake(f *testing.F) {
 			defer sub.Unsubscribe()
 		}()
 
-		waitDone(t, completed, "Take(1) completion")
-		waitDone(t, returned, "prompt loop stop after Take(1)")
+		xfuzz.WaitChan(t, completed, "Take(1) completion")
+		xfuzz.WaitChan(t, returned, "prompt loop stop after Take(1)")
 	})
 }

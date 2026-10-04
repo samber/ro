@@ -16,7 +16,6 @@ package rostdio
 
 import (
 	"context"
-	"errors"
 	"math/rand"
 	"runtime"
 	"sync/atomic"
@@ -24,38 +23,19 @@ import (
 	"time"
 
 	"github.com/samber/ro"
+	"github.com/samber/ro/internal/xfuzz"
 )
-
-var errFuzzWrite = errors.New("fuzz write failure")
-
-// failingWriter fails every Write from the (failAt+1)-th one and counts the calls made after the first failure.
-type failingWriter struct {
-	failAt         int
-	calls          int64
-	callsAfterFail int64
-}
-
-func (w *failingWriter) Write(p []byte) (int, error) {
-	n := int(atomic.AddInt64(&w.calls, 1))
-	if n > w.failAt+1 {
-		atomic.AddInt64(&w.callsAfterFail, 1)
-	}
-	if n > w.failAt {
-		return 0, errFuzzWrite
-	}
-	return len(p), nil
-}
 
 // FuzzIOWriterStopsAfterWriteError checks that the sink stops writing once it reported a write error.
 // The source is either a synchronous loop or a goroutine, neither of which watches the sink.
 func FuzzIOWriterStopsAfterWriteError(f *testing.F) {
 	f.Skip("race: stdio-writer-keeps-writing-after-error; remove when fixed")
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		async := mask&maskAsync != 0
 		count := 3 + int(mask>>1)%fuzzMaxItems
-		writer := &failingWriter{failAt: int(seed&0x7fffffff) % (count - 1)}
+		writer := &xfuzz.FailingWriter{FailAt: int(seed&0x7fffffff) % (count - 1)}
 		rng := rand.New(rand.NewSource(seed)) //nolint:gosec // deterministic interleaving
 
 		emit := func(ctx context.Context, dst ro.Observer[[]byte]) {
@@ -87,10 +67,10 @@ func FuzzIOWriterStopsAfterWriteError(f *testing.F) {
 		// Writes happen on the source's goroutine for async sources: wait until all `count` items went through
 		// the writer, or, if the sink stopped writing, until things stayed quiet for a short window.
 		const quiet = 30 * time.Millisecond
-		deadline := time.Now().Add(fuzzWait)
+		deadline := time.Now().Add(xfuzz.Deadline)
 		lastCalls, lastChange := int64(-1), time.Now()
-		for atomic.LoadInt64(&writer.calls) < int64(count) && time.Now().Before(deadline) {
-			if c := atomic.LoadInt64(&writer.calls); c != lastCalls {
+		for writer.Calls() < int64(count) && time.Now().Before(deadline) {
+			if c := writer.Calls(); c != lastCalls {
 				lastCalls, lastChange = c, time.Now()
 			}
 			if atomic.LoadInt32(&errSeen) == 1 && time.Since(lastChange) > quiet {
@@ -100,10 +80,10 @@ func FuzzIOWriterStopsAfterWriteError(f *testing.F) {
 		}
 
 		if atomic.LoadInt32(&errSeen) == 0 {
-			t.Fatalf("writer error never reached the observer (count=%d failAt=%d)", count, writer.failAt)
+			t.Fatalf("writer error never reached the observer (count=%d failAt=%d)", count, writer.FailAt)
 		}
-		if n := atomic.LoadInt64(&writer.callsAfterFail); n > 0 {
-			t.Fatalf("async=%v: %d writes were attempted after the first write error (failAt=%d)", async, n, writer.failAt)
+		if n := writer.CallsAfterFail(); n > 0 {
+			t.Fatalf("async=%v: %d writes were attempted after the first write error (failAt=%d)", async, n, writer.FailAt)
 		}
 	})
 }

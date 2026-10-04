@@ -242,6 +242,9 @@ The same file runs `goleak` in `TestMain`, so a leaked goroutine fails the packa
 - Commit crashers found by the fuzz engine under `testdata/fuzz/<FuzzName>/`.
 - CI runs `make fuzz` on the stable Go version.
 - Plugin fuzz tests import `github.com/samber/ro/internal/xfuzz` and call `xfuzz.AddSeeds`, with the same `RO_FUZZ_ITERATIONS` variable.
+- Reuse the shared helpers of `internal/xfuzz` instead of copying them: `StandardSeeds`, `WaitChan`, `WaitGroup`, `GoRecover`, `RecoverInto`, `FailOnErrs`.
+- Also shared: `AssertNoLeak` (goroutine leak check), `Delay` (seed-derived async delay) and `FailingWriter` (io.Writer failing after N writes).
+- Bound every wait with `xfuzz.Deadline`, so a hang fails the target instead of the CI job.
 
 ### How `ro` runs your operator
 

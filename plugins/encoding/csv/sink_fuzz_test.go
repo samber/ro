@@ -17,7 +17,6 @@ package rocsv
 import (
 	"context"
 	"encoding/csv"
-	"errors"
 	"fmt"
 	"math/rand"
 	"runtime"
@@ -27,29 +26,15 @@ import (
 	"time"
 
 	"github.com/samber/ro"
+	"github.com/samber/ro/internal/xfuzz"
 )
-
-var errFuzzWrite = errors.New("fuzz write failure")
-
-// failingWriter fails every Write from the (failAt+1)-th one.
-type failingWriter struct {
-	failAt int
-	calls  int64
-}
-
-func (w *failingWriter) Write(p []byte) (int, error) {
-	if int(atomic.AddInt64(&w.calls, 1)) > w.failAt {
-		return 0, errFuzzWrite
-	}
-	return len(p), nil
-}
 
 // FuzzCSVWriterReportsWriteErrorOnce checks the notification contract of the sink when the underlying writer fails:
 // the written count then exactly one error, and nothing after, for sync and async sources.
 //
 // csv.Writer's bufio layer keeps a sticky error, so "writes attempted after the error" is not observable from here.
 func FuzzCSVWriterReportsWriteErrorOnce(f *testing.F) {
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		async := mask&maskAsync != 0
@@ -78,7 +63,7 @@ func FuzzCSVWriterReportsWriteErrorOnce(f *testing.F) {
 		var nexts, errs, completes, afterTerminal int32
 		var orderViolation int32
 		terminated := make(chan struct{})
-		sink := NewCSVWriter(csv.NewWriter(&failingWriter{failAt: int(seed&0x7fffffff) % (rows - 1)}))
+		sink := NewCSVWriter(csv.NewWriter(&xfuzz.FailingWriter{FailAt: int(seed&0x7fffffff) % (rows - 1)}))
 		sub := sink(src).Subscribe(ro.NewObserver(
 			func(int) {
 				if atomic.LoadInt32(&errs)+atomic.LoadInt32(&completes) > 0 {
@@ -106,7 +91,7 @@ func FuzzCSVWriterReportsWriteErrorOnce(f *testing.F) {
 		))
 		defer sub.Unsubscribe()
 
-		waitDone(t, terminated, "sink termination")
+		xfuzz.WaitChan(t, terminated, "sink termination")
 		time.Sleep(20 * time.Millisecond) // lets a duplicate notification from a still-running async source show up
 
 		if n := atomic.LoadInt32(&errs); n != 1 {
