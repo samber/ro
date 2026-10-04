@@ -18,6 +18,8 @@ position: 92
 
 Skips items emitted by the source Observable until a signal Observable emits.
 
+The signal is subscribed before the source. If the signal errors, the error is forwarded downstream. If the signal completes without emitting, no item is emitted.
+
 ```go
 signal := ro.Timer(200 * time.Millisecond)
 
