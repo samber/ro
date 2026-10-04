@@ -199,6 +199,108 @@ Operators consuming an `Observable[Observable[T]]` (`MergeAll`, `ConcatAll`, `Me
 
 **Tests.** Run them with `-race` and `goleak`. Add a case with a large number of short-lived inner Observables, and one that unsubscribes while inner Observables are still emitting.
 
+## Race condition patterns
+
+Every new or changed operator MUST have a native `FuzzXxx(f *testing.F)` target for every applicable pattern below. Hand-rolled `for i := 0; i < N` hammer loops are not accepted for new tests.
+
+**Sync and async sources.** Test BOTH kinds. A fuzz target that only uses synchronous sources is incomplete.
+
+- A synchronous source emits inside `Subscribe`. The teardown is registered only after `Subscribe` returns, so it cannot stop the source.
+- An asynchronous source emits from its own goroutine. `Next` races `Unsubscribe` and `Complete`.
+- Let a bit of the fuzz input select the kind: use `fuzzSource` and `fuzzIsAsync`.
+
+**Always run with `-race`.** Use `go test -race ./...`, `make test` or `make fuzz`. A race-free result without `-race` proves nothing.
+
+**Inputs encode the interleaving, never the expected result.** Typical inputs: seed, goroutine count, item count, sync/async bitmask, unsubscribe-after index. The body asserts invariants:
+
+- no overlapping `Next`
+- at most one terminal notification, and nothing after it
+- every upstream, signal and inner subscription released
+- no goroutine leak
+- no deadlock: every wait is bounded (`fuzzWaitFor`, `fuzzDeadline`)
+
+**Seeds and iterations.**
+
+- Register seeds with `xtest.AddSeeds`, so a plain `go test -race` explores them without `-fuzz`.
+- One shared counter, `RO_FUZZ_ITERATIONS`, sets the seed count: 100 by default, 10 under `go test -short`.
+- Run `make fuzz RO_FUZZ_ITERATIONS=10000` for a soak run.
+- Commit crashers found by the fuzz engine under `testdata/fuzz/<FuzzName>/`.
+- CI runs `make fuzz` on the stable Go version.
+- Plugins are separate modules and cannot import `internal/xtest`. Copy the 15-line `fuzz_helpers_test.go` helper from `plugins/iter`, which reads the same env var.
+
+| # | Pattern | Typical symptom | How to test |
+|---|---------|-----------------|-------------|
+| 1 | Teardown mutates shared state while a `Next` is in flight (`GroupBy` #436, `BufferWithCount` buffer reset) | Data race, lost or corrupted item | Async source, unsubscribe mid-stream, under `-race` |
+| 2 | Shared state read outside the mutex, or a stale teardown resets a newer generation (#435, #423) | Data race, reconnect sees reset state | Concurrent subscribe/unsubscribe/reconnect cycles |
+| 3 | Send on a closed channel at unsubscribe (#431, `ObserveOn`, `SubscribeOn`) | `panic: send on closed channel` | Async source, unsubscribe while items are in flight |
+| 4 | Item popped under the lock but delivered after unlock (#420, `Zip`, `Buffer*`, `Window*`) | Concurrent `Complete` drops it, or items arrive out of order | Assert full, ordered output with async sources |
+| 5 | Terminal lost or duplicated; late subscribe after a sync source already closed the destination (#432, #433, #430) | Hang, or two terminals | Count terminals; mix sync and async sources |
+| 6 | Per-subscription state declared outside the subscribe callback (#427) | Subscriptions share counters or buffers | Subscribe the same Observable concurrently |
+| 7 | Finished inner subscriptions retained (#424, #422) | Memory grows with inner count | Many short-lived inners; `activeCounter` back to 0 |
+| 8 | Lock-free (unsafe) subscriber passed through an operator (`Catch`, `StartWith` over `Merge`) | Downstream gets overlapping `Next` | `serialGuard` in the observer, concurrent sources |
+| 9 | Short-circuit operator keeps evaluating after its decision (#429) | Predicate called after the result is emitted | Count predicate calls after the terminal |
+| 10 | Sync loop inside subscribe cannot be stopped (`Retry`, `While`, `DoWhile`, `RepeatWith`, `SubscribeOn`) | Unsubscribe never returns, infinite loop | Sync source, unsubscribe from the callback, bounded wait |
+| 11 | Timer, ticker or goroutine outlives teardown, or ignores `subscriberCtx` | Goroutine leak, emission after teardown | `goleak`, cancel the context, assert nothing after |
+| 12 | Lock held while emitting, so re-entrant calls deadlock (subjects, `Connect`, `UnicastSubject`) | Deadlock | Call `Next`/`Unsubscribe` from inside a callback, bounded wait |
+| 13 | Unsubscription not propagated upstream (source, signal, inner, loser of a race) | Upstream keeps running | `trackSubscriptions` + `activeCounter`: count reaches 0 after `Unsubscribe`, `Complete` and `Error` |
+| 14 | Deadlock: lock-order inversion, teardown waiting on a goroutine blocked in `Next`, `Wait`/`Collect` blocking after cancel (`Delay` `muQueue`/`muNext`) | Test hangs | Bounded waits on every blocking call |
+| 15 | Long lock: `destination.Next` (or any callback, channel send, sleep) runs inside the operator mutex when only a state update needs it | Slow downstream blocks other sources and `Unsubscribe` | Slow observer + concurrent `Unsubscribe` with a short deadline |
+
+For pattern 15, unlocking before emit can break ordering (pattern 4). Use a serializer (drain queue) rather than a plain unlock.
+
+### Writing a fuzz target
+
+```go
+func FuzzMap(f *testing.F) {
+	xtest.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
+
+	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
+		n := fuzzBound(seed, 0, fuzzMaxItems)
+		unsubEarly := mask&0x80 != 0 // bit 7: unsubscribe right after Subscribe.
+		up := &activeCounter{}
+		guard := &serialGuard{}
+		var terminals int32
+		done := make(chan struct{})
+
+		terminate := func() {
+			if atomic.AddInt32(&terminals, 1) == 1 {
+				close(done)
+			}
+		}
+
+		source := trackSubscriptions(up, fuzzSource(seed, n, fuzzIsAsync(mask, 0)))
+		sub := Map(func(v int) int { return v * 2 })(source).Subscribe(NewObserver(
+			func(int) {
+				guard.enter()
+				defer guard.leave()
+
+				if atomic.LoadInt32(&terminals) > 0 {
+					t.Error("Next after terminal")
+				}
+			},
+			func(error) { terminate() },
+			terminate,
+		))
+
+		if unsubEarly {
+			sub.Unsubscribe()
+		} else {
+			select {
+			case <-done:
+			case <-time.After(fuzzDeadline):
+				t.Fatal("no terminal notification")
+			}
+		}
+
+		fuzzWaitFor(t, "upstream released", func() bool { return up.activeCount() == 0 })
+
+		if guard.overlapped() > 0 || atomic.LoadInt32(&terminals) > 1 {
+			t.Fatalf("overlaps=%d terminals=%d", guard.overlapped(), atomic.LoadInt32(&terminals))
+		}
+	})
+}
+```
+
 ## Core vs plugins
 
 **Never add a third-party library dependency to the core `ro` package.** If an operator requires wrapping an external library, it must live in a dedicated plugin under `plugins/` with its own `go.mod`. The core package only depends on `samber/lo`.

@@ -320,6 +320,7 @@ Follow this checklist in order when adding a new operator or porting one from a 
    - `Throw[T](assert.AnError)` (error propagation)
    - Early unsubscription
    - Context propagation and cancellation
+   - Fuzz targets for every applicable race pattern, with sync and async sources (see contributing.md, [Race condition patterns](./contributing#race-condition-patterns))
 4. **Godoc example**: add an example function in `ro_example_test.go` (core) or `plugins/<x>/operator_example_test.go` (plugin). It will appear on https://pkg.go.dev.
 5. **Go Playground link**: create a runnable snippet via the `mcp__go-playground__run_and_share_go_code` MCP tool, verify it executes correctly, then add `// Play: https://go.dev/play/p/...` above the function signature. Leave the URL empty if the operator is not yet published (new code not yet released cannot compile on the Playground).
 6. **Markdown doc**: create `docs/data/(core|plugin)-<name>.md` with complete frontmatter (`sourceRef`, `signatures`, `variantHelpers`, `similarHelpers`, `playUrl`, `position`). See `docs/CLAUDE.md` at the repository root for the full format.
@@ -336,6 +337,8 @@ These issues have recurred across multiple sessions. Read them before starting.
 - **Adding an import before its first usage** causes `imported and not used` compile errors. Add the import and its usage in the same edit.
 - **`go.work.sum` churn**: the workspace sum file is modified by routine `go` tool invocations. Do not commit it unless it is the only intentional change. Restore with `git checkout go.work.sum` when it appears as an unintentional modification.
 - **Porting from `samber/lo` — bytes UTF-8 divergence**: `bytes.ToLower` via `strings.ToLower` produces `U+FFFD` replacement characters on invalid UTF-8, whereas `cases.Lower(...).Bytes()` preserves the raw bytes. Adjust test fixtures accordingly when porting from `samber/lo` string helpers to the `bytes` plugin.
+- **A fuzz target with only synchronous sources** misses every `Unsubscribe`-vs-`Next` race. Select sync or async from a bit of the fuzz input (`fuzzSource`, `fuzzIsAsync`).
+- **A race test that passes without `-race`** proves nothing. Always run `go test -race`, `make test` or `make fuzz`.
 
 ## Definition of done
 
@@ -343,6 +346,7 @@ Before opening a PR, confirm:
 
 ```bash
 make test   # runs all tests with the race detector
+make fuzz   # runs every fuzz target with the race detector (RO_FUZZ_ITERATIONS seeds)
 make lint   # runs golangci-lint + license header check (make lint-fix to auto-correct)
 ```
 
