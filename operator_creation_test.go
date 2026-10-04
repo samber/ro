@@ -120,25 +120,13 @@ func TestOperatorCreationTimerContextCancel(t *testing.T) {
 				time.AfterFunc(tt.cancelAfter, cancel)
 			}
 
-			var values []time.Duration
-
-			var gotErr error
-
 			start := time.Now()
 
-			sub := Timer(longTimer).SubscribeWithContext(
-				ctx,
-				NewObserverWithContext(
-					func(_ context.Context, value time.Duration) { values = append(values, value) },
-					func(_ context.Context, err error) { gotErr = err },
-					func(_ context.Context) {},
-				),
-			)
-			sub.Wait()
+			values, _, err := CollectWithContext(ctx, Timer(longTimer))
 
 			is.Less(time.Since(start), maxReturnTime)
-			is.Empty(values)
-			is.ErrorIs(gotErr, context.Canceled)
+			is.Equal([]time.Duration{}, values)
+			is.ErrorIs(err, context.Canceled)
 		})
 	}
 }

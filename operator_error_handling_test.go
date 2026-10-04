@@ -320,16 +320,6 @@ func TestOperatorErrorHandlingRetryWithConfigFinalErrorContext(t *testing.T) {
 
 	key := ctxKey("attempt")
 
-	// The source tags the context of its error: the final error must reach the
-	// destination with that context, not with the subscriber's one.
-	attempts := 0
-	source := NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
-		attempts++
-		destination.ErrorWithContext(context.WithValue(ctx, key, attempts), assert.AnError)
-
-		return nil
-	})
-
 	tests := []struct {
 		name          string
 		maxRetries    uint64
@@ -340,10 +330,22 @@ func TestOperatorErrorHandlingRetryWithConfigFinalErrorContext(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // go.mod predates per-iteration loop variables
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			is := assert.New(t)
 
-			attempts = 0
+			// The source tags the context of its error with the attempt number: the
+			// final error must reach the destination with that context, not with the
+			// subscriber's one.
+			attempts := 0
+			source := NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+				attempts++
+				destination.ErrorWithContext(context.WithValue(ctx, key, attempts), assert.AnError)
+
+				return nil
+			})
 
 			var errCtx context.Context
 

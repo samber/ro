@@ -386,25 +386,13 @@ func TestOperatorUtilityDelayEach(t *testing.T) {
 				time.AfterFunc(tt.cancelAfter, cancel)
 			}
 
-			var values []int
-
-			var gotErr error
-
 			start := time.Now()
 
-			sub := Pipe1(Just(1, 2, 3), DelayEach[int](longDelay)).SubscribeWithContext(
-				ctx,
-				NewObserverWithContext(
-					func(_ context.Context, value int) { values = append(values, value) },
-					func(_ context.Context, err error) { gotErr = err },
-					func(_ context.Context) {},
-				),
-			)
-			sub.Wait()
+			values, _, err := CollectWithContext(ctx, Pipe1(Just(1, 2, 3), DelayEach[int](longDelay)))
 
 			is.Less(time.Since(start), maxReturnTime)
-			is.Empty(values)
-			is.ErrorIs(gotErr, context.Canceled)
+			is.Equal([]int{}, values)
+			is.ErrorIs(err, context.Canceled)
 		})
 	}
 
