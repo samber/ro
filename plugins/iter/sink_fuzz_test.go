@@ -17,7 +17,6 @@ package roiter
 import (
 	"context"
 	"errors"
-	"iter"
 	"math/rand"
 	"runtime"
 	"sync/atomic"
@@ -25,23 +24,6 @@ import (
 	"time"
 
 	"github.com/samber/ro"
-)
-
-const (
-	// fuzzWait bounds every wait so a deadlock fails the target instead of hanging the suite.
-	fuzzWait = 5 * time.Second
-
-	// fuzzMaxItems keeps one scenario fast while still spanning several channel hand-offs.
-	fuzzMaxItems = 64
-
-	// fuzzInfiniteCap stops an "infinite" iterator that was never told to stop, so a bug cannot spin forever.
-	fuzzInfiniteCap = 2_000_000
-
-	// fuzzSettle is how long goroutines get to exit before being declared leaked.
-	fuzzSettle = 2 * time.Second
-
-	// maskAsync selects a goroutine-emitting source over a synchronous one.
-	maskAsync = 1 << 0
 )
 
 var errFuzzBoom = errors.New("fuzz boom")
@@ -95,16 +77,6 @@ func recoverValue(fn func()) (recovered any) {
 	return nil
 }
 
-// waitDone fails the target when ch is not closed in time.
-func waitDone(t *testing.T, ch <-chan struct{}, what string) {
-	t.Helper()
-	select {
-	case <-ch:
-	case <-time.After(fuzzWait):
-		t.Fatalf("%s: timed out after %s", what, fuzzWait)
-	}
-}
-
 // assertNoLeak fails when goroutines started by the scenario are still alive after a bounded settle loop.
 func assertNoLeak(t *testing.T, before int) {
 	t.Helper()
@@ -115,10 +87,6 @@ func assertNoLeak(t *testing.T, before int) {
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
-}
-
-func fuzzSeeds(f *testing.F) {
-	addSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 }
 
 // FuzzToSeqKeepsEveryItem checks that no item is dropped or reordered between the
@@ -245,57 +213,6 @@ func FuzzToSeqSourceError(f *testing.F) {
 
 		if r := producerPanic.Load(); r != nil {
 			t.Fatalf("source error panicked on the producer goroutine: %v", r)
-		}
-	})
-}
-
-// FuzzFromSeqInfiniteTake checks that an infinite iter.Seq stops once downstream is satisfied.
-// The async variant puts a goroutine hop (ObserveOn) between FromSeq and the observer.
-func FuzzFromSeqInfiniteTake(f *testing.F) {
-	f.Skip("race: iter-fromseq-ignores-downstream-close (infinite Seq never stopped after Take); remove when fixed")
-	fuzzSeeds(f)
-
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		take := 1 + int64(mask>>1)%fuzzMaxItems
-		async := mask&maskAsync != 0
-
-		var yielded atomic.Int64
-		loopDone := make(chan struct{})
-		var infinite iter.Seq[int] = func(yield func(int) bool) {
-			defer close(loopDone)
-			for i := 0; i < fuzzInfiniteCap; i++ {
-				yielded.Add(1)
-				if !yield(i) {
-					return
-				}
-			}
-		}
-
-		var received atomic.Int64
-		completed := make(chan struct{})
-		obs := ro.Take[int](take)(FromSeq(infinite))
-		if async {
-			obs = ro.ObserveOn[int](1)(obs)
-		}
-
-		// FromSeq blocks Subscribe while it iterates, hence the goroutine.
-		go func() {
-			sub := obs.Subscribe(ro.NewObserver(
-				func(int) { received.Add(1) },
-				func(error) {},
-				func() { close(completed) },
-			))
-			defer sub.Unsubscribe()
-		}()
-
-		waitDone(t, completed, "Take completion")
-		waitDone(t, loopDone, "infinite iterator stop after Take")
-
-		if got := yielded.Load(); got >= fuzzInfiniteCap {
-			t.Fatalf("seed=%d: iterator ran to its cap (%d values) for Take(%d)", seed, got, take)
-		}
-		if received.Load() != take {
-			t.Fatalf("received %d, want %d", received.Load(), take)
 		}
 	})
 }

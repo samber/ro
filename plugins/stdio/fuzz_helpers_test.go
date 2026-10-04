@@ -15,42 +15,29 @@
 package rostdio
 
 import (
-	"os"
-	"strconv"
 	"testing"
+	"time"
+
+	"github.com/samber/ro/internal/xfuzz"
 )
 
 const (
-	// fuzzIterationsEnv overrides the number of seeds of every fuzz target.
-	fuzzIterationsEnv = "RO_FUZZ_ITERATIONS"
+	// fuzzWait bounds every wait so a deadlock fails the target instead of hanging the suite.
+	fuzzWait = 5 * time.Second
 
-	// defaultFuzzIterations is enough interleavings to catch most races locally without slowing down plain test runs.
-	defaultFuzzIterations = 100
+	// fuzzMaxItems keeps one scenario fast while still spanning several hand-offs.
+	fuzzMaxItems = 16
 
-	// shortFuzzIterations keeps `go test -short` fast.
-	shortFuzzIterations = 10
+	// fuzzReadCap ends an "infinite" reader that was never told to stop, so a bug cannot spin forever.
+	fuzzReadCap = 200_000
+
+	// fuzzSettle is how long goroutines get to exit before being declared leaked.
+	fuzzSettle = 2 * time.Second
+
+	// maskAsync selects a goroutine-fed source over a synchronous one.
+	maskAsync = 1 << 0
 )
 
-// fuzzIterations mirrors internal/xtest.FuzzIterations, which plugin modules cannot import.
-func fuzzIterations() int {
-	if raw, ok := os.LookupEnv(fuzzIterationsEnv); ok {
-		if n, err := strconv.Atoi(raw); err == nil && n > 0 {
-			return n
-		}
-	}
-
-	if testing.Short() {
-		return shortFuzzIterations
-	}
-
-	return defaultFuzzIterations
-}
-
-// addSeeds registers fuzzIterations() deterministic seeds so a plain `go test` explores that many scenarios.
-func addSeeds(f *testing.F, gen func(i int) []any) {
-	f.Helper()
-
-	for i := 0; i < fuzzIterations(); i++ {
-		f.Add(gen(i)...)
-	}
+func fuzzSeeds(f *testing.F) {
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 }

@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/samber/ro"
+	"github.com/samber/ro/internal/xfuzz"
 )
 
 const (
@@ -116,7 +117,7 @@ func newFuzzServer(delay time.Duration, body string) *httptest.Server {
 func FuzzHTTPRequestSharedObservable(f *testing.F) {
 	f.Skip("race: http-shared-req; remove when fixed")
 
-	addSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8, subscribers uint8) {
 		srv := newFuzzServer(fuzzDelay(seed, mask), "ok")
@@ -182,7 +183,7 @@ func FuzzHTTPRequestSharedObservable(f *testing.F) {
 func FuzzHTTPRequestSubscribeContextCancel(f *testing.F) {
 	f.Skip("race: http-subscribe-ctx-ignored; remove when fixed")
 
-	addSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		// The handler blocks until the client goes away or the test ends; a
@@ -281,7 +282,7 @@ func (g gateTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 func FuzzHTTPRequestUnsubscribeLeaksBody(f *testing.F) {
 	f.Skip("race: http-unsubscribe-body-leak; remove when fixed")
 
-	addSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		srv := newFuzzServer(fuzzDelay(seed, mask), "payload")
@@ -350,7 +351,7 @@ func FuzzHTTPRequestUnsubscribeLeaksBody(f *testing.F) {
 func FuzzHTTPRequestBodyReadAfterComplete(f *testing.F) {
 	f.Skip("race: http-body-ctx-canceled; remove when fixed")
 
-	addSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		const payloadSize = 256 * 1024 // larger than the server write buffer, so the body streams

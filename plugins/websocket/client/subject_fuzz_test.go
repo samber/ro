@@ -28,6 +28,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/samber/ro"
+	"github.com/samber/ro/internal/xfuzz"
 )
 
 const (
@@ -233,7 +234,7 @@ func failOnErrs(t *testing.T, errs chan string) {
 func FuzzWebsocketSubjectDialFailure(f *testing.F) {
 	f.Skip("race: ws-nil-output-panic; remove when fixed")
 
-	addSeeds(f, func(i int) []any { return []any{uint8(i)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, entry uint8) {
 		ws := newFuzzSubject(deadURL(t))
@@ -268,7 +269,7 @@ func FuzzWebsocketSubjectDialFailure(f *testing.F) {
 // FuzzWebsocketSubjectSubscribeDialFailure checks that Subscribe on a dead URL
 // reports the dial error to the observer instead of panicking or hanging.
 func FuzzWebsocketSubjectSubscribeDialFailure(f *testing.F) {
-	addSeeds(f, func(i int) []any { return []any{uint8(i)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, subscribers uint8) {
 		ws := newFuzzSubject(deadURL(t))
@@ -305,7 +306,7 @@ func FuzzWebsocketSubjectSubscribeDialFailure(f *testing.F) {
 func FuzzWebsocketSubjectConcurrentNext(f *testing.F) {
 	f.Skip("race: ws-concurrent-write; remove when fixed")
 
-	addSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i / 2), uint8(i / 3)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i / 2), uint8(i / 3)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8, writers uint8, messages uint8) {
 		// Async mode delays the server push so writes start before any read;
@@ -349,7 +350,7 @@ func FuzzWebsocketSubjectConcurrentNext(f *testing.F) {
 func FuzzWebsocketSubjectUnsubscribeClosesConn(f *testing.F) {
 	f.Skip("race: ws-conn-leak-on-unsubscribe; remove when fixed")
 
-	addSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		srv := newWSServer(wsServerConfig{pushCount: 1, pushDelay: fuzzDelay(seed, mask)})
@@ -392,7 +393,7 @@ func FuzzWebsocketSubjectUnsubscribeClosesConn(f *testing.F) {
 func FuzzWebsocketSubjectReconnectAfterServerClose(f *testing.F) {
 	f.Skip("race: ws-no-reconnect-silent-drop; remove when fixed")
 
-	addSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i / 2)} })
+	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i / 2)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8, after uint8) {
 		closeAfter := fuzzCount(after, 3)

@@ -4,13 +4,18 @@ build:
 	go build -v ${MODULES} ./...
 	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && GOWORK=off GOEXPERIMENT=simd go build -v ./...; fi
 
+# `go test` also runs every FuzzXxx target on its seeds (see `make fuzz`).
+# TODO: once Go < 1.20 is no longer supported (the CI matrix starts at 1.18), skip them here with
+# `-skip '^Fuzz'`: the -skip flag does not exist before Go 1.20. `make fuzz` then covers them.
 test:
 	go test -race ${MODULES} ./...
 	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && GOWORK=off GOEXPERIMENT=simd go test -race ./...; fi
 
-# Runs every fuzz target on RO_FUZZ_ITERATIONS seeds (see internal/xtest). Example: `make fuzz RO_FUZZ_ITERATIONS=10000`.
+# Runs every fuzz target on RO_FUZZ_ITERATIONS seeds (see internal/xfuzz). Example: `make fuzz RO_FUZZ_ITERATIONS=10000`.
 RO_FUZZ_ITERATIONS ?= 1000
 
+# Phony: the ./fuzz directory has the same name, so make would otherwise report "up to date".
+.PHONY: fuzz
 fuzz:
 	RO_FUZZ_ITERATIONS=$(RO_FUZZ_ITERATIONS) go test -race -run=^Fuzz ${MODULES} ./...
 	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && RO_FUZZ_ITERATIONS=$(RO_FUZZ_ITERATIONS) GOWORK=off GOEXPERIMENT=simd go test -race -run=^Fuzz ./...; fi

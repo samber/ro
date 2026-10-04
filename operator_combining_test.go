@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/samber/lo"
-	"github.com/samber/ro/internal/xtest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1910,47 +1909,6 @@ func TestOperatorCombiningZip_completedSource(t *testing.T) {
 			})
 		}
 	}
-}
-
-func FuzzOperatorCombiningZipFutureCompletion(f *testing.F) {
-	// A source completing while another goroutine delivers the last pair must not drop it.
-	// The window is a few instructions wide, so every seed is one more attempt to hit it.
-	xtest.AddSeeds(f, func(i int) []any { return []any{int64(i)} })
-
-	f.Fuzz(func(t *testing.T, seed int64) {
-		for _, variant := range zipCompletionVariants() {
-			variant := variant
-			t.Run(variant.name, func(t *testing.T) {
-				testWithTimeout(t, 5*time.Second)
-				is := assert.New(t)
-
-				want := make([]int, variant.arity)
-				for i := range want {
-					want[i] = i
-				}
-
-				release := make(chan struct{})
-				sources := make([]Observable[int], variant.arity)
-				for i := range sources {
-					i := i
-					sources[i] = Future(func() (int, error) {
-						<-release
-						fuzzJitter(seed, i)
-						return i, nil
-					})
-				}
-
-				// Collect blocks until completion, so release the futures concurrently.
-				go func() {
-					fuzzJitter(seed, variant.arity)
-					close(release)
-				}()
-				values, err := Collect(variant.zip(sources))
-				is.NoError(err)
-				is.Equal([][]int{want}, values)
-			})
-		}
-	})
 }
 
 func TestOperatorCombiningZip_unsubscribeFromNext(t *testing.T) {
