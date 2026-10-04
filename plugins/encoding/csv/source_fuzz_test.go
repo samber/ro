@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	"github.com/samber/ro"
+	"github.com/samber/ro/internal/xfuzz"
 )
 
 // infiniteCSV never blocks and yields "a,b" records forever, until fuzzReadCap reads.
@@ -44,7 +45,7 @@ func (r *infiniteCSV) Read(p []byte) (int, error) {
 // Sync: a reader that never blocks. Async: a pipe whose writer sends the wanted rows and then idles without closing.
 func FuzzCSVReaderStopsAfterTake(f *testing.F) {
 	f.Skip("race: csv-reader-ignores-downstream-close; remove when fixed")
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		async := mask&maskAsync != 0
@@ -89,8 +90,8 @@ func FuzzCSVReaderStopsAfterTake(f *testing.F) {
 			defer sub.Unsubscribe()
 		}()
 
-		waitDone(t, completed, "Take completion")
-		waitDone(t, returned, "read loop stop after Take")
+		xfuzz.WaitChan(t, completed, "Take completion")
+		xfuzz.WaitChan(t, returned, "read loop stop after Take")
 
 		if inf != nil && atomic.LoadInt64(&inf.reads) >= fuzzReadCap {
 			t.Fatalf("reader was drained to its cap (%d reads) for Take(%d)", fuzzReadCap, take)
@@ -104,7 +105,7 @@ func FuzzCSVReaderStopsAfterTake(f *testing.F) {
 // FuzzCSVReaderKeepsEveryRow checks that no row is lost, duplicated or reordered when a slow async consumer
 // (ObserveOn) drains the stream, with a sync (in-memory) or async (pipe) reader.
 func FuzzCSVReaderKeepsEveryRow(f *testing.F) {
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		async := mask&maskAsync != 0

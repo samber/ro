@@ -30,17 +30,8 @@ import (
 )
 
 const (
-	// fuzzWait bounds every wait so a hang becomes a failure, not a stuck CI job.
-	fuzzWait = 5 * time.Second
-
 	// fuzzMaxSubscribers bounds goroutine fan-out per iteration to keep runs fast.
 	fuzzMaxSubscribers = 8
-
-	// fuzzAsyncDelayUnit scales the async handler delay from the fuzz input.
-	fuzzAsyncDelayUnit = 200 * time.Microsecond
-
-	// fuzzMaxAsyncSteps bounds the async delay at fuzzMaxAsyncSteps*fuzzAsyncDelayUnit.
-	fuzzMaxAsyncSteps = 10
 
 	// fuzzCancelWindow is far above a loopback abort (sub-millisecond) yet short
 	// enough that 100+ failing iterations stay under the test timeout.
@@ -49,53 +40,6 @@ const (
 	// fuzzModeAsync is the bit of the mask selecting a delayed (async) server.
 	fuzzModeAsync = 1 << 0
 )
-
-// fuzzDelay derives the server-side delay from the seed: zero in sync mode.
-func fuzzDelay(seed int64, mask uint8) time.Duration {
-	if mask&fuzzModeAsync == 0 {
-		return 0
-	}
-
-	if seed < 0 {
-		seed = -seed
-	}
-
-	return time.Duration(seed%fuzzMaxAsyncSteps+1) * fuzzAsyncDelayUnit
-}
-
-// goRecover runs fn in a goroutine and reports a recovered panic through errs,
-// since a panic in a goroutine would otherwise kill the whole test binary.
-func goRecover(wg *sync.WaitGroup, errs chan<- string, fn func()) {
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		defer func() {
-			if r := recover(); r != nil {
-				errs <- fmt.Sprintf("rohttpclient: panic: %v", r)
-			}
-		}()
-
-		fn()
-	}()
-}
-
-// waitBounded fails the iteration when wg does not finish within fuzzWait.
-func waitBounded(t *testing.T, wg *sync.WaitGroup, what string) {
-	t.Helper()
-
-	done := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-	case <-time.After(fuzzWait):
-		t.Fatalf("rohttpclient: %s: timed out after %s", what, fuzzWait)
-	}
-}
 
 func newFuzzServer(delay time.Duration, body string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +64,7 @@ func FuzzHTTPRequestSharedObservable(f *testing.F) {
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8, subscribers uint8) {
-		srv := newFuzzServer(fuzzDelay(seed, mask), "ok")
+		srv := newFuzzServer(xfuzz.Delay(seed, mask), "ok")
 		defer srv.Close()
 
 		req, err := http.NewRequest(http.MethodGet, srv.URL, nil)
@@ -140,7 +84,7 @@ func FuzzHTTPRequestSharedObservable(f *testing.F) {
 		start := make(chan struct{})
 
 		for i := 0; i < n; i++ {
-			goRecover(&wg, errs, func() {
+			xfuzz.GoRecover(&wg, errs, func() {
 				<-start
 
 				done := make(chan struct{})
@@ -156,20 +100,16 @@ func FuzzHTTPRequestSharedObservable(f *testing.F) {
 
 				select {
 				case <-done:
-				case <-time.After(fuzzWait):
+				case <-time.After(xfuzz.Deadline):
 					errs <- "rohttpclient: subscription never terminated"
 				}
 			})
 		}
 
 		close(start)
-		waitBounded(t, &wg, "shared subscribers")
+		xfuzz.WaitGroup(t, &wg, "shared subscribers")
 
-		close(errs)
-
-		for msg := range errs {
-			t.Fatal(msg)
-		}
+		xfuzz.FailOnErrs(t, errs)
 
 		if atomic.LoadInt64(&failed) != 0 {
 			t.Fatalf("rohttpclient: %d of %d subscriptions failed", failed, n)
@@ -220,7 +160,7 @@ func FuzzHTTPRequestSubscribeContextCancel(f *testing.F) {
 
 		// Sync mode cancels right away, async mode lets the request reach the server.
 		if mask&fuzzModeAsync != 0 {
-			time.Sleep(fuzzDelay(seed, mask))
+			time.Sleep(xfuzz.Delay(seed, mask))
 		}
 
 		cancel()
@@ -285,7 +225,7 @@ func FuzzHTTPRequestUnsubscribeLeaksBody(f *testing.F) {
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		srv := newFuzzServer(fuzzDelay(seed, mask), "payload")
+		srv := newFuzzServer(xfuzz.Delay(seed, mask), "payload")
 		defer srv.Close()
 
 		var closed, delivered, handedOut int64
@@ -321,7 +261,7 @@ func FuzzHTTPRequestUnsubscribeLeaksBody(f *testing.F) {
 			select {
 			case <-arrived:
 			case <-returned:
-			case <-time.After(fuzzWait):
+			case <-time.After(xfuzz.Deadline):
 				t.Fatalf("rohttpclient: response never arrived")
 			}
 		}
@@ -330,7 +270,7 @@ func FuzzHTTPRequestUnsubscribeLeaksBody(f *testing.F) {
 
 		select {
 		case <-returned:
-		case <-time.After(fuzzWait):
+		case <-time.After(xfuzz.Deadline):
 			t.Fatalf("rohttpclient: round trip never returned")
 		}
 
@@ -356,7 +296,7 @@ func FuzzHTTPRequestBodyReadAfterComplete(f *testing.F) {
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		const payloadSize = 256 * 1024 // larger than the server write buffer, so the body streams
 
-		delay := fuzzDelay(seed, mask)
+		delay := xfuzz.Delay(seed, mask)
 		payload := make([]byte, payloadSize)
 
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -396,15 +336,15 @@ func FuzzHTTPRequestBodyReadAfterComplete(f *testing.F) {
 		case res = <-resCh:
 		case err := <-errCh:
 			t.Fatalf("rohttpclient: request failed: %v", err)
-		case <-time.After(fuzzWait):
-			t.Fatalf("rohttpclient: no response within %s", fuzzWait)
+		case <-time.After(xfuzz.Deadline):
+			t.Fatalf("rohttpclient: no response within %s", xfuzz.Deadline)
 		}
 
 		defer res.Body.Close()
 
 		select {
 		case <-completed:
-		case <-time.After(fuzzWait):
+		case <-time.After(xfuzz.Deadline):
 			t.Fatalf("rohttpclient: stream never completed")
 		}
 
@@ -423,7 +363,7 @@ func FuzzHTTPRequestBodyReadAfterComplete(f *testing.F) {
 			if err != nil {
 				t.Fatalf("rohttpclient: reading body after Complete: %v", err)
 			}
-		case <-time.After(fuzzWait):
+		case <-time.After(xfuzz.Deadline):
 			t.Fatalf("rohttpclient: body read hung")
 		}
 	})

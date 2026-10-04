@@ -14,40 +14,13 @@
 
 package roiter
 
-import (
-	"testing"
-	"time"
-
-	"github.com/samber/ro/internal/xfuzz"
-)
-
 const (
-	// fuzzWait bounds every wait so a deadlock fails the target instead of hanging the suite.
-	fuzzWait = 5 * time.Second
-
 	// fuzzMaxItems keeps one scenario fast while still spanning several channel hand-offs.
 	fuzzMaxItems = 64
 
 	// fuzzInfiniteCap stops an "infinite" iterator that was never told to stop, so a bug cannot spin forever.
 	fuzzInfiniteCap = 2_000_000
 
-	// fuzzSettle is how long goroutines get to exit before being declared leaked.
-	fuzzSettle = 2 * time.Second
-
 	// maskAsync selects a goroutine-emitting source over a synchronous one.
 	maskAsync = 1 << 0
 )
-
-// waitDone fails the target when ch is not closed in time.
-func waitDone(t *testing.T, ch <-chan struct{}, what string) {
-	t.Helper()
-	select {
-	case <-ch:
-	case <-time.After(fuzzWait):
-		t.Fatalf("%s: timed out after %s", what, fuzzWait)
-	}
-}
-
-func fuzzSeeds(f *testing.F) {
-	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
-}

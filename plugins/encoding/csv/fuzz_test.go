@@ -12,32 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package rostdio
-
-import (
-	"testing"
-	"time"
-
-	"github.com/samber/ro/internal/xfuzz"
-)
+package rocsv
 
 const (
-	// fuzzWait bounds every wait so a deadlock fails the target instead of hanging the suite.
-	fuzzWait = 5 * time.Second
-
 	// fuzzMaxItems keeps one scenario fast while still spanning several hand-offs.
 	fuzzMaxItems = 16
 
 	// fuzzReadCap ends an "infinite" reader that was never told to stop, so a bug cannot spin forever.
-	fuzzReadCap = 200_000
+	fuzzReadCap = 2_000
 
-	// fuzzSettle is how long goroutines get to exit before being declared leaked.
-	fuzzSettle = 2 * time.Second
+	// bigFieldSize exceeds csv.Writer's 4096-byte buffer, so every row forces a flush to the underlying writer.
+	bigFieldSize = 5000
 
 	// maskAsync selects a goroutine-fed source over a synchronous one.
 	maskAsync = 1 << 0
 )
-
-func fuzzSeeds(f *testing.F) {
-	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
-}

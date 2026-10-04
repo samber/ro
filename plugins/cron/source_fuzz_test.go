@@ -15,7 +15,6 @@
 package rocron
 
 import (
-	"fmt"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -28,9 +27,6 @@ import (
 )
 
 const (
-	// fuzzWait bounds every wait so a hang becomes a failure, not a stuck CI job.
-	fuzzWait = 5 * time.Second
-
 	// fuzzTickUnit scales intervals and delays from the fuzz input; tiny so an
 	// iteration lasts a few milliseconds.
 	fuzzTickUnit = time.Millisecond
@@ -77,25 +73,6 @@ func fuzzJob(seed int64, mask uint8) gocron.JobDefinition {
 	}
 }
 
-// waitBounded fails the iteration when ch is not closed within fuzzWait.
-func waitBounded(t *testing.T, ch <-chan struct{}, what string) {
-	t.Helper()
-
-	select {
-	case <-ch:
-	case <-time.After(fuzzWait):
-		t.Fatalf("rocron: %s: timed out after %s", what, fuzzWait)
-	}
-}
-
-// recoverInto turns a panic of the calling goroutine into a message on errs,
-// since a panic in a goroutine would otherwise kill the whole test binary.
-func recoverInto(errs chan<- string) {
-	if r := recover(); r != nil {
-		errs <- fmt.Sprintf("rocron: panic: %v", r)
-	}
-}
-
 // FuzzCronUnsubscribeFromNext completes the stream from inside Next (Take(1)):
 // teardown runs on the job's own goroutine, while Shutdown waits for running jobs.
 func FuzzCronUnsubscribeFromNext(f *testing.F) {
@@ -123,7 +100,7 @@ func FuzzCronUnsubscribeFromNext(f *testing.F) {
 		// Subscribe runs in its own goroutine: with an immediate job the first
 		// tick fires while Start() is still waiting, so Subscribe itself may hang.
 		go func() {
-			defer recoverInto(errs)
+			defer xfuzz.RecoverInto(errs)
 
 			subscribed <- obs.Subscribe(ro.NewObserver(
 				func(ScheduleJob) { time.Sleep(nextDelay) },
@@ -133,19 +110,19 @@ func FuzzCronUnsubscribeFromNext(f *testing.F) {
 		}()
 
 		started := time.Now()
-		waitBounded(t, done, "Take(1) over scheduler never completed")
+		xfuzz.WaitChan(t, done, "Take(1) over scheduler never completed")
 
 		select {
 		case sub := <-subscribed:
 			defer sub.Unsubscribe()
 		case msg := <-errs:
 			t.Fatal(msg)
-		case <-time.After(fuzzWait):
+		case <-time.After(xfuzz.Deadline):
 			t.Fatalf("rocron: Subscribe never returned after completion")
 		}
 
 		// Teardown must not hold the stream hostage for the Shutdown timeout.
-		if elapsed := time.Since(started); elapsed > fuzzWait/2 {
+		if elapsed := time.Since(started); elapsed > xfuzz.Deadline/2 {
 			t.Fatalf("rocron: completion took %s", elapsed)
 		}
 	})
@@ -235,7 +212,7 @@ func FuzzCronUnsubscribeWhileJobRunning(f *testing.F) {
 			func() {},
 		))
 
-		waitBounded(t, started, "first tick")
+		xfuzz.WaitChan(t, started, "first tick")
 
 		unsubDone := make(chan struct{})
 		go func() {
@@ -244,7 +221,7 @@ func FuzzCronUnsubscribeWhileJobRunning(f *testing.F) {
 			sub.Unsubscribe()
 			unsubscribed.Store(true)
 		}()
-		waitBounded(t, unsubDone, "Unsubscribe")
+		xfuzz.WaitChan(t, unsubDone, "Unsubscribe")
 
 		time.Sleep(10 * fuzzTickUnit)
 
@@ -312,7 +289,7 @@ func FuzzCronOverlappingRuns(f *testing.F) {
 		))
 		defer sub.Unsubscribe()
 
-		waitBounded(t, done, "ticks")
+		xfuzz.WaitChan(t, done, "ticks")
 
 		if n := overlap.Load(); n != 0 {
 			t.Fatalf("rocron: %d overlapping Next calls", n)

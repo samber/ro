@@ -32,40 +32,15 @@ import (
 )
 
 const (
-	// fuzzWait bounds every wait so a hang becomes a failure, not a stuck CI job.
-	fuzzWait = 5 * time.Second
-
 	// fuzzMaxWriters bounds goroutine fan-out per iteration to keep runs fast.
 	fuzzMaxWriters = 8
 
 	// fuzzMaxMessages bounds the messages each writer sends.
 	fuzzMaxMessages = 6
 
-	// fuzzAsyncDelayUnit scales the delayed-server timing from the fuzz input.
-	fuzzAsyncDelayUnit = 200 * time.Microsecond
-
-	// fuzzMaxAsyncSteps bounds the async delay at fuzzMaxAsyncSteps*fuzzAsyncDelayUnit.
-	fuzzMaxAsyncSteps = 10
-
-	// fuzzModeAsync is the bit of the mask selecting a server that delays its pushes.
-	fuzzModeAsync = 1 << 0
-
 	// fuzzStableWindow is how long the test waits to prove that nothing more happens.
 	fuzzStableWindow = 300 * time.Millisecond
 )
-
-// fuzzDelay derives a delay from the seed: zero in sync mode.
-func fuzzDelay(seed int64, mask uint8) time.Duration {
-	if mask&fuzzModeAsync == 0 {
-		return 0
-	}
-
-	if seed < 0 {
-		seed = -seed
-	}
-
-	return time.Duration(seed%fuzzMaxAsyncSteps+1) * fuzzAsyncDelayUnit
-}
 
 // fuzzCount returns a value in [1, n] derived from any uint8.
 func fuzzCount(v uint8, n int) int {
@@ -184,50 +159,6 @@ func deadURL(t *testing.T) string {
 	return "ws://" + addr
 }
 
-// goRecover runs fn in a goroutine and reports a recovered panic through errs,
-// since a panic in a goroutine would otherwise kill the whole test binary.
-func goRecover(wg *sync.WaitGroup, errs chan<- string, fn func()) {
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		defer func() {
-			if r := recover(); r != nil {
-				errs <- fmt.Sprintf("rowebsocketclient: panic: %v", r)
-			}
-		}()
-
-		fn()
-	}()
-}
-
-// waitBounded fails the iteration when wg does not finish within fuzzWait.
-func waitBounded(t *testing.T, wg *sync.WaitGroup, what string) {
-	t.Helper()
-
-	done := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-	case <-time.After(fuzzWait):
-		t.Fatalf("rowebsocketclient: %s: timed out after %s", what, fuzzWait)
-	}
-}
-
-func failOnErrs(t *testing.T, errs chan string) {
-	t.Helper()
-
-	close(errs)
-
-	for msg := range errs {
-		t.Fatal(msg)
-	}
-}
-
 // FuzzWebsocketSubjectDialFailure calls every subject entry point on a subject
 // whose connect() failed (or never ran): the output subject is nil there.
 // Sync/async does not apply: there is no server, hence nothing to delay.
@@ -244,7 +175,7 @@ func FuzzWebsocketSubjectDialFailure(f *testing.F) {
 			errs = make(chan string, 1)
 		)
 
-		goRecover(&wg, errs, func() {
+		xfuzz.GoRecover(&wg, errs, func() {
 			switch entry % 6 {
 			case 0:
 				ws.Next("x")
@@ -261,8 +192,8 @@ func FuzzWebsocketSubjectDialFailure(f *testing.F) {
 			}
 		})
 
-		waitBounded(t, &wg, "entry point on never-connected subject")
-		failOnErrs(t, errs)
+		xfuzz.WaitGroup(t, &wg, "entry point on never-connected subject")
+		xfuzz.FailOnErrs(t, errs)
 	})
 }
 
@@ -282,7 +213,7 @@ func FuzzWebsocketSubjectSubscribeDialFailure(f *testing.F) {
 		)
 
 		for i := 0; i < n; i++ {
-			goRecover(&wg, errs, func() {
+			xfuzz.GoRecover(&wg, errs, func() {
 				sub := ws.Subscribe(ro.NewObserver(
 					func(string) {},
 					func(error) { atomic.AddInt64(&failed, 1) },
@@ -292,8 +223,8 @@ func FuzzWebsocketSubjectSubscribeDialFailure(f *testing.F) {
 			})
 		}
 
-		waitBounded(t, &wg, "subscribe on dead url")
-		failOnErrs(t, errs)
+		xfuzz.WaitGroup(t, &wg, "subscribe on dead url")
+		xfuzz.FailOnErrs(t, errs)
 
 		if got := atomic.LoadInt64(&failed); got != int64(n) {
 			t.Fatalf("rowebsocketclient: %d of %d subscribers received the dial error", got, n)
@@ -311,7 +242,7 @@ func FuzzWebsocketSubjectConcurrentNext(f *testing.F) {
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8, writers uint8, messages uint8) {
 		// Async mode delays the server push so writes start before any read;
 		// sync mode pushes immediately.
-		srv := newWSServer(wsServerConfig{pushCount: 2, pushDelay: fuzzDelay(seed, mask)})
+		srv := newWSServer(wsServerConfig{pushCount: 2, pushDelay: xfuzz.Delay(seed, mask)})
 		defer srv.Close()
 
 		ws := newFuzzSubject(srv.wsURL())
@@ -330,7 +261,7 @@ func FuzzWebsocketSubjectConcurrentNext(f *testing.F) {
 		for w := 0; w < nWriters; w++ {
 			w := w // go.mod is go 1.18: loop variables are shared across iterations
 
-			goRecover(&wg, errs, func() {
+			xfuzz.GoRecover(&wg, errs, func() {
 				<-start
 
 				for m := 0; m < nMessages; m++ {
@@ -340,8 +271,8 @@ func FuzzWebsocketSubjectConcurrentNext(f *testing.F) {
 		}
 
 		close(start)
-		waitBounded(t, &wg, "concurrent Next")
-		failOnErrs(t, errs)
+		xfuzz.WaitGroup(t, &wg, "concurrent Next")
+		xfuzz.FailOnErrs(t, errs)
 	})
 }
 
@@ -353,7 +284,7 @@ func FuzzWebsocketSubjectUnsubscribeClosesConn(f *testing.F) {
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		srv := newWSServer(wsServerConfig{pushCount: 1, pushDelay: fuzzDelay(seed, mask)})
+		srv := newWSServer(wsServerConfig{pushCount: 1, pushDelay: xfuzz.Delay(seed, mask)})
 		defer srv.Close()
 
 		ws := newFuzzSubject(srv.wsURL())
@@ -364,7 +295,7 @@ func FuzzWebsocketSubjectUnsubscribeClosesConn(f *testing.F) {
 		sub := ws.SubscribeWithContext(ctx, ro.NewObserver(func(string) {}, func(error) {}, func() {}))
 
 		// Wait for the upgrade so the close is observable server-side.
-		deadline := time.Now().Add(fuzzWait)
+		deadline := time.Now().Add(xfuzz.Deadline)
 		for atomic.LoadInt64(&srv.accepted) == 0 {
 			if time.Now().After(deadline) {
 				t.Fatalf("rowebsocketclient: server never accepted the connection")
@@ -397,7 +328,7 @@ func FuzzWebsocketSubjectReconnectAfterServerClose(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8, after uint8) {
 		closeAfter := fuzzCount(after, 3)
-		srv := newWSServer(wsServerConfig{pushDelay: fuzzDelay(seed, mask), closeAfterRcv: closeAfter})
+		srv := newWSServer(wsServerConfig{pushDelay: xfuzz.Delay(seed, mask), closeAfterRcv: closeAfter})
 		defer srv.Close()
 
 		ws := newFuzzSubject(srv.wsURL())
@@ -422,7 +353,7 @@ func FuzzWebsocketSubjectReconnectAfterServerClose(f *testing.F) {
 
 		select {
 		case <-completed:
-		case <-time.After(fuzzWait):
+		case <-time.After(xfuzz.Deadline):
 			t.Fatalf("rowebsocketclient: stream did not complete after server close")
 		}
 

@@ -20,13 +20,14 @@ import (
 	"testing"
 
 	"github.com/samber/ro"
+	"github.com/samber/ro/internal/xfuzz"
 )
 
 // FuzzFromSeqInfiniteTake checks that an infinite iter.Seq stops once downstream is satisfied.
 // The async variant puts a goroutine hop (ObserveOn) between FromSeq and the observer.
 func FuzzFromSeqInfiniteTake(f *testing.F) {
 	f.Skip("race: iter-fromseq-ignores-downstream-close (infinite Seq never stopped after Take); remove when fixed")
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		take := 1 + int64(mask>>1)%fuzzMaxItems
@@ -61,8 +62,8 @@ func FuzzFromSeqInfiniteTake(f *testing.F) {
 			defer sub.Unsubscribe()
 		}()
 
-		waitDone(t, completed, "Take completion")
-		waitDone(t, loopDone, "infinite iterator stop after Take")
+		xfuzz.WaitChan(t, completed, "Take completion")
+		xfuzz.WaitChan(t, loopDone, "infinite iterator stop after Take")
 
 		if got := yielded.Load(); got >= fuzzInfiniteCap {
 			t.Fatalf("seed=%d: iterator ran to its cap (%d values) for Take(%d)", seed, got, take)

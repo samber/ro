@@ -21,9 +21,9 @@ import (
 	"runtime"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/samber/ro"
+	"github.com/samber/ro/internal/xfuzz"
 )
 
 var errFuzzBoom = errors.New("fuzz boom")
@@ -77,23 +77,11 @@ func recoverValue(fn func()) (recovered any) {
 	return nil
 }
 
-// assertNoLeak fails when goroutines started by the scenario are still alive after a bounded settle loop.
-func assertNoLeak(t *testing.T, before int) {
-	t.Helper()
-	deadline := time.Now().Add(fuzzSettle)
-	for runtime.NumGoroutine() > before {
-		if time.Now().After(deadline) {
-			t.Fatalf("goroutine leak: before=%d after=%d", before, runtime.NumGoroutine())
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-}
-
 // FuzzToSeqKeepsEveryItem checks that no item is dropped or reordered between the
 // producer and the iterator consumer, for sync and async sources.
 func FuzzToSeqKeepsEveryItem(f *testing.F) {
 	f.Skip("race: iter-toseq-lost-last-item (async: last item dropped when done wins the select) and iter-toseq-sync-deadlock (sync source with >=2 items blocks Subscribe on the 1-slot channel); remove when fixed")
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		count := 1 + int(mask>>1)%fuzzMaxItems
@@ -113,7 +101,7 @@ func FuzzToSeqKeepsEveryItem(f *testing.F) {
 				panicked.Store(r)
 			}
 		}()
-		waitDone(t, finished, "ToSeq consumer")
+		xfuzz.WaitChan(t, finished, "ToSeq consumer")
 
 		if r := panicked.Load(); r != nil {
 			t.Fatalf("unexpected panic: %v", r)
@@ -126,14 +114,14 @@ func FuzzToSeqKeepsEveryItem(f *testing.F) {
 				t.Fatalf("async=%v: item %d out of order: %v", async, i, got)
 			}
 		}
-		assertNoLeak(t, before)
+		xfuzz.AssertNoLeak(t, before)
 	})
 }
 
 // FuzzToSeq2KeepsEveryItem is the ToSeq2 twin: indexes must be contiguous and values complete.
 func FuzzToSeq2KeepsEveryItem(f *testing.F) {
 	f.Skip("race: iter-toseq2-lost-last-item and iter-toseq2-sync-deadlock, same as ToSeq; remove when fixed")
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		count := 1 + int(mask>>1)%fuzzMaxItems
@@ -153,7 +141,7 @@ func FuzzToSeq2KeepsEveryItem(f *testing.F) {
 				}
 			})
 		}()
-		waitDone(t, finished, "ToSeq2 consumer")
+		xfuzz.WaitChan(t, finished, "ToSeq2 consumer")
 
 		if len(got) != count {
 			t.Fatalf("async=%v count=%d: received %d items: %v", async, count, len(got), got)
@@ -169,7 +157,7 @@ func FuzzToSeq2KeepsEveryItem(f *testing.F) {
 // FuzzToSeqSourceError checks that a source error never crashes a goroutine the consumer does not own.
 // A sync source runs on the consumer's goroutine, so a panic there is observable and tolerated.
 func FuzzToSeqSourceError(f *testing.F) {
-	fuzzSeeds(f)
+	xfuzz.StandardSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		count := int(mask>>1) % fuzzMaxItems
@@ -209,7 +197,7 @@ func FuzzToSeqSourceError(f *testing.F) {
 				}
 			})
 		}()
-		waitDone(t, finished, "ToSeq consumer after source error")
+		xfuzz.WaitChan(t, finished, "ToSeq consumer after source error")
 
 		if r := producerPanic.Load(); r != nil {
 			t.Fatalf("source error panicked on the producer goroutine: %v", r)
