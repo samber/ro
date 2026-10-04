@@ -1122,6 +1122,17 @@ func TestOperatorTransformationSampleTime(t *testing.T) { //nolint:paralleltest
 	)
 	is.Equal([]int64{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// Pivot values: zero and every negative boundary.
+	for _, interval := range []time.Duration{0, -1, -time.Second, time.Duration(math.MinInt64)} {
+		is.PanicsWithError(ErrSampleTimeWrongInterval.Error(), func() {
+			SampleTime[int64](interval)
+		})
+	}
+
+	is.NotPanics(func() {
+		SampleTime[int64](1)
+	})
 }
 
 func TestOperatorTransformationThrottleWhen(t *testing.T) { //nolint:paralleltest
@@ -1206,6 +1217,17 @@ func TestOperatorTransformationThrottleTime(t *testing.T) { //nolint:paralleltes
 	)
 	is.Equal([]int64{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// Pivot values: zero and every negative boundary.
+	for _, interval := range []time.Duration{0, -1, -time.Second, time.Duration(math.MinInt64)} {
+		is.PanicsWithError(ErrThrottleTimeWrongInterval.Error(), func() {
+			ThrottleTime[int64](interval)
+		})
+	}
+
+	is.NotPanics(func() {
+		ThrottleTime[int64](1)
+	})
 }
 
 func TestOperatorTransformationThrottleTimeFirstValueWithLongInterval(t *testing.T) {

@@ -1,7 +1,7 @@
 ---
 name: SampleTime
 slug: sampletime
-sourceRef: operator_transformations.go#L771
+sourceRef: operator_transformations.go#L825
 type: core
 category: transformation
 signatures:
@@ -16,7 +16,7 @@ similarHelpers:
 position: 91
 ---
 
-Emits the most recently emitted item from the source Observable at regular time intervals.
+Emits the most recently emitted item from the source Observable at regular time intervals. Panics with `ErrSampleTimeWrongInterval` when `interval` is zero or negative.
 
 ```go
 obs := ro.Pipe[int64, int64](

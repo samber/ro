@@ -69,6 +69,8 @@ var (
 	ErrBufferWithTimeWrongDuration                  = errors.New("ro.BufferWithTime: duration must be greater than 0")
 	ErrBufferWithTimeOrCountWrongSize               = errors.New("ro.BufferWithTimeOrCount: size must be greater than 0")
 	ErrBufferWithTimeOrCountWrongDuration           = errors.New("ro.BufferWithTimeOrCount: duration must be greater than 0")
+	ErrSampleTimeWrongInterval                      = errors.New("ro.SampleTime: interval must be greater than 0")
+	ErrThrottleTimeWrongInterval                    = errors.New("ro.ThrottleTime: interval must be greater than 0")
 	ErrClampLowerLessThanUpper                      = errors.New("ro.Clamp: lower must be less than or equal to upper")
 	ErrToChannelWrongSize                           = errors.New("ro.ErrToChannelWrongSize: size must be greater or equal to 0")
 	ErrPoolWrongSize                                = errors.New("ro.Pool: size must be greater than 0")
