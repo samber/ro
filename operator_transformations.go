@@ -336,14 +336,28 @@ func GroupByI[T any, K comparable](iteratee func(item T, index int64) K) func(Ob
 func GroupByIWithContext[T any, K comparable](iteratee func(ctx context.Context, item T, index int64) (context.Context, K)) func(Observable[T]) Observable[Observable[T]] {
 	return func(source Observable[T]) Observable[Observable[T]] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[Observable[T]]) Teardown {
-			groups := sync.Map{}
+			// The registry is guarded by a mutex instead of being swapped on teardown:
+			// Next can still be in flight when the subscription is torn down, and
+			// reassigning shared state under it would race.
+			var mu sync.Mutex
+			groups := map[K]Subject[T]{}
+			closed := false
 			i := int64(0)
 
-			notifyAll := func(cb func(Observer[T])) {
-				groups.Range(func(key, value any) bool {
-					cb(value.(Observer[T])) //nolint:errcheck,forcetypeassert
-					return true
-				})
+			// drain closes the registry and returns the groups that were still open.
+			// Once closed, no new group is created and in-flight values are dropped.
+			drain := func() []Subject[T] {
+				mu.Lock()
+				defer mu.Unlock()
+
+				closed = true
+				open := make([]Subject[T], 0, len(groups))
+				for _, g := range groups {
+					open = append(open, g)
+				}
+				groups = map[K]Subject[T]{}
+
+				return open
 			}
 
 			sub := source.SubscribeWithContext(
@@ -353,19 +367,34 @@ func GroupByIWithContext[T any, K comparable](iteratee func(ctx context.Context,
 						ctx, key := iteratee(ctx, value, i)
 						i++
 
-						g, ok := groups.Load(key)
-						if ok {
-							g.(Observer[T]).NextWithContext(ctx, value) //nolint:errcheck,forcetypeassert
-						} else if !ok {
-							subject := NewUnicastSubject[T](UnicastSubjectUnlimitedBufferSize)
-							groups.Store(key, subject)
-							subject.NextWithContext(ctx, value)
+						mu.Lock()
+						if closed {
+							mu.Unlock()
+							OnDroppedNotification(ctx, NewNotificationNext(value))
+							return
+						}
 
+						g, ok := groups[key]
+						if !ok {
+							g = NewUnicastSubject[T](UnicastSubjectUnlimitedBufferSize)
+							groups[key] = g
+						}
+						mu.Unlock()
+
+						g.NextWithContext(ctx, value)
+
+						if !ok {
+							subject := g
 							groupObservable := NewObservableWithContext(func(subCtx context.Context, observer Observer[T]) Teardown {
 								sub := subject.SubscribeWithContext(subCtx, observer)
 								return func() {
 									sub.Unsubscribe()
-									groups.Delete(key)
+
+									mu.Lock()
+									if groups[key] == subject {
+										delete(groups, key)
+									}
+									mu.Unlock()
 								}
 							})
 
@@ -374,24 +403,27 @@ func GroupByIWithContext[T any, K comparable](iteratee func(ctx context.Context,
 					},
 					func(ctx context.Context, err error) {
 						destination.ErrorWithContext(ctx, err)
-						notifyAll(func(o Observer[T]) { o.ErrorWithContext(ctx, err) })
 
-						groups = sync.Map{}
+						for _, g := range drain() {
+							g.ErrorWithContext(ctx, err)
+						}
 					},
 					func(ctx context.Context) {
 						destination.CompleteWithContext(ctx)
-						notifyAll(func(o Observer[T]) { o.CompleteWithContext(ctx) })
 
-						groups = sync.Map{}
+						for _, g := range drain() {
+							g.CompleteWithContext(ctx)
+						}
 					},
 				),
 			)
 
 			return func() {
 				sub.Unsubscribe()
-				notifyAll(func(o Observer[T]) { o.CompleteWithContext(context.TODO()) })
 
-				groups = sync.Map{}
+				for _, g := range drain() {
+					g.CompleteWithContext(subscriberCtx)
+				}
 			}
 		})
 	}
