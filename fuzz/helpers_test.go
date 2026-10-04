@@ -182,60 +182,60 @@ func fuzzWaitFor(t *testing.T, what string, cond func() bool) {
 }
 
 const (
-	// fuzzHOModeNone lets the stream run to its natural end.
-	fuzzHOModeNone = 0
-	// fuzzHOModeTake closes the downstream from inside the pipeline with Take.
-	fuzzHOModeTake = 1
-	// fuzzHOModeExternal unsubscribes from outside after a few items.
-	fuzzHOModeExternal = 2
+	// earlyStopNone lets the stream run to its natural end.
+	earlyStopNone = 0
+	// earlyStopTake closes the downstream from inside the pipeline with Take.
+	earlyStopTake = 1
+	// earlyStopExternal unsubscribes from outside after a few items.
+	earlyStopExternal = 2
 
-	// fuzzHOMaxTake bounds the early-stop item count, so loop operators stay cheap.
-	fuzzHOMaxTake = 12
+	// maxEarlyStopCount bounds the early-stop item count, so loop operators stay cheap.
+	maxEarlyStopCount = 12
 
-	// fuzzHOTagStride separates the values of two sources: source i emits i*stride+j, j < stride.
-	fuzzHOTagStride = 1000
+	// sourceTagStride separates the values of two sources: source i emits i*stride+j, j < stride.
+	sourceTagStride = 1000
 
-	// fuzzHOHuge is a loop bound that only a downstream stop can end.
-	fuzzHOHuge = 1 << 30
+	// unboundedLoopCount is a loop bound that only a downstream stop can end.
+	unboundedLoopCount = 1 << 30
 
-	// fuzzHOBoundedBit selects, in the loop targets, a finite loop instead of an early stop.
-	fuzzHOBoundedBit = 0x80
+	// boundedLoopBit selects, in the loop targets, a finite loop instead of an early stop.
+	boundedLoopBit = 0x80
 
-	// fuzzHOMaxConcatWith bounds the arity of ConcatWith, which is variadic.
-	fuzzHOMaxConcatWith = 8
+	// maxConcatWithArity bounds the arity of ConcatWith, which is variadic.
+	maxConcatWithArity = 8
 
-	// fuzzHORepeatMax is the resubscription count of the finite loop variants.
-	fuzzHORepeatMax = 3
+	// maxLoopRounds is the resubscription count of the finite loop variants.
+	maxLoopRounds = 3
 )
 
-var errFuzzHO = errors.New("fuzzHO: boom")
+var errHigherOrderBoom = errors.New("higher-order: boom")
 
-type fuzzHOEnd int
+type sourceEnd int
 
 const (
-	fuzzHOEndComplete fuzzHOEnd = iota
-	fuzzHOEndError
-	// fuzzHOEndNever emits its items and then stays subscribed until unsubscribed.
-	fuzzHOEndNever
+	sourceEndComplete sourceEnd = iota
+	sourceEndError
+	// sourceEndNever emits its items and then stays subscribed until unsubscribed.
+	sourceEndNever
 )
 
-// fuzzHOSource emits tag*stride+0..n-1 then ends as requested. A synchronous source emits inside
+// taggedSource emits tag*stride+0..n-1 then ends as requested. A synchronous source emits inside
 // Subscribe, an asynchronous one from its own goroutine.
-func fuzzHOSource(seed int64, tag, n int, async bool, end fuzzHOEnd) ro.Observable[int] {
+func taggedSource(seed int64, tag, n int, async bool, end sourceEnd) ro.Observable[int] {
 	finish := func(ctx context.Context, destination ro.Observer[int]) {
 		switch end {
-		case fuzzHOEndComplete:
+		case sourceEndComplete:
 			destination.CompleteWithContext(ctx)
-		case fuzzHOEndError:
-			destination.ErrorWithContext(ctx, errFuzzHO)
-		case fuzzHOEndNever:
+		case sourceEndError:
+			destination.ErrorWithContext(ctx, errHigherOrderBoom)
+		case sourceEndNever:
 		}
 	}
 
 	if !async {
 		return ro.NewUnsafeObservableWithContext(func(ctx context.Context, destination ro.Observer[int]) ro.Teardown {
 			for i := 0; i < n && !destination.IsClosed(); i++ {
-				destination.NextWithContext(ctx, tag*fuzzHOTagStride+i)
+				destination.NextWithContext(ctx, tag*sourceTagStride+i)
 			}
 
 			finish(ctx, destination)
@@ -256,7 +256,7 @@ func fuzzHOSource(seed int64, tag, n int, async bool, end fuzzHOEnd) ro.Observab
 				}
 
 				fuzzJitter(seed, i)
-				destination.NextWithContext(ctx, tag*fuzzHOTagStride+i)
+				destination.NextWithContext(ctx, tag*sourceTagStride+i)
 			}
 
 			finish(ctx, destination)
@@ -266,8 +266,8 @@ func fuzzHOSource(seed int64, tag, n int, async bool, end fuzzHOEnd) ro.Observab
 	})
 }
 
-// fuzzHORec records what the downstream observes and checks the observer contract.
-type fuzzHORec struct {
+// streamRecorder records what the downstream observes and checks the observer contract.
+type streamRecorder struct {
 	guard serialGuard
 
 	nexts     int32
@@ -279,24 +279,24 @@ type fuzzHORec struct {
 	values []int
 }
 
-func (r *fuzzHORec) terminals() int {
+func (r *streamRecorder) terminals() int {
 	return int(atomic.LoadInt32(&r.errs) + atomic.LoadInt32(&r.completes))
 }
 
-func (r *fuzzHORec) nextCount() int { return int(atomic.LoadInt32(&r.nexts)) }
+func (r *streamRecorder) nextCount() int { return int(atomic.LoadInt32(&r.nexts)) }
 
-func (r *fuzzHORec) errCount() int { return int(atomic.LoadInt32(&r.errs)) }
+func (r *streamRecorder) errCount() int { return int(atomic.LoadInt32(&r.errs)) }
 
-func (r *fuzzHORec) completeCount() int { return int(atomic.LoadInt32(&r.completes)) }
+func (r *streamRecorder) completeCount() int { return int(atomic.LoadInt32(&r.completes)) }
 
-func (r *fuzzHORec) snapshot() []int {
+func (r *streamRecorder) snapshot() []int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	return append([]int(nil), r.values...)
 }
 
-func (r *fuzzHORec) observer() ro.Observer[int] {
+func (r *streamRecorder) observer() ro.Observer[int] {
 	return ro.NewObserver(
 		func(v int) {
 			r.guard.enter()
@@ -334,31 +334,31 @@ func (r *fuzzHORec) observer() ro.Observer[int] {
 	)
 }
 
-// fuzzHOHarness subscribes in its own goroutine so that a Subscribe that never returns is
+// streamHarness subscribes in its own goroutine so that a Subscribe that never returns is
 // reported as a failure instead of hanging the test. On failure it cancels the subscriber context
 // and raises stopped, which loops use as an exit, so a buggy infinite loop does not keep spinning.
-type fuzzHOHarness struct {
+type streamHarness struct {
 	t       *testing.T
 	ctx     context.Context
 	cancel  context.CancelFunc
 	stopped int32
-	rec     *fuzzHORec
+	rec     *streamRecorder
 
 	mu       sync.Mutex
 	sub      ro.Subscription
 	returned chan struct{}
 }
 
-func (h *fuzzHOHarness) isStopped() bool { return atomic.LoadInt32(&h.stopped) == 1 }
+func (h *streamHarness) isStopped() bool { return atomic.LoadInt32(&h.stopped) == 1 }
 
-func (h *fuzzHOHarness) fail(format string, args ...any) {
+func (h *streamHarness) fail(format string, args ...any) {
 	h.t.Helper()
 	atomic.StoreInt32(&h.stopped, 1)
 	h.cancel()
 	h.t.Fatalf(format, args...)
 }
 
-func (h *fuzzHOHarness) waitFor(what string, cond func() bool) {
+func (h *streamHarness) waitFor(what string, cond func() bool) {
 	h.t.Helper()
 
 	deadline := time.Now().Add(fuzzDeadline)
@@ -371,7 +371,7 @@ func (h *fuzzHOHarness) waitFor(what string, cond func() bool) {
 	}
 }
 
-func (h *fuzzHOHarness) start(obs ro.Observable[int]) {
+func (h *streamHarness) start(obs ro.Observable[int]) {
 	go func() {
 		s := obs.SubscribeWithContext(h.ctx, h.rec.observer())
 
@@ -383,14 +383,14 @@ func (h *fuzzHOHarness) start(obs ro.Observable[int]) {
 	}()
 }
 
-func (h *fuzzHOHarness) subscription() ro.Subscription {
+func (h *streamHarness) subscription() ro.Subscription {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	return h.sub
 }
 
-func (h *fuzzHOHarness) hasReturned() bool {
+func (h *streamHarness) hasReturned() bool {
 	select {
 	case <-h.returned:
 		return true
@@ -400,10 +400,10 @@ func (h *fuzzHOHarness) hasReturned() bool {
 }
 
 // settle drives the stream to its end according to mode, then unsubscribes.
-func (h *fuzzHOHarness) settle(mode, kk int) {
+func (h *streamHarness) settle(mode, kk int) {
 	h.t.Helper()
 
-	if mode == fuzzHOModeExternal {
+	if mode == earlyStopExternal {
 		h.waitFor("a subscription handle and kk items or a terminal notification (Subscribe may be hung)", func() bool {
 			return h.subscription() != nil && (h.rec.nextCount() >= kk || h.rec.terminals() > 0)
 		})
@@ -418,7 +418,7 @@ func (h *fuzzHOHarness) settle(mode, kk int) {
 }
 
 // verify checks that every upstream is released and that the observer contract held.
-func (h *fuzzHOHarness) verify(counters ...*activeCounter) {
+func (h *streamHarness) verify(counters ...*activeCounter) {
 	h.t.Helper()
 
 	for i, c := range counters {
@@ -440,10 +440,10 @@ func (h *fuzzHOHarness) verify(counters ...*activeCounter) {
 	}
 }
 
-func fuzzHONewHarness(t *testing.T) *fuzzHOHarness {
+func newStreamHarness(t *testing.T) *streamHarness {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
-	h := &fuzzHOHarness{t: t, ctx: ctx, cancel: cancel, rec: &fuzzHORec{}, returned: make(chan struct{})}
+	h := &streamHarness{t: t, ctx: ctx, cancel: cancel, rec: &streamRecorder{}, returned: make(chan struct{})}
 
 	t.Cleanup(func() {
 		atomic.StoreInt32(&h.stopped, 1)
@@ -453,20 +453,20 @@ func fuzzHONewHarness(t *testing.T) *fuzzHOHarness {
 	return h
 }
 
-// fuzzHOMode derives the early-stop mode and item count from one fuzz input.
-func fuzzHOMode(k int64) (mode, kk int) {
-	return fuzzBound(k, fuzzHOModeNone, fuzzHOModeExternal), fuzzBound(k/3, 1, fuzzHOMaxTake)
+// decodeEarlyStop derives the early-stop mode and item count from one fuzz input.
+func decodeEarlyStop(k int64) (mode, kk int) {
+	return fuzzBound(k, earlyStopNone, earlyStopExternal), fuzzBound(k/3, 1, maxEarlyStopCount)
 }
 
-func fuzzHOApply(obs ro.Observable[int], mode, kk int) ro.Observable[int] {
-	if mode == fuzzHOModeTake {
+func applyEarlyStop(obs ro.Observable[int], mode, kk int) ro.Observable[int] {
+	if mode == earlyStopTake {
 		return ro.Take[int](int64(kk))(obs)
 	}
 
 	return obs
 }
 
-func fuzzHOSeeds(f *testing.F) {
+func addStreamSeeds(f *testing.F) {
 	f.Helper()
 
 	xfuzz.AddSeeds(f, func(i int) []any {
@@ -474,7 +474,7 @@ func fuzzHOSeeds(f *testing.F) {
 	})
 }
 
-func fuzzHOMin(a, b int) int {
+func minInt(a, b int) int {
 	if a < b {
 		return a
 	}
@@ -487,22 +487,22 @@ func fuzzHOMin(a, b int) int {
 // ---------------------------------------------------------------------------------------------
 
 const (
-	fuzzHOKindMergeAll = iota
-	fuzzHOKindMergeMap
-	fuzzHOKindConcatAll
-	fuzzHOKindConcatWith
-	fuzzHOKindFlatMap
+	higherOrderKindMergeAll = iota
+	higherOrderKindMergeMap
+	higherOrderKindConcatAll
+	higherOrderKindConcatWith
+	higherOrderKindFlatMap
 )
 
-func fuzzHOHigher(t *testing.T, kind int, seed, size int64, mask uint8, k int64) {
+func runHigherOrder(t *testing.T, kind int, seed, size int64, mask uint8, k int64) {
 	t.Helper()
 
-	h := fuzzHONewHarness(t)
-	mode, kk := fuzzHOMode(k)
+	h := newStreamHarness(t)
+	mode, kk := decodeEarlyStop(k)
 
 	m := fuzzBound(size, 1, fuzzMaxItems)
-	if kind == fuzzHOKindConcatWith {
-		m = fuzzBound(size, 1, fuzzHOMaxConcatWith)
+	if kind == higherOrderKindConcatWith {
+		m = fuzzBound(size, 1, maxConcatWithArity)
 	}
 
 	var innerC, outerC activeCounter
@@ -513,45 +513,45 @@ func fuzzHOHigher(t *testing.T, kind int, seed, size int64, mask uint8, k int64)
 
 	for i := range inners {
 		n := fuzzBound(seed+int64(i)*7, 0, 4)
-		inners[i] = trackSubscriptions(&innerC, fuzzHOSource(seed+int64(i), i, n, fuzzIsAsync(mask, i+1), fuzzHOEndComplete))
+		inners[i] = trackSubscriptions(&innerC, taggedSource(seed+int64(i), i, n, fuzzIsAsync(mask, i+1), sourceEndComplete))
 
 		for j := 0; j < n; j++ {
-			expected = append(expected, i*fuzzHOTagStride+j)
+			expected = append(expected, i*sourceTagStride+j)
 		}
 	}
 
 	outer := trackSubscriptions(&outerC, fuzzSource(seed, m, fuzzIsAsync(mask, 0)))
-	obs, ordered := fuzzHOBuildHigher(kind, inners, outer)
+	obs, ordered := buildHigherOrder(kind, inners, outer)
 
-	h.start(fuzzHOApply(obs, mode, kk))
+	h.start(applyEarlyStop(obs, mode, kk))
 	h.settle(mode, kk)
 	h.verify(&innerC, &outerC)
 
-	fuzzHOCheckHigher(h, mode, kk, expected, ordered)
+	checkHigherOrder(h, mode, kk, expected, ordered)
 }
 
-// fuzzHOBuildHigher builds the higher-order operator under test. ordered reports whether the
+// buildHigherOrder builds the higher-order operator under test. ordered reports whether the
 // operator preserves the order of the inner sources.
-func fuzzHOBuildHigher(kind int, inners []ro.Observable[int], outer ro.Observable[int]) (obs ro.Observable[int], ordered bool) {
+func buildHigherOrder(kind int, inners []ro.Observable[int], outer ro.Observable[int]) (obs ro.Observable[int], ordered bool) {
 	project := func(v int) ro.Observable[int] { return inners[v] }
 
 	switch kind {
-	case fuzzHOKindMergeAll:
+	case higherOrderKindMergeAll:
 		return ro.MergeAll[int]()(ro.Map(project)(outer)), false
-	case fuzzHOKindMergeMap:
+	case higherOrderKindMergeMap:
 		return ro.MergeMap(project)(outer), false
-	case fuzzHOKindConcatAll:
+	case higherOrderKindConcatAll:
 		return ro.ConcatAll[int]()(ro.Map(project)(outer)), true
-	case fuzzHOKindConcatWith:
+	case higherOrderKindConcatWith:
 		return ro.ConcatWith(inners[1:]...)(inners[0]), true
 	default:
 		return ro.FlatMap(project)(outer), true
 	}
 }
 
-// fuzzHOCheckHigher asserts the values and terminal notifications delivered by a higher-order
+// checkHigherOrder asserts the values and terminal notifications delivered by a higher-order
 // operator against the values the inner sources can emit.
-func fuzzHOCheckHigher(h *fuzzHOHarness, mode, kk int, expected []int, ordered bool) {
+func checkHigherOrder(h *streamHarness, mode, kk int, expected []int, ordered bool) {
 	got := h.rec.snapshot()
 
 	if len(got) > len(expected) {
@@ -567,12 +567,12 @@ func fuzzHOCheckHigher(h *fuzzHOHarness, mode, kk int, expected []int, ordered b
 	}
 
 	switch mode {
-	case fuzzHOModeNone:
+	case earlyStopNone:
 		if len(got) != len(expected) || h.rec.errCount() != 0 || h.rec.completeCount() != 1 {
 			h.fail("lost values or terminal: got %d/%d values, errs=%d completes=%d", len(got), len(expected), h.rec.errCount(), h.rec.completeCount())
 		}
-	case fuzzHOModeTake:
-		if len(got) != fuzzHOMin(kk, len(expected)) {
+	case earlyStopTake:
+		if len(got) != minInt(kk, len(expected)) {
 			h.fail("take(%d) delivered %d of %d available values", kk, len(got), len(expected))
 		}
 	}
@@ -583,30 +583,30 @@ func fuzzHOCheckHigher(h *fuzzHOHarness, mode, kk int, expected []int, ordered b
 // ---------------------------------------------------------------------------------------------
 
 const (
-	fuzzHOLoopWhile = iota
-	fuzzHOLoopDoWhile
-	fuzzHOLoopRepeatWith
-	fuzzHOLoopRetry
-	fuzzHOLoopRetryWithConfig
+	loopKindWhile = iota
+	loopKindDoWhile
+	loopKindRepeatWith
+	loopKindRetry
+	loopKindRetryWithConfig
 )
 
-func fuzzHOLoop(t *testing.T, kind int, seed, size int64, mask uint8, k int64) {
+func runLoop(t *testing.T, kind int, seed, size int64, mask uint8, k int64) {
 	t.Helper()
 
-	h := fuzzHONewHarness(t)
+	h := newStreamHarness(t)
 	n := fuzzBound(size, 1, 4)
-	kk := fuzzBound(k, 1, fuzzHOMaxTake)
-	bounded := mask&fuzzHOBoundedBit != 0 && kind <= fuzzHOLoopRepeatWith
-	rounds := fuzzBound(k/7, 1, fuzzHORepeatMax)
+	kk := fuzzBound(k, 1, maxEarlyStopCount)
+	bounded := mask&boundedLoopBit != 0 && kind <= loopKindRepeatWith
+	rounds := fuzzBound(k/7, 1, maxLoopRounds)
 
-	end := fuzzHOEndComplete
-	if kind >= fuzzHOLoopRetry {
-		end = fuzzHOEndError
+	end := sourceEndComplete
+	if kind >= loopKindRetry {
+		end = sourceEndError
 	}
 
 	var srcC activeCounter
 
-	src := trackSubscriptions(&srcC, fuzzHOSource(seed, 0, n, fuzzIsAsync(mask, 0), end))
+	src := trackSubscriptions(&srcC, taggedSource(seed, 0, n, fuzzIsAsync(mask, 0), end))
 
 	// Subscriptions needed to deliver kk items: the loop must not open another one afterwards.
 	need := (kk + n - 1) / n
@@ -614,60 +614,60 @@ func fuzzHOLoop(t *testing.T, kind int, seed, size int64, mask uint8, k int64) {
 	// condition is evaluated once per loop iteration. The stop flag only bounds a buggy loop.
 	var calls int32
 
-	limit := int32(fuzzHOHuge)
+	limit := int32(unboundedLoopCount)
 	if bounded {
 		limit = int32(rounds) //nolint:gosec // rounds is in [1,3].
 	}
 
 	condition := func() bool { return !h.isStopped() && atomic.AddInt32(&calls, 1) <= limit }
 
-	retryMax := fuzzBound(k/7, 1, fuzzHORepeatMax)
+	retryMax := fuzzBound(k/7, 1, maxLoopRounds)
 	retryReset := mask&0x40 != 0
 
-	obs := fuzzHOBuildLoop(kind, src, condition, bounded, rounds, retryMax, retryReset)
+	obs := buildLoop(kind, src, condition, bounded, rounds, retryMax, retryReset)
 
-	mode := fuzzHOModeTake
+	mode := earlyStopTake
 	if bounded {
-		mode = fuzzHOModeNone
+		mode = earlyStopNone
 	}
 
-	h.start(fuzzHOApply(obs, mode, kk))
+	h.start(applyEarlyStop(obs, mode, kk))
 	h.settle(mode, kk)
 	h.verify(&srcC)
 
-	fuzzHOCheckLoop(h, kind, srcC.totalCount(), n, kk, need, rounds, retryMax, retryReset, bounded)
+	checkLoop(h, kind, srcC.totalCount(), n, kk, need, rounds, retryMax, retryReset, bounded)
 }
 
-// fuzzHOBuildLoop builds the looping operator under test around src.
-func fuzzHOBuildLoop(kind int, src ro.Observable[int], condition func() bool, bounded bool, rounds, retryMax int, retryReset bool) ro.Observable[int] {
+// buildLoop builds the looping operator under test around src.
+func buildLoop(kind int, src ro.Observable[int], condition func() bool, bounded bool, rounds, retryMax int, retryReset bool) ro.Observable[int] {
 	switch kind {
-	case fuzzHOLoopWhile:
+	case loopKindWhile:
 		return ro.While[int](condition)(src)
-	case fuzzHOLoopDoWhile:
+	case loopKindDoWhile:
 		return ro.DoWhile[int](condition)(src)
-	case fuzzHOLoopRepeatWith:
+	case loopKindRepeatWith:
 		count := int64(1000) // finite, so that a missing stop is slow instead of infinite.
 		if bounded {
 			count = int64(rounds)
 		}
 
 		return ro.RepeatWith[int](count)(src)
-	case fuzzHOLoopRetry:
+	case loopKindRetry:
 		return ro.Retry[int]()(src)
 	default:
 		return ro.RetryWithConfig[int](ro.RetryConfig{MaxRetries: uint64(retryMax), ResetOnSuccess: retryReset})(src) //nolint:gosec // retryMax is in [1,3].
 	}
 }
 
-// fuzzHOCheckLoop asserts the number of source subscriptions and delivered values of a loop
+// checkLoop asserts the number of source subscriptions and delivered values of a loop
 // operator: n is the item count per run, kk the take size, need the subscriptions required to
 // deliver kk items.
-func fuzzHOCheckLoop(h *fuzzHOHarness, kind, subs, n, kk, need, rounds, retryMax int, retryReset, bounded bool) {
+func checkLoop(h *streamHarness, kind, subs, n, kk, need, rounds, retryMax int, retryReset, bounded bool) {
 	got := h.rec.nextCount()
 
 	if bounded {
 		wantSubs := rounds
-		if kind == fuzzHOLoopDoWhile {
+		if kind == loopKindDoWhile {
 			wantSubs = rounds + 1 // the first run is unconditional, then one per true condition.
 		}
 
@@ -678,7 +678,7 @@ func fuzzHOCheckLoop(h *fuzzHOHarness, kind, subs, n, kk, need, rounds, retryMax
 		return
 	}
 
-	if kind == fuzzHOLoopRetryWithConfig && !retryReset && kk > (retryMax+1)*n {
+	if kind == loopKindRetryWithConfig && !retryReset && kk > (retryMax+1)*n {
 		// Retries run out before kk items: the error must reach the downstream.
 		if subs != retryMax+1 || got != (retryMax+1)*n || h.rec.errCount() != 1 {
 			h.fail("retries exhausted: %d subscriptions (want %d), %d values, errs=%d", subs, retryMax+1, got, h.rec.errCount())
@@ -697,33 +697,33 @@ func fuzzHOCheckLoop(h *fuzzHOHarness, kind, subs, n, kk, need, rounds, retryMax
 }
 
 const (
-	// fuzzBOMaxMicros keeps every timer at or below 2ms so that one iteration stays fast.
-	fuzzBOMaxMicros = 2000
+	// maxBoundaryMicros keeps every timer at or below 2ms so that one iteration stays fast.
+	maxBoundaryMicros = 2000
 
-	// fuzzBOMaxSpin bounds the busy-yield loop that delays an external Unsubscribe.
-	fuzzBOMaxSpin = 24
+	// maxUnsubscribeSpins bounds the busy-yield loop that delays an external Unsubscribe.
+	maxUnsubscribeSpins = 24
 
-	// fuzzBOSettle lets goroutines that outlive an unsubscription misbehave before post-conditions are read.
-	fuzzBOSettle = 3 * time.Millisecond
+	// boundarySettleDelay lets goroutines that outlive an unsubscription misbehave before post-conditions are read.
+	boundarySettleDelay = 3 * time.Millisecond
 
-	// fuzzBOUnsubBit selects the "unsubscribe mid-stream" scenario in the fuzz mask.
-	fuzzBOUnsubBit = 0x80
+	// unsubscribeBit selects the "unsubscribe mid-stream" scenario in the fuzz mask.
+	unsubscribeBit = 0x80
 
-	// fuzzBOMaxTicks bounds the number of boundary ticks a fuzz input can request.
-	fuzzBOMaxTicks = 12
+	// maxBoundaryTicks bounds the number of boundary ticks a fuzz input can request.
+	maxBoundaryTicks = 12
 )
 
-// fuzzBOPick derives a bounded, seed-dependent value; salt decorrelates independent knobs.
-func fuzzBOPick(seed int64, salt, lo, hi int) int {
+// pickBoundaryValue derives a bounded, seed-dependent value; salt decorrelates independent knobs.
+func pickBoundaryValue(seed int64, salt, lo, hi int) int {
 	mixed := uint64(seed)*6364136223846793005 + uint64(salt+1)*1442695040888963407 //nolint:gosec // wrap-around is intended.
 	mixed ^= mixed >> 29
 
 	return fuzzBound(int64(mixed>>1), lo, hi) //nolint:gosec // top bit dropped, so never negative.
 }
 
-// fuzzBOWait polls cond until true or fuzzDeadline. Unlike fuzzWaitFor it returns an error, because
+// waitForCondition polls cond until true or fuzzDeadline. Unlike fuzzWaitFor it returns an error, because
 // it runs outside the test goroutine where t.Fatalf would only kill the helper goroutine.
-func fuzzBOWait(what string, cond func() bool) error {
+func waitForCondition(what string, cond func() bool) error {
 	deadline := time.Now().Add(fuzzDeadline)
 	for !cond() {
 		if time.Now().After(deadline) {
@@ -736,8 +736,8 @@ func fuzzBOWait(what string, cond func() bool) error {
 	return nil
 }
 
-// fuzzBOIter runs body with panic recovery and a deadline so a hang or panic fails the iteration.
-func fuzzBOIter(t *testing.T, name string, body func() error) {
+// runBoundaryIteration runs body with panic recovery and a deadline so a hang or panic fails the iteration.
+func runBoundaryIteration(t *testing.T, name string, body func() error) {
 	t.Helper()
 
 	done := make(chan error, 1)
@@ -762,8 +762,8 @@ func fuzzBOIter(t *testing.T, name string, body func() error) {
 	}
 }
 
-// fuzzBOSink records everything a downstream observer receives.
-type fuzzBOSink[T any] struct {
+// boundarySink records everything a downstream observer receives.
+type boundarySink[T any] struct {
 	mu       sync.Mutex
 	vals     []T
 	guard    serialGuard
@@ -773,7 +773,7 @@ type fuzzBOSink[T any] struct {
 	lastErr  atomic.Value
 }
 
-func (s *fuzzBOSink[T]) observer() ro.Observer[T] {
+func (s *boundarySink[T]) observer() ro.Observer[T] {
 	return ro.NewObserverWithContext(
 		func(_ context.Context, v T) {
 			s.guard.enter()
@@ -804,16 +804,16 @@ func (s *fuzzBOSink[T]) observer() ro.Observer[T] {
 	)
 }
 
-func (s *fuzzBOSink[T]) snapshot() []T {
+func (s *boundarySink[T]) snapshot() []T {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	return append([]T(nil), s.vals...)
 }
 
-func (s *fuzzBOSink[T]) done() bool { return atomic.LoadInt32(&s.terminal) > 0 }
+func (s *boundarySink[T]) done() bool { return atomic.LoadInt32(&s.terminal) > 0 }
 
-func (s *fuzzBOSink[T]) violation() error {
+func (s *boundarySink[T]) violation() error {
 	switch {
 	case s.guard.overlapped() > 0:
 		return fmt.Errorf("overlapping downstream calls: %d", s.guard.overlapped())
@@ -827,7 +827,7 @@ func (s *fuzzBOSink[T]) violation() error {
 }
 
 // unexpectedErr reports an error terminal on a scenario whose sources never fail.
-func (s *fuzzBOSink[T]) unexpectedErr() error {
+func (s *boundarySink[T]) unexpectedErr() error {
 	if atomic.LoadInt32(&s.errs) > 0 {
 		return fmt.Errorf("unexpected error notification: %v", s.lastErr.Load())
 	}
@@ -835,7 +835,7 @@ func (s *fuzzBOSink[T]) unexpectedErr() error {
 	return nil
 }
 
-func fuzzBOActive(counters []*activeCounter) int {
+func activeSubscriptionTotal(counters []*activeCounter) int {
 	total := 0
 	for _, c := range counters {
 		total += c.activeCount()
@@ -844,36 +844,36 @@ func fuzzBOActive(counters []*activeCounter) int {
 	return total
 }
 
-// fuzzBORun subscribes, then either waits for completion or unsubscribes after a seed-dependent
+// runBoundaryOperator subscribes, then either waits for completion or unsubscribes after a seed-dependent
 // delay. In both cases every tracked upstream/boundary subscription must be released.
 // check, when non-nil, validates the received values after a normal completion.
-func fuzzBORun[T any](
+func runBoundaryOperator[T any](
 	t *testing.T, name string, seed int64, unsub bool,
 	build func() ro.Observable[T], check func(got []T) error, counters ...*activeCounter,
 ) {
 	t.Helper()
 
-	fuzzBOIter(t, name, func() error {
-		sink := &fuzzBOSink[T]{}
+	runBoundaryIteration(t, name, func() error {
+		sink := &boundarySink[T]{}
 		sub := build().Subscribe(sink.observer())
 
 		if unsub {
-			for i, n := 0, fuzzBOPick(seed, 101, 0, fuzzBOMaxSpin); i < n; i++ {
+			for i, n := 0, pickBoundaryValue(seed, 101, 0, maxUnsubscribeSpins); i < n; i++ {
 				fuzzJitter(seed, i)
 			}
 
 			sub.Unsubscribe()
-		} else if err := fuzzBOWait("downstream terminal notification", sink.done); err != nil {
+		} else if err := waitForCondition("downstream terminal notification", sink.done); err != nil {
 			return err
 		}
 
-		if err := fuzzBOWait("upstream and boundary subscriptions released", func() bool {
-			return fuzzBOActive(counters) == 0
+		if err := waitForCondition("upstream and boundary subscriptions released", func() bool {
+			return activeSubscriptionTotal(counters) == 0
 		}); err != nil {
-			return fmt.Errorf("%w (still active: %d, unsub=%v)", err, fuzzBOActive(counters), unsub)
+			return fmt.Errorf("%w (still active: %d, unsub=%v)", err, activeSubscriptionTotal(counters), unsub)
 		}
 
-		time.Sleep(fuzzBOSettle)
+		time.Sleep(boundarySettleDelay)
 
 		if err := sink.violation(); err != nil {
 			return err
@@ -895,42 +895,42 @@ func fuzzBORun[T any](
 	})
 }
 
-// fuzzBOSrc is a finite 0..n-1 source whose subscriptions are counted.
-func fuzzBOSrc(c *activeCounter, seed int64, n int, async bool) ro.Observable[int] {
+// countedSource is a finite 0..n-1 source whose subscriptions are counted.
+func countedSource(c *activeCounter, seed int64, n int, async bool) ro.Observable[int] {
 	return trackSubscriptions(c, fuzzSource(seed, n, async))
 }
 
 const (
-	// fuzzTimeMaxMicros keeps every delay at or below 2ms so that one iteration stays fast.
-	fuzzTimeMaxMicros = 2000
+	// maxTimerMicros keeps every delay at or below 2ms so that one iteration stays fast.
+	maxTimerMicros = 2000
 
-	// fuzzTimeSettle gives goroutines that outlive an unsubscription the time to misbehave
+	// timerSettleDelay gives goroutines that outlive an unsubscription the time to misbehave
 	// before the post-conditions are read.
-	fuzzTimeSettle = 10 * time.Millisecond
+	timerSettleDelay = 10 * time.Millisecond
 
 	// Downstream stop strategies.
-	fuzzTimeModeComplete = 0 // run to termination (finite sources only)
-	fuzzTimeModeTake     = 1 // Take(k) cancels from inside Next
-	fuzzTimeModeUnsub    = 2 // external, concurrent Unsubscribe
-	fuzzTimeModeCancel   = 3 // context cancellation
-	fuzzTimeModeCount    = 4
+	timerStopComplete    = 0 // run to termination (finite sources only)
+	timerStopTake        = 1 // Take(k) cancels from inside Next
+	timerStopUnsubscribe = 2 // external, concurrent Unsubscribe
+	timerStopCancel      = 3 // context cancellation
+	timerStopModeCount   = 4
 )
 
-// fuzzTimePick derives a bounded, seed-dependent value; salt keeps independent knobs decorrelated.
-func fuzzTimePick(seed int64, salt, lo, hi int) int {
+// pickTimerValue derives a bounded, seed-dependent value; salt keeps independent knobs decorrelated.
+func pickTimerValue(seed int64, salt, lo, hi int) int {
 	mixed := uint64(seed)*6364136223846793005 + uint64(salt+1)*1442695040888963407 //nolint:gosec // wrap-around is intended.
 	mixed ^= mixed >> 29
 
 	return fuzzBound(int64(mixed>>1), lo, hi) //nolint:gosec // top bit dropped, so never negative.
 }
 
-func fuzzTimeMicros(seed int64, salt, lo int) time.Duration {
-	return time.Duration(fuzzTimePick(seed, salt, lo, fuzzTimeMaxMicros)) * time.Microsecond
+func timerDelay(seed int64, salt, lo int) time.Duration {
+	return time.Duration(pickTimerValue(seed, salt, lo, maxTimerMicros)) * time.Microsecond
 }
 
-// fuzzTimeIter runs body with panic recovery and a deadline, so a hang or a panic fails the
+// runTimerIteration runs body with panic recovery and a deadline, so a hang or a panic fails the
 // iteration with the operator's name instead of crashing or blocking the whole run.
-func fuzzTimeIter(t *testing.T, name string, body func() error) {
+func runTimerIteration(t *testing.T, name string, body func() error) {
 	t.Helper()
 
 	done := make(chan error, 1)
@@ -955,8 +955,8 @@ func fuzzTimeIter(t *testing.T, name string, body func() error) {
 	}
 }
 
-// fuzzTimeSink is a downstream observer that records protocol violations.
-type fuzzTimeSink[T any] struct {
+// timerSink is a downstream observer that records protocol violations.
+type timerSink[T any] struct {
 	guard    serialGuard
 	nexts    int32
 	errs     int32
@@ -965,7 +965,7 @@ type fuzzTimeSink[T any] struct {
 	afterEnd int32
 }
 
-func (s *fuzzTimeSink[T]) observer(slow time.Duration) ro.Observer[T] {
+func (s *timerSink[T]) observer(slow time.Duration) ro.Observer[T] {
 	return ro.NewObserverWithContext(
 		func(_ context.Context, _ T) {
 			s.guard.enter()
@@ -998,7 +998,7 @@ func (s *fuzzTimeSink[T]) observer(slow time.Duration) ro.Observer[T] {
 	)
 }
 
-func (s *fuzzTimeSink[T]) violation() error {
+func (s *timerSink[T]) violation() error {
 	switch {
 	case s.guard.overlapped() > 0:
 		return fmt.Errorf("overlapping downstream calls: %d", s.guard.overlapped())
@@ -1011,21 +1011,21 @@ func (s *fuzzTimeSink[T]) violation() error {
 	return nil
 }
 
-// fuzzTimeDrive subscribes to obs `subs` times concurrently (distinct sinks, same operator
+// driveSubscribers subscribes to obs `subs` times concurrently (distinct sinks, same operator
 // instance), stops each subscription according to mode, and waits for them to close.
-func fuzzTimeDrive[T any](obs ro.Observable[T], subs, mode, take int, seed int64, slow time.Duration) ([]*fuzzTimeSink[T], error) {
-	if mode == fuzzTimeModeTake {
-		// Take is composed by the caller through fuzzTimeMaybeTake; kept here for symmetry only.
+func driveSubscribers[T any](obs ro.Observable[T], subs, mode, take int, seed int64, slow time.Duration) ([]*timerSink[T], error) {
+	if mode == timerStopTake {
+		// Take is composed by the caller through applyTakeStop; kept here for symmetry only.
 		_ = take
 	}
 
-	sinks := make([]*fuzzTimeSink[T], subs)
+	sinks := make([]*timerSink[T], subs)
 	errs := make([]error, subs)
 
 	var wg sync.WaitGroup
 
 	for i := 0; i < subs; i++ {
-		sinks[i] = &fuzzTimeSink[T]{}
+		sinks[i] = &timerSink[T]{}
 
 		wg.Add(1)
 
@@ -1040,16 +1040,16 @@ func fuzzTimeDrive[T any](obs ro.Observable[T], subs, mode, take int, seed int64
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			if mode == fuzzTimeModeCancel {
+			if mode == timerStopCancel {
 				go func() {
-					time.Sleep(fuzzTimeMicros(seed, 40+i, 0))
+					time.Sleep(timerDelay(seed, 40+i, 0))
 					cancel()
 				}()
 			}
 
 			sub := obs.SubscribeWithContext(ctx, sinks[i].observer(slow))
 
-			if mode == fuzzTimeModeUnsub {
+			if mode == timerStopUnsubscribe {
 				go sub.Unsubscribe()
 				fuzzJitter(seed, 50+i)
 				sub.Unsubscribe()
@@ -1070,21 +1070,21 @@ func fuzzTimeDrive[T any](obs ro.Observable[T], subs, mode, take int, seed int64
 	return sinks, nil
 }
 
-func fuzzTimeMaybeTake[T any](obs ro.Observable[T], mode, take int) ro.Observable[T] {
-	if mode == fuzzTimeModeTake {
+func applyTakeStop[T any](obs ro.Observable[T], mode, take int) ro.Observable[T] {
+	if mode == timerStopTake {
 		return ro.Take[T](int64(take))(obs)
 	}
 
 	return obs
 }
 
-func fuzzTimeWaitUpstreamClosed(t *testing.T, c *activeCounter) {
+func waitUpstreamClosed(t *testing.T, c *activeCounter) {
 	t.Helper()
 
 	fuzzWaitFor(t, "upstream subscriptions to be released", func() bool { return c.activeCount() == 0 })
 }
 
-func fuzzTimeCheckSinks[T any](sinks []*fuzzTimeSink[T]) error {
+func checkTimerSinks[T any](sinks []*timerSink[T]) error {
 	for _, s := range sinks {
 		if err := s.violation(); err != nil {
 			return err
@@ -1094,8 +1094,8 @@ func fuzzTimeCheckSinks[T any](sinks []*fuzzTimeSink[T]) error {
 	return nil
 }
 
-// fuzzTimeScenario is the decoded interleaving shared by most targets.
-type fuzzTimeScenario struct {
+// timerScenario is the decoded interleaving shared by most targets.
+type timerScenario struct {
 	items int
 	async bool
 	mode  int
@@ -1106,67 +1106,67 @@ type fuzzTimeScenario struct {
 	gap   time.Duration
 }
 
-func fuzzTimeDecode(seed int64, mask, k uint8, finite bool) fuzzTimeScenario {
-	s := fuzzTimeScenario{
-		items: fuzzTimePick(seed, 0, 1, fuzzMaxItems),
+func decodeTimerScenario(seed int64, mask, k uint8, finite bool) timerScenario {
+	s := timerScenario{
+		items: pickTimerValue(seed, 0, 1, fuzzMaxItems),
 		async: fuzzIsAsync(mask, 0),
-		mode:  fuzzBound(int64(k), 0, fuzzTimeModeCount-1),
+		mode:  fuzzBound(int64(k), 0, timerStopModeCount-1),
 		subs:  1 + int(mask>>7),
-		buf:   fuzzTimePick(seed, 1, 1, 4),
+		buf:   pickTimerValue(seed, 1, 1, 4),
 	}
 
-	if !finite && s.mode == fuzzTimeModeComplete {
-		s.mode = fuzzTimeModeTake
+	if !finite && s.mode == timerStopComplete {
+		s.mode = timerStopTake
 	}
 
-	s.take = fuzzTimePick(seed, 2, 1, s.items)
+	s.take = pickTimerValue(seed, 2, 1, s.items)
 
 	if mask&2 != 0 {
-		s.slow = fuzzTimeMicros(seed, 3, 0) / 8
+		s.slow = timerDelay(seed, 3, 0) / 8
 	}
 
 	if mask&4 != 0 {
-		s.gap = fuzzTimeMicros(seed, 4, 0)
+		s.gap = timerDelay(seed, 4, 0)
 	}
 
 	return s
 }
 
-func fuzzTimeSeeds(f *testing.F) {
+func addTimerSeeds(f *testing.F) {
 	f.Helper()
 
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i * 37), uint8(i)} })
 }
 
-var errFuzzSCBoom = errors.New("fuzzsc: boom")
+var errShortCircuitBoom = errors.New("short-circuit: boom")
 
 const (
-	// fuzzSCSettle lets goroutines that outlive a decision misbehave before post-conditions are read.
-	fuzzSCSettle = 3 * time.Millisecond
+	// shortCircuitSettleDelay lets goroutines that outlive a decision misbehave before post-conditions are read.
+	shortCircuitSettleDelay = 3 * time.Millisecond
 
-	// fuzzSCNoDefault is the fallback emitted by ElementAtOrDefault. It is outside the source range [0, n).
-	fuzzSCNoDefault = -1
+	// unreachableDefault is the fallback emitted by ElementAtOrDefault. It is outside the source range [0, n).
+	unreachableDefault = -1
 
-	// fuzzSCMaxYields bounds the scheduler yields before an external Unsubscribe.
-	fuzzSCMaxYields = 50
+	// maxSchedulerYields bounds the scheduler yields before an external Unsubscribe.
+	maxSchedulerYields = 50
 
 	// Upstream stop modes.
-	fuzzSCStopUnsub = 1 // downstream unsubscribes concurrently
-	fuzzSCStopError = 2 // source ends with an error
-	fuzzSCStopModes = 4 // modes 0 and 3 run to a normal completion
+	upstreamStopUnsubscribe = 1 // downstream unsubscribes concurrently
+	upstreamStopError       = 2 // source ends with an error
+	upstreamStopModeCount   = 4 // modes 0 and 3 run to a normal completion
 )
 
-// fuzzSCPick derives a bounded, seed-dependent value; salt decorrelates independent knobs.
-func fuzzSCPick(seed int64, salt, lo, hi int) int {
+// pickShortCircuitValue derives a bounded, seed-dependent value; salt decorrelates independent knobs.
+func pickShortCircuitValue(seed int64, salt, lo, hi int) int {
 	mixed := uint64(seed)*6364136223846793005 + uint64(salt+1)*1442695040888963407 //nolint:gosec // wrap-around is intended.
 	mixed ^= mixed >> 29
 
 	return fuzzBound(int64(mixed>>1), lo, hi) //nolint:gosec // top bit dropped, so never negative.
 }
 
-// fuzzSCIter runs body with panic recovery and a deadline, so that a hang or a panic fails
+// runShortCircuitIteration runs body with panic recovery and a deadline, so that a hang or a panic fails
 // the iteration with the operator's name.
-func fuzzSCIter(t *testing.T, name string, body func() error) {
+func runShortCircuitIteration(t *testing.T, name string, body func() error) {
 	t.Helper()
 
 	done := make(chan error, 1)
@@ -1191,14 +1191,14 @@ func fuzzSCIter(t *testing.T, name string, body func() error) {
 	}
 }
 
-// fuzzSCProbe counts user predicate calls, and the calls made after the deciding one.
-type fuzzSCProbe struct {
+// predicateCallCounter counts user predicate calls, and the calls made after the deciding one.
+type predicateCallCounter struct {
 	calls   int32
 	decided int32
 	extra   int32
 }
 
-func (p *fuzzSCProbe) call(decides bool) {
+func (p *predicateCallCounter) call(decides bool) {
 	atomic.AddInt32(&p.calls, 1)
 
 	if atomic.LoadInt32(&p.decided) != 0 {
@@ -1210,11 +1210,11 @@ func (p *fuzzSCProbe) call(decides bool) {
 	}
 }
 
-func (p *fuzzSCProbe) extraCalls() int { return int(atomic.LoadInt32(&p.extra)) }
+func (p *predicateCallCounter) extraCalls() int { return int(atomic.LoadInt32(&p.extra)) }
 
-// fuzzSCRawSink is a destination that counts every notification it receives,
+// rawNotificationSink is a destination that counts every notification it receives,
 // including the ones sent after a terminal notification.
-type fuzzSCRawSink[T any] struct {
+type rawNotificationSink[T any] struct {
 	guard     serialGuard
 	mu        sync.Mutex
 	values    []T
@@ -1223,13 +1223,13 @@ type fuzzSCRawSink[T any] struct {
 	afterTerm int32
 }
 
-func (s *fuzzSCRawSink[T]) terminated() bool {
+func (s *rawNotificationSink[T]) terminated() bool {
 	return atomic.LoadInt32(&s.errs)+atomic.LoadInt32(&s.comps) > 0
 }
 
-func (s *fuzzSCRawSink[T]) Next(v T) { s.NextWithContext(context.Background(), v) }
+func (s *rawNotificationSink[T]) Next(v T) { s.NextWithContext(context.Background(), v) }
 
-func (s *fuzzSCRawSink[T]) NextWithContext(_ context.Context, v T) {
+func (s *rawNotificationSink[T]) NextWithContext(_ context.Context, v T) {
 	s.guard.enter()
 	defer s.guard.leave()
 
@@ -1242,9 +1242,9 @@ func (s *fuzzSCRawSink[T]) NextWithContext(_ context.Context, v T) {
 	s.mu.Unlock()
 }
 
-func (s *fuzzSCRawSink[T]) Error(err error) { s.ErrorWithContext(context.Background(), err) }
+func (s *rawNotificationSink[T]) Error(err error) { s.ErrorWithContext(context.Background(), err) }
 
-func (s *fuzzSCRawSink[T]) ErrorWithContext(_ context.Context, _ error) {
+func (s *rawNotificationSink[T]) ErrorWithContext(_ context.Context, _ error) {
 	s.guard.enter()
 	defer s.guard.leave()
 
@@ -1255,9 +1255,9 @@ func (s *fuzzSCRawSink[T]) ErrorWithContext(_ context.Context, _ error) {
 	atomic.AddInt32(&s.errs, 1)
 }
 
-func (s *fuzzSCRawSink[T]) Complete() { s.CompleteWithContext(context.Background()) }
+func (s *rawNotificationSink[T]) Complete() { s.CompleteWithContext(context.Background()) }
 
-func (s *fuzzSCRawSink[T]) CompleteWithContext(_ context.Context) {
+func (s *rawNotificationSink[T]) CompleteWithContext(_ context.Context) {
 	s.guard.enter()
 	defer s.guard.leave()
 
@@ -1268,25 +1268,25 @@ func (s *fuzzSCRawSink[T]) CompleteWithContext(_ context.Context) {
 	atomic.AddInt32(&s.comps, 1)
 }
 
-func (s *fuzzSCRawSink[T]) IsClosed() bool { return false }
+func (s *rawNotificationSink[T]) IsClosed() bool { return false }
 
-func (s *fuzzSCRawSink[T]) HasThrown() bool { return false }
+func (s *rawNotificationSink[T]) HasThrown() bool { return false }
 
-func (s *fuzzSCRawSink[T]) IsCompleted() bool { return false }
+func (s *rawNotificationSink[T]) IsCompleted() bool { return false }
 
-func (s *fuzzSCRawSink[T]) snapshot() []T {
+func (s *rawNotificationSink[T]) snapshot() []T {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	return append([]T(nil), s.values...)
 }
 
-// fuzzSCSource emits 0..n-1 then completes (or fails when failAtEnd). Async sources emit from their
+// shortCircuitSource emits 0..n-1 then completes (or fails when failAtEnd). Async sources emit from their
 // own goroutine. checkClosed makes the source honour IsClosed/teardown; otherwise it emits everything.
-func fuzzSCSource(seed int64, n int, async, checkClosed, failAtEnd bool, wg *sync.WaitGroup) ro.Observable[int] {
+func shortCircuitSource(seed int64, n int, async, checkClosed, failAtEnd bool, wg *sync.WaitGroup) ro.Observable[int] {
 	finish := func(ctx context.Context, destination ro.Observer[int]) {
 		if failAtEnd {
-			destination.ErrorWithContext(ctx, errFuzzSCBoom)
+			destination.ErrorWithContext(ctx, errShortCircuitBoom)
 			return
 		}
 
@@ -1343,25 +1343,25 @@ func fuzzSCSource(seed int64, n int, async, checkClosed, failAtEnd bool, wg *syn
 	})
 }
 
-// fuzzSCRunRaw subscribes build(source) with a counting destination, waits for the source to
+// runWithRawSink subscribes build(source) with a counting destination, waits for the source to
 // finish and for stray notifications to settle, then returns what the destination saw.
-func fuzzSCRunRaw[R any](t *testing.T, name string, seed int64, mask uint8, n int, build func(source ro.Observable[int]) ro.Observable[R]) *fuzzSCRawSink[R] {
+func runWithRawSink[R any](t *testing.T, name string, seed int64, mask uint8, n int, build func(source ro.Observable[int]) ro.Observable[R]) *rawNotificationSink[R] {
 	t.Helper()
 
 	async := fuzzIsAsync(mask, 0)
 	checkClosed := fuzzIsAsync(mask, 1)
 
-	sink := &fuzzSCRawSink[R]{}
+	sink := &rawNotificationSink[R]{}
 
-	fuzzSCIter(t, name, func() error {
+	runShortCircuitIteration(t, name, func() error {
 		var wg sync.WaitGroup
 
-		obs := build(fuzzSCSource(seed, n, async, checkClosed, false, &wg))
+		obs := build(shortCircuitSource(seed, n, async, checkClosed, false, &wg))
 
 		sub := obs.SubscribeWithContext(context.Background(), sink)
 
 		wg.Wait()
-		time.Sleep(fuzzSCSettle)
+		time.Sleep(shortCircuitSettleDelay)
 
 		sub.Unsubscribe()
 
@@ -1371,9 +1371,9 @@ func fuzzSCRunRaw[R any](t *testing.T, name string, seed int64, mask uint8, n in
 	return sink
 }
 
-// fuzzSCCheck asserts the single-result invariant: exactly the wanted values, exactly one terminal
+// checkSingleResult asserts the single-result invariant: exactly the wanted values, exactly one terminal
 // notification, nothing after it, no overlapping calls, and no predicate call after the decision.
-func fuzzSCCheck[R any](t *testing.T, name string, sink *fuzzSCRawSink[R], probe *fuzzSCProbe, wantValues []R, wantErr bool, mask uint8) {
+func checkSingleResult[R any](t *testing.T, name string, sink *rawNotificationSink[R], probe *predicateCallCounter, wantValues []R, wantErr bool, mask uint8) {
 	t.Helper()
 
 	got := sink.snapshot()
@@ -1397,22 +1397,22 @@ func fuzzSCCheck[R any](t *testing.T, name string, sink *fuzzSCRawSink[R], probe
 	}
 }
 
-func fuzzSCSeeds(f *testing.F) {
+func addShortCircuitSeeds(f *testing.F) {
 	f.Helper()
 
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 }
 
-// fuzzSCScenario derives the item count and the decision index. k may be >= n, which means "no decision".
-func fuzzSCScenario(seed int64) (n, k, variant int) {
-	n = fuzzSCPick(seed, 0, 0, fuzzMaxItems)
-	k = fuzzSCPick(seed, 1, 0, n+1)
-	variant = fuzzSCPick(seed, 2, 0, 1)
+// decodeShortCircuitScenario derives the item count and the decision index. k may be >= n, which means "no decision".
+func decodeShortCircuitScenario(seed int64) (n, k, variant int) {
+	n = pickShortCircuitValue(seed, 0, 0, fuzzMaxItems)
+	k = pickShortCircuitValue(seed, 1, 0, n+1)
+	variant = pickShortCircuitValue(seed, 2, 0, 1)
 
 	return n, k, variant
 }
 
-func fuzzSCWantFirst(n, k int) []int {
+func expectedItemAt(n, k int) []int {
 	if k < n {
 		return []int{k}
 	}

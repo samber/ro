@@ -20,16 +20,7 @@ import (
 	"github.com/samber/ro"
 )
 
-// fuzzSCMin exists because go.mod declares go 1.18, which has no min builtin.
-func fuzzSCMin(a, b int) int {
-	if a < b {
-		return a
-	}
-
-	return b
-}
-
-func fuzzSCRange(from, to int) []int {
+func intRange(from, to int) []int {
 	out := []int{}
 	for i := from; i < to; i++ {
 		out = append(out, i)
@@ -38,16 +29,16 @@ func fuzzSCRange(from, to int) []int {
 	return out
 }
 
-func FuzzSCFirst(f *testing.F) {
+func FuzzFirst(f *testing.F) {
 	f.Skip("race: first-predicate-after-decision (sync source keeps calling predicate); remove when fixed")
 
-	fuzzSCSeeds(f)
+	addShortCircuitSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, variant := fuzzSCScenario(seed)
-		probe := &fuzzSCProbe{}
+		n, k, variant := decodeShortCircuitScenario(seed)
+		probe := &predicateCallCounter{}
 
-		sink := fuzzSCRunRaw(t, "First", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
+		sink := runWithRawSink(t, "First", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
 			if variant == 0 {
 				return ro.First(func(v int) bool { probe.call(v >= k); return v >= k })(source)
 			}
@@ -55,50 +46,50 @@ func FuzzSCFirst(f *testing.F) {
 			return ro.FirstI(func(v int, _ int64) bool { probe.call(v >= k); return v >= k })(source)
 		})
 
-		fuzzSCCheck(t, "First", sink, probe, fuzzSCWantFirst(n, k), k >= n, mask)
+		checkSingleResult(t, "First", sink, probe, expectedItemAt(n, k), k >= n, mask)
 	})
 }
 
-func FuzzSCElementAt(f *testing.F) {
-	fuzzSCSeeds(f)
+func FuzzElementAt(f *testing.F) {
+	addShortCircuitSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, _ := fuzzSCScenario(seed)
+		n, k, _ := decodeShortCircuitScenario(seed)
 
-		sink := fuzzSCRunRaw(t, "ElementAt", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
+		sink := runWithRawSink(t, "ElementAt", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
 			return ro.ElementAt[int](k)(source)
 		})
 
-		fuzzSCCheck(t, "ElementAt", sink, nil, fuzzSCWantFirst(n, k), k >= n, mask)
+		checkSingleResult(t, "ElementAt", sink, nil, expectedItemAt(n, k), k >= n, mask)
 	})
 }
 
-func FuzzSCElementAtOrDefault(f *testing.F) {
-	fuzzSCSeeds(f)
+func FuzzElementAtOrDefault(f *testing.F) {
+	addShortCircuitSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, _ := fuzzSCScenario(seed)
+		n, k, _ := decodeShortCircuitScenario(seed)
 
-		sink := fuzzSCRunRaw(t, "ElementAtOrDefault", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
-			return ro.ElementAtOrDefault(int64(k), fuzzSCNoDefault)(source)
+		sink := runWithRawSink(t, "ElementAtOrDefault", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
+			return ro.ElementAtOrDefault(int64(k), unreachableDefault)(source)
 		})
 
-		want := []int{fuzzSCNoDefault}
+		want := []int{unreachableDefault}
 		if k < n {
 			want = []int{k}
 		}
 
-		fuzzSCCheck(t, "ElementAtOrDefault", sink, nil, want, false, mask)
+		checkSingleResult(t, "ElementAtOrDefault", sink, nil, want, false, mask)
 	})
 }
 
-func FuzzSCHead(f *testing.F) {
-	fuzzSCSeeds(f)
+func FuzzHead(f *testing.F) {
+	addShortCircuitSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, _, _ := fuzzSCScenario(seed)
+		n, _, _ := decodeShortCircuitScenario(seed)
 
-		sink := fuzzSCRunRaw(t, "Head", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
+		sink := runWithRawSink(t, "Head", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
 			return ro.Head[int]()(source)
 		})
 
@@ -107,32 +98,32 @@ func FuzzSCHead(f *testing.F) {
 			want = []int{0}
 		}
 
-		fuzzSCCheck(t, "Head", sink, nil, want, n == 0, mask)
+		checkSingleResult(t, "Head", sink, nil, want, n == 0, mask)
 	})
 }
 
-func FuzzSCTake(f *testing.F) {
-	fuzzSCSeeds(f)
+func FuzzTake(f *testing.F) {
+	addShortCircuitSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, _ := fuzzSCScenario(seed)
+		n, k, _ := decodeShortCircuitScenario(seed)
 
-		sink := fuzzSCRunRaw(t, "Take", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
+		sink := runWithRawSink(t, "Take", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
 			return ro.Take[int](int64(k))(source)
 		})
 
-		fuzzSCCheck(t, "Take", sink, nil, fuzzSCRange(0, fuzzSCMin(k, n)), false, mask)
+		checkSingleResult(t, "Take", sink, nil, intRange(0, minInt(k, n)), false, mask)
 	})
 }
 
-func FuzzSCTakeWhile(f *testing.F) {
-	fuzzSCSeeds(f)
+func FuzzTakeWhile(f *testing.F) {
+	addShortCircuitSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, variant := fuzzSCScenario(seed)
-		probe := &fuzzSCProbe{}
+		n, k, variant := decodeShortCircuitScenario(seed)
+		probe := &predicateCallCounter{}
 
-		sink := fuzzSCRunRaw(t, "TakeWhile", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
+		sink := runWithRawSink(t, "TakeWhile", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
 			if variant == 0 {
 				return ro.TakeWhile(func(v int) bool { probe.call(v >= k); return v < k })(source)
 			}
@@ -140,6 +131,6 @@ func FuzzSCTakeWhile(f *testing.F) {
 			return ro.TakeWhileI(func(v int, _ int64) bool { probe.call(v >= k); return v < k })(source)
 		})
 
-		fuzzSCCheck(t, "TakeWhile", sink, probe, fuzzSCRange(0, fuzzSCMin(k, n)), false, mask)
+		checkSingleResult(t, "TakeWhile", sink, probe, intRange(0, minInt(k, n)), false, mask)
 	})
 }

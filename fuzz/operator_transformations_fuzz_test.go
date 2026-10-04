@@ -28,37 +28,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func FuzzHOMergeMap(f *testing.F) {
-	fuzzHOSeeds(f)
+func FuzzMergeMap(f *testing.F) {
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		fuzzHOHigher(t, fuzzHOKindMergeMap, seed, size, mask, k)
+		runHigherOrder(t, higherOrderKindMergeMap, seed, size, mask, k)
 	})
 }
 
-func FuzzHOFlatMap(f *testing.F) {
-	fuzzHOSeeds(f)
+func FuzzFlatMap(f *testing.F) {
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		fuzzHOHigher(t, fuzzHOKindFlatMap, seed, size, mask, k)
+		runHigherOrder(t, higherOrderKindFlatMap, seed, size, mask, k)
 	})
 }
 
-// FuzzHOFlatMapSameSubject feeds FlatMap from a subject while every inner waits for the NEXT
+// FuzzFlatMapSameSubject feeds FlatMap from a subject while every inner waits for the NEXT
 // item of that same subject. The producer is blocked inside Next while FlatMap waits for the
 // inner, so the producer must be released by buffering the outer items.
-func FuzzHOFlatMapSameSubject(f *testing.F) {
-	f.Skip("race: flatmap-blocks-producer; remove when fixed") // fuzz_higherorder_test.go:504: producer blocked in Subject.Next: FlatMap waits for an inner inside the outer Next
-	fuzzHOSeeds(f)
+func FuzzFlatMapSameSubject(f *testing.F) {
+	f.Skip("race: flatmap-blocks-producer; remove when fixed") // Fails on main: producer blocked in Subject.Next: FlatMap waits for an inner inside the outer Next
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, _ int64) {
-		h := fuzzHONewHarness(t)
+		h := newStreamHarness(t)
 		subject := ro.NewPublishSubject[int]()
-		m := fuzzBound(size, 1, fuzzHOMaxConcatWith)
-		independent := mask&fuzzHOBoundedBit != 0
+		m := fuzzBound(size, 1, maxConcatWithArity)
+		independent := mask&boundedLoopBit != 0
 
 		var innerC activeCounter
 
 		project := func(v int) ro.Observable[int] {
 			if independent {
-				return trackSubscriptions(&innerC, fuzzHOSource(seed, v, 2, fuzzIsAsync(mask, v+1), fuzzHOEndComplete))
+				return trackSubscriptions(&innerC, taggedSource(seed, v, 2, fuzzIsAsync(mask, v+1), sourceEndComplete))
 			}
 
 			return trackSubscriptions(&innerC, ro.Take[int](1)(subject.AsObservable()))
@@ -102,12 +102,12 @@ func FuzzHOFlatMapSameSubject(f *testing.F) {
 	})
 }
 
-func fuzzBOMicros(seed int64, salt int) time.Duration {
-	return time.Duration(fuzzBOPick(seed, salt, 100, fuzzBOMaxMicros)) * time.Microsecond
+func boundaryDelay(seed int64, salt int) time.Duration {
+	return time.Duration(pickBoundaryValue(seed, salt, 100, maxBoundaryMicros)) * time.Microsecond
 }
 
-// fuzzBOTicks emits k ticks and never completes, like a boundary that outlives the source.
-func fuzzBOTicks(c *activeCounter, seed int64, k int, async bool) ro.Observable[int] {
+// tickSource emits k ticks and never completes, like a boundary that outlives the source.
+func tickSource(c *activeCounter, seed int64, k int, async bool) ro.Observable[int] {
 	var src ro.Observable[int]
 
 	if !async {
@@ -131,7 +131,7 @@ func fuzzBOTicks(c *activeCounter, seed int64, k int, async bool) ro.Observable[
 					}
 
 					fuzzJitter(seed+7, i)
-					time.Sleep(time.Duration(fuzzBOPick(seed, 200+i, 0, 300)) * time.Microsecond)
+					time.Sleep(time.Duration(pickBoundaryValue(seed, 200+i, 0, 300)) * time.Microsecond)
 					destination.NextWithContext(ctx, i)
 				}
 			}()
@@ -143,8 +143,8 @@ func fuzzBOTicks(c *activeCounter, seed int64, k int, async bool) ro.Observable[
 	return trackSubscriptions(c, src)
 }
 
-// fuzzBOSeq checks that got is exactly 0..n-1 in order.
-func fuzzBOSeq(got []int, n int) error {
+// checkSequence checks that got is exactly 0..n-1 in order.
+func checkSequence(got []int, n int) error {
 	if len(got) != n {
 		return fmt.Errorf("got %d items %v, want %d (items lost or duplicated)", len(got), got, n)
 	}
@@ -158,7 +158,7 @@ func fuzzBOSeq(got []int, n int) error {
 	return nil
 }
 
-func fuzzBOFlatten(buffers [][]int) []int {
+func flattenBuffers(buffers [][]int) []int {
 	out := []int{}
 	for _, b := range buffers {
 		out = append(out, b...)
@@ -167,8 +167,8 @@ func fuzzBOFlatten(buffers [][]int) []int {
 	return out
 }
 
-// fuzzBOIncreasing checks strictly increasing values (a sampled/throttled subsequence of 0..n-1).
-func fuzzBOIncreasing(n int) func(got []int) error {
+// checkIncreasing checks strictly increasing values (a sampled/throttled subsequence of 0..n-1).
+func checkIncreasing(n int) func(got []int) error {
 	return func(got []int) error {
 		for i, v := range got {
 			if v < 0 || v >= n {
@@ -184,90 +184,90 @@ func fuzzBOIncreasing(n int) func(got []int) error {
 	}
 }
 
-func FuzzBOBufferWithCount(f *testing.F) {
+func FuzzBufferWithCount(f *testing.F) {
 	f.Skip("race: bufferwithcount-teardown-unlocked-buffer; remove when fixed")
 
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n := fuzzBOPick(seed, 1, 0, fuzzMaxItems)
-		size := fuzzBOPick(seed, 2, 1, 6)
+		n := pickBoundaryValue(seed, 1, 0, fuzzMaxItems)
+		size := pickBoundaryValue(seed, 2, 1, 6)
 		up := &activeCounter{}
 
-		fuzzBORun(t, "BufferWithCount", seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, "BufferWithCount", seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[[]int] {
-				return ro.BufferWithCount[int](size)(fuzzBOSrc(up, seed, n, fuzzIsAsync(mask, 0)))
+				return ro.BufferWithCount[int](size)(countedSource(up, seed, n, fuzzIsAsync(mask, 0)))
 			},
-			func(got [][]int) error { return fuzzBOSeq(fuzzBOFlatten(got), n) },
+			func(got [][]int) error { return checkSequence(flattenBuffers(got), n) },
 			up)
 	})
 }
 
-func FuzzBOBufferWhen(f *testing.F) {
+func FuzzBufferWhen(f *testing.F) {
 	// Intermittent (about 1 run in 7 at 2000 seeds), for example: got 8 items [0 1 2 3 4 5 8 9], want 10.
 	f.Skip("race: bufferwhen-lost-buffer-after-unlock; remove when fixed")
 
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n := fuzzBOPick(seed, 1, 0, fuzzMaxItems)
-		k := fuzzBOPick(seed, 3, 0, fuzzBOMaxTicks)
+		n := pickBoundaryValue(seed, 1, 0, fuzzMaxItems)
+		k := pickBoundaryValue(seed, 3, 0, maxBoundaryTicks)
 		up, tick := &activeCounter{}, &activeCounter{}
 
-		fuzzBORun(t, "BufferWhen", seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, "BufferWhen", seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[[]int] {
-				return ro.BufferWhen[int](fuzzBOTicks(tick, seed, k, fuzzIsAsync(mask, 1)))(fuzzBOSrc(up, seed, n, fuzzIsAsync(mask, 0)))
+				return ro.BufferWhen[int](tickSource(tick, seed, k, fuzzIsAsync(mask, 1)))(countedSource(up, seed, n, fuzzIsAsync(mask, 0)))
 			},
-			func(got [][]int) error { return fuzzBOSeq(fuzzBOFlatten(got), n) },
+			func(got [][]int) error { return checkSequence(flattenBuffers(got), n) },
 			up, tick)
 	})
 }
 
-func FuzzBOBufferWithTime(f *testing.F) {
+func FuzzBufferWithTime(f *testing.F) {
 	f.Skip("race: bufferwithtime-flush-after-unlock-lost-buffer (intermittent, seen once under load); remove when fixed")
 
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n := fuzzBOPick(seed, 1, 0, fuzzMaxItems)
-		d := fuzzBOMicros(seed, 4)
+		n := pickBoundaryValue(seed, 1, 0, fuzzMaxItems)
+		d := boundaryDelay(seed, 4)
 		up := &activeCounter{}
 
-		fuzzBORun(t, "BufferWithTime", seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, "BufferWithTime", seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[[]int] {
-				return ro.BufferWithTime[int](d)(fuzzBOSrc(up, seed, n, fuzzIsAsync(mask, 0)))
+				return ro.BufferWithTime[int](d)(countedSource(up, seed, n, fuzzIsAsync(mask, 0)))
 			},
-			func(got [][]int) error { return fuzzBOSeq(fuzzBOFlatten(got), n) },
+			func(got [][]int) error { return checkSequence(flattenBuffers(got), n) },
 			up)
 	})
 }
 
-func FuzzBOBufferWithTimeOrCount(f *testing.F) {
+func FuzzBufferWithTimeOrCount(f *testing.F) {
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n := fuzzBOPick(seed, 1, 0, fuzzMaxItems)
-		size := fuzzBOPick(seed, 2, 1, 6)
-		d := fuzzBOMicros(seed, 4)
+		n := pickBoundaryValue(seed, 1, 0, fuzzMaxItems)
+		size := pickBoundaryValue(seed, 2, 1, 6)
+		d := boundaryDelay(seed, 4)
 		up := &activeCounter{}
 
-		fuzzBORun(t, "BufferWithTimeOrCount", seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, "BufferWithTimeOrCount", seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[[]int] {
-				return ro.BufferWithTimeOrCount[int](size, d)(fuzzBOSrc(up, seed, n, fuzzIsAsync(mask, 0)))
+				return ro.BufferWithTimeOrCount[int](size, d)(countedSource(up, seed, n, fuzzIsAsync(mask, 0)))
 			},
-			func(got [][]int) error { return fuzzBOSeq(fuzzBOFlatten(got), n) },
+			func(got [][]int) error { return checkSequence(flattenBuffers(got), n) },
 			up)
 	})
 }
 
-// fuzzBOWindows subscribes to every emitted window and records its items and terminal count.
-type fuzzBOWindows struct {
+// windowRecorder subscribes to every emitted window and records its items and terminal count.
+type windowRecorder struct {
 	mu        sync.Mutex
 	items     [][]int
 	terminals []*int32
 }
 
-func (w *fuzzBOWindows) next(win ro.Observable[int]) {
+func (w *windowRecorder) next(win ro.Observable[int]) {
 	w.mu.Lock()
 	idx := len(w.items)
 	term := new(int32)
@@ -287,7 +287,7 @@ func (w *fuzzBOWindows) next(win ro.Observable[int]) {
 }
 
 // open returns how many windows have not received a terminal notification.
-func (w *fuzzBOWindows) open() int {
+func (w *windowRecorder) open() int {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -302,15 +302,15 @@ func (w *fuzzBOWindows) open() int {
 	return n
 }
 
-func (w *fuzzBOWindows) flatten() []int {
+func (w *windowRecorder) flatten() []int {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	return fuzzBOFlatten(w.items)
+	return flattenBuffers(w.items)
 }
 
 // subscribeWindows subscribes to a higher-order observable and tracks every window.
-func (w *fuzzBOWindows) subscribe(obs ro.Observable[ro.Observable[int]], outer *fuzzBOSink[int]) ro.Subscription {
+func (w *windowRecorder) subscribe(obs ro.Observable[ro.Observable[int]], outer *boundarySink[int]) ro.Subscription {
 	return obs.Subscribe(ro.NewObserver(
 		w.next,
 		func(err error) {
@@ -322,65 +322,65 @@ func (w *fuzzBOWindows) subscribe(obs ro.Observable[ro.Observable[int]], outer *
 	))
 }
 
-func FuzzBOWindowWhen(f *testing.F) {
+func FuzzWindowWhen(f *testing.F) {
 	f.Skip("race: windowwhen-value-lost-in-completed-window; remove when fixed")
 
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n := fuzzBOPick(seed, 1, 0, fuzzMaxItems)
-		k := fuzzBOPick(seed, 3, 0, fuzzBOMaxTicks)
+		n := pickBoundaryValue(seed, 1, 0, fuzzMaxItems)
+		k := pickBoundaryValue(seed, 3, 0, maxBoundaryTicks)
 		up, tick := &activeCounter{}, &activeCounter{}
 		counters := []*activeCounter{up, tick}
 
-		fuzzBOIter(t, "WindowWhen", func() error {
-			outer := &fuzzBOSink[int]{}
-			wins := &fuzzBOWindows{}
-			obs := ro.WindowWhen[int](fuzzBOTicks(tick, seed, k, fuzzIsAsync(mask, 1)))(fuzzBOSrc(up, seed, n, fuzzIsAsync(mask, 0)))
+		runBoundaryIteration(t, "WindowWhen", func() error {
+			outer := &boundarySink[int]{}
+			wins := &windowRecorder{}
+			obs := ro.WindowWhen[int](tickSource(tick, seed, k, fuzzIsAsync(mask, 1)))(countedSource(up, seed, n, fuzzIsAsync(mask, 0)))
 			sub := wins.subscribe(obs, outer)
 
-			if mask&fuzzBOUnsubBit != 0 {
-				for i, m := 0, fuzzBOPick(seed, 101, 0, fuzzBOMaxSpin); i < m; i++ {
+			if mask&unsubscribeBit != 0 {
+				for i, m := 0, pickBoundaryValue(seed, 101, 0, maxUnsubscribeSpins); i < m; i++ {
 					fuzzJitter(seed, i)
 				}
 
 				sub.Unsubscribe()
 
-				return fuzzBOWait("upstream and boundary released", func() bool { return fuzzBOActive(counters) == 0 })
+				return waitForCondition("upstream and boundary released", func() bool { return activeSubscriptionTotal(counters) == 0 })
 			}
 
-			if err := fuzzBOWait("outer terminal", outer.done); err != nil {
+			if err := waitForCondition("outer terminal", outer.done); err != nil {
 				return err
 			}
 
-			if err := fuzzBOWait("every window terminal", func() bool { return wins.open() == 0 }); err != nil {
+			if err := waitForCondition("every window terminal", func() bool { return wins.open() == 0 }); err != nil {
 				return fmt.Errorf("%w: %d windows never completed", err, wins.open())
 			}
 
-			if err := fuzzBOWait("upstream and boundary released", func() bool { return fuzzBOActive(counters) == 0 }); err != nil {
+			if err := waitForCondition("upstream and boundary released", func() bool { return activeSubscriptionTotal(counters) == 0 }); err != nil {
 				return err
 			}
 
-			time.Sleep(fuzzBOSettle)
+			time.Sleep(boundarySettleDelay)
 
 			if err := outer.unexpectedErr(); err != nil {
 				return err
 			}
 
-			return fuzzBOSeq(wins.flatten(), n)
+			return checkSequence(wins.flatten(), n)
 		})
 	})
 }
 
-// FuzzBOWindowWhenUnsubscribe isolates the teardown path: the open window must get a terminal
+// FuzzWindowWhenUnsubscribe isolates the teardown path: the open window must get a terminal
 // notification when the downstream unsubscribes, otherwise its subscriber waits forever.
-func FuzzBOWindowWhenUnsubscribe(f *testing.F) {
+func FuzzWindowWhenUnsubscribe(f *testing.F) {
 	f.Skip("race: windowwhen-teardown-leaves-window-open; remove when fixed")
 
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		k := fuzzBOPick(seed, 3, 0, fuzzBOMaxTicks)
+		k := pickBoundaryValue(seed, 3, 0, maxBoundaryTicks)
 		up, tick := &activeCounter{}, &activeCounter{}
 
 		// Source emits a few items then stays open, so only Unsubscribe can end the windows.
@@ -400,22 +400,22 @@ func FuzzBOWindowWhenUnsubscribe(f *testing.F) {
 			return nil
 		}))
 
-		fuzzBOIter(t, "WindowWhen/unsubscribe", func() error {
-			wins := &fuzzBOWindows{}
-			outer := &fuzzBOSink[int]{}
-			sub := wins.subscribe(ro.WindowWhen[int](fuzzBOTicks(tick, seed, k, fuzzIsAsync(mask, 1)))(src), outer)
+		runBoundaryIteration(t, "WindowWhen/unsubscribe", func() error {
+			wins := &windowRecorder{}
+			outer := &boundarySink[int]{}
+			sub := wins.subscribe(ro.WindowWhen[int](tickSource(tick, seed, k, fuzzIsAsync(mask, 1)))(src), outer)
 
-			for i, m := 0, fuzzBOPick(seed, 101, 0, fuzzBOMaxSpin); i < m; i++ {
+			for i, m := 0, pickBoundaryValue(seed, 101, 0, maxUnsubscribeSpins); i < m; i++ {
 				fuzzJitter(seed, i)
 			}
 
 			sub.Unsubscribe()
 
-			if err := fuzzBOWait("upstream and boundary released", func() bool { return fuzzBOActive([]*activeCounter{up, tick}) == 0 }); err != nil {
+			if err := waitForCondition("upstream and boundary released", func() bool { return activeSubscriptionTotal([]*activeCounter{up, tick}) == 0 }); err != nil {
 				return err
 			}
 
-			if err := fuzzBOWait("open window completed on unsubscribe", func() bool { return wins.open() == 0 }); err != nil {
+			if err := waitForCondition("open window completed on unsubscribe", func() bool { return wins.open() == 0 }); err != nil {
 				return fmt.Errorf("%w: %d windows left without terminal", err, wins.open())
 			}
 
@@ -424,112 +424,112 @@ func FuzzBOWindowWhenUnsubscribe(f *testing.F) {
 	})
 }
 
-func FuzzBOSampleWhen(f *testing.F) {
+func FuzzSampleWhen(f *testing.F) {
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n := fuzzBOPick(seed, 1, 0, fuzzMaxItems)
-		k := fuzzBOPick(seed, 3, 0, fuzzBOMaxTicks)
+		n := pickBoundaryValue(seed, 1, 0, fuzzMaxItems)
+		k := pickBoundaryValue(seed, 3, 0, maxBoundaryTicks)
 		up, tick := &activeCounter{}, &activeCounter{}
 
-		fuzzBORun(t, "SampleWhen", seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, "SampleWhen", seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[int] {
-				return ro.SampleWhen[int](fuzzBOTicks(tick, seed, k, fuzzIsAsync(mask, 1)))(fuzzBOSrc(up, seed, n, fuzzIsAsync(mask, 0)))
+				return ro.SampleWhen[int](tickSource(tick, seed, k, fuzzIsAsync(mask, 1)))(countedSource(up, seed, n, fuzzIsAsync(mask, 0)))
 			},
-			fuzzBOIncreasing(n), up, tick)
+			checkIncreasing(n), up, tick)
 	})
 }
 
-func FuzzBOSampleTime(f *testing.F) {
+func FuzzSampleTime(f *testing.F) {
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n := fuzzBOPick(seed, 1, 0, fuzzMaxItems)
-		d := fuzzBOMicros(seed, 4)
+		n := pickBoundaryValue(seed, 1, 0, fuzzMaxItems)
+		d := boundaryDelay(seed, 4)
 		up := &activeCounter{}
 
-		fuzzBORun(t, "SampleTime", seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, "SampleTime", seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[int] {
-				return ro.SampleTime[int](d)(fuzzBOSrc(up, seed, n, fuzzIsAsync(mask, 0)))
+				return ro.SampleTime[int](d)(countedSource(up, seed, n, fuzzIsAsync(mask, 0)))
 			},
-			fuzzBOIncreasing(n), up)
+			checkIncreasing(n), up)
 	})
 }
 
-func FuzzBOThrottleWhen(f *testing.F) {
+func FuzzThrottleWhen(f *testing.F) {
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n := fuzzBOPick(seed, 1, 0, fuzzMaxItems)
-		k := fuzzBOPick(seed, 3, 0, fuzzBOMaxTicks)
+		n := pickBoundaryValue(seed, 1, 0, fuzzMaxItems)
+		k := pickBoundaryValue(seed, 3, 0, maxBoundaryTicks)
 		up, tick := &activeCounter{}, &activeCounter{}
 
-		fuzzBORun(t, "ThrottleWhen", seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, "ThrottleWhen", seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[int] {
-				return ro.ThrottleWhen[int](fuzzBOTicks(tick, seed, k, fuzzIsAsync(mask, 1)))(fuzzBOSrc(up, seed, n, fuzzIsAsync(mask, 0)))
+				return ro.ThrottleWhen[int](tickSource(tick, seed, k, fuzzIsAsync(mask, 1)))(countedSource(up, seed, n, fuzzIsAsync(mask, 0)))
 			},
 			func(got []int) error {
 				if len(got) > k {
 					return fmt.Errorf("%d values passed but only %d ticks were sent", len(got), k)
 				}
 
-				return fuzzBOIncreasing(n)(got)
+				return checkIncreasing(n)(got)
 			}, up, tick)
 	})
 }
 
-func FuzzBOThrottleTime(f *testing.F) {
+func FuzzThrottleTime(f *testing.F) {
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n := fuzzBOPick(seed, 1, 0, fuzzMaxItems)
-		d := fuzzBOMicros(seed, 4)
+		n := pickBoundaryValue(seed, 1, 0, fuzzMaxItems)
+		d := boundaryDelay(seed, 4)
 		up := &activeCounter{}
 
-		fuzzBORun(t, "ThrottleTime", seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, "ThrottleTime", seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[int] {
-				return ro.ThrottleTime[int](d)(fuzzBOSrc(up, seed, n, fuzzIsAsync(mask, 0)))
+				return ro.ThrottleTime[int](d)(countedSource(up, seed, n, fuzzIsAsync(mask, 0)))
 			},
-			fuzzBOIncreasing(n), up)
+			checkIncreasing(n), up)
 	})
 }
 
-func FuzzBOGroupBy(f *testing.F) {
+func FuzzGroupBy(f *testing.F) {
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n := fuzzBOPick(seed, 1, 0, fuzzMaxItems)
-		keys := fuzzBOPick(seed, 5, 1, 4)
+		n := pickBoundaryValue(seed, 1, 0, fuzzMaxItems)
+		keys := pickBoundaryValue(seed, 5, 1, 4)
 		up := &activeCounter{}
 
-		fuzzBOIter(t, "GroupBy", func() error {
-			wins := &fuzzBOWindows{}
-			outer := &fuzzBOSink[int]{}
-			sub := wins.subscribe(ro.GroupBy(func(v int) int { return v % keys })(fuzzBOSrc(up, seed, n, fuzzIsAsync(mask, 0))), outer)
+		runBoundaryIteration(t, "GroupBy", func() error {
+			wins := &windowRecorder{}
+			outer := &boundarySink[int]{}
+			sub := wins.subscribe(ro.GroupBy(func(v int) int { return v % keys })(countedSource(up, seed, n, fuzzIsAsync(mask, 0))), outer)
 
-			if mask&fuzzBOUnsubBit != 0 {
-				for i, m := 0, fuzzBOPick(seed, 101, 0, fuzzBOMaxSpin); i < m; i++ {
+			if mask&unsubscribeBit != 0 {
+				for i, m := 0, pickBoundaryValue(seed, 101, 0, maxUnsubscribeSpins); i < m; i++ {
 					fuzzJitter(seed, i)
 				}
 
 				sub.Unsubscribe()
 
-				if err := fuzzBOWait("upstream released", func() bool { return up.activeCount() == 0 }); err != nil {
+				if err := waitForCondition("upstream released", func() bool { return up.activeCount() == 0 }); err != nil {
 					return err
 				}
 
-				return fuzzBOWait("every group terminal after unsubscribe", func() bool { return wins.open() == 0 })
+				return waitForCondition("every group terminal after unsubscribe", func() bool { return wins.open() == 0 })
 			}
 
-			if err := fuzzBOWait("outer terminal", outer.done); err != nil {
+			if err := waitForCondition("outer terminal", outer.done); err != nil {
 				return err
 			}
 
-			if err := fuzzBOWait("every group terminal", func() bool { return wins.open() == 0 }); err != nil {
+			if err := waitForCondition("every group terminal", func() bool { return wins.open() == 0 }); err != nil {
 				return err
 			}
 
-			if err := fuzzBOWait("upstream released", func() bool { return up.activeCount() == 0 }); err != nil {
+			if err := waitForCondition("upstream released", func() bool { return up.activeCount() == 0 }); err != nil {
 				return err
 			}
 

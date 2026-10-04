@@ -24,12 +24,12 @@ import (
 // Catch / StartWith over a merge of two sources: the unsafe subscriber is passed through to the merge
 // ---------------------------------------------------------------------------------------------
 
-func FuzzHOCatch(f *testing.F) {
-	f.Skip("race: catch-unsafe-merge; remove when fixed") // fuzz_higherorder_test.go:540: notification delivered after a terminal notification: 1
-	fuzzHOSeeds(f)
+func FuzzCatch(f *testing.F) {
+	f.Skip("race: catch-unsafe-merge; remove when fixed") // Fails on main: notification delivered after a terminal notification: 1
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		h := fuzzHONewHarness(t)
-		mode, kk := fuzzHOMode(k)
+		h := newStreamHarness(t)
+		mode, kk := decodeEarlyStop(k)
 
 		var srcC, aC, bC activeCounter
 
@@ -37,70 +37,70 @@ func FuzzHOCatch(f *testing.F) {
 		na := fuzzBound(seed, 1, 4)
 		nb := fuzzBound(seed/5, 1, 4)
 
-		src := trackSubscriptions(&srcC, fuzzHOSource(seed, 0, n, fuzzIsAsync(mask, 0), fuzzHOEndError))
-		a := trackSubscriptions(&aC, fuzzHOSource(seed+1, 1, na, fuzzIsAsync(mask, 1), fuzzHOEndComplete))
-		b := trackSubscriptions(&bC, fuzzHOSource(seed+2, 2, nb, fuzzIsAsync(mask, 2), fuzzHOEndComplete))
+		src := trackSubscriptions(&srcC, taggedSource(seed, 0, n, fuzzIsAsync(mask, 0), sourceEndError))
+		a := trackSubscriptions(&aC, taggedSource(seed+1, 1, na, fuzzIsAsync(mask, 1), sourceEndComplete))
+		b := trackSubscriptions(&bC, taggedSource(seed+2, 2, nb, fuzzIsAsync(mask, 2), sourceEndComplete))
 
 		obs := ro.Catch(func(error) ro.Observable[int] { return ro.Merge(a, b) })(src)
 
-		h.start(fuzzHOApply(obs, mode, kk))
+		h.start(applyEarlyStop(obs, mode, kk))
 		h.settle(mode, kk)
 		h.verify(&srcC, &aC, &bC)
 
 		total := n + na + nb
 
 		switch mode {
-		case fuzzHOModeNone:
+		case earlyStopNone:
 			if h.rec.nextCount() != total || h.rec.completeCount() != 1 {
 				h.fail("got %d/%d values, completes=%d errs=%d", h.rec.nextCount(), total, h.rec.completeCount(), h.rec.errCount())
 			}
-		case fuzzHOModeTake:
-			if h.rec.nextCount() != fuzzHOMin(kk, total) {
+		case earlyStopTake:
+			if h.rec.nextCount() != minInt(kk, total) {
 				h.fail("take(%d) delivered %d of %d", kk, h.rec.nextCount(), total)
 			}
 		}
 	})
 }
 
-func FuzzHOWhile(f *testing.F) {
-	f.Skip("race: while-ignores-closed-destination; remove when fixed") // fuzz_higherorder_test.go:792: timeout waiting for: Subscribe to return (hang)
-	fuzzHOSeeds(f)
+func FuzzWhile(f *testing.F) {
+	f.Skip("race: while-ignores-closed-destination; remove when fixed") // Fails on main: timeout waiting for: Subscribe to return (hang)
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		fuzzHOLoop(t, fuzzHOLoopWhile, seed, size, mask, k)
+		runLoop(t, loopKindWhile, seed, size, mask, k)
 	})
 }
 
-func FuzzHODoWhile(f *testing.F) {
-	f.Skip("race: dowhile-ignores-closed-destination; remove when fixed") // fuzz_higherorder_test.go:799: timeout waiting for: Subscribe to return (hang)
-	fuzzHOSeeds(f)
+func FuzzDoWhile(f *testing.F) {
+	f.Skip("race: dowhile-ignores-closed-destination; remove when fixed") // Fails on main: timeout waiting for: Subscribe to return (hang)
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		fuzzHOLoop(t, fuzzHOLoopDoWhile, seed, size, mask, k)
+		runLoop(t, loopKindDoWhile, seed, size, mask, k)
 	})
 }
 
-func FuzzHORetry(f *testing.F) {
-	f.Skip("race: retry-ignores-closed-destination; remove when fixed") // fuzz_higherorder_test.go:813: timeout waiting for: Subscribe to return (hang)
-	fuzzHOSeeds(f)
+func FuzzRetry(f *testing.F) {
+	f.Skip("race: retry-ignores-closed-destination; remove when fixed") // Fails on main: timeout waiting for: Subscribe to return (hang)
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		fuzzHOLoop(t, fuzzHOLoopRetry, seed, size, mask, k)
+		runLoop(t, loopKindRetry, seed, size, mask, k)
 	})
 }
 
-func FuzzHORetryWithConfig(f *testing.F) {
-	f.Skip("race: retry-ignores-closed-destination; remove when fixed") // fuzz_higherorder_test.go:820: 4 source subscriptions after the downstream closed, 1 were enough
-	fuzzHOSeeds(f)
+func FuzzRetryWithConfig(f *testing.F) {
+	f.Skip("race: retry-ignores-closed-destination; remove when fixed") // Fails on main: 4 source subscriptions after the downstream closed, 1 were enough
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		fuzzHOLoop(t, fuzzHOLoopRetryWithConfig, seed, size, mask, k)
+		runLoop(t, loopKindRetryWithConfig, seed, size, mask, k)
 	})
 }
 
-func FuzzHOOnErrorResumeNextWith(f *testing.F) {
-	f.Skip("race: resumenext-ignores-closed-destination; remove when fixed") // fuzz_higherorder_test.go:890: 5 sources subscribed after the downstream closed, 1 were enough
-	fuzzHOSeeds(f)
+func FuzzOnErrorResumeNextWith(f *testing.F) {
+	f.Skip("race: resumenext-ignores-closed-destination; remove when fixed") // Fails on main: 5 sources subscribed after the downstream closed, 1 were enough
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		h := fuzzHONewHarness(t)
-		kk := fuzzBound(k, 1, fuzzHOMaxTake)
-		bounded := mask&fuzzHOBoundedBit != 0
+		h := newStreamHarness(t)
+		kk := fuzzBound(k, 1, maxEarlyStopCount)
+		bounded := mask&boundedLoopBit != 0
 		count := fuzzBound(size, 2, 5)
 
 		var srcC activeCounter
@@ -114,23 +114,23 @@ func FuzzHOOnErrorResumeNextWith(f *testing.F) {
 			sizes[i] = fuzzBound(seed+int64(i)*3, 1, 3)
 			total += sizes[i]
 
-			end := fuzzHOEndComplete
+			end := sourceEndComplete
 			if fuzzBound(seed+int64(i), 0, 1) == 1 {
-				end = fuzzHOEndError
+				end = sourceEndError
 			}
 
-			lastFails = end == fuzzHOEndError
-			srcs[i] = trackSubscriptions(&srcC, fuzzHOSource(seed+int64(i), i, sizes[i], fuzzIsAsync(mask, i), end))
+			lastFails = end == sourceEndError
+			srcs[i] = trackSubscriptions(&srcC, taggedSource(seed+int64(i), i, sizes[i], fuzzIsAsync(mask, i), end))
 		}
 
 		obs := ro.OnErrorResumeNextWith(srcs[1:]...)(srcs[0])
 
-		mode := fuzzHOModeTake
+		mode := earlyStopTake
 		if bounded {
-			mode = fuzzHOModeNone
+			mode = earlyStopNone
 		}
 
-		h.start(fuzzHOApply(obs, mode, kk))
+		h.start(applyEarlyStop(obs, mode, kk))
 		h.settle(mode, kk)
 		h.verify(&srcC)
 
@@ -149,7 +149,7 @@ func FuzzHOOnErrorResumeNextWith(f *testing.F) {
 			return
 		}
 
-		if want := fuzzHOMin(kk, total); h.rec.nextCount() != want {
+		if want := minInt(kk, total); h.rec.nextCount() != want {
 			h.fail("take(%d) delivered %d, want %d", kk, h.rec.nextCount(), want)
 		}
 
