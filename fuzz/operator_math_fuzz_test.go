@@ -25,13 +25,13 @@ import (
 	"github.com/samber/ro"
 )
 
-// FuzzSCAverageEmpty checks Average over an empty source: at most one value, then exactly one terminal.
+// FuzzAverageEmptySource checks Average over an empty source: at most one value, then exactly one terminal.
 // The Subscriber absorbs every notification sent after the first terminal one, so the extra
 // Next/Complete of a missing return is only visible through ro.OnDroppedNotification.
-func FuzzSCAverageEmpty(f *testing.F) {
+func FuzzAverageEmptySource(f *testing.F) {
 	f.Skip("race: average-empty-double-emit (missing return after NaN+Complete); remove when fixed")
 
-	fuzzSCSeeds(f)
+	addShortCircuitSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
 		var dropped int32
@@ -41,16 +41,16 @@ func FuzzSCAverageEmpty(f *testing.F) {
 		ro.OnDroppedNotification = func(context.Context, fmt.Stringer) { atomic.AddInt32(&dropped, 1) }
 		t.Cleanup(func() { ro.OnDroppedNotification = previous })
 
-		sink := &fuzzSCRawSink[float64]{}
+		sink := &rawNotificationSink[float64]{}
 
-		fuzzSCIter(t, "AverageEmpty", func() error {
+		runShortCircuitIteration(t, "AverageEmpty", func() error {
 			var wg sync.WaitGroup
 
-			sub := ro.Average[int]()(fuzzSCSource(seed, 0, fuzzIsAsync(mask, 0), true, false, &wg)).
+			sub := ro.Average[int]()(shortCircuitSource(seed, 0, fuzzIsAsync(mask, 0), true, false, &wg)).
 				SubscribeWithContext(context.Background(), sink)
 
 			wg.Wait()
-			time.Sleep(fuzzSCSettle)
+			time.Sleep(shortCircuitSettleDelay)
 
 			sub.Unsubscribe()
 

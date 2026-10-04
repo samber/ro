@@ -26,16 +26,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func FuzzTimeToChannel(f *testing.F) {
-	fuzzTimeSeeds(f)
+func FuzzToChannel(f *testing.F) {
+	addTimerSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, mask, k uint8) {
-		sc := fuzzTimeDecode(seed, mask, k, true)
+		sc := decodeTimerScenario(seed, mask, k, true)
 
 		var counter activeCounter
 
-		fuzzTimeIter(t, "ToChannel", func() error {
-			size := fuzzTimePick(seed, 12, 0, 4)
+		runTimerIteration(t, "ToChannel", func() error {
+			size := pickTimerValue(seed, 12, 0, 4)
 			src := trackSubscriptions(&counter, fuzzSource(seed, sc.items, sc.async))
 			obs := ro.ToChannel[int](size)(src)
 
@@ -49,7 +49,7 @@ func FuzzTimeToChannel(f *testing.F) {
 
 			consumerDone := make(chan struct{})
 
-			slow := fuzzTimeMicros(seed, 13, 0) // delays Next(ch), giving Complete the chance to win.
+			slow := timerDelay(seed, 13, 0) // delays Next(ch), giving Complete the chance to win.
 
 			obs.Subscribe(ro.NewObserver(
 				func(ch <-chan ro.Notification[int]) {
@@ -86,7 +86,7 @@ func FuzzTimeToChannel(f *testing.F) {
 				return fmt.Errorf("channel never closed: consumed %d/%d, channels=%d completes=%d", atomic.LoadInt32(&consumed), sc.items, atomic.LoadInt32(&channels), atomic.LoadInt32(&completes))
 			}
 
-			fuzzTimeWaitPlain(func() bool { return atomic.LoadInt32(&completes) > 0 })
+			pollWithinOneSecond(func() bool { return atomic.LoadInt32(&completes) > 0 })
 
 			switch {
 			case atomic.LoadInt32(&completeFirst) > 0:
@@ -102,12 +102,12 @@ func FuzzTimeToChannel(f *testing.F) {
 			return nil
 		})
 
-		fuzzTimeWaitUpstreamClosed(t, &counter)
+		waitUpstreamClosed(t, &counter)
 	})
 }
 
-// fuzzTimeWaitPlain polls cond for at most one second and reports whether it became true.
-func fuzzTimeWaitPlain(cond func() bool) bool {
+// pollWithinOneSecond polls cond for at most one second and reports whether it became true.
+func pollWithinOneSecond(cond func() bool) bool {
 	deadline := time.Now().Add(time.Second)
 	for !cond() {
 		if time.Now().After(deadline) {

@@ -26,33 +26,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func FuzzHOMergeAll(f *testing.F) {
-	fuzzHOSeeds(f)
+func FuzzMergeAll(f *testing.F) {
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		fuzzHOHigher(t, fuzzHOKindMergeAll, seed, size, mask, k)
+		runHigherOrder(t, higherOrderKindMergeAll, seed, size, mask, k)
 	})
 }
 
-func FuzzHOConcatAll(f *testing.F) {
-	fuzzHOSeeds(f)
+func FuzzConcatAll(f *testing.F) {
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		fuzzHOHigher(t, fuzzHOKindConcatAll, seed, size, mask, k)
+		runHigherOrder(t, higherOrderKindConcatAll, seed, size, mask, k)
 	})
 }
 
-func FuzzHOConcatWith(f *testing.F) {
-	fuzzHOSeeds(f)
+func FuzzConcatWith(f *testing.F) {
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		fuzzHOHigher(t, fuzzHOKindConcatWith, seed, size, mask, k)
+		runHigherOrder(t, higherOrderKindConcatWith, seed, size, mask, k)
 	})
 }
 
-func FuzzHOStartWith(f *testing.F) {
-	f.Skip("race: startwith-unsafe-merge; remove when fixed") // fuzz_higherorder_test.go:581: overlapping notifications on the downstream observer: 1
-	fuzzHOSeeds(f)
+func FuzzStartWith(f *testing.F) {
+	f.Skip("race: startwith-unsafe-merge; remove when fixed") // Fails on main: overlapping notifications on the downstream observer: 1
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, k int64) {
-		h := fuzzHONewHarness(t)
-		mode, kk := fuzzHOMode(k)
+		h := newStreamHarness(t)
+		mode, kk := decodeEarlyStop(k)
 
 		var aC, bC activeCounter
 
@@ -65,17 +65,17 @@ func FuzzHOStartWith(f *testing.F) {
 			prefixes[i] = -1 - i
 		}
 
-		a := trackSubscriptions(&aC, fuzzHOSource(seed+1, 1, na, fuzzIsAsync(mask, 0), fuzzHOEndComplete))
-		b := trackSubscriptions(&bC, fuzzHOSource(seed+2, 2, nb, fuzzIsAsync(mask, 1), fuzzHOEndComplete))
+		a := trackSubscriptions(&aC, taggedSource(seed+1, 1, na, fuzzIsAsync(mask, 0), sourceEndComplete))
+		b := trackSubscriptions(&bC, taggedSource(seed+2, 2, nb, fuzzIsAsync(mask, 1), sourceEndComplete))
 
 		obs := ro.StartWith(prefixes...)(ro.Merge(a, b))
 
-		h.start(fuzzHOApply(obs, mode, kk))
+		h.start(applyEarlyStop(obs, mode, kk))
 		h.settle(mode, kk)
 		h.verify(&aC, &bC)
 
 		got := h.rec.snapshot()
-		for i := 0; i < fuzzHOMin(p, len(got)); i++ {
+		for i := 0; i < minInt(p, len(got)); i++ {
 			if got[i] != prefixes[i] {
 				h.fail("prefix %d is %d, want %d", i, got[i], prefixes[i])
 			}
@@ -84,12 +84,12 @@ func FuzzHOStartWith(f *testing.F) {
 		total := p + na + nb
 
 		switch mode {
-		case fuzzHOModeNone:
+		case earlyStopNone:
 			if len(got) != total || h.rec.completeCount() != 1 {
 				h.fail("got %d/%d values, completes=%d", len(got), total, h.rec.completeCount())
 			}
-		case fuzzHOModeTake:
-			if len(got) != fuzzHOMin(kk, total) {
+		case earlyStopTake:
+			if len(got) != minInt(kk, total) {
 				h.fail("take(%d) delivered %d of %d", kk, len(got), total)
 			}
 		}
@@ -100,16 +100,16 @@ func FuzzHOStartWith(f *testing.F) {
 // Race / RaceWith
 // ---------------------------------------------------------------------------------------------
 
-func fuzzHORace(t *testing.T, with bool, seed, size int64, mask uint8) {
+func runRace(t *testing.T, with bool, seed, size int64, mask uint8) {
 	t.Helper()
 
-	h := fuzzHONewHarness(t)
+	h := newStreamHarness(t)
 	m := fuzzBound(size, 2, 4)
-	endless := mask&fuzzHOBoundedBit != 0
+	endless := mask&boundedLoopBit != 0
 
-	end := fuzzHOEndComplete
+	end := sourceEndComplete
 	if endless {
-		end = fuzzHOEndNever
+		end = sourceEndNever
 	}
 
 	counters := make([]activeCounter, m)
@@ -119,7 +119,7 @@ func fuzzHORace(t *testing.T, with bool, seed, size int64, mask uint8) {
 	for i := range srcs {
 		ptrs[i] = &counters[i]
 		// At least one item, so that a loser of an endless race still has something to race with.
-		srcs[i] = trackSubscriptions(ptrs[i], fuzzHOSource(seed+int64(i), i, fuzzBound(seed+int64(i)*5, 1, 3), fuzzIsAsync(mask, i), end))
+		srcs[i] = trackSubscriptions(ptrs[i], taggedSource(seed+int64(i), i, fuzzBound(seed+int64(i)*5, 1, 3), fuzzIsAsync(mask, i), end))
 	}
 
 	var obs ro.Observable[int]
@@ -134,7 +134,7 @@ func fuzzHORace(t *testing.T, with bool, seed, size int64, mask uint8) {
 	if endless {
 		h.waitFor("the winner's first item", func() bool { return h.rec.nextCount() >= 1 || h.rec.terminals() > 0 })
 
-		winner := h.rec.snapshot()[0] / fuzzHOTagStride
+		winner := h.rec.snapshot()[0] / sourceTagStride
 		for i := range counters {
 			i := i
 			if i != winner {
@@ -142,46 +142,48 @@ func fuzzHORace(t *testing.T, with bool, seed, size int64, mask uint8) {
 			}
 		}
 
-		h.settle(fuzzHOModeExternal, 1)
+		h.settle(earlyStopExternal, 1)
 	} else {
-		h.settle(fuzzHOModeNone, 0)
+		h.settle(earlyStopNone, 0)
 	}
 
 	h.verify(ptrs...)
 
 	got := h.rec.snapshot()
 	for i := range got {
-		if got[i]/fuzzHOTagStride != got[0]/fuzzHOTagStride {
+		if got[i]/sourceTagStride != got[0]/sourceTagStride {
 			h.fail("values of two sources mixed: %v", got)
 		}
 	}
 }
 
-func FuzzHORaceWith(f *testing.F) {
-	f.Skip("race: race-winner-not-retained; remove when fixed") // fuzz_higherorder_test.go:669: timeout waiting for: upstream 0 to drop to 0 active subscriptions
-	fuzzHOSeeds(f)
+func FuzzRaceWith(f *testing.F) {
+	f.Skip("race: race-winner-not-retained; remove when fixed") // Fails on main: timeout waiting for: upstream 0 to drop to 0 active subscriptions
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, _ int64) {
-		fuzzHORace(t, true, seed, size, mask)
+		runRace(t, true, seed, size, mask)
 	})
 }
 
-func FuzzHORace(f *testing.F) {
-	f.Skip("race: race-winner-not-retained; remove when fixed") // fuzz_higherorder_test.go:676: timeout waiting for: upstream 0 to drop to 0 active subscriptions
-	fuzzHOSeeds(f)
+func FuzzRace(f *testing.F) {
+	f.Skip("race: race-winner-not-retained; remove when fixed") // Fails on main: timeout waiting for: upstream 0 to drop to 0 active subscriptions
+	addStreamSeeds(f)
 	f.Fuzz(func(t *testing.T, seed, size int64, mask uint8, _ int64) {
-		fuzzHORace(t, false, seed, size, mask)
+		runRace(t, false, seed, size, mask)
 	})
 }
 
-func FuzzBOPairwise(f *testing.F) {
+func FuzzPairwise(f *testing.F) {
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n := fuzzBOPick(seed, 1, 0, fuzzMaxItems)
+		n := pickBoundaryValue(seed, 1, 0, fuzzMaxItems)
 		up := &activeCounter{}
 
-		fuzzBORun(t, "Pairwise", seed, mask&fuzzBOUnsubBit != 0,
-			func() ro.Observable[[]int] { return ro.Pairwise[int]()(fuzzBOSrc(up, seed, n, fuzzIsAsync(mask, 0))) },
+		runBoundaryOperator(t, "Pairwise", seed, mask&unsubscribeBit != 0,
+			func() ro.Observable[[]int] {
+				return ro.Pairwise[int]()(countedSource(up, seed, n, fuzzIsAsync(mask, 0)))
+			},
 			func(got [][]int) error {
 				want := n - 1
 				if want < 0 {
@@ -203,18 +205,18 @@ func FuzzBOPairwise(f *testing.F) {
 	})
 }
 
-func FuzzBOZip2(f *testing.F) {
+func FuzzZip2(f *testing.F) {
 	f.Skip("race: zip-pairs-delivered-out-of-order; remove when fixed")
 
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		na, nb := fuzzBOPick(seed, 1, 0, fuzzMaxItems), fuzzBOPick(seed, 2, 0, fuzzMaxItems)
+		na, nb := pickBoundaryValue(seed, 1, 0, fuzzMaxItems), pickBoundaryValue(seed, 2, 0, fuzzMaxItems)
 		a, b := &activeCounter{}, &activeCounter{}
 
-		fuzzBORun(t, "Zip2", seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, "Zip2", seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[lo.Tuple2[int, int]] {
-				return ro.Zip2(fuzzBOSrc(a, seed, na, fuzzIsAsync(mask, 0)), fuzzBOSrc(b, seed+1, nb, fuzzIsAsync(mask, 1)))
+				return ro.Zip2(countedSource(a, seed, na, fuzzIsAsync(mask, 0)), countedSource(b, seed+1, nb, fuzzIsAsync(mask, 1)))
 			},
 			func(got []lo.Tuple2[int, int]) error {
 				want := na
@@ -237,20 +239,20 @@ func FuzzBOZip2(f *testing.F) {
 	})
 }
 
-func FuzzBOZipVariadic(f *testing.F) {
+func FuzzZipVariadic(f *testing.F) {
 	f.Skip("race: zip-pairs-delivered-out-of-order; remove when fixed")
 
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		ns := []int{fuzzBOPick(seed, 1, 0, fuzzMaxItems), fuzzBOPick(seed, 2, 0, fuzzMaxItems), fuzzBOPick(seed, 6, 0, fuzzMaxItems)}
+		ns := []int{pickBoundaryValue(seed, 1, 0, fuzzMaxItems), pickBoundaryValue(seed, 2, 0, fuzzMaxItems), pickBoundaryValue(seed, 6, 0, fuzzMaxItems)}
 		cs := []*activeCounter{{}, {}, {}}
 
-		fuzzBORun(t, "Zip", seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, "Zip", seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[[]int] {
 				srcs := make([]ro.Observable[int], len(ns))
 				for i := range ns {
-					srcs[i] = fuzzBOSrc(cs[i], seed+int64(i), ns[i], fuzzIsAsync(mask, i))
+					srcs[i] = countedSource(cs[i], seed+int64(i), ns[i], fuzzIsAsync(mask, i))
 				}
 
 				return ro.Zip(srcs...)
@@ -278,11 +280,11 @@ func FuzzBOZipVariadic(f *testing.F) {
 	})
 }
 
-// FuzzBOCombineLatest2 checks that the last tuple holds the latest value of both sources.
-func FuzzBOCombineLatest2(f *testing.F) {
+// FuzzCombineLatest2 checks that the last tuple holds the latest value of both sources.
+func FuzzCombineLatest2(f *testing.F) {
 	f.Skip("race: combinelatest-stale-last-tuple; remove when fixed")
 
-	fuzzBOCombineLatest2(f, "CombineLatest2/final", func(got []lo.Tuple2[int, int], na, nb int) error {
+	registerCombineLatest2Fuzz(f, "CombineLatest2/final", func(got []lo.Tuple2[int, int], na, nb int) error {
 		if last := got[len(got)-1]; last.A != na-1 || last.B != nb-1 {
 			return fmt.Errorf("stale last tuple %v, want (%d,%d)", last, na-1, nb-1)
 		}
@@ -291,11 +293,11 @@ func FuzzBOCombineLatest2(f *testing.F) {
 	})
 }
 
-// FuzzBOCombineLatest2Order checks that tuples never go back to an older value of a source.
-func FuzzBOCombineLatest2Order(f *testing.F) {
+// FuzzCombineLatest2Order checks that tuples never go back to an older value of a source.
+func FuzzCombineLatest2Order(f *testing.F) {
 	f.Skip("race: combinelatest-out-of-order-tuples; remove when fixed")
 
-	fuzzBOCombineLatest2(f, "CombineLatest2/order", func(got []lo.Tuple2[int, int], _, _ int) error {
+	registerCombineLatest2Fuzz(f, "CombineLatest2/order", func(got []lo.Tuple2[int, int], _, _ int) error {
 		for i := 1; i < len(got); i++ {
 			if got[i].A < got[i-1].A || got[i].B < got[i-1].B {
 				return fmt.Errorf("tuple went backwards: %v then %v", got[i-1], got[i])
@@ -306,11 +308,11 @@ func FuzzBOCombineLatest2Order(f *testing.F) {
 	})
 }
 
-// FuzzBOCombineLatest2Duplicate checks that no two consecutive tuples are identical.
-func FuzzBOCombineLatest2Duplicate(f *testing.F) {
+// FuzzCombineLatest2Duplicate checks that no two consecutive tuples are identical.
+func FuzzCombineLatest2Duplicate(f *testing.F) {
 	f.Skip("race: combinelatest-duplicate-tuples; remove when fixed")
 
-	fuzzBOCombineLatest2(f, "CombineLatest2/duplicate", func(got []lo.Tuple2[int, int], _, _ int) error {
+	registerCombineLatest2Fuzz(f, "CombineLatest2/duplicate", func(got []lo.Tuple2[int, int], _, _ int) error {
 		for i := 1; i < len(got); i++ {
 			if got[i] == got[i-1] {
 				return fmt.Errorf("duplicate tuple %v", got[i])
@@ -321,17 +323,17 @@ func FuzzBOCombineLatest2Duplicate(f *testing.F) {
 	})
 }
 
-func fuzzBOCombineLatest2(f *testing.F, name string, extra func(got []lo.Tuple2[int, int], na, nb int) error) {
+func registerCombineLatest2Fuzz(f *testing.F, name string, extra func(got []lo.Tuple2[int, int], na, nb int) error) {
 	f.Helper()
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		na, nb := fuzzBOPick(seed, 1, 0, fuzzMaxItems), fuzzBOPick(seed, 2, 0, fuzzMaxItems)
+		na, nb := pickBoundaryValue(seed, 1, 0, fuzzMaxItems), pickBoundaryValue(seed, 2, 0, fuzzMaxItems)
 		a, b := &activeCounter{}, &activeCounter{}
 
-		fuzzBORun(t, name, seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, name, seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[lo.Tuple2[int, int]] {
-				return ro.CombineLatest2(fuzzBOSrc(a, seed, na, fuzzIsAsync(mask, 0)), fuzzBOSrc(b, seed+1, nb, fuzzIsAsync(mask, 1)))
+				return ro.CombineLatest2(countedSource(a, seed, na, fuzzIsAsync(mask, 0)), countedSource(b, seed+1, nb, fuzzIsAsync(mask, 1)))
 			},
 			func(got []lo.Tuple2[int, int]) error {
 				if na == 0 || nb == 0 {
@@ -351,20 +353,20 @@ func fuzzBOCombineLatest2(f *testing.F, name string, extra func(got []lo.Tuple2[
 	})
 }
 
-func FuzzBOCombineLatestAll(f *testing.F) {
+func FuzzCombineLatestAll(f *testing.F) {
 	f.Skip("race: combinelatestall-stale-last-tuple; remove when fixed")
 
 	xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i)} })
 
 	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		ns := []int{fuzzBOPick(seed, 1, 1, fuzzMaxItems), fuzzBOPick(seed, 2, 1, fuzzMaxItems), fuzzBOPick(seed, 6, 1, fuzzMaxItems)}
+		ns := []int{pickBoundaryValue(seed, 1, 1, fuzzMaxItems), pickBoundaryValue(seed, 2, 1, fuzzMaxItems), pickBoundaryValue(seed, 6, 1, fuzzMaxItems)}
 		cs := []*activeCounter{{}, {}, {}}
 
-		fuzzBORun(t, "CombineLatestAll", seed, mask&fuzzBOUnsubBit != 0,
+		runBoundaryOperator(t, "CombineLatestAll", seed, mask&unsubscribeBit != 0,
 			func() ro.Observable[[]int] {
 				srcs := make([]ro.Observable[int], len(ns))
 				for i := range ns {
-					srcs[i] = fuzzBOSrc(cs[i], seed+int64(i), ns[i], fuzzIsAsync(mask, i))
+					srcs[i] = countedSource(cs[i], seed+int64(i), ns[i], fuzzIsAsync(mask, i))
 				}
 
 				return ro.CombineLatestAll[int]()(ro.Just(srcs...))

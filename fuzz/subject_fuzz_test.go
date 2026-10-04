@@ -26,34 +26,34 @@ import (
 )
 
 const (
-	// fuzzSubjKindCount is the number of subject implementations a fuzz input can select.
-	fuzzSubjKindCount = 5
+	// subjectKindCount is the number of subject implementations a fuzz input can select.
+	subjectKindCount = 5
 
-	// fuzzSubjShortDeadline bounds waits that must NOT be blocked by a slow observer. It is
+	// subjectShortDeadline bounds waits that must NOT be blocked by a slow observer. It is
 	// short on purpose: the assertion is that the call returns while another goroutine is still
 	// stuck inside an observer.
-	fuzzSubjShortDeadline = 300 * time.Millisecond
+	subjectShortDeadline = 300 * time.Millisecond
 
-	// fuzzSubjReentrantValue is the value pushed by a re-entrant Next. Sources only emit
+	// reentrantNextValue is the value pushed by a re-entrant Next. Sources only emit
 	// 0..n-1 with n <= fuzzMaxItems, so it never collides with them.
-	fuzzSubjReentrantValue = 1 << 20
+	reentrantNextValue = 1 << 20
 
-	// fuzzSubjGapBase offsets values emitted while no observer is attached, so they can be
+	// gapValueBase offsets values emitted while no observer is attached, so they can be
 	// told apart from values emitted by the source afterwards.
-	fuzzSubjGapBase = 1 << 10
+	gapValueBase = 1 << 10
 
-	// fuzzSubjMaxProducers bounds the number of concurrent Next callers.
-	fuzzSubjMaxProducers = 4
+	// maxConcurrentProducers bounds the number of concurrent Next callers.
+	maxConcurrentProducers = 4
 )
 
-var errFuzzSubj = errors.New("fuzzSubj: boom")
+var errSubjectBoom = errors.New("subject: boom")
 
-// fuzzSubjNew builds one of the 5 subject types. bufSize feeds the replay and unicast buffers
+// newSubject builds one of the 5 subject types. bufSize feeds the replay and unicast buffers
 // and covers -1 (unlimited), 0 and small positive values.
-func fuzzSubjNew(kind, bufSize uint8) ro.Subject[int] {
+func newSubject(kind, bufSize uint8) ro.Subject[int] {
 	size := int(bufSize%5) - 1
 
-	switch kind % fuzzSubjKindCount {
+	switch kind % subjectKindCount {
 	case 0:
 		return ro.NewPublishSubject[int]()
 	case 1:
@@ -67,10 +67,10 @@ func fuzzSubjNew(kind, bufSize uint8) ro.Subject[int] {
 	}
 }
 
-// fuzzSubjFeed pipes fuzzSource(0..n-1) into subject and terminates it with Complete, or Error when
+// feedSubject pipes fuzzSource(0..n-1) into subject and terminates it with Complete, or Error when
 // fail is set. A synchronous source emits inside Subscribe, an asynchronous one from its own goroutine.
 // wg is released once the subject has been terminated.
-func fuzzSubjFeed(wg *sync.WaitGroup, seed int64, subject ro.Subject[int], n int, async, fail bool) {
+func feedSubject(wg *sync.WaitGroup, seed int64, subject ro.Subject[int], n int, async, fail bool) {
 	done := make(chan struct{})
 
 	wg.Add(1)
@@ -83,7 +83,7 @@ func fuzzSubjFeed(wg *sync.WaitGroup, seed int64, subject ro.Subject[int], n int
 			subject.Error,
 			func() {
 				if fail {
-					subject.Error(errFuzzSubj)
+					subject.Error(errSubjectBoom)
 				} else {
 					subject.Complete()
 				}
@@ -97,8 +97,8 @@ func fuzzSubjFeed(wg *sync.WaitGroup, seed int64, subject ro.Subject[int], n int
 	}()
 }
 
-// fuzzSubjRecorder records what one subscriber observes and checks the observer contract.
-type fuzzSubjRecorder struct {
+// subjectRecorder records what one subscriber observes and checks the observer contract.
+type subjectRecorder struct {
 	guard serialGuard
 
 	nexts      int32
@@ -118,11 +118,11 @@ type fuzzSubjRecorder struct {
 	values []int
 }
 
-func (r *fuzzSubjRecorder) terminals() int {
+func (r *subjectRecorder) terminals() int {
 	return int(atomic.LoadInt32(&r.errs) + atomic.LoadInt32(&r.completes))
 }
 
-func (r *fuzzSubjRecorder) begin() {
+func (r *subjectRecorder) begin() {
 	r.guard.enter()
 
 	if r.terminals() > 0 {
@@ -138,7 +138,7 @@ func (r *fuzzSubjRecorder) begin() {
 	}
 }
 
-func (r *fuzzSubjRecorder) observer() ro.Observer[int] {
+func (r *subjectRecorder) observer() ro.Observer[int] {
 	return ro.NewObserver(
 		func(value int) {
 			r.begin()
@@ -169,7 +169,7 @@ func (r *fuzzSubjRecorder) observer() ro.Observer[int] {
 	)
 }
 
-func (r *fuzzSubjRecorder) snapshot() []int {
+func (r *subjectRecorder) snapshot() []int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -177,7 +177,7 @@ func (r *fuzzSubjRecorder) snapshot() []int {
 }
 
 // check asserts the invariants that hold for every subscriber, whatever the interleaving.
-func (r *fuzzSubjRecorder) check(t *testing.T, name string) {
+func (r *subjectRecorder) check(t *testing.T, name string) {
 	t.Helper()
 
 	if got := r.terminals(); got > 1 {
@@ -193,8 +193,8 @@ func (r *fuzzSubjRecorder) check(t *testing.T, name string) {
 	}
 }
 
-// fuzzSubjWait reports whether wg finished within d, so that a deadlock fails the test instead of hanging it.
-func fuzzSubjWait(d time.Duration, wg *sync.WaitGroup) bool {
+// waitGroupDoneWithin reports whether wg finished within d, so that a deadlock fails the test instead of hanging it.
+func waitGroupDoneWithin(d time.Duration, wg *sync.WaitGroup) bool {
 	done := make(chan struct{})
 
 	go func() {
@@ -210,17 +210,17 @@ func fuzzSubjWait(d time.Duration, wg *sync.WaitGroup) bool {
 	}
 }
 
-// fuzzSubjWaitOrFail fails the test when wg does not finish within fuzzDeadline.
-func fuzzSubjWaitOrFail(t *testing.T, what string, wg *sync.WaitGroup) {
+// requireWaitGroupDone fails the test when wg does not finish within fuzzDeadline.
+func requireWaitGroupDone(t *testing.T, what string, wg *sync.WaitGroup) {
 	t.Helper()
 
-	if !fuzzSubjWait(fuzzDeadline, wg) {
+	if !waitGroupDoneWithin(fuzzDeadline, wg) {
 		t.Fatalf("deadlock: %s did not finish within %s", what, fuzzDeadline)
 	}
 }
 
-// fuzzSubjWithin runs fn in its own goroutine and fails the test when it does not return in time.
-func fuzzSubjWithin(t *testing.T, what string, fn func()) {
+// requireReturnsWithin runs fn in its own goroutine and fails the test when it does not return in time.
+func requireReturnsWithin(t *testing.T, what string, fn func()) {
 	t.Helper()
 
 	var wg sync.WaitGroup
@@ -233,29 +233,29 @@ func fuzzSubjWithin(t *testing.T, what string, fn func()) {
 		fn()
 	}()
 
-	fuzzSubjWaitOrFail(t, what, &wg)
+	requireWaitGroupDone(t, what, &wg)
 }
 
-// fuzzSubjHolder hands a Subscription to a callback that may run before Subscribe returns.
-type fuzzSubjHolder struct {
+// subscriptionHolder hands a Subscription to a callback that may run before Subscribe returns.
+type subscriptionHolder struct {
 	mu  sync.Mutex
 	sub ro.Subscription
 }
 
-func (h *fuzzSubjHolder) set(sub ro.Subscription) {
+func (h *subscriptionHolder) set(sub ro.Subscription) {
 	h.mu.Lock()
 	h.sub = sub
 	h.mu.Unlock()
 }
 
-func (h *fuzzSubjHolder) get() ro.Subscription {
+func (h *subscriptionHolder) get() ro.Subscription {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	return h.sub
 }
 
-func fuzzSubjSeeds(f *testing.F) {
+func addSubjectSeeds(f *testing.F) {
 	f.Helper()
 
 	xfuzz.AddSeeds(f, func(i int) []any {
@@ -263,24 +263,24 @@ func fuzzSubjSeeds(f *testing.F) {
 	})
 }
 
-// FuzzSubjConcurrentSubscribeNext subscribes from many goroutines while a source emits and terminates.
-func FuzzSubjConcurrentSubscribeNext(f *testing.F) {
-	fuzzSubjSeeds(f)
+// FuzzSubjectConcurrentSubscribeNext subscribes from many goroutines while a source emits and terminates.
+func FuzzSubjectConcurrentSubscribeNext(f *testing.F) {
+	addSubjectSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, kind, subs, items, mask, extra, amask uint8) {
 		t.Parallel()
 
-		subject := fuzzSubjNew(kind, extra)
+		subject := newSubject(kind, extra)
 		nSubs := fuzzBound(int64(subs), 1, fuzzMaxGoroutines)
 		nItems := fuzzBound(int64(items), 0, fuzzMaxItems)
 
-		recorders := make([]*fuzzSubjRecorder, nSubs)
+		recorders := make([]*subjectRecorder, nSubs)
 		unsubscribed := make([]bool, nSubs)
 
 		var wg sync.WaitGroup
 
 		for i := range recorders {
-			recorders[i] = &fuzzSubjRecorder{}
+			recorders[i] = &subjectRecorder{}
 			unsubscribed[i] = (mask>>(uint(i)%8))&1 == 1
 
 			wg.Add(1)
@@ -300,9 +300,9 @@ func FuzzSubjConcurrentSubscribeNext(f *testing.F) {
 			}(i)
 		}
 
-		fuzzSubjFeed(&wg, seed, subject, nItems, fuzzIsAsync(amask, 0), mask&0x80 != 0)
+		feedSubject(&wg, seed, subject, nItems, fuzzIsAsync(amask, 0), mask&0x80 != 0)
 
-		fuzzSubjWaitOrFail(t, "concurrent subscribe + next", &wg)
+		requireWaitGroupDone(t, "concurrent subscribe + next", &wg)
 
 		for i, r := range recorders {
 			r.check(t, "subscriber")
@@ -315,24 +315,24 @@ func FuzzSubjConcurrentSubscribeNext(f *testing.F) {
 	})
 }
 
-// FuzzSubjUnsubscribeDuringBroadcast unsubscribes from another goroutine and from inside onNext.
-func FuzzSubjUnsubscribeDuringBroadcast(f *testing.F) {
-	fuzzSubjSeeds(f)
+// FuzzSubjectUnsubscribeDuringBroadcast unsubscribes from another goroutine and from inside onNext.
+func FuzzSubjectUnsubscribeDuringBroadcast(f *testing.F) {
+	addSubjectSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, kind, subs, items, mask, extra, amask uint8) {
 		t.Parallel()
 
-		subject := fuzzSubjNew(kind, extra)
+		subject := newSubject(kind, extra)
 		nSubs := fuzzBound(int64(subs), 1, fuzzMaxGoroutines)
 		nItems := fuzzBound(int64(items), 1, fuzzMaxItems)
 		unsubAfter := fuzzBound(int64(extra), 0, nItems-1)
 
-		recorders := make([]*fuzzSubjRecorder, nSubs)
-		holders := make([]*fuzzSubjHolder, nSubs)
+		recorders := make([]*subjectRecorder, nSubs)
+		holders := make([]*subscriptionHolder, nSubs)
 
 		for i := range recorders {
-			r := &fuzzSubjRecorder{}
-			h := &fuzzSubjHolder{}
+			r := &subjectRecorder{}
+			h := &subscriptionHolder{}
 
 			if (mask>>(uint(i)%8))&1 == 1 {
 				r.onNext = func(int) {
@@ -348,7 +348,7 @@ func FuzzSubjUnsubscribeDuringBroadcast(f *testing.F) {
 			recorders[i] = r
 			holders[i] = h
 
-			fuzzSubjWithin(t, "subscribe", func() {
+			requireReturnsWithin(t, "subscribe", func() {
 				h.set(subject.Subscribe(r.observer()))
 			})
 		}
@@ -372,9 +372,9 @@ func FuzzSubjUnsubscribeDuringBroadcast(f *testing.F) {
 			}
 		}()
 
-		fuzzSubjFeed(&wg, seed, subject, nItems, fuzzIsAsync(amask, 0), false)
+		feedSubject(&wg, seed, subject, nItems, fuzzIsAsync(amask, 0), false)
 
-		fuzzSubjWaitOrFail(t, "unsubscribe during broadcast", &wg)
+		requireWaitGroupDone(t, "unsubscribe during broadcast", &wg)
 
 		for _, r := range recorders {
 			r.check(t, "subscriber")
@@ -390,24 +390,24 @@ func FuzzSubjUnsubscribeDuringBroadcast(f *testing.F) {
 	})
 }
 
-// FuzzSubjNextRacesTerminal races Next against Complete and Error from several goroutines.
-func FuzzSubjNextRacesTerminal(f *testing.F) {
-	fuzzSubjSeeds(f)
+// FuzzSubjectNextRacesTerminal races Next against Complete and Error from several goroutines.
+func FuzzSubjectNextRacesTerminal(f *testing.F) {
+	addSubjectSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, kind, subs, items, mask, extra, amask uint8) {
 		t.Parallel()
 
-		subject := fuzzSubjNew(kind, extra)
+		subject := newSubject(kind, extra)
 		nSubs := fuzzBound(int64(subs), 1, fuzzMaxGoroutines)
 		nItems := fuzzBound(int64(items), 0, fuzzMaxItems)
-		nProducers := fuzzBound(int64(extra), 1, fuzzSubjMaxProducers)
+		nProducers := fuzzBound(int64(extra), 1, maxConcurrentProducers)
 
-		recorders := make([]*fuzzSubjRecorder, nSubs)
+		recorders := make([]*subjectRecorder, nSubs)
 		for i := range recorders {
-			r := &fuzzSubjRecorder{}
+			r := &subjectRecorder{}
 			recorders[i] = r
 
-			fuzzSubjWithin(t, "subscribe", func() {
+			requireReturnsWithin(t, "subscribe", func() {
 				subject.Subscribe(r.observer())
 			})
 		}
@@ -416,7 +416,7 @@ func FuzzSubjNextRacesTerminal(f *testing.F) {
 
 		// Producer 0 is a source that also terminates the subject; the others call Next directly.
 		// Together with the two terminators below, up to 3 terminal calls race.
-		fuzzSubjFeed(&wg, seed, subject, nItems, fuzzIsAsync(amask, 0), mask&0x40 != 0)
+		feedSubject(&wg, seed, subject, nItems, fuzzIsAsync(amask, 0), mask&0x40 != 0)
 
 		for p := 1; p < nProducers; p++ {
 			wg.Add(1)
@@ -440,14 +440,14 @@ func FuzzSubjNextRacesTerminal(f *testing.F) {
 				fuzzJitter(seed, 500+k)
 
 				if (mask>>uint(k))&1 == 1 {
-					subject.Error(errFuzzSubj)
+					subject.Error(errSubjectBoom)
 				} else {
 					subject.Complete()
 				}
 			}(k)
 		}
 
-		fuzzSubjWaitOrFail(t, "next vs terminal", &wg)
+		requireWaitGroupDone(t, "next vs terminal", &wg)
 
 		settled := make([]int32, nSubs)
 
@@ -475,26 +475,26 @@ func FuzzSubjNextRacesTerminal(f *testing.F) {
 	})
 }
 
-// fuzzSubjReentrant calls op from inside the first notification an observer receives.
+// registerReentrantFuzz calls op from inside the first notification an observer receives.
 // op: 0 = IsClosed, 1 = Next, 2 = Subscribe.
-func fuzzSubjReentrant(f *testing.F, op int) {
+func registerReentrantFuzz(f *testing.F, op int) {
 	f.Helper()
-	fuzzSubjSeeds(f)
+	addSubjectSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, kind, subs, items, mask, extra, amask uint8) {
 		t.Parallel()
 
-		subject := fuzzSubjNew(kind, extra)
+		subject := newSubject(kind, extra)
 		nItems := fuzzBound(int64(items), 0, fuzzMaxItems)
 		pre := nItems / 2
 
-		rec := &fuzzSubjRecorder{}
+		rec := &subjectRecorder{}
 		rec.onEvent = func() {
 			switch op {
 			case 0:
 				_ = subject.IsClosed()
 			case 1:
-				subject.Next(fuzzSubjReentrantValue)
+				subject.Next(reentrantNextValue)
 			default:
 				subject.Subscribe(ro.OnNext(func(int) {})).Unsubscribe()
 			}
@@ -502,7 +502,7 @@ func fuzzSubjReentrant(f *testing.F, op int) {
 
 		var wg sync.WaitGroup
 
-		fuzzSubjWithin(t, "re-entrant call", func() {
+		requireReturnsWithin(t, "re-entrant call", func() {
 			// Items sent before Subscribe exercise the replay paths, which run the observer under Subscribe.
 			for i := 0; i < pre; i++ {
 				subject.Next(i)
@@ -511,40 +511,40 @@ func fuzzSubjReentrant(f *testing.F, op int) {
 			subject.Subscribe(rec.observer())
 		})
 
-		fuzzSubjFeed(&wg, seed, subject, nItems-pre, fuzzIsAsync(amask, 0), mask&1 == 1)
+		feedSubject(&wg, seed, subject, nItems-pre, fuzzIsAsync(amask, 0), mask&1 == 1)
 
-		fuzzSubjWaitOrFail(t, "re-entrant call", &wg)
+		requireWaitGroupDone(t, "re-entrant call", &wg)
 
 		rec.check(t, "subscriber")
 	})
 }
 
-// FuzzSubjReentrantIsClosed calls subject.IsClosed() from inside onNext.
-func FuzzSubjReentrantIsClosed(f *testing.F) {
+// FuzzSubjectReentrantIsClosed calls subject.IsClosed() from inside onNext.
+func FuzzSubjectReentrantIsClosed(f *testing.F) {
 	f.Skip("race: subjects-reentrant-lock; remove when fixed")
 
-	fuzzSubjReentrant(f, 0)
+	registerReentrantFuzz(f, 0)
 }
 
-// FuzzSubjReentrantNext calls subject.Next() from inside onNext.
-func FuzzSubjReentrantNext(f *testing.F) {
+// FuzzSubjectReentrantNext calls subject.Next() from inside onNext.
+func FuzzSubjectReentrantNext(f *testing.F) {
 	f.Skip("race: subjects-reentrant-lock; remove when fixed")
 
-	fuzzSubjReentrant(f, 1)
+	registerReentrantFuzz(f, 1)
 }
 
-// FuzzSubjReentrantSubscribe calls subject.Subscribe() from inside onNext.
-func FuzzSubjReentrantSubscribe(f *testing.F) {
+// FuzzSubjectReentrantSubscribe calls subject.Subscribe() from inside onNext.
+func FuzzSubjectReentrantSubscribe(f *testing.F) {
 	f.Skip("race: subjects-reentrant-lock; remove when fixed")
 
-	fuzzSubjReentrant(f, 2)
+	registerReentrantFuzz(f, 2)
 }
 
-// FuzzSubjUnicastClosedSubscriber subscribes an already-closed Subscriber to a UnicastSubject.
-func FuzzSubjUnicastClosedSubscriber(f *testing.F) {
+// FuzzSubjectUnicastClosedSubscriber subscribes an already-closed Subscriber to a UnicastSubject.
+func FuzzSubjectUnicastClosedSubscriber(f *testing.F) {
 	f.Skip("race: unicast-closed-subscriber-selfdeadlock; remove when fixed")
 
-	fuzzSubjSeeds(f)
+	addSubjectSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, kind, subs, items, mask, extra, amask uint8) {
 		t.Parallel()
@@ -560,28 +560,28 @@ func FuzzSubjUnicastClosedSubscriber(f *testing.F) {
 		case 1:
 			subject.Complete()
 		case 2:
-			subject.Error(errFuzzSubj)
+			subject.Error(errSubjectBoom)
 		}
 
-		closed := &fuzzSubjRecorder{}
+		closed := &subjectRecorder{}
 		sub := ro.NewSubscriber(closed.observer())
 		sub.Unsubscribe()
 
-		fuzzSubjWithin(t, "Subscribe with a closed Subscriber", func() {
+		requireReturnsWithin(t, "Subscribe with a closed Subscriber", func() {
 			subject.Subscribe(sub)
 		})
 
 		// The subject must stay usable afterwards.
-		live := &fuzzSubjRecorder{}
+		live := &subjectRecorder{}
 
-		fuzzSubjWithin(t, "Subscribe after a closed Subscriber", func() {
+		requireReturnsWithin(t, "Subscribe after a closed Subscriber", func() {
 			subject.Subscribe(live.observer())
 		})
 
 		var wg sync.WaitGroup
 
-		fuzzSubjFeed(&wg, seed, subject, fuzzBound(int64(subs), 0, fuzzMaxItems), fuzzIsAsync(amask, 0), false)
-		fuzzSubjWaitOrFail(t, "feed after a closed Subscriber", &wg)
+		feedSubject(&wg, seed, subject, fuzzBound(int64(subs), 0, fuzzMaxItems), fuzzIsAsync(amask, 0), false)
+		requireWaitGroupDone(t, "feed after a closed Subscriber", &wg)
 
 		if closed.terminals() != 0 || atomic.LoadInt32(&closed.nexts) != 0 {
 			t.Errorf("closed subscriber received notifications")
@@ -591,11 +591,11 @@ func FuzzSubjUnicastClosedSubscriber(f *testing.F) {
 	})
 }
 
-// FuzzSubjUnicastReplayUnsubscribe unsubscribes the subscriber from inside the buffered replay.
-func FuzzSubjUnicastReplayUnsubscribe(f *testing.F) {
+// FuzzSubjectUnicastReplayUnsubscribe unsubscribes the subscriber from inside the buffered replay.
+func FuzzSubjectUnicastReplayUnsubscribe(f *testing.F) {
 	f.Skip("race: unicast-closed-subscriber-selfdeadlock; remove when fixed")
 
-	fuzzSubjSeeds(f)
+	addSubjectSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, kind, subs, items, mask, extra, amask uint8) {
 		t.Parallel()
@@ -608,7 +608,7 @@ func FuzzSubjUnicastReplayUnsubscribe(f *testing.F) {
 			subject.Next(i)
 		}
 
-		rec := &fuzzSubjRecorder{}
+		rec := &subjectRecorder{}
 
 		var sub ro.Subscriber[int]
 
@@ -620,15 +620,15 @@ func FuzzSubjUnicastReplayUnsubscribe(f *testing.F) {
 		}
 		sub = ro.NewSubscriber(rec.observer())
 
-		fuzzSubjWithin(t, "Subscribe unsubscribing during replay", func() {
+		requireReturnsWithin(t, "Subscribe unsubscribing during replay", func() {
 			subject.Subscribe(sub)
 		})
 
 		var wg sync.WaitGroup
 
 		// Live items after the replay must not reach the unsubscribed observer.
-		fuzzSubjFeed(&wg, seed, subject, fuzzBound(int64(subs), 0, fuzzMaxItems), fuzzIsAsync(amask, 0), mask&1 == 1)
-		fuzzSubjWaitOrFail(t, "feed after replay unsubscription", &wg)
+		feedSubject(&wg, seed, subject, fuzzBound(int64(subs), 0, fuzzMaxItems), fuzzIsAsync(amask, 0), mask&1 == 1)
+		requireWaitGroupDone(t, "feed after replay unsubscription", &wg)
 
 		if got := int(atomic.LoadInt32(&rec.nexts)); got != stopAt+1 {
 			t.Errorf("observer received %d values, want %d (nothing after the unsubscription)", got, stopAt+1)
@@ -638,9 +638,9 @@ func FuzzSubjUnicastReplayUnsubscribe(f *testing.F) {
 	})
 }
 
-// FuzzSubjUnicastResubscribe re-subscribes to a UnicastSubject after the first subscriber left.
-func FuzzSubjUnicastResubscribe(f *testing.F) {
-	fuzzSubjSeeds(f)
+// FuzzSubjectUnicastResubscribe re-subscribes to a UnicastSubject after the first subscriber left.
+func FuzzSubjectUnicastResubscribe(f *testing.F) {
+	addSubjectSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, kind, subs, items, mask, extra, amask uint8) {
 		t.Parallel()
@@ -650,7 +650,7 @@ func FuzzSubjUnicastResubscribe(f *testing.F) {
 		nGap := fuzzBound(int64(items), 0, fuzzMaxItems)
 		nLive := fuzzBound(int64(subs), 0, fuzzMaxItems)
 
-		first := &fuzzSubjRecorder{}
+		first := &subjectRecorder{}
 		firstSub := subject.Subscribe(first.observer())
 
 		subject.Next(-1)
@@ -661,17 +661,17 @@ func FuzzSubjUnicastResubscribe(f *testing.F) {
 		}
 
 		for i := 0; i < nGap; i++ {
-			subject.Next(fuzzSubjGapBase + i)
+			subject.Next(gapValueBase + i)
 			fuzzJitter(seed, i)
 		}
 
-		second := &fuzzSubjRecorder{}
-		fuzzSubjWithin(t, "re-subscribe", func() { subject.Subscribe(second.observer()) })
+		second := &subjectRecorder{}
+		requireReturnsWithin(t, "re-subscribe", func() { subject.Subscribe(second.observer()) })
 
 		var wg sync.WaitGroup
 
-		fuzzSubjFeed(&wg, seed, subject, nLive, fuzzIsAsync(amask, 0), mask&1 == 1)
-		fuzzSubjWaitOrFail(t, "feed after re-subscribe", &wg)
+		feedSubject(&wg, seed, subject, nLive, fuzzIsAsync(amask, 0), mask&1 == 1)
+		requireWaitGroupDone(t, "feed after re-subscribe", &wg)
 
 		got := second.snapshot()
 
@@ -684,7 +684,7 @@ func FuzzSubjUnicastResubscribe(f *testing.F) {
 		}
 
 		for i := 0; i < replayed; i++ {
-			if want := fuzzSubjGapBase + nGap - replayed + i; got[i] != want {
+			if want := gapValueBase + nGap - replayed + i; got[i] != want {
 				t.Fatalf("replayed value %d = %d, want %d: %v", i, got[i], want, got)
 			}
 		}
@@ -708,17 +708,17 @@ func FuzzSubjUnicastResubscribe(f *testing.F) {
 	})
 }
 
-// FuzzSubjLongLock parks one observer inside Next and checks that Subscribe and IsClosed
+// FuzzSubjectLongLock parks one observer inside Next and checks that Subscribe and IsClosed
 // on the same subject still return, instead of waiting for the observer.
-func FuzzSubjLongLock(f *testing.F) {
+func FuzzSubjectLongLock(f *testing.F) {
 	f.Skip("race: subjects-long-lock; remove when fixed")
 
-	fuzzSubjSeeds(f)
+	addSubjectSeeds(f)
 
 	f.Fuzz(func(t *testing.T, seed int64, kind, subs, items, mask, extra, amask uint8) {
 		t.Parallel()
 
-		subject := fuzzSubjNew(kind, extra)
+		subject := newSubject(kind, extra)
 		nItems := fuzzBound(int64(items), 1, fuzzMaxItems)
 		trigger := nItems - 1
 
@@ -734,12 +734,12 @@ func FuzzSubjLongLock(f *testing.F) {
 			}
 		})
 
-		fuzzSubjWithin(t, "subscribe blocker", func() { subject.Subscribe(blocker) })
+		requireReturnsWithin(t, "subscribe blocker", func() { subject.Subscribe(blocker) })
 
 		var wg sync.WaitGroup
 
 		// The source's last item parks the blocker (an AsyncSubject only notifies it on completion).
-		fuzzSubjFeed(&wg, seed, subject, nItems, fuzzIsAsync(amask, 0), false)
+		feedSubject(&wg, seed, subject, nItems, fuzzIsAsync(amask, 0), false)
 
 		select {
 		case <-entered:
@@ -767,16 +767,16 @@ func FuzzSubjLongLock(f *testing.F) {
 			}(i)
 		}
 
-		returned := fuzzSubjWait(fuzzSubjShortDeadline, &probes)
+		returned := waitGroupDoneWithin(subjectShortDeadline, &probes)
 
 		close(release)
 
-		fuzzSubjWaitOrFail(t, "source after the observer was released", &wg)
+		requireWaitGroupDone(t, "source after the observer was released", &wg)
 		// Probes unblock once the lock is released, so waiting here leaks no goroutine.
-		fuzzSubjWaitOrFail(t, "probes after release", &probes)
+		requireWaitGroupDone(t, "probes after release", &probes)
 
 		if !returned {
-			t.Fatalf("Subscribe/IsClosed blocked for more than %s while an observer was parked in Next", fuzzSubjShortDeadline)
+			t.Fatalf("Subscribe/IsClosed blocked for more than %s while an observer was parked in Next", subjectShortDeadline)
 		}
 	})
 }
