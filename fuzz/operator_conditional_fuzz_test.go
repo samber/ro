@@ -20,65 +20,111 @@ import (
 	"github.com/samber/ro"
 )
 
+// FuzzContains checks whether any item of a source of `items` integers is >= decisionIndex. The source
+// is synchronous or asynchronous, and may keep emitting after the operator decided.
+//
+// Invariant: Contains emits exactly one boolean (true when some item matched) and completes once, and
+// it never calls the predicate again after the call that matched. Items after the match also
+// satisfy the predicate, so a re-fired decision would be visible.
+//
+// Seeds: items and decisionIndex spread over their range; asyncSource, sourceIgnoresStop and
+// withIndex (ContainsI instead of Contains) alternate.
 func FuzzContains(f *testing.F) {
 	f.Skip("race: contains-predicate-after-decision (sync source keeps calling predicate); remove when fixed")
 
-	addShortCircuitSeeds(f)
+	fuzzSeeds(f, func(i int) []any {
+		// items, decisionIndex, asyncSource, sourceIgnoresStop, withIndex
+		return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0, i%4 < 2, i%3 == 0}
+	})
 
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, variant := decodeShortCircuitScenario(seed)
-		probe := &predicateCallCounter{}
+	f.Fuzz(func(t *testing.T, items, decisionIndex uint8, asyncSource, sourceIgnoresStop, withIndex bool) {
+		count := bounded(items, 0, maxItems)
+		decision := bounded(decisionIndex, 0, count+1) // decision >= count: no item matches
 
-		sink := runWithRawSink(t, "Contains", seed, mask, n, func(source ro.Observable[int]) ro.Observable[bool] {
-			// >= makes every item after the decision a match too, so a re-fired decision is visible.
-			if variant == 0 {
-				return ro.Contains(func(v int) bool { probe.call(v >= k); return v >= k })(source)
-			}
+		numbers := newSource(count, asyncSource).ignoringStop(sourceIgnoresStop)
+		predicate := newCountingPredicate(true, func(item int) bool { return item >= decision })
 
-			return ro.ContainsI(func(v int, _ int64) bool { probe.call(v >= k); return v >= k })(source)
-		})
+		contains := ro.Contains(predicate.test)
+		if withIndex {
+			contains = ro.ContainsI(predicate.testIndexed)
+		}
 
-		checkSingleResult(t, "Contains", sink, probe, []bool{k < n}, false, mask)
+		got := collect(t, contains(numbers.observable()), numbers)
+
+		got.expectValues(t, []bool{decision < count})
+		got.expectCompletedOnce(t)
+		got.expectContract(t)
+		predicate.expectNoCallAfterDecision(t)
 	})
 }
 
+// FuzzFind looks for the first item >= decisionIndex in a source of `items` integers. The source is
+// synchronous or asynchronous, and may keep emitting after the operator decided.
+//
+// Invariant: Find emits the first matching item, or nothing when none matches, and completes once. It
+// never calls the predicate again after the call that matched.
+//
+// Seeds: same as FuzzContains, with withIndex selecting FindI.
 func FuzzFind(f *testing.F) {
 	f.Skip("race: find-predicate-after-decision (sync source keeps calling predicate); remove when fixed")
 
-	addShortCircuitSeeds(f)
+	fuzzSeeds(f, func(i int) []any {
+		// items, decisionIndex, asyncSource, sourceIgnoresStop, withIndex
+		return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0, i%4 < 2, i%3 == 0}
+	})
 
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, variant := decodeShortCircuitScenario(seed)
-		probe := &predicateCallCounter{}
+	f.Fuzz(func(t *testing.T, items, decisionIndex uint8, asyncSource, sourceIgnoresStop, withIndex bool) {
+		count := bounded(items, 0, maxItems)
+		decision := bounded(decisionIndex, 0, count+1) // decision >= count: no item matches
 
-		sink := runWithRawSink(t, "Find", seed, mask, n, func(source ro.Observable[int]) ro.Observable[int] {
-			if variant == 0 {
-				return ro.Find(func(v int) bool { probe.call(v >= k); return v >= k })(source)
-			}
+		numbers := newSource(count, asyncSource).ignoringStop(sourceIgnoresStop)
+		predicate := newCountingPredicate(true, func(item int) bool { return item >= decision })
 
-			return ro.FindI(func(v int, _ int64) bool { probe.call(v >= k); return v >= k })(source)
-		})
+		find := ro.Find(predicate.test)
+		if withIndex {
+			find = ro.FindI(predicate.testIndexed)
+		}
 
-		checkSingleResult(t, "Find", sink, probe, expectedItemAt(n, k), false, mask)
+		got := collect(t, find(numbers.observable()), numbers)
+
+		got.expectValues(t, itemAt(decision, count))
+		got.expectCompletedOnce(t)
+		got.expectContract(t)
+		predicate.expectNoCallAfterDecision(t)
 	})
 }
 
-// FuzzAll is the control: All short-circuits correctly since #429.
+// FuzzAll checks that every item of a source of `items` integers is < decisionIndex. The source is
+// synchronous or asynchronous, and may keep emitting after the operator decided. All is the control
+// of this family: it already stops evaluating after the first failing item.
+//
+// Invariant: All emits exactly one boolean (true when no item failed) and completes once, and it never
+// calls the predicate again after the call that failed.
+//
+// Seeds: same as FuzzContains, with withIndex selecting AllI.
 func FuzzAll(f *testing.F) {
-	addShortCircuitSeeds(f)
+	fuzzSeeds(f, func(i int) []any {
+		// items, decisionIndex, asyncSource, sourceIgnoresStop, withIndex
+		return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0, i%4 < 2, i%3 == 0}
+	})
 
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		n, k, variant := decodeShortCircuitScenario(seed)
-		probe := &predicateCallCounter{}
+	f.Fuzz(func(t *testing.T, items, decisionIndex uint8, asyncSource, sourceIgnoresStop, withIndex bool) {
+		count := bounded(items, 0, maxItems)
+		decision := bounded(decisionIndex, 0, count+1) // decision >= count: no item fails
 
-		sink := runWithRawSink(t, "All", seed, mask, n, func(source ro.Observable[int]) ro.Observable[bool] {
-			if variant == 0 {
-				return ro.All(func(v int) bool { probe.call(v >= k); return v < k })(source)
-			}
+		numbers := newSource(count, asyncSource).ignoringStop(sourceIgnoresStop)
+		predicate := newCountingPredicate(false, func(item int) bool { return item < decision })
 
-			return ro.AllI(func(v int, _ int64) bool { probe.call(v >= k); return v < k })(source)
-		})
+		all := ro.All(predicate.test)
+		if withIndex {
+			all = ro.AllI(predicate.testIndexed)
+		}
 
-		checkSingleResult(t, "All", sink, probe, []bool{k >= n}, false, mask)
+		got := collect(t, all(numbers.observable()), numbers)
+
+		got.expectValues(t, []bool{decision >= count})
+		got.expectCompletedOnce(t)
+		got.expectContract(t)
+		predicate.expectNoCallAfterDecision(t)
 	})
 }
