@@ -17,6 +17,7 @@ package ro
 import (
 	"context"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -863,4 +864,29 @@ func TestConnectableWithConfig(t *testing.T) {
 	is.Equal([]int{2, 4, 6}, a)
 	is.Equal([]int{1, 2, 3}, b)
 	is.Equal([]string{"1", "2", "3"}, c)
+}
+
+func TestConnectableObservable_concurrentConnectSubscribe(t *testing.T) {
+	t.Parallel()
+
+	const goroutines = 16
+	const iterations = 200
+
+	connectable := Connectable(Just(1, 2, 3))
+
+	var wg sync.WaitGroup
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < iterations; j++ {
+				// Connect completes synchronously and its teardown resets the subject,
+				// racing with concurrent Connect and Subscribe calls.
+				connectable.Connect().Unsubscribe()
+				connectable.Subscribe(OnNext(func(int) {})).Unsubscribe()
+			}
+		}()
+	}
+	wg.Wait()
 }
