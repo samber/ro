@@ -453,3 +453,36 @@ func TestPublishSubject_complete(t *testing.T) {
 	subscription3.Unsubscribe()
 	subscription4.Unsubscribe()
 }
+
+func TestPublishSubject_reentrantCallFromObserver(t *testing.T) {
+	// @TODO: Known bug. NextWithContext holds s.mu while it runs observer
+	// callbacks, so an observer calling back into the subject (here IsClosed)
+	// deadlocks. Unskip once the subject stops holding its lock across user code.
+	t.Skip("known deadlock: publish subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewPublishSubject[int]()
+	subject.Subscribe(OnNext(func(int) {
+		_ = subject.IsClosed() // takes s.mu again
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Next(1) }), "Next deadlocked on re-entrant IsClosed")
+}
+
+func TestPublishSubject_panickingObserverKeepsSubjectUsable(t *testing.T) {
+	// @TODO: Known bug. NextWithContext releases s.mu with a plain Unlock, so a
+	// panic raised by an observer leaves the subject locked forever. Unskip once
+	// the unlock is deferred.
+	t.Skip("known bug: a panicking observer leaves the publish subject mutex locked")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewPublishSubject[int]()
+	subject.Subscribe(panickingObserver{})
+
+	is.Panics(func() { subject.Next(1) })
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic")
+}

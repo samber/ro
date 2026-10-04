@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 	"strconv"
@@ -63,6 +64,40 @@ func testWithTimeout(t *testing.T, timeout time.Duration) {
 		}
 	}()
 }
+
+// returnsWithin reports whether fn returns before timeout. A deadlocked fn
+// leaves its goroutine blocked forever.
+func returnsWithin(timeout time.Duration, fn func()) bool {
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		fn()
+	}()
+
+	select {
+	case <-done:
+		return true
+	case <-time.After(timeout):
+		return false
+	}
+}
+
+// panickingObserver implements Observer directly: observers built with
+// NewObserver recover callback panics, so they would never reach the subject.
+type panickingObserver struct{}
+
+var _ Observer[int] = (*panickingObserver)(nil)
+
+func (panickingObserver) Next(int)                                { panic("boom") }
+func (panickingObserver) NextWithContext(context.Context, int)    { panic("boom") }
+func (panickingObserver) Error(error)                             {}
+func (panickingObserver) ErrorWithContext(context.Context, error) {}
+func (panickingObserver) Complete()                               {}
+func (panickingObserver) CompleteWithContext(context.Context)     {}
+func (panickingObserver) IsClosed() bool                          { return false }
+func (panickingObserver) HasThrown() bool                         { return false }
+func (panickingObserver) IsCompleted() bool                       { return false }
 
 func passThrough[T any]() func(Observable[T]) Observable[T] {
 	return func(observable Observable[T]) Observable[T] {

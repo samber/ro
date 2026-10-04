@@ -405,6 +405,25 @@ func TestAsyncSubject_error(t *testing.T) {
 	subscription4.Unsubscribe()
 }
 
+func TestAsyncSubject_reentrantCallFromObserver(t *testing.T) {
+	// @TODO: Known bug. An async subject only emits on completion, and
+	// CompleteWithContext holds s.mu while it runs observer callbacks, so an
+	// observer calling back into the subject (here IsClosed) deadlocks. Unskip
+	// once the subject stops holding its lock across user code.
+	t.Skip("known deadlock: async subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewAsyncSubject[int]()
+	subject.Subscribe(OnNext(func(int) {
+		_ = subject.IsClosed() // takes s.mu again
+	}))
+	subject.Next(1)
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Complete() }), "Complete deadlocked on re-entrant IsClosed")
+}
+
 func TestAsyncSubject_complete(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)

@@ -398,6 +398,26 @@ func TestBehaviorSubject_error(t *testing.T) {
 	subscription4.Unsubscribe()
 }
 
+func TestBehaviorSubject_reentrantCallFromObserver(t *testing.T) {
+	// @TODO: Known bug. NextWithContext, and SubscribeWithContext when it replays
+	// the last value, hold s.mu while they run observer callbacks. An observer
+	// calling back into the subject (here IsClosed) deadlocks. Unskip once the
+	// subject stops holding its lock across user code.
+	t.Skip("known deadlock: behavior subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewBehaviorSubject(0)
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(int) {
+			_ = subject.IsClosed() // takes s.mu again
+		}))
+		subject.Next(1)
+	}), "deadlocked on re-entrant IsClosed")
+}
+
 func TestBehaviorSubject_complete(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
