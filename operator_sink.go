@@ -124,11 +124,43 @@ func ToChannel[T any](size int) func(Observable[T]) Observable[<-chan Notificati
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[<-chan Notification[T]]) Teardown {
 			ch := make(chan Notification[T], size)
 
-			once := sync.Once{}
+			// Closing a channel while another goroutine sends on it panics. Senders
+			// hold the read lock while sending, and closeChan takes the write lock
+			// before closing, so close never overlaps with an in-flight send.
+			// A sender blocked on a full channel would hold the read lock forever
+			// and deadlock closeChan, so closeChan first closes `done` to release
+			// every blocked sender.
+			var mu sync.RWMutex
+			closed := false
+			done := make(chan struct{})
+			doneOnce := sync.Once{}
+
+			send := func(n Notification[T]) {
+				mu.RLock()
+				defer mu.RUnlock()
+
+				if closed {
+					return
+				}
+
+				select {
+				case ch <- n:
+				case <-done:
+				}
+			}
+
 			closeChan := func() {
-				once.Do(func() {
-					close(ch)
+				doneOnce.Do(func() {
+					close(done)
 				})
+
+				mu.Lock()
+				defer mu.Unlock()
+
+				if !closed {
+					closed = true
+					close(ch)
+				}
 			}
 
 			subscriptions := NewSubscription(nil)
@@ -147,16 +179,16 @@ func ToChannel[T any](size int) func(Observable[T]) Observable[<-chan Notificati
 						subscriberCtx,
 						NewObserverWithContext(
 							func(ctx context.Context, value T) {
-								ch <- NewNotificationNext(value)
+								send(NewNotificationNext(value))
 							},
 							func(ctx context.Context, err error) {
-								ch <- NewNotificationError[T](err)
+								send(NewNotificationError[T](err))
 
 								closeChan()
 								destination.CompleteWithContext(ctx)
 							},
 							func(ctx context.Context) {
-								ch <- NewNotificationComplete[T]()
+								send(NewNotificationComplete[T]())
 
 								closeChan()
 								destination.CompleteWithContext(ctx)
