@@ -22,13 +22,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// reentrancyTimeout is long enough for a healthy call to return, and short
-// enough to keep a deadlocked run fast.
-const reentrancyTimeout = 500 * time.Millisecond
-
-// returnsWithin reports whether fn returns before reentrancyTimeout. A
-// deadlocked fn leaves its goroutine blocked forever.
-func returnsWithin(fn func()) bool {
+// returnsWithin reports whether fn returns before timeout. A deadlocked fn
+// leaves its goroutine blocked forever.
+func returnsWithin(timeout time.Duration, fn func()) bool {
 	done := make(chan struct{})
 
 	go func() {
@@ -39,7 +35,7 @@ func returnsWithin(fn func()) bool {
 	select {
 	case <-done:
 		return true
-	case <-time.After(reentrancyTimeout):
+	case <-time.After(timeout):
 		return false
 	}
 }
@@ -55,7 +51,7 @@ func TestPublishSubject_reentrantCallFromObserver(t *testing.T) {
 		_ = subject.IsClosed() // takes s.mu again
 	}))
 
-	is.True(returnsWithin(func() { subject.Next(1) }), "Next deadlocked on re-entrant IsClosed")
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Next(1) }), "Next deadlocked on re-entrant IsClosed")
 }
 
 // A teardown added to an already closed subscription runs under s.mu, so
@@ -67,7 +63,7 @@ func TestSubscription_reentrantAddOnClosedSubscription(t *testing.T) {
 	sub := NewSubscription(nil)
 	sub.Unsubscribe()
 
-	is.True(returnsWithin(func() {
+	is.True(returnsWithin(500*time.Millisecond, func() {
 		sub.Add(func() {
 			sub.Add(func() {}) // takes s.mu again
 		})
@@ -97,5 +93,5 @@ func TestPublishSubject_panickingObserverKeepsSubjectUsable(t *testing.T) {
 	subject.Subscribe(panickingObserver{})
 
 	is.Panics(func() { subject.Next(1) })
-	is.True(returnsWithin(func() { _ = subject.IsClosed() }), "mutex still locked after observer panic")
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic")
 }
