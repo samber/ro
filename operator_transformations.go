@@ -885,14 +885,19 @@ func ThrottleTime[T any](interval time.Duration) func(Observable[T]) Observable[
 
 	return func(source Observable[T]) Observable[T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+			// The monotonic clock counts from process start, so a zero `lastAt` cannot
+			// stand for "nothing emitted yet": while uptime < interval, the first value
+			// would be dropped.
 			lastAt := int64(0)
+			hasEmitted := false
 
 			sub := source.SubscribeWithContext(
 				subscriberCtx,
 				NewObserverWithContext(
 					func(ctx context.Context, value T) {
 						now := xtime.NowNanoMonotonic()
-						if lastAt+intervalNano < now {
+						if !hasEmitted || lastAt+intervalNano < now {
+							hasEmitted = true
 							lastAt = now
 
 							destination.NextWithContext(ctx, value)
