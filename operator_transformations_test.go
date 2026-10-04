@@ -1208,6 +1208,22 @@ func TestOperatorTransformationThrottleTime(t *testing.T) { //nolint:paralleltes
 	is.EqualError(err, assert.AnError.Error())
 }
 
+func TestOperatorTransformationThrottleTimeFirstValueWithLongInterval(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// The monotonic clock counts from process start, so an interval longer than the
+	// current uptime must still let the first value through.
+	values, err := Collect(
+		Pipe1(
+			Just(1, 2, 3),
+			ThrottleTime[int](time.Hour),
+		),
+	)
+	is.Equal([]int{1}, values)
+	is.NoError(err)
+}
+
 func TestOperatorTransformationBufferWithCountHugeSize(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
