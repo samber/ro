@@ -16,6 +16,7 @@ package ro
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -57,6 +58,32 @@ func TestOperatorConditionalAll(t *testing.T) {
 	)
 	is.Equal([]bool{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// Short-circuit: the predicate must not run again after the first failure.
+	calls := 0
+	values, err = Collect(
+		All(func(v int) bool {
+			calls++
+			return v < 2
+		})(Just(1, 2, 3, 4, 5)),
+	)
+	is.Equal([]bool{false}, values)
+	is.NoError(err)
+	is.Equal(2, calls)
+
+	// Short-circuit: a failing item must unsubscribe from an unbounded source.
+	values, err = Collect(
+		All(func(v int64) bool { return v < 3 })(Interval(time.Millisecond)),
+	)
+	is.Equal([]bool{false}, values)
+	is.NoError(err)
+
+	// Short-circuit: an error after the first failure is never observed.
+	values, err = Collect(
+		All(odd)(Concat(Just(1), Throw[int](assert.AnError))),
+	)
+	is.Equal([]bool{false}, values)
+	is.NoError(err)
 }
 
 func TestOperatorConditionalAllI(t *testing.T) {

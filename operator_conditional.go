@@ -48,21 +48,33 @@ func AllI[T any](predicate func(item T, index int64) bool) func(Observable[T]) O
 func AllIWithContext[T any](predicate func(ctx context.Context, item T, index int64) bool) func(Observable[T]) Observable[bool] {
 	return func(source Observable[T]) Observable[bool] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[bool]) Teardown {
-			ok := true
 			i := int64(0)
+			failed := false
 
 			sub := source.SubscribeWithContext(
 				subscriberCtx,
 				NewObserverWithContext(
 					func(ctx context.Context, value T) {
-						if ok {
-							ok = predicate(ctx, value, i)
-							i++
+						// Synchronous sources may keep emitting until the unsubscription
+						// lands: never run the predicate again after the first failure.
+						if failed {
+							return
+						}
+
+						ok := predicate(ctx, value, i)
+						i++
+
+						// First failure decides the result. Completing the destination
+						// unsubscribes from the source, so remaining items are not awaited.
+						if !ok {
+							failed = true
+							destination.NextWithContext(ctx, false)
+							destination.CompleteWithContext(ctx)
 						}
 					},
 					destination.ErrorWithContext,
 					func(ctx context.Context) {
-						destination.NextWithContext(ctx, ok)
+						destination.NextWithContext(ctx, true)
 						destination.CompleteWithContext(ctx)
 					},
 				),
