@@ -171,6 +171,7 @@ func RetryWithConfig[T any](opts RetryConfig) func(Observable[T]) Observable[T] 
 
 				var shouldRetry bool
 				var lastErr error
+				var lastErrCtx context.Context
 
 				sub := source.SubscribeWithContext(
 					subscriberCtx,
@@ -183,6 +184,7 @@ func RetryWithConfig[T any](opts RetryConfig) func(Observable[T]) Observable[T] 
 						},
 						func(ctx context.Context, err error) {
 							lastErr = err
+							lastErrCtx = ctx
 							retries++
 							shouldRetry = opts.MaxRetries == 0 || retries <= opts.MaxRetries
 						},
@@ -211,7 +213,7 @@ func RetryWithConfig[T any](opts RetryConfig) func(Observable[T]) Observable[T] 
 						// Continue to next iteration
 						continue
 					}
-					destination.ErrorWithContext(subscriberCtx, lastErr)
+					destination.ErrorWithContext(lastErrCtx, lastErr)
 				}
 				break
 			}

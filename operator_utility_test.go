@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"context"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -353,6 +354,68 @@ func TestOperatorUtilityDelay(t *testing.T) { //nolint:paralleltest
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+}
+
+func TestOperatorUtilityDelayEach(t *testing.T) {
+	t.Parallel()
+
+	const longDelay = time.Minute // must never elapse: the test fails by timing out the assertion below
+	const maxReturnTime = 5 * time.Second
+
+	tests := []struct {
+		name        string
+		cancelAfter time.Duration // 0 = context canceled before subscribing
+	}{
+		{name: "canceled while waiting", cancelAfter: 20 * time.Millisecond},
+		{name: "canceled before subscribing", cancelAfter: 0},
+	}
+
+	for _, tt := range tests {
+		tt := tt // go.mod predates per-iteration loop variables
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			if tt.cancelAfter == 0 {
+				cancel()
+			} else {
+				time.AfterFunc(tt.cancelAfter, cancel)
+			}
+
+			var values []int
+
+			var gotErr error
+
+			start := time.Now()
+
+			sub := Pipe1(Just(1, 2, 3), DelayEach[int](longDelay)).SubscribeWithContext(
+				ctx,
+				NewObserverWithContext(
+					func(_ context.Context, value int) { values = append(values, value) },
+					func(_ context.Context, err error) { gotErr = err },
+					func(_ context.Context) {},
+				),
+			)
+			sub.Wait()
+
+			is.Less(time.Since(start), maxReturnTime)
+			is.Empty(values)
+			is.ErrorIs(gotErr, context.Canceled)
+		})
+	}
+
+	t.Run("emits every item after the delay", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(Pipe1(Just(1, 2, 3), DelayEach[int](5*time.Millisecond)))
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 }
 
 func TestOperatorUtilityRepeatWith(t *testing.T) { //nolint:paralleltest

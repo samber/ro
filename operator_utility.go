@@ -375,8 +375,16 @@ func DelayEach[T any](duration time.Duration) func(Observable[T]) Observable[T] 
 				subscriberCtx,
 				NewObserverWithContext(
 					func(ctx context.Context, value T) {
-						time.Sleep(duration)
-						destination.NextWithContext(ctx, value)
+						timer := time.NewTimer(duration)
+
+						select {
+						case <-timer.C:
+							destination.NextWithContext(ctx, value)
+						case <-ctx.Done():
+							// Release the timer now instead of holding it until it fires.
+							timer.Stop()
+							destination.ErrorWithContext(ctx, ctx.Err())
+						}
 					},
 					destination.ErrorWithContext,
 					destination.CompleteWithContext,

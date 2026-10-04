@@ -90,6 +90,59 @@ func TestOperatorCreationTimer(t *testing.T) { //nolint:paralleltest
 	is.InDelta(50*time.Millisecond, time.Since(start), float64(10*time.Millisecond))
 }
 
+func TestOperatorCreationTimerContextCancel(t *testing.T) {
+	t.Parallel()
+
+	const longTimer = time.Minute // must never elapse
+	const maxReturnTime = 5 * time.Second
+
+	tests := []struct {
+		name        string
+		cancelAfter time.Duration // 0 = context canceled before subscribing
+	}{
+		{name: "canceled while waiting", cancelAfter: 20 * time.Millisecond},
+		{name: "canceled before subscribing", cancelAfter: 0},
+	}
+
+	for _, tt := range tests {
+		tt := tt // go.mod predates per-iteration loop variables
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			if tt.cancelAfter == 0 {
+				cancel()
+			} else {
+				time.AfterFunc(tt.cancelAfter, cancel)
+			}
+
+			var values []time.Duration
+
+			var gotErr error
+
+			start := time.Now()
+
+			sub := Timer(longTimer).SubscribeWithContext(
+				ctx,
+				NewObserverWithContext(
+					func(_ context.Context, value time.Duration) { values = append(values, value) },
+					func(_ context.Context, err error) { gotErr = err },
+					func(_ context.Context) {},
+				),
+			)
+			sub.Wait()
+
+			is.Less(time.Since(start), maxReturnTime)
+			is.Empty(values)
+			is.ErrorIs(gotErr, context.Canceled)
+		})
+	}
+}
+
 func TestOperatorCreationInterval(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 400*time.Millisecond)
