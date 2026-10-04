@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"context"
 	"io/fs"
 	"math"
 	"os"
@@ -649,8 +650,293 @@ func TestOperatorTransformationBufferWithTime(t *testing.T) { //nolint:parallelt
 	is.EqualError(err, assert.AnError.Error())
 }
 
-func TestOperatorTransformationWindowWhen(t *testing.T) { //nolint:paralleltest
-	// @TODO: Implement tests
+// windowLog records everything a WindowWhen pipeline emits. It is only safe to
+// use with sources driven from a single goroutine (e.g. PublishSubject driven
+// by the test), which keeps the assertions deterministic and free of sleeps.
+type windowLog[T any] struct {
+	windows   [][]T
+	closed    []bool
+	errs      []error
+	err       error
+	completed bool
+}
+
+// observeWindows subscribes to every window as soon as it is emitted.
+func observeWindows[T any](source Observable[Observable[T]]) (*windowLog[T], Subscription) {
+	log := &windowLog[T]{}
+
+	sub := source.Subscribe(NewObserver(
+		func(window Observable[T]) {
+			i := len(log.windows)
+			log.windows = append(log.windows, []T{})
+			log.closed = append(log.closed, false)
+			log.errs = append(log.errs, nil)
+
+			window.Subscribe(NewObserver(
+				func(value T) { log.windows[i] = append(log.windows[i], value) },
+				func(err error) { log.errs[i] = err },
+				func() { log.closed[i] = true },
+			))
+		},
+		func(err error) { log.err = err },
+		func() { log.completed = true },
+	))
+
+	return log, sub
+}
+
+func TestOperatorTransformationWindowWhen(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 1000*time.Millisecond)
+
+	t.Run("collect windows of a synchronous source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		// Never() boundary: a single window holding every item. Windows must be
+		// subscribed while they are open: a window completed before anyone
+		// subscribed does not replay its buffered items.
+		log, sub := observeWindows(
+			Pipe1(
+				Just(1, 2, 3),
+				WindowWhen[int](Never()),
+			),
+		)
+		defer sub.Unsubscribe()
+
+		is.Equal([][]int{{1, 2, 3}}, log.windows)
+		is.Equal([]bool{true}, log.closed)
+		is.True(log.completed)
+		is.NoError(log.err)
+	})
+
+	t.Run("empty source emits one empty window", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		windows, err := Collect(
+			Pipe1(
+				Empty[int](),
+				WindowWhen[int](Never()),
+			),
+		)
+		is.NoError(err)
+		is.Len(windows, 1)
+
+		values, err := Collect(windows[0])
+		is.NoError(err)
+		is.Equal([]int{}, values)
+	})
+
+	t.Run("source error propagates without emitting a window", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		windows, err := Collect(
+			Pipe1(
+				Throw[int](assert.AnError),
+				WindowWhen[int](Never()),
+			),
+		)
+		is.EqualError(err, assert.AnError.Error())
+		is.Len(windows, 1) // the first window is opened before the source is subscribed
+
+		values, err := Collect(windows[0])
+		is.NoError(err) // window is completed, not errored
+		is.Equal([]int{}, values)
+	})
+
+	t.Run("boundary splits the source into windows", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		source := NewPublishSubject[int]()
+		boundary := NewPublishSubject[string]()
+
+		log, sub := observeWindows(WindowWhen[int](boundary.AsObservable())(source))
+		defer sub.Unsubscribe()
+
+		// first window is opened on subscription
+		is.Equal([][]int{{}}, log.windows)
+		is.Equal([]bool{false}, log.closed)
+
+		source.Next(1)
+		source.Next(2)
+		is.Equal([][]int{{1, 2}}, log.windows)
+
+		boundary.Next("tick")
+		is.Equal([][]int{{1, 2}, {}}, log.windows)
+		is.Equal([]bool{true, false}, log.closed)
+
+		source.Next(3)
+		boundary.Next("tick")
+		source.Next(4)
+		source.Next(5)
+		is.Equal([][]int{{1, 2}, {3}, {4, 5}}, log.windows)
+		is.Equal([]bool{true, true, false}, log.closed)
+		is.False(log.completed)
+
+		source.Complete()
+		is.Equal([]bool{true, true, true}, log.closed)
+		is.True(log.completed)
+		is.NoError(log.err)
+		is.Equal([]error{nil, nil, nil}, log.errs)
+	})
+
+	t.Run("consecutive boundary notifications emit empty windows", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		source := NewPublishSubject[int]()
+		boundary := NewPublishSubject[int]()
+
+		log, sub := observeWindows(WindowWhen[int](boundary.AsObservable())(source))
+		defer sub.Unsubscribe()
+
+		boundary.Next(0)
+		boundary.Next(0)
+		source.Next(1)
+		source.Complete()
+
+		is.Equal([][]int{{}, {}, {1}}, log.windows)
+		is.Equal([]bool{true, true, true}, log.closed)
+		is.True(log.completed)
+	})
+
+	t.Run("source completion closes the open window and completes", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		source := NewPublishSubject[int]()
+		boundary := NewPublishSubject[int]()
+
+		log, sub := observeWindows(WindowWhen[int](boundary.AsObservable())(source))
+		defer sub.Unsubscribe()
+
+		source.Next(1)
+		source.Complete()
+
+		is.Equal([][]int{{1}}, log.windows)
+		is.Equal([]bool{true}, log.closed)
+		is.True(log.completed)
+		is.NoError(log.err)
+
+		// a late boundary notification must not open a new window
+		boundary.Next(0)
+		is.Len(log.windows, 1)
+	})
+
+	t.Run("source error closes the open window and propagates", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		source := NewPublishSubject[int]()
+		boundary := NewPublishSubject[int]()
+
+		log, sub := observeWindows(WindowWhen[int](boundary.AsObservable())(source))
+		defer sub.Unsubscribe()
+
+		source.Next(1)
+		boundary.Next(0)
+		source.Next(2)
+		source.Error(assert.AnError)
+
+		is.Equal([][]int{{1}, {2}}, log.windows)
+		is.Equal([]bool{true, true}, log.closed)
+		is.Equal([]error{nil, nil}, log.errs)
+		is.EqualError(log.err, assert.AnError.Error())
+		is.False(log.completed)
+	})
+
+	t.Run("boundary error closes the open window and propagates", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		source := NewPublishSubject[int]()
+		boundary := NewPublishSubject[int]()
+
+		log, sub := observeWindows(WindowWhen[int](boundary.AsObservable())(source))
+		defer sub.Unsubscribe()
+
+		source.Next(1)
+		boundary.Error(assert.AnError)
+
+		is.Equal([][]int{{1}}, log.windows)
+		is.Equal([]bool{true}, log.closed)
+		is.EqualError(log.err, assert.AnError.Error())
+		is.False(log.completed)
+	})
+
+	t.Run("boundary completion closes the open window and completes", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		source := NewPublishSubject[int]()
+		boundary := NewPublishSubject[int]()
+
+		log, sub := observeWindows(WindowWhen[int](boundary.AsObservable())(source))
+		defer sub.Unsubscribe()
+
+		source.Next(1)
+		boundary.Complete()
+
+		is.Equal([][]int{{1}}, log.windows)
+		is.Equal([]bool{true}, log.closed)
+		is.True(log.completed)
+		is.NoError(log.err)
+	})
+
+	t.Run("early unsubscription releases source and boundary", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		source := NewPublishSubject[int]()
+		boundary := NewPublishSubject[int]()
+
+		log, sub := observeWindows(WindowWhen[int](boundary.AsObservable())(source))
+
+		source.Next(1)
+		is.Equal(1, source.CountObservers())
+		is.Equal(1, boundary.CountObservers())
+
+		sub.Unsubscribe()
+
+		is.Equal(0, source.CountObservers())
+		is.Equal(0, boundary.CountObservers())
+
+		// nothing is delivered after unsubscription
+		source.Next(2)
+		boundary.Next(0)
+		is.Equal([][]int{{1}}, log.windows)
+	})
+
+	t.Run("context is propagated to window items", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		type ctxKey struct{}
+
+		source := NewPublishSubject[int]()
+		boundary := NewPublishSubject[int]()
+
+		var gotValue any
+
+		sub := WindowWhen[int](boundary.AsObservable())(source).Subscribe(NewObserver(
+			func(window Observable[int]) {
+				window.Subscribe(NewObserverWithContext(
+					func(ctx context.Context, _ int) { gotValue = ctx.Value(ctxKey{}) },
+					func(context.Context, error) {},
+					func(context.Context) {},
+				))
+			},
+			func(error) {},
+			func() {},
+		))
+		defer sub.Unsubscribe()
+
+		source.NextWithContext(context.WithValue(context.Background(), ctxKey{}, "hello"), 1)
+		is.Equal("hello", gotValue)
+	})
 }
 
 func TestOperatorTransformationSampleWhen(t *testing.T) { //nolint:paralleltest
