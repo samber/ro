@@ -79,9 +79,9 @@ type MutexWithSpinlock struct {
 	lock int32 // 0 or 1
 }
 
-// TryLock tries to lock the mutex.
+// TryLock tries to lock the mutex. It returns true if the lock was acquired.
 func (m *MutexWithSpinlock) TryLock() bool {
-	return !atomic.CompareAndSwapInt32(&m.lock, 0, 1)
+	return atomic.CompareAndSwapInt32(&m.lock, 0, 1)
 }
 
 // Lock locks the mutex.
