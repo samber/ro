@@ -227,18 +227,43 @@ func RangeWithStep(start, end, step float64) Observable[float64] {
 		panic(ErrRangeWithStepWrongStep)
 	}
 
-	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[float64]) Teardown {
-		cursor := start
+	count := rangeWithStepCount(start, end, step)
 
-		for cursor*sign < end*sign {
-			destination.NextWithContext(ctx, cursor)
-			cursor += (step * sign)
+	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[float64]) Teardown {
+		for i := int64(0); i < count; i++ {
+			destination.NextWithContext(ctx, rangeWithStepValue(start, step, sign, i))
 		}
 
 		destination.CompleteWithContext(ctx)
 
 		return nil
 	})
+}
+
+// rangeWithStepEpsilon absorbs the float64 rounding error of (end-start)/step. Without it,
+// 0.3/0.1 = 2.9999999999999996 and 1/0.1 = 10.000000000000002 would round to the wrong count.
+// 1e-9 is far above the ~1e-16 relative error of one division, and far below any step
+// ratio a caller can write by hand.
+const rangeWithStepEpsilon = 1e-9
+
+// rangeWithStepCount returns the number of values in [start:end) walked by step.
+// It is shared by RangeWithStep and RangeWithStepAndInterval, so both always emit
+// the same number of values. start and end must differ and step must be positive.
+func rangeWithStepCount(start, end, step float64) int64 {
+	count := int64(math.Ceil(math.Abs(end-start)/step - rangeWithStepEpsilon))
+
+	// start differs from end, so the range always contains at least `start`.
+	if count < 1 {
+		return 1
+	}
+
+	return count
+}
+
+// rangeWithStepValue returns the i-th value of the range. It multiplies instead of
+// accumulating step, so rounding error does not grow with i.
+func rangeWithStepValue(start, step, sign float64, i int64) float64 {
+	return start + float64(i)*sign*step
 }
 
 // RangeWithInterval creates an Observable that emits a range of integers.
@@ -295,9 +320,9 @@ func RangeWithStepAndInterval(start, end, step float64, interval time.Duration) 
 	return Pipe2(
 		Interval(interval),
 		Map(func(v int64) float64 {
-			return start + (float64(v) * sign * step)
+			return rangeWithStepValue(start, step, sign, v)
 		}),
-		Take[float64](int64(math.Floor(((end*sign)-(start*sign))/step))),
+		Take[float64](rangeWithStepCount(start, end, step)),
 	)
 }
 

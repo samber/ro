@@ -295,6 +295,55 @@ func TestOperatorCreationRangeWithStep(t *testing.T) {
 	is.NoError(err)
 }
 
+// Float steps that are not exactly representable must not change the number of emitted values:
+// the range is [start:end), so `end` is never emitted and every value strictly below it is.
+func TestOperatorCreationRangeWithStepFloatPrecision(t *testing.T) {
+	t.Parallel()
+	// The timeout covers the 12 parallel subtests, which wait for the whole package to schedule them.
+	testWithTimeout(t, 5*time.Second)
+
+	tests := []struct {
+		name       string
+		start, end float64
+		step       float64
+		expected   []float64
+	}{
+		{"0.1 steps never reach end", 0, 1, 0.1, []float64{0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9}},
+		{"end is not a multiple of step", 0, 1, 0.3, []float64{0, 0.3, 0.6, 0.9}},
+		{"0.3/0.1 is 2.9999999999999996", 0, 0.3, 0.1, []float64{0, 0.1, 0.2}},
+		{"descending 0.1 steps", 1, 0, 0.1, []float64{1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1}},
+		{"descending end is not a multiple of step", 1, 0, 0.3, []float64{1, 0.7, 0.4, 0.1}},
+		{"step bigger than range", 0, 1, 5, []float64{0}},
+	}
+
+	for _, tt := range tests {
+		tt := tt // go.mod predates Go 1.22 per-iteration loop variables
+
+		t.Run("RangeWithStep/"+tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+
+			values, err := Collect(RangeWithStep(tt.start, tt.end, tt.step))
+			is.NoError(err)
+			// Len first: InDeltaSlice indexes both slices and panics on a shorter one.
+			if is.Len(values, len(tt.expected)) {
+				is.InDeltaSlice(tt.expected, values, 1e-9)
+			}
+		})
+
+		t.Run("RangeWithStepAndInterval/"+tt.name, func(t *testing.T) {
+			t.Parallel()
+			is := assert.New(t)
+
+			values, err := Collect(RangeWithStepAndInterval(tt.start, tt.end, tt.step, time.Millisecond))
+			is.NoError(err)
+			if is.Len(values, len(tt.expected)) {
+				is.InDeltaSlice(tt.expected, values, 1e-9)
+			}
+		})
+	}
+}
+
 func TestOperatorCreationRangeWithInterval(t *testing.T) { //nolint:paralleltest
 	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
