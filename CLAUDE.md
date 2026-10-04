@@ -37,7 +37,8 @@ The SIMD plugin (`plugins/exp/simd`) requires `GOEXPERIMENT=simd` and `GOWORK=of
 ## Code Layout
 
 - **Root package (`ro`)** — Core types and all built-in operators
-- **`internal/`** — Internal helpers: `xsync` (mutex wrappers), `xatomic`, `xrand`, `xtime`, `xerrors`, `constraints`
+- **`internal/`** — Internal helpers: `xsync` (mutex wrappers), `xatomic`, `xrand`, `xtime`, `xerrors`, `xfuzz` (fuzz seed count), `constraints`
+- **`fuzz/`** — Race fuzz targets of the root package (`package fuzz`, same module). Run with `go test -race ./fuzz/`
 - **`testing/`** — Package `rotesting` with `AssertSpec[T]` interface for fluent test assertions
 - **`plugins/`** — Each plugin is a separate Go module with its own `go.mod`. Categories: encoding, observability, rate limiting, I/O, data manipulation, etc.
 - **`ee/`** — Enterprise Edition (separate license). Contains `otel` and `prometheus` plugins, plus licensing infrastructure. See [`ee/README.md`](ee/README.md) and the [`ee/cmd/license` CLI](ee/cmd/license/README.md)
@@ -109,7 +110,8 @@ Other naming patterns:
 - Test files follow Go convention: `foo_test.go` alongside `foo.go`
 - Example tests use `_example_test.go` suffix
 - The `plugins/testify` plugin provides reactive stream assertion helpers
-- Write race tests as native `FuzzXxx` targets, seeded via `internal/xtest`; `RO_FUZZ_ITERATIONS` sets the seed count everywhere. See [Race condition patterns](docs/docs/contributing.md#race-condition-patterns)
+- Write race tests as native `FuzzXxx` targets, seeded via `internal/xfuzz` (`xfuzz.AddSeeds`); `RO_FUZZ_ITERATIONS` sets the seed count everywhere. See [Race condition patterns](docs/docs/contributing.md#race-condition-patterns)
+- Core fuzz targets live in `fuzz/` (`package fuzz`), one file per root source file: `fuzz/<file>_fuzz_test.go`; shared helpers are in `fuzz/helpers_test.go`. Plugin fuzz targets sit next to their code: `plugins/<name>/<file>_fuzz_test.go`
 - Cover both sync and async sources in every fuzz target (`fuzzSource`, `fuzzIsAsync`)
 - Always run tests with `-race`
 
