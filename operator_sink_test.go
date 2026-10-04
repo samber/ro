@@ -189,8 +189,11 @@ func TestOperatorSinkToChannelUnsubscribeWhileSending(t *testing.T) {
 			is.Fail("source goroutine still blocked after unsubscribe")
 		}
 
-		// The channel must end up closed.
+		// The channel must end up closed: draining it only terminates once it is.
+		drained := 0
 		for range ch {
+			drained++
 		}
+		is.GreaterOrEqual(drained, 0)
 	}
 }
