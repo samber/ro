@@ -407,7 +407,7 @@ func TestOperatorTransformationGroupByTeardownRacesInFlightValues(t *testing.T) 
 	for r := 0; r < rounds; r++ {
 		source := NewPublishSubject[int]()
 
-		var open atomic.Int64 // groups emitted but not yet completed
+		var open int64 // groups emitted but not yet completed; atomic.Int64 needs Go 1.19
 
 		// Yielding in the iteratee keeps values in flight while teardown runs.
 		iteratee := func(v int) int {
@@ -417,11 +417,11 @@ func TestOperatorTransformationGroupByTeardownRacesInFlightValues(t *testing.T) 
 
 		sub := GroupBy(iteratee)(source).Subscribe(
 			OnNext(func(group Observable[int]) {
-				open.Add(1)
+				atomic.AddInt64(&open, 1)
 				group.Subscribe(NewObserver(
 					func(int) {},
-					func(error) { open.Add(-1) },
-					func() { open.Add(-1) },
+					func(error) { atomic.AddInt64(&open, -1) },
+					func() { atomic.AddInt64(&open, -1) },
 				))
 			}),
 		)
@@ -444,7 +444,7 @@ func TestOperatorTransformationGroupByTeardownRacesInFlightValues(t *testing.T) 
 		sub.Unsubscribe()
 		<-done
 
-		is.Zero(open.Load(), "every emitted group must be completed on teardown")
+		is.Zero(atomic.LoadInt64(&open), "every emitted group must be completed on teardown")
 	}
 }
 
