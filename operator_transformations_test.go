@@ -1232,3 +1232,35 @@ func TestOperatorTransformationBufferWithCountHugeSize(t *testing.T) {
 	is.Equal([][]int{{1, 2, 3}}, chunks)
 	is.NoError(err)
 }
+
+func TestOperatorTransformationSampleTimeInvalidInterval(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Pivot values: zero and every negative boundary.
+	for _, interval := range []time.Duration{0, -1, -time.Second, time.Duration(math.MinInt64)} {
+		is.PanicsWithError(ErrSampleTimeWrongInterval.Error(), func() {
+			SampleTime[int](interval)
+		})
+	}
+
+	is.NotPanics(func() {
+		SampleTime[int](1)
+	})
+}
+
+func TestOperatorTransformationThrottleTimeInvalidInterval(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Pivot values: zero and every negative boundary.
+	for _, interval := range []time.Duration{0, -1, -time.Second, time.Duration(math.MinInt64)} {
+		is.PanicsWithError(ErrThrottleTimeWrongInterval.Error(), func() {
+			ThrottleTime[int](interval)
+		})
+	}
+
+	is.NotPanics(func() {
+		ThrottleTime[int](1)
+	})
+}

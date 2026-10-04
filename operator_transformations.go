@@ -823,6 +823,10 @@ func SampleWhen[T, t any](tick Observable[t]) func(Observable[T]) Observable[T] 
 // emit no item for that sampling period.
 // Play: https://go.dev/play/p/PcPo4lE9-_T
 func SampleTime[T any](interval time.Duration) func(Observable[T]) Observable[T] {
+	if interval <= 0 {
+		panic(ErrSampleTimeWrongInterval)
+	}
+
 	return SampleWhen[T](
 		Interval(interval),
 	)
@@ -881,6 +885,10 @@ func ThrottleWhen[T, t any](tick Observable[t]) func(Observable[T]) Observable[T
 // values for duration milliseconds, then repeats this process.
 // Play: https://go.dev/play/p/ExdxZiAE0Eu
 func ThrottleTime[T any](interval time.Duration) func(Observable[T]) Observable[T] {
+	if interval <= 0 {
+		panic(ErrThrottleTimeWrongInterval)
+	}
+
 	intervalNano := interval.Nanoseconds()
 
 	return func(source Observable[T]) Observable[T] {
