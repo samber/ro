@@ -102,20 +102,20 @@ func TestMutexWithSpinlock_TryLock(t *testing.T) { //nolint:paralleltest
 	mutex := NewMutexWithSpinlock()
 
 	// Test TryLock on unlocked mutex
-	if mutex.TryLock() {
-		t.Error("TryLock should return false on unlocked mutex (due to bug in implementation)")
+	if !mutex.TryLock() {
+		t.Error("TryLock should return true on unlocked mutex")
 	}
 
 	// Test TryLock on locked mutex
-	if !mutex.TryLock() {
-		t.Error("TryLock should return true on locked mutex (due to bug in implementation)")
+	if mutex.TryLock() {
+		t.Error("TryLock should return false on locked mutex")
 	}
 
 	// Unlock and test again
 	mutex.Unlock()
 
-	if mutex.TryLock() {
-		t.Error("TryLock should return false after unlock (due to bug in implementation)")
+	if !mutex.TryLock() {
+		t.Error("TryLock should return true after unlock")
 	}
 
 	mutex.Unlock()
