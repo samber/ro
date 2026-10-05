@@ -2105,3 +2105,142 @@ func TestOperatorCombining_skipSubscriptionWhenDestinationClosed(t *testing.T) {
 		})
 	}
 }
+
+func TestOperatorCombiningConcatDoesNotBlockSubscribe(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
+	is := assert.New(t)
+
+	released := make(chan struct{})
+	first := NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+		go func() {
+			<-released
+			destination.NextWithContext(ctx, 1)
+			destination.CompleteWithContext(ctx)
+		}()
+
+		return nil
+	})
+
+	var got []int
+
+	completed := make(chan struct{})
+
+	subscribed := make(chan Subscription, 1)
+	go func() {
+		subscribed <- Concat(first, Just(2, 3)).Subscribe(NewObserver(
+			func(v int) { got = append(got, v) },
+			func(err error) {},
+			func() { close(completed) },
+		))
+	}()
+
+	var sub Subscription
+
+	select {
+	case sub = <-subscribed:
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("Subscribe blocked while the first inner Observable is still active")
+	}
+
+	close(released)
+	<-completed
+	sub.Wait()
+
+	is.Equal([]int{1, 2, 3}, got)
+}
+
+func TestOperatorCombiningConcatUnsubscribeStopsActiveInner(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
+	is := assert.New(t)
+
+	var tornDown, secondSubscribed int32
+
+	first := NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+		return func() { atomic.AddInt32(&tornDown, 1) }
+	})
+	second := NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+		atomic.AddInt32(&secondSubscribed, 1)
+		destination.CompleteWithContext(ctx)
+
+		return nil
+	})
+
+	sub := Concat(first, second).Subscribe(NoopObserver[int]())
+	sub.Unsubscribe()
+
+	is.Equal(int32(1), atomic.LoadInt32(&tornDown))
+	is.Equal(int32(0), atomic.LoadInt32(&secondSubscribed))
+}
+
+func TestOperatorCombiningConcatErrorSkipsNextSources(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 100*time.Millisecond)
+	is := assert.New(t)
+
+	var subscribed int32
+
+	next := NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+		atomic.AddInt32(&subscribed, 1)
+		destination.NextWithContext(ctx, 99)
+		destination.CompleteWithContext(ctx)
+
+		return nil
+	})
+
+	values, err := Collect(Concat(Just(1), Throw[int](assert.AnError), next, next))
+	is.Equal([]int{1}, values)
+	is.EqualError(err, assert.AnError.Error())
+	is.Equal(int32(0), atomic.LoadInt32(&subscribed))
+
+	// outer error
+	values, err = Collect(ConcatAll[int]()(Throw[Observable[int]](assert.AnError)))
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
+}
+
+func TestOperatorCombiningConcatAsyncInnerKeepsOrder(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
+	is := assert.New(t)
+
+	async := func(v int) Observable[int] {
+		return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+			go func() {
+				time.Sleep(5 * time.Millisecond)
+				destination.NextWithContext(ctx, v)
+				destination.CompleteWithContext(ctx)
+			}()
+
+			return nil
+		})
+	}
+
+	values, err := Collect(Concat(Just(0), async(1), Empty[int](), async(2), Just(3)))
+	is.Equal([]int{0, 1, 2, 3}, values)
+	is.NoError(err)
+
+	// inner error after an async inner
+	values, err = Collect(Concat(async(1), Throw[int](assert.AnError), async(2)))
+	is.Equal([]int{1}, values)
+	is.EqualError(err, assert.AnError.Error())
+}
+
+// Synchronous inner Observables must not grow the stack with their number.
+func TestOperatorCombiningConcatManySyncInners(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 2*time.Second)
+	is := assert.New(t)
+
+	const count = 100_000
+
+	inners := make([]Observable[int], count)
+	for i := range inners {
+		inners[i] = Just(1)
+	}
+
+	values, err := Collect(Concat(inners...))
+	is.Len(values, count)
+	is.NoError(err)
+}
