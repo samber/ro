@@ -303,26 +303,29 @@ func TestOperatorCreationRange(t *testing.T) {
 	)
 	is.Equal([]int64{5, 4, 3, 2}, values)
 	is.NoError(err)
+}
 
-	t.Run("extreme int64 bounds", func(t *testing.T) {
-		is := assert.New(t)
+// Kept out of TestOperatorCreationRange: that test runs under a 100ms timeout
+// that a parallel subtest would count against.
+func TestOperatorCreationRange_extremeInt64Bounds(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
 
-		// Enumerating Range(0, MinInt64) is not feasible (Take cannot stop a synchronous source),
-		// so check the loop condition directly at the boundaries.
-		is.True(rangeHasNext(0, math.MinInt64, -1))
-		is.True(rangeHasNext(math.MinInt64+1, math.MinInt64, -1))
-		is.False(rangeHasNext(math.MinInt64, math.MinInt64, -1))
-		is.True(rangeHasNext(math.MaxInt64-1, math.MaxInt64, 1))
-		is.False(rangeHasNext(math.MaxInt64, math.MaxInt64, 1))
+	// Enumerating Range(0, MinInt64) is not feasible (Take cannot stop a synchronous source),
+	// so check the loop condition directly at the boundaries.
+	is.True(rangeHasNext(0, math.MinInt64, -1))
+	is.True(rangeHasNext(math.MinInt64+1, math.MinInt64, -1))
+	is.False(rangeHasNext(math.MinInt64, math.MinInt64, -1))
+	is.True(rangeHasNext(math.MaxInt64-1, math.MaxInt64, 1))
+	is.False(rangeHasNext(math.MaxInt64, math.MaxInt64, 1))
 
-		values, err := Collect(Range(math.MaxInt64-2, math.MaxInt64))
-		is.Equal([]int64{math.MaxInt64 - 2, math.MaxInt64 - 1}, values)
-		is.NoError(err)
+	values, err := Collect(Range(math.MaxInt64-2, math.MaxInt64))
+	is.Equal([]int64{math.MaxInt64 - 2, math.MaxInt64 - 1}, values)
+	is.NoError(err)
 
-		values, err = Collect(Range(math.MinInt64+2, math.MinInt64))
-		is.Equal([]int64{math.MinInt64 + 2, math.MinInt64 + 1}, values)
-		is.NoError(err)
-	})
+	values, err = Collect(Range(math.MinInt64+2, math.MinInt64))
+	is.Equal([]int64{math.MinInt64 + 2, math.MinInt64 + 1}, values)
+	is.NoError(err)
 }
 
 func TestOperatorCreationRangeWithStep(t *testing.T) {
