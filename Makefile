@@ -23,6 +23,8 @@ fuzz:
 watch-test:
 	reflex -t 50ms -s -- sh -c 'gotest -timeout 300s -race ${MODULES} ./...'
 
+# Phony: the ./bench directory has the same name, so make would otherwise report "up to date".
+.PHONY: bench
 bench:
 	go test -v -run=^Benchmark -benchmem -count 3 -bench ${MODULES} ./...
 watch-bench:
