@@ -1,7 +1,7 @@
 ---
 name: RandFloat64
 slug: randfloat64
-sourceRef: operator_creation.go#L613
+sourceRef: operator_creation.go#L677
 type: core
 category: creation
 signatures:

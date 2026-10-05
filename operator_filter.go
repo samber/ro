@@ -371,24 +371,28 @@ func Take[T any](count int64) func(Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			var index int64
 
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, value T) {
-						destination.NextWithContext(ctx, value)
+			// The upstream subscriber is built up front, so that it can be
+			// unsubscribed while a synchronous source is still emitting.
+			var upstream Subscriber[T]
 
-						index++
+			upstream = NewSafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					destination.NextWithContext(ctx, value)
 
-						if index >= count {
-							destination.CompleteWithContext(ctx)
-						}
-					},
-					destination.ErrorWithContext,
-					destination.CompleteWithContext,
-				),
-			)
+					index++
 
-			return sub.Unsubscribe
+					if index >= count {
+						destination.CompleteWithContext(ctx)
+						upstream.Unsubscribe()
+					}
+				},
+				destination.ErrorWithContext,
+				destination.CompleteWithContext,
+			))
+
+			source.SubscribeWithContext(subscriberCtx, upstream)
+
+			return upstream.Unsubscribe
 		})
 	}
 }
@@ -438,35 +442,40 @@ func TakeWhileIWithContext[T any](predicate func(ctx context.Context, item T, in
 			skipping := false
 			i := int64(0)
 
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, value T) {
-						if !skipping {
-							if currentCtx, ok := predicate(ctx, value, i); ok {
-								destination.NextWithContext(currentCtx, value)
-							} else {
-								destination.CompleteWithContext(currentCtx)
-								skipping = true
-							}
-						}
+			// The upstream subscriber is built up front, so that it can be
+			// unsubscribed while a synchronous source is still emitting.
+			var upstream Subscriber[T]
 
-						i++
-					},
-					func(ctx context.Context, err error) {
-						if !skipping {
-							destination.ErrorWithContext(ctx, err)
-						}
-					},
-					func(ctx context.Context) {
-						if !skipping {
-							destination.CompleteWithContext(ctx)
-						}
-					},
-				),
-			)
+			upstream = NewSafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					if !skipping {
+						if currentCtx, ok := predicate(ctx, value, i); ok {
+							destination.NextWithContext(currentCtx, value)
+						} else {
+							destination.CompleteWithContext(currentCtx)
+							skipping = true
 
-			return sub.Unsubscribe
+							upstream.Unsubscribe()
+						}
+					}
+
+					i++
+				},
+				func(ctx context.Context, err error) {
+					if !skipping {
+						destination.ErrorWithContext(ctx, err)
+					}
+				},
+				func(ctx context.Context) {
+					if !skipping {
+						destination.CompleteWithContext(ctx)
+					}
+				},
+			))
+
+			source.SubscribeWithContext(subscriberCtx, upstream)
+
+			return upstream.Unsubscribe
 		})
 	}
 }
@@ -589,21 +598,25 @@ func TakeUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T]
 func Head[T any]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, value T) {
-						destination.NextWithContext(ctx, value)
-						destination.CompleteWithContext(ctx)
-					},
-					destination.ErrorWithContext,
-					func(ctx context.Context) {
-						destination.ErrorWithContext(ctx, ErrHeadEmpty)
-					},
-				),
-			)
+			// The upstream subscriber is built up front, so that it can be
+			// unsubscribed while a synchronous source is still emitting.
+			var upstream Subscriber[T]
 
-			return sub.Unsubscribe
+			upstream = NewSafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					destination.NextWithContext(ctx, value)
+					destination.CompleteWithContext(ctx)
+					upstream.Unsubscribe()
+				},
+				destination.ErrorWithContext,
+				func(ctx context.Context) {
+					destination.ErrorWithContext(ctx, ErrHeadEmpty)
+				},
+			))
+
+			source.SubscribeWithContext(subscriberCtx, upstream)
+
+			return upstream.Unsubscribe
 		})
 	}
 }
@@ -673,25 +686,29 @@ func FirstIWithContext[T any](predicate func(ctx context.Context, item T, index 
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			i := int64(0)
 
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, value T) {
-						if currentCtx, ok := predicate(ctx, value, i); ok {
-							destination.NextWithContext(currentCtx, value)
-							destination.CompleteWithContext(currentCtx)
-						}
+			// The upstream subscriber is built up front, so that it can be
+			// unsubscribed while a synchronous source is still emitting.
+			var upstream Subscriber[T]
 
-						i++
-					},
-					destination.ErrorWithContext,
-					func(ctx context.Context) {
-						destination.ErrorWithContext(ctx, ErrFirstEmpty)
-					},
-				),
-			)
+			upstream = NewSafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					if currentCtx, ok := predicate(ctx, value, i); ok {
+						destination.NextWithContext(currentCtx, value)
+						destination.CompleteWithContext(currentCtx)
+						upstream.Unsubscribe()
+					}
 
-			return sub.Unsubscribe
+					i++
+				},
+				destination.ErrorWithContext,
+				func(ctx context.Context) {
+					destination.ErrorWithContext(ctx, ErrFirstEmpty)
+				},
+			))
+
+			source.SubscribeWithContext(subscriberCtx, upstream)
+
+			return upstream.Unsubscribe
 		})
 	}
 }
@@ -771,26 +788,31 @@ func ElementAt[T any](nth int) func(Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			count := 0
 
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, value T) {
-						if count == nth {
-							destination.NextWithContext(ctx, value)
-							destination.CompleteWithContext(ctx)
-							return
-						}
+			// The upstream subscriber is built up front, so that it can be
+			// unsubscribed while a synchronous source is still emitting.
+			var upstream Subscriber[T]
 
-						count++
-					},
-					destination.ErrorWithContext,
-					func(ctx context.Context) {
-						destination.ErrorWithContext(ctx, ErrElementAtNotFound)
-					},
-				),
-			)
+			upstream = NewSafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					if count == nth {
+						destination.NextWithContext(ctx, value)
+						destination.CompleteWithContext(ctx)
+						upstream.Unsubscribe()
 
-			return sub.Unsubscribe
+						return
+					}
+
+					count++
+				},
+				destination.ErrorWithContext,
+				func(ctx context.Context) {
+					destination.ErrorWithContext(ctx, ErrElementAtNotFound)
+				},
+			))
+
+			source.SubscribeWithContext(subscriberCtx, upstream)
+
+			return upstream.Unsubscribe
 		})
 	}
 }
@@ -807,27 +829,32 @@ func ElementAtOrDefault[T any](nth int64, fallback T) func(Observable[T]) Observ
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			count := int64(0)
 
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, value T) {
-						if count == nth {
-							destination.NextWithContext(ctx, value)
-							destination.CompleteWithContext(ctx)
-							return
-						}
+			// The upstream subscriber is built up front, so that it can be
+			// unsubscribed while a synchronous source is still emitting.
+			var upstream Subscriber[T]
 
-						count++
-					},
-					destination.ErrorWithContext,
-					func(ctx context.Context) {
-						destination.NextWithContext(ctx, fallback)
+			upstream = NewSafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					if count == nth {
+						destination.NextWithContext(ctx, value)
 						destination.CompleteWithContext(ctx)
-					},
-				),
-			)
+						upstream.Unsubscribe()
 
-			return sub.Unsubscribe
+						return
+					}
+
+					count++
+				},
+				destination.ErrorWithContext,
+				func(ctx context.Context) {
+					destination.NextWithContext(ctx, fallback)
+					destination.CompleteWithContext(ctx)
+				},
+			))
+
+			source.SubscribeWithContext(subscriberCtx, upstream)
+
+			return upstream.Unsubscribe
 		})
 	}
 }

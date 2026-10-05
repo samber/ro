@@ -1,7 +1,7 @@
 ---
 name: ZipWith
 slug: zipwith
-sourceRef: operator_combining.go#L1154
+sourceRef: operator_combining.go#L1508
 type: core
 category: combining
 signatures:

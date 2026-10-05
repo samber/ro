@@ -1,7 +1,7 @@
 ---
 name: TakeLast
 slug: takelast
-sourceRef: operator_filter.go#L468
+sourceRef: operator_filter.go#L487
 type: core
 category: filtering
 signatures:

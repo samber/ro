@@ -1,7 +1,7 @@
 ---
 name: Repeat
 slug: repeat
-sourceRef: operator_creation.go#L300
+sourceRef: operator_creation.go#L352
 type: core
 category: creation
 signatures:

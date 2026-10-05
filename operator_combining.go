@@ -1105,44 +1105,176 @@ func ConcatWith[T any](obs ...Observable[T]) func(Observable[T]) Observable[T] {
 // ConcatAll concatenates the source Observable with other Observables. It subscribes
 // to each inner Observable only after the previous one completes, maintaining their
 // order. It completes when all inner Observables are done.
+//
+// Subscribing never blocks: when the outer Observable emits faster than the inner
+// ones complete, pending inner Observables wait in an unbounded queue.
 // Play: https://go.dev/play/p/zygV4Ld9tcv
 func ConcatAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 	return func(sources Observable[Observable[T]]) Observable[T] {
-		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
-			subscriptions := NewSubscription(nil)
+		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+			type pendingInner struct {
+				ctx    context.Context
+				source Observable[T]
+			}
 
-			subscriptions.AddUnsubscribable(
-				sources.SubscribeWithContext(
-					subscriberCtx,
-					NewObserverWithContext(
-						func(ctx context.Context, source Observable[T]) {
-							sub := source.SubscribeWithContext(
-								ctx,
-								NewObserverWithContext(
-									destination.NextWithContext,
-									func(ctx context.Context, err error) {
-										subscriptions.Unsubscribe()
-										destination.ErrorWithContext(ctx, err)
-									},
-									func(ctx context.Context) {},
-								),
-							)
+			var mu sync.Mutex
 
-							// `subscriptions` cancels `sub` when it unsubscribes
-							// but `sub` cannot unsubscribe `subscriptions`
-							subscriptions.AddUnsubscribable(sub)
-							sub.Wait()
-						},
-						func(ctx context.Context, err error) {
-							subscriptions.Unsubscribe()
-							destination.ErrorWithContext(ctx, err)
-						},
-						destination.CompleteWithContext,
-					),
-				),
-			)
+			queue := xqueue.NewQueue[pendingInner]()
+			// running is true while an inner Observable is being subscribed to or is active.
+			// It makes sure a single pump owns the queue at any time.
+			running := false
+			outerDone := false
+			closed := false
+			// outerCtx is the context of the outer completion.
+			var outerCtx context.Context
+			// current is the active inner subscription: a finished inner must not be retained.
+			var current Unsubscribable
 
-			return subscriptions.Unsubscribe
+			// The outer subscriber is built up front, so that it can be unsubscribed
+			// while a synchronous outer Observable is still emitting.
+			var outerSub Subscriber[Observable[T]]
+
+			var pump func()
+
+			pump = func() {
+				for {
+					mu.Lock()
+
+					if closed || destination.IsClosed() {
+						queue.Reset()
+
+						running = false
+
+						mu.Unlock()
+						outerSub.Unsubscribe()
+
+						return
+					}
+
+					if queue.Len() == 0 {
+						running = false
+						done := outerDone
+						ctx := outerCtx
+
+						mu.Unlock()
+
+						if done {
+							destination.CompleteWithContext(ctx)
+						}
+
+						return
+					}
+
+					next := queue.Pop()
+
+					mu.Unlock()
+
+					// 0: subscribing, 1: ended during Subscribe, 2: Subscribe returned with the inner still active.
+					// An inner ending synchronously is handled by the loop: recursing would grow
+					// the stack with the number of inner Observables.
+					state := int32(0)
+
+					sub := next.source.SubscribeWithContext(
+						next.ctx,
+						NewObserverWithContext(
+							destination.NextWithContext,
+							func(ctx context.Context, err error) {
+								destination.ErrorWithContext(ctx, err)
+								outerSub.Unsubscribe()
+								atomic.CompareAndSwapInt32(&state, 0, 1)
+							},
+							func(ctx context.Context) {
+								if atomic.CompareAndSwapInt32(&state, 0, 1) {
+									return
+								}
+
+								mu.Lock()
+								current = nil
+								mu.Unlock()
+
+								pump()
+							},
+						),
+					)
+
+					mu.Lock()
+
+					if atomic.CompareAndSwapInt32(&state, 0, 2) {
+						if closed {
+							mu.Unlock()
+							sub.Unsubscribe()
+
+							return
+						}
+
+						current = sub
+
+						mu.Unlock()
+
+						return
+					}
+
+					mu.Unlock()
+				}
+			}
+
+			outerSub = NewSafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, source Observable[T]) {
+					mu.Lock()
+
+					if closed || destination.IsClosed() {
+						mu.Unlock()
+						return
+					}
+
+					queue.Push(pendingInner{ctx: ctx, source: source})
+
+					start := !running
+					running = true
+
+					mu.Unlock()
+
+					if start {
+						pump()
+					}
+				},
+				func(ctx context.Context, err error) {
+					destination.ErrorWithContext(ctx, err)
+				},
+				func(ctx context.Context) {
+					mu.Lock()
+
+					outerDone = true
+					outerCtx = ctx
+					idle := !running
+
+					mu.Unlock()
+
+					if idle {
+						destination.CompleteWithContext(ctx)
+					}
+				},
+			))
+
+			sources.SubscribeWithContext(subscriberCtx, outerSub)
+
+			return func() {
+				mu.Lock()
+
+				closed = true
+				inner := current
+				current = nil
+
+				queue.Reset()
+				mu.Unlock()
+
+				// Run outside the lock: unsubscribing may re-enter the callbacks above.
+				outerSub.Unsubscribe()
+
+				if inner != nil {
+					inner.Unsubscribe()
+				}
+			}
 		})
 	}
 }

@@ -1,7 +1,7 @@
 ---
 name: ElementAtOrDefault
 slug: elementatordefault
-sourceRef: operator_filter.go#L774
+sourceRef: operator_filter.go#L823
 type: core
 category: filtering
 signatures:

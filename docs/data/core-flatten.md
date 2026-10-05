@@ -1,7 +1,7 @@
 ---
 name: Flatten
 slug: flatten
-sourceRef: operator_transformations.go#L213
+sourceRef: operator_transformations.go#L219
 type: core
 category: transformation
 signatures:

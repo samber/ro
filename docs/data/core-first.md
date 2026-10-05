@@ -1,7 +1,7 @@
 ---
 name: First
 slug: first
-sourceRef: operator_filter.go#L620
+sourceRef: operator_filter.go#L660
 type: core
 category: filtering
 signatures:
