@@ -359,6 +359,38 @@ func TestOperatorFilterSkipLast(t *testing.T) {
 	)
 	is.Equal([]int64{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	t.Run("zero count", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(SkipLast[int](0)(Just(1, 2, 3)))
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+
+		values, err = Collect(SkipLast[int](0)(Empty[int]()))
+		is.Equal([]int{}, values)
+		is.NoError(err)
+
+		values, err = Collect(SkipLast[int](0)(Throw[int](assert.AnError)))
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+
+		is.PanicsWithValue(ErrSkipLastWrongCount, func() { SkipLast[int](-1) })
+	})
+
+	t.Run("huge count on TakeLast and SkipLast", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(TakeLast[int](math.MaxInt)(Just(1, 2, 3)))
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+
+		values, err = Collect(SkipLast[int](math.MaxInt)(Just(1, 2, 3)))
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
 }
 
 func TestOperatorFilterSkipUntil(t *testing.T) { //nolint:paralleltest
@@ -421,7 +453,7 @@ func TestOperatorFilterSkipUntil(t *testing.T) { //nolint:paralleltest
 	is.EqualError(err, assert.AnError.Error())
 }
 
-func TestOperatorFilterSkipUntilSignalOrder(t *testing.T) {
+func TestOperatorFilterSkipUntil_signalOrder(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -693,7 +725,7 @@ func TestOperatorFilterTakeUntil(t *testing.T) { //nolint:paralleltest
 	is.EqualError(err, assert.AnError.Error())
 }
 
-func TestOperatorFilterTakeUntilSignalOrder(t *testing.T) {
+func TestOperatorFilterTakeUntil_signalOrder(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -987,36 +1019,4 @@ func TestOperatorFilterElementAtOrDefault(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
-}
-
-func TestOperatorFilterSkipLastZero(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	values, err := Collect(SkipLast[int](0)(Just(1, 2, 3)))
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
-
-	values, err = Collect(SkipLast[int](0)(Empty[int]()))
-	is.Equal([]int{}, values)
-	is.NoError(err)
-
-	values, err = Collect(SkipLast[int](0)(Throw[int](assert.AnError)))
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
-
-	is.PanicsWithValue(ErrSkipLastWrongCount, func() { SkipLast[int](-1) })
-}
-
-func TestOperatorFilterTakeLastSkipLastHugeCount(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	values, err := Collect(TakeLast[int](math.MaxInt)(Just(1, 2, 3)))
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
-
-	values, err = Collect(SkipLast[int](math.MaxInt)(Just(1, 2, 3)))
-	is.Equal([]int{}, values)
-	is.NoError(err)
 }

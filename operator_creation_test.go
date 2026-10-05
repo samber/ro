@@ -91,7 +91,7 @@ func TestOperatorCreationTimer(t *testing.T) { //nolint:paralleltest
 	is.InDelta(50*time.Millisecond, time.Since(start), float64(10*time.Millisecond))
 }
 
-func TestOperatorCreationTimerContextCancel(t *testing.T) {
+func TestOperatorCreationTimer_contextCancel(t *testing.T) {
 	t.Parallel()
 
 	const longTimer = time.Minute // must never elapse
@@ -230,7 +230,7 @@ func TestOperatorCreationIntervalWithInitial(t *testing.T) { //nolint:parallelte
 	})
 }
 
-func TestOperatorCreationIntervalWithZeroInitial(t *testing.T) {
+func TestOperatorCreationIntervalWithInitial_zeroInitial(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, time.Second)
 	is := assert.New(t)
@@ -259,7 +259,7 @@ func TestOperatorCreationIntervalWithZeroInitial(t *testing.T) {
 	is.Equal([]int64{0, 1, 2}, output)
 }
 
-func TestOperatorCreationIntervalWithZeroInitialCancellation(t *testing.T) {
+func TestOperatorCreationIntervalWithInitial_zeroInitialCancellation(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, time.Second)
 	is := assert.New(t)
@@ -305,6 +305,29 @@ func TestOperatorCreationRange(t *testing.T) {
 	is.NoError(err)
 }
 
+// Kept out of TestOperatorCreationRange: that test runs under a 100ms timeout
+// that a parallel subtest would count against.
+func TestOperatorCreationRange_extremeInt64Bounds(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Enumerating Range(0, MinInt64) is not feasible (Take cannot stop a synchronous source),
+	// so check the loop condition directly at the boundaries.
+	is.True(rangeHasNext(0, math.MinInt64, -1))
+	is.True(rangeHasNext(math.MinInt64+1, math.MinInt64, -1))
+	is.False(rangeHasNext(math.MinInt64, math.MinInt64, -1))
+	is.True(rangeHasNext(math.MaxInt64-1, math.MaxInt64, 1))
+	is.False(rangeHasNext(math.MaxInt64, math.MaxInt64, 1))
+
+	values, err := Collect(Range(math.MaxInt64-2, math.MaxInt64))
+	is.Equal([]int64{math.MaxInt64 - 2, math.MaxInt64 - 1}, values)
+	is.NoError(err)
+
+	values, err = Collect(Range(math.MinInt64+2, math.MinInt64))
+	is.Equal([]int64{math.MinInt64 + 2, math.MinInt64 + 1}, values)
+	is.NoError(err)
+}
+
 func TestOperatorCreationRangeWithStep(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
@@ -339,7 +362,7 @@ func TestOperatorCreationRangeWithStep(t *testing.T) {
 
 // Float steps that are not exactly representable must not change the number of emitted values:
 // the range is [start:end), so `end` is never emitted and every value strictly below it is.
-func TestOperatorCreationRangeWithStepFloatPrecision(t *testing.T) {
+func TestOperatorCreationRangeWithStep_floatPrecision(t *testing.T) {
 	t.Parallel()
 	// The timeout covers the 16 parallel subtests, which wait for the whole package to schedule them.
 	testWithTimeout(t, 5*time.Second)
@@ -388,7 +411,7 @@ func TestOperatorCreationRangeWithStepFloatPrecision(t *testing.T) {
 	}
 }
 
-func TestOperatorCreationRangeWithStepEpsilon(t *testing.T) {
+func TestOperatorCreationRangeWithStep_epsilon(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -420,7 +443,7 @@ func TestOperatorCreationRangeWithStepEpsilon(t *testing.T) {
 	is.Less(rangeWithStepEpsilon(1e9, 1e9+1, 0.1), 0.5)
 }
 
-func TestOperatorCreationRangeWithStepCount(t *testing.T) {
+func TestOperatorCreationRangeWithStep_count(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -466,7 +489,7 @@ func TestOperatorCreationRangeWithStepCount(t *testing.T) {
 }
 
 // The count does not depend on the walking direction.
-func TestOperatorCreationRangeWithStepCountSymmetry(t *testing.T) {
+func TestOperatorCreationRangeWithStep_countSymmetry(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -479,7 +502,7 @@ func TestOperatorCreationRangeWithStepCountSymmetry(t *testing.T) {
 }
 
 // For an end written as the decimal literal of offset+k*step, the count is exactly k.
-func TestOperatorCreationRangeWithStepCountDecimalLiterals(t *testing.T) {
+func TestOperatorCreationRangeWithStep_countDecimalLiterals(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -500,7 +523,7 @@ func TestOperatorCreationRangeWithStepCountDecimalLiterals(t *testing.T) {
 	}
 }
 
-func TestOperatorCreationRangeWithStepValue(t *testing.T) {
+func TestOperatorCreationRangeWithStep_value(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -526,7 +549,7 @@ func TestOperatorCreationRangeWithStepValue(t *testing.T) {
 }
 
 // Computing start + i*step keeps the error independent from i, whereas accumulating the step does not.
-func TestOperatorCreationRangeWithStepValueNoDrift(t *testing.T) {
+func TestOperatorCreationRangeWithStep_valueNoDrift(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -1592,26 +1615,5 @@ func TestOperatorCreationRandFloat64(t *testing.T) {
 		is.True(v >= 0 && v < 1)
 	}
 
-	is.NoError(err)
-}
-
-func TestOperatorCreationRangeExtremes(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	// Enumerating Range(0, MinInt64) is not feasible (Take cannot stop a synchronous source),
-	// so check the loop condition directly at the boundaries.
-	is.True(rangeHasNext(0, math.MinInt64, -1))
-	is.True(rangeHasNext(math.MinInt64+1, math.MinInt64, -1))
-	is.False(rangeHasNext(math.MinInt64, math.MinInt64, -1))
-	is.True(rangeHasNext(math.MaxInt64-1, math.MaxInt64, 1))
-	is.False(rangeHasNext(math.MaxInt64, math.MaxInt64, 1))
-
-	values, err := Collect(Range(math.MaxInt64-2, math.MaxInt64))
-	is.Equal([]int64{math.MaxInt64 - 2, math.MaxInt64 - 1}, values)
-	is.NoError(err)
-
-	values, err = Collect(Range(math.MinInt64+2, math.MinInt64))
-	is.Equal([]int64{math.MinInt64 + 2, math.MinInt64 + 1}, values)
 	is.NoError(err)
 }

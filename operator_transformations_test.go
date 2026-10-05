@@ -395,7 +395,7 @@ func TestOperatorTransformationGroupBy(t *testing.T) {
 
 // Unsubscribing while the source is still emitting new and existing keys must
 // neither race on the group registry nor leave a group uncompleted.
-func TestOperatorTransformationGroupByTeardownRacesInFlightValues(t *testing.T) {
+func TestOperatorTransformationGroupBy_teardownRacesInFlightValues(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -655,6 +655,14 @@ func TestOperatorTransformationBufferWithCount(t *testing.T) { //nolint:parallel
 	)
 	is.Equal([][]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	t.Run("huge size does not preallocate", func(t *testing.T) {
+		is := assert.New(t)
+
+		chunks, err := Collect(BufferWithCount[int](math.MaxInt)(Just(1, 2, 3)))
+		is.Equal([][]int{{1, 2, 3}}, chunks)
+		is.NoError(err)
+	})
 }
 
 func TestOperatorTransformationBufferWithTime(t *testing.T) { //nolint:paralleltest
@@ -1228,29 +1236,19 @@ func TestOperatorTransformationThrottleTime(t *testing.T) { //nolint:paralleltes
 	is.NotPanics(func() {
 		ThrottleTime[int64](1)
 	})
-}
 
-func TestOperatorTransformationThrottleTimeFirstValueWithLongInterval(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("first value passes when interval exceeds uptime", func(t *testing.T) {
+		is := assert.New(t)
 
-	// The monotonic clock counts from process start, so an interval longer than the
-	// current uptime must still let the first value through.
-	values, err := Collect(
-		Pipe1(
-			Just(1, 2, 3),
-			ThrottleTime[int](time.Hour),
-		),
-	)
-	is.Equal([]int{1}, values)
-	is.NoError(err)
-}
-
-func TestOperatorTransformationBufferWithCountHugeSize(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	chunks, err := Collect(BufferWithCount[int](math.MaxInt)(Just(1, 2, 3)))
-	is.Equal([][]int{{1, 2, 3}}, chunks)
-	is.NoError(err)
+		// The monotonic clock counts from process start, so an interval longer than the
+		// current uptime must still let the first value through.
+		values, err := Collect(
+			Pipe1(
+				Just(1, 2, 3),
+				ThrottleTime[int](time.Hour),
+			),
+		)
+		is.Equal([]int{1}, values)
+		is.NoError(err)
+	})
 }

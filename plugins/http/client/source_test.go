@@ -151,100 +151,96 @@ func TestOperatorSpecialHTTPRequestJSON(t *testing.T) {
 	// the test to fail (see goleak).
 	// See https://github.com/uber-go/goleak/issues/102
 	http.DefaultClient.CloseIdleConnections()
-}
 
-func TestHTTPRequestJSON_WithDifferentTypes(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("different types", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with int
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `42`)
-	}))
-	defer server.Close()
+		// Test with int
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintln(w, `42`)
+		}))
+		defer server.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
 
-	intValues, err := ro.Collect(
-		HTTPRequestJSON[int](req, http.DefaultClient),
-	)
-	is.Equal([]int{42}, intValues)
-	is.Nil(err)
+		intValues, err := ro.Collect(
+			HTTPRequestJSON[int](req, http.DefaultClient),
+		)
+		is.Equal([]int{42}, intValues)
+		is.Nil(err)
 
-	// Test with float
-	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `3.14`)
-	}))
-	defer server2.Close()
+		// Test with float
+		server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintln(w, `3.14`)
+		}))
+		defer server2.Close()
 
-	req2, _ := http.NewRequest(http.MethodGet, server2.URL, nil)
+		req2, _ := http.NewRequest(http.MethodGet, server2.URL, nil)
 
-	floatValues, err := ro.Collect(
-		HTTPRequestJSON[float64](req2, http.DefaultClient),
-	)
-	is.Equal([]float64{3.14}, floatValues)
-	is.Nil(err)
+		floatValues, err := ro.Collect(
+			HTTPRequestJSON[float64](req2, http.DefaultClient),
+		)
+		is.Equal([]float64{3.14}, floatValues)
+		is.Nil(err)
 
-	// Test with boolean
-	server3 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `true`)
-	}))
-	defer server3.Close()
+		// Test with boolean
+		server3 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintln(w, `true`)
+		}))
+		defer server3.Close()
 
-	req3, _ := http.NewRequest(http.MethodGet, server3.URL, nil)
+		req3, _ := http.NewRequest(http.MethodGet, server3.URL, nil)
 
-	boolValues, err := ro.Collect(
-		HTTPRequestJSON[bool](req3, http.DefaultClient),
-	)
-	is.Equal([]bool{true}, boolValues)
-	is.Nil(err)
+		boolValues, err := ro.Collect(
+			HTTPRequestJSON[bool](req3, http.DefaultClient),
+		)
+		is.Equal([]bool{true}, boolValues)
+		is.Nil(err)
 
-	http.DefaultClient.CloseIdleConnections()
-}
+		http.DefaultClient.CloseIdleConnections()
+	})
 
-func TestHTTPRequestJSON_WithSlice(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("slice", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with slice
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `["apple", "banana", "cherry"]`)
-	}))
-	defer server.Close()
+		// Test with slice
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintln(w, `["apple", "banana", "cherry"]`)
+		}))
+		defer server.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
 
-	sliceValues, err := ro.Collect(
-		HTTPRequestJSON[[]string](req, http.DefaultClient),
-	)
-	is.Equal([][]string{{"apple", "banana", "cherry"}}, sliceValues)
-	is.Nil(err)
+		sliceValues, err := ro.Collect(
+			HTTPRequestJSON[[]string](req, http.DefaultClient),
+		)
+		is.Equal([][]string{{"apple", "banana", "cherry"}}, sliceValues)
+		is.Nil(err)
 
-	http.DefaultClient.CloseIdleConnections()
-}
+		http.DefaultClient.CloseIdleConnections()
+	})
 
-func TestHTTPRequestJSON_WithNestedStruct(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("nested struct", func(t *testing.T) {
+		is := assert.New(t)
 
-	type Address struct {
-		Street string `json:"street"`
-		City   string `json:"city"`
-	}
+		type Address struct {
+			Street string `json:"street"`
+			City   string `json:"city"`
+		}
 
-	type User struct {
-		Name    string  `json:"name"`
-		Age     int     `json:"age"`
-		Address Address `json:"address"`
-	}
+		type User struct {
+			Name    string  `json:"name"`
+			Age     int     `json:"age"`
+			Address Address `json:"address"`
+		}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `{
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintln(w, `{
 			"name": "John Doe",
 			"age": 30,
 			"address": {
@@ -252,76 +248,75 @@ func TestHTTPRequestJSON_WithNestedStruct(t *testing.T) {
 				"city": "New York"
 			}
 		}`)
-	}))
-	defer server.Close()
+		}))
+		defer server.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
 
-	userValues, err := ro.Collect(
-		HTTPRequestJSON[User](req, http.DefaultClient),
-	)
-	expected := User{
-		Name: "John Doe",
-		Age:  30,
-		Address: Address{
-			Street: "123 Main St",
-			City:   "New York",
-		},
-	}
-	is.Equal([]User{expected}, userValues)
-	is.Nil(err)
+		userValues, err := ro.Collect(
+			HTTPRequestJSON[User](req, http.DefaultClient),
+		)
+		expected := User{
+			Name: "John Doe",
+			Age:  30,
+			Address: Address{
+				Street: "123 Main St",
+				City:   "New York",
+			},
+		}
+		is.Equal([]User{expected}, userValues)
+		is.Nil(err)
 
-	http.DefaultClient.CloseIdleConnections()
-}
+		http.DefaultClient.CloseIdleConnections()
+	})
 
-func TestHTTPRequestJSON_WithHTTPStatusError(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("HTTP error status is not a stream error", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test that HTTP status codes >= 400 are not considered errors by HTTPRequestJSON
-	// (the JSON parsing still happens)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintln(w, `{"error": "not found", "code": 404}`)
-	}))
-	defer server.Close()
+		// Test that HTTP status codes >= 400 are not considered errors by HTTPRequestJSON
+		// (the JSON parsing still happens)
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintln(w, `{"error": "not found", "code": 404}`)
+		}))
+		defer server.Close()
 
-	type ErrorResponse struct {
-		Error string `json:"error"`
-		Code  int    `json:"code"`
-	}
+		type ErrorResponse struct {
+			Error string `json:"error"`
+			Code  int    `json:"code"`
+		}
 
-	req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
 
-	errorValues, err := ro.Collect(
-		HTTPRequestJSON[ErrorResponse](req, http.DefaultClient),
-	)
-	expected := ErrorResponse{Error: "not found", Code: 404}
-	is.Equal([]ErrorResponse{expected}, errorValues)
-	is.Nil(err)
+		errorValues, err := ro.Collect(
+			HTTPRequestJSON[ErrorResponse](req, http.DefaultClient),
+		)
+		expected := ErrorResponse{Error: "not found", Code: 404}
+		is.Equal([]ErrorResponse{expected}, errorValues)
+		is.Nil(err)
 
-	http.DefaultClient.CloseIdleConnections()
-}
+		http.DefaultClient.CloseIdleConnections()
+	})
 
-func TestHTTPRequestJSON_WithNilClient(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("nil client falls back to default client", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test that nil client uses http.DefaultClient
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `"default client test"`)
-	}))
-	defer server.Close()
+		// Test that nil client uses http.DefaultClient
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintln(w, `"default client test"`)
+		}))
+		defer server.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
 
-	values, err := ro.Collect(
-		HTTPRequestJSON[string](req, nil), // nil client
-	)
-	is.Equal([]string{"default client test"}, values)
-	is.Nil(err)
+		values, err := ro.Collect(
+			HTTPRequestJSON[string](req, nil), // nil client
+		)
+		is.Equal([]string{"default client test"}, values)
+		is.Nil(err)
 
-	http.DefaultClient.CloseIdleConnections()
+		http.DefaultClient.CloseIdleConnections()
+	})
 }

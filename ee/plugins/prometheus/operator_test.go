@@ -241,106 +241,106 @@ func TestObserveNextLag(t *testing.T) {
 	if err := testutil.CollectAndCompare(myHistogram, strings.NewReader(expected), "my_histogram_bucket"); err != nil {
 		t.Errorf("unexpected collecting result:\n%s", err)
 	}
-}
 
-func TestObserveNextLagWithError(t *testing.T) {
-	// t.Parallel()
+	t.Run("observable that emits an error", func(t *testing.T) {
+		// t.Parallel()
 
-	bypassLicenseCheck = true
+		bypassLicenseCheck = true
 
-	var myHistogram = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Name:        "my_histogram",
-			Help:        "My histogram",
-			ConstLabels: prometheus.Labels{"a": "b"},
-		},
-	)
-	reg := prometheus.NewRegistry()
-	reg.MustRegister(myHistogram)
+		var myHistogram = prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Name:        "my_histogram",
+				Help:        "My histogram",
+				ConstLabels: prometheus.Labels{"a": "b"},
+			},
+		)
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(myHistogram)
 
-	// Test with observable that emits an error
-	obs := ro.Pipe2(
-		ro.Throw[int](assert.AnError),
-		ObserveNextLag[int](myHistogram),
-		ro.Map(func(i int) int {
-			time.Sleep(time.Duration(i)*time.Second + 15*time.Millisecond)
-			return i
-		}),
-	)
-	_, err := ro.Collect(obs)
-	assert.Error(t, err)
-	assert.Equal(t, assert.AnError, err)
+		// Test with observable that emits an error
+		obs := ro.Pipe2(
+			ro.Throw[int](assert.AnError),
+			ObserveNextLag[int](myHistogram),
+			ro.Map(func(i int) int {
+				time.Sleep(time.Duration(i)*time.Second + 15*time.Millisecond)
+				return i
+			}),
+		)
+		_, err := ro.Collect(obs)
+		assert.Error(t, err)
+		assert.Equal(t, assert.AnError, err)
 
-	// Should have observed 0 values since no Next() was called
+		// Should have observed 0 values since no Next() was called
 
-	expected := `
-		# HELP my_histogram My histogram
-		# TYPE my_histogram histogram
-		my_histogram_bucket{a="b",le="0.005"} 0
-		my_histogram_bucket{a="b",le="0.01"} 0
-		my_histogram_bucket{a="b",le="0.025"} 0
-		my_histogram_bucket{a="b",le="0.05"} 0
-		my_histogram_bucket{a="b",le="0.1"} 0
-		my_histogram_bucket{a="b",le="0.25"} 0
-		my_histogram_bucket{a="b",le="0.5"} 0
-		my_histogram_bucket{a="b",le="1"} 0
-		my_histogram_bucket{a="b",le="2.5"} 0
-		my_histogram_bucket{a="b",le="5"} 0
-		my_histogram_bucket{a="b",le="10"} 0
-		my_histogram_bucket{a="b",le="+Inf"} 0
-		my_histogram_count{a="b"} 0
-	`
-	if err := testutil.CollectAndCompare(myHistogram, strings.NewReader(expected), "my_histogram"); err != nil {
-		t.Errorf("unexpected collecting result:\n%s", err)
-	}
-}
+		expected := `
+			# HELP my_histogram My histogram
+			# TYPE my_histogram histogram
+			my_histogram_bucket{a="b",le="0.005"} 0
+			my_histogram_bucket{a="b",le="0.01"} 0
+			my_histogram_bucket{a="b",le="0.025"} 0
+			my_histogram_bucket{a="b",le="0.05"} 0
+			my_histogram_bucket{a="b",le="0.1"} 0
+			my_histogram_bucket{a="b",le="0.25"} 0
+			my_histogram_bucket{a="b",le="0.5"} 0
+			my_histogram_bucket{a="b",le="1"} 0
+			my_histogram_bucket{a="b",le="2.5"} 0
+			my_histogram_bucket{a="b",le="5"} 0
+			my_histogram_bucket{a="b",le="10"} 0
+			my_histogram_bucket{a="b",le="+Inf"} 0
+			my_histogram_count{a="b"} 0
+		`
+		if err := testutil.CollectAndCompare(myHistogram, strings.NewReader(expected), "my_histogram"); err != nil {
+			t.Errorf("unexpected collecting result:\n%s", err)
+		}
+	})
 
-func TestObserveNextLagWithEmptyObservable(t *testing.T) {
-	// t.Parallel()
+	t.Run("empty observable", func(t *testing.T) {
+		// t.Parallel()
 
-	bypassLicenseCheck = true
+		bypassLicenseCheck = true
 
-	var myHistogram = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Name:        "my_histogram",
-			Help:        "My histogram",
-			ConstLabels: prometheus.Labels{"a": "b"},
-		},
-	)
-	reg := prometheus.NewRegistry()
-	reg.MustRegister(myHistogram)
+		var myHistogram = prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Name:        "my_histogram",
+				Help:        "My histogram",
+				ConstLabels: prometheus.Labels{"a": "b"},
+			},
+		)
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(myHistogram)
 
-	// Test with empty observable
-	obs := ro.Pipe2(
-		ro.Empty[int](),
-		ObserveNextLag[int](myHistogram),
-		ro.Map(func(i int) int {
-			time.Sleep(time.Duration(i)*time.Second + 15*time.Millisecond)
-			return i
-		}),
-	)
-	_, _ = ro.Collect(obs)
+		// Test with empty observable
+		obs := ro.Pipe2(
+			ro.Empty[int](),
+			ObserveNextLag[int](myHistogram),
+			ro.Map(func(i int) int {
+				time.Sleep(time.Duration(i)*time.Second + 15*time.Millisecond)
+				return i
+			}),
+		)
+		_, _ = ro.Collect(obs)
 
-	// Should have observed 0 values
+		// Should have observed 0 values
 
-	expected := `
-		# HELP my_histogram My histogram
-		# TYPE my_histogram histogram
-		my_histogram_bucket{a="b",le="0.005"} 0
-		my_histogram_bucket{a="b",le="0.01"} 0
-		my_histogram_bucket{a="b",le="0.025"} 0
-		my_histogram_bucket{a="b",le="0.05"} 0
-		my_histogram_bucket{a="b",le="0.1"} 0
-		my_histogram_bucket{a="b",le="0.25"} 0
-		my_histogram_bucket{a="b",le="0.5"} 0
-		my_histogram_bucket{a="b",le="1"} 0
-		my_histogram_bucket{a="b",le="2.5"} 0
-		my_histogram_bucket{a="b",le="5"} 0
-		my_histogram_bucket{a="b",le="10"} 0
-		my_histogram_bucket{a="b",le="+Inf"} 0
-		my_histogram_count{a="b"} 0
-	`
-	if err := testutil.CollectAndCompare(myHistogram, strings.NewReader(expected), "my_histogram"); err != nil {
-		t.Errorf("unexpected collecting result:\n%s", err)
-	}
+		expected := `
+			# HELP my_histogram My histogram
+			# TYPE my_histogram histogram
+			my_histogram_bucket{a="b",le="0.005"} 0
+			my_histogram_bucket{a="b",le="0.01"} 0
+			my_histogram_bucket{a="b",le="0.025"} 0
+			my_histogram_bucket{a="b",le="0.05"} 0
+			my_histogram_bucket{a="b",le="0.1"} 0
+			my_histogram_bucket{a="b",le="0.25"} 0
+			my_histogram_bucket{a="b",le="0.5"} 0
+			my_histogram_bucket{a="b",le="1"} 0
+			my_histogram_bucket{a="b",le="2.5"} 0
+			my_histogram_bucket{a="b",le="5"} 0
+			my_histogram_bucket{a="b",le="10"} 0
+			my_histogram_bucket{a="b",le="+Inf"} 0
+			my_histogram_count{a="b"} 0
+		`
+		if err := testutil.CollectAndCompare(myHistogram, strings.NewReader(expected), "my_histogram"); err != nil {
+			t.Errorf("unexpected collecting result:\n%s", err)
+		}
+	})
 }

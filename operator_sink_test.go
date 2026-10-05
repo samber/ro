@@ -153,7 +153,7 @@ func TestOperatorSinkToChannel(t *testing.T) {
 
 // A source that keeps emitting after the downstream unsubscribed must not
 // make ToChannel send on a closed channel.
-func TestOperatorSinkToChannelUnsubscribeWhileSending(t *testing.T) {
+func TestOperatorSinkToChannel_unsubscribeWhileSending(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 2*time.Second)
 	is := assert.New(t)

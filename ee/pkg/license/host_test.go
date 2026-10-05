@@ -36,9 +36,40 @@ func TestGetInstanceID(t *testing.T) {
 	// Test that subsequent calls return the same ID (caching)
 	instanceID2 := GetInstanceID()
 	assert.Equal(t, instanceID1, instanceID2, "GetInstanceID() returned different IDs on subsequent calls")
+
+	t.Run("id is a hex string or the timestamp fallback", func(t *testing.T) {
+		// Test that different test runs (simulated by resetting the instanceIDOnce)
+		// would generate different IDs
+		// Note: This is a bit tricky to test since we can't easily reset sync.Once
+		// But we can test the fallback mechanism by checking the pattern
+
+		// Get the current instance ID
+		currentID := GetInstanceID()
+
+		// Test that it's either a hex string (normal case) or a timestamp-based ID (fallback)
+		hexPattern := regexp.MustCompile(`^[0-9a-f]{32}$`)
+		timestampPattern := regexp.MustCompile(`^instance-\d+$`)
+
+		assert.True(t, hexPattern.MatchString(currentID) || timestampPattern.MatchString(currentID),
+			"GetInstanceID() returned invalid format: %s", currentID)
+	})
+
+	t.Run("id has the expected length and characters", func(t *testing.T) {
+		// Test that the instance ID has the expected format
+		instanceID := GetInstanceID()
+
+		// Should be exactly 32 characters (16 bytes in hex)
+		assert.Equal(t, 32, len(instanceID), "GetInstanceID() returned ID with wrong length")
+
+		// Should only contain hexadecimal characters
+		for _, char := range instanceID {
+			assert.True(t, (char >= '0' && char <= '9') || (char >= 'a' && char <= 'f'),
+				"GetInstanceID() returned ID with invalid character: %c", char)
+		}
+	})
 }
 
-func TestGetInstanceIDConcurrency(t *testing.T) {
+func TestGetInstanceID_concurrency(t *testing.T) {
 	// Test that GetInstanceID is thread-safe
 	const numGoroutines = 10
 	var wg sync.WaitGroup
@@ -61,24 +92,7 @@ func TestGetInstanceIDConcurrency(t *testing.T) {
 	}
 }
 
-func TestGetInstanceIDUniqueness(t *testing.T) {
-	// Test that different test runs (simulated by resetting the instanceIDOnce)
-	// would generate different IDs
-	// Note: This is a bit tricky to test since we can't easily reset sync.Once
-	// But we can test the fallback mechanism by checking the pattern
-
-	// Get the current instance ID
-	currentID := GetInstanceID()
-
-	// Test that it's either a hex string (normal case) or a timestamp-based ID (fallback)
-	hexPattern := regexp.MustCompile(`^[0-9a-f]{32}$`)
-	timestampPattern := regexp.MustCompile(`^instance-\d+$`)
-
-	assert.True(t, hexPattern.MatchString(currentID) || timestampPattern.MatchString(currentID),
-		"GetInstanceID() returned invalid format: %s", currentID)
-}
-
-func TestGetInstanceIDPerformance(t *testing.T) {
+func TestGetInstanceID_performance(t *testing.T) {
 	// Test that GetInstanceID is fast (cached after first call)
 	start := time.Now()
 
@@ -96,19 +110,5 @@ func TestGetInstanceIDPerformance(t *testing.T) {
 		t.Logf("Warning: Second call to GetInstanceID() was not faster than first call")
 		t.Logf("First call duration: %v", firstCallDuration)
 		t.Logf("Second call duration: %v", secondCallDuration)
-	}
-}
-
-func TestGetInstanceIDFormat(t *testing.T) {
-	// Test that the instance ID has the expected format
-	instanceID := GetInstanceID()
-
-	// Should be exactly 32 characters (16 bytes in hex)
-	assert.Equal(t, 32, len(instanceID), "GetInstanceID() returned ID with wrong length")
-
-	// Should only contain hexadecimal characters
-	for _, char := range instanceID {
-		assert.True(t, (char >= '0' && char <= '9') || (char >= 'a' && char <= 'f'),
-			"GetInstanceID() returned ID with invalid character: %c", char)
 	}
 }

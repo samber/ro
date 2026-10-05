@@ -390,7 +390,7 @@ func TestHTMLTemplate(t *testing.T) {
 	})
 }
 
-func TestTemplateErrorHandling(t *testing.T) {
+func TestTemplate_errorHandling(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -427,7 +427,7 @@ func TestTemplateErrorHandling(t *testing.T) {
 	})
 }
 
-func TestTemplateWithDifferentTypes(t *testing.T) {
+func TestTemplate_withDifferentTypes(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 

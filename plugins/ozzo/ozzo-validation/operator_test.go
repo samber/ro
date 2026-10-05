@@ -104,147 +104,7 @@ func TestValidate(t *testing.T) {
 	is.Empty(values)
 }
 
-func TestValidateWithContext(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	ctx := context.Background()
-
-	// Test successful validation with simple string
-	values, ctx, err := ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just("test"),
-			ValidateWithContext[string](ozzo.Required, ozzo.Length(1, 10)),
-		),
-	)
-	is.Nil(err)
-	is.Len(values, 1)
-	is.True(values[0].IsOk())
-	is.Equal("test", values[0].Unwrap())
-
-	// Test failed validation with simple string
-	values, ctx, err = ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just(""),
-			ValidateWithContext[string](ozzo.Required, ozzo.Length(1, 10)),
-		),
-	)
-	is.Nil(err)
-	is.Len(values, 1)
-	is.True(values[0].IsError())
-	is.NotNil(values[0].Error())
-}
-
-func TestValidateOrError(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	// Test successful validation
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Just("test"),
-			ValidateOrError[string](ozzo.Required, ozzo.Length(1, 10)),
-		),
-	)
-	is.Nil(err)
-	is.Len(values, 1)
-	is.Equal("test", values[0])
-
-	// Test failed validation
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Just(""),
-			ValidateOrError[string](ozzo.Required, ozzo.Length(1, 10)),
-		),
-	)
-	is.NotNil(err)
-	is.Empty(values)
-}
-
-func TestValidateOrErrorWithContext(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	ctx := context.Background()
-
-	// Test successful validation
-	values, ctx, err := ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just("test"),
-			ValidateOrErrorWithContext[string](ozzo.Required, ozzo.Length(1, 10)),
-		),
-	)
-	is.Nil(err)
-	is.Len(values, 1)
-	is.Equal("test", values[0])
-
-	// Test failed validation
-	values, ctx, err = ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just(""),
-			ValidateOrErrorWithContext[string](ozzo.Required, ozzo.Length(1, 10)),
-		),
-	)
-	is.NotNil(err)
-	is.Empty(values)
-}
-
-func TestValidateOrSkip(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	// Test with valid and invalid strings
-	strings := []string{"test", "", "valid", "too-long-string-that-exceeds-limit"}
-
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.FromSlice(strings),
-			ValidateOrSkip[string](ozzo.Required, ozzo.Length(1, 10)),
-		),
-	)
-	is.Nil(err)
-	is.Len(values, 2) // Only valid strings should pass through
-	is.Equal("test", values[0])
-	is.Equal("valid", values[1])
-
-	// Test empty observable
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Empty[string](),
-			ValidateOrSkip[string](ozzo.Required),
-		),
-	)
-	is.Nil(err)
-	is.Empty(values)
-}
-
-func TestValidateOrSkipWithContext(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	ctx := context.Background()
-
-	// Test with valid and invalid strings
-	strings := []string{"test", "", "valid", "too-long-string-that-exceeds-limit"}
-
-	values, ctx, err := ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.FromSlice(strings),
-			ValidateOrSkipWithContext[string](ozzo.Required, ozzo.Length(1, 10)),
-		),
-	)
-	is.Nil(err)
-	is.Len(values, 2) // Only valid strings should pass through
-	is.Equal("test", values[0])
-	is.Equal("valid", values[1])
-}
-
-func TestValidate_AdditionalValidationRules(t *testing.T) {
+func TestValidate_additionalValidationRules(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -295,136 +155,7 @@ func TestValidate_AdditionalValidationRules(t *testing.T) {
 	assert.True(values[0].IsError())
 }
 
-func TestValidateWithContext_AdditionalValidationRules(t *testing.T) {
-	t.Parallel()
-	assert := assert.New(t)
-
-	ctx := context.Background()
-
-	// Test with URL validation
-	values, ctx, err := ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just("https://example.com"),
-			ValidateWithContext[string](ozzo.Required, is.URL),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 1)
-	assert.True(values[0].IsOk())
-	assert.Equal("https://example.com", values[0].Unwrap())
-
-	// Test with invalid URL
-	values, ctx, err = ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just("not-a-url"),
-			ValidateWithContext[string](ozzo.Required, is.URL),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 1)
-	assert.True(values[0].IsError())
-}
-
-func TestValidateOrError_AdditionalValidationRules(t *testing.T) {
-	t.Parallel()
-	assert := assert.New(t)
-
-	// Test with URL validation
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Just("https://example.com"),
-			ValidateOrError[string](ozzo.Required, is.URL),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 1)
-	assert.Equal("https://example.com", values[0])
-
-	// Test with invalid URL
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Just("not-a-url"),
-			ValidateOrError[string](ozzo.Required, is.URL),
-		),
-	)
-	assert.NotNil(err)
-	assert.Empty(values)
-}
-
-func TestValidateOrErrorWithContext_AdditionalValidationRules(t *testing.T) {
-	t.Parallel()
-	assert := assert.New(t)
-
-	ctx := context.Background()
-
-	// Test with URL validation
-	values, ctx, err := ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just("https://example.com"),
-			ValidateOrErrorWithContext[string](ozzo.Required, is.URL),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 1)
-	assert.Equal("https://example.com", values[0])
-
-	// Test with invalid URL
-	values, ctx, err = ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just("not-a-url"),
-			ValidateOrErrorWithContext[string](ozzo.Required, is.URL),
-		),
-	)
-	assert.NotNil(err)
-	assert.Empty(values)
-}
-
-func TestValidateOrSkip_AdditionalValidationRules(t *testing.T) {
-	t.Parallel()
-	assert := assert.New(t)
-
-	// Test with URL validation
-	urls := []string{"https://example.com", "not-a-url", "https://google.com", "invalid"}
-
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.FromSlice(urls),
-			ValidateOrSkip[string](ozzo.Required, is.URL),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 2) // Only valid URLs should pass through
-	assert.Equal("https://example.com", values[0])
-	assert.Equal("https://google.com", values[1])
-}
-
-func TestValidateOrSkipWithContext_AdditionalValidationRules(t *testing.T) {
-	t.Parallel()
-	assert := assert.New(t)
-
-	ctx := context.Background()
-
-	// Test with URL validation
-	urls := []string{"https://example.com", "not-a-url", "https://google.com", "invalid"}
-
-	values, ctx, err := ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.FromSlice(urls),
-			ValidateOrSkipWithContext[string](ozzo.Required, is.URL),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 2) // Only valid URLs should pass through
-	assert.Equal("https://example.com", values[0])
-	assert.Equal("https://google.com", values[1])
-}
-
-func TestValidate_ComplexValidation(t *testing.T) {
+func TestValidate_complexValidation(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -460,47 +191,7 @@ func TestValidate_ComplexValidation(t *testing.T) {
 	assert.True(values[0].IsError())
 }
 
-func TestValidateWithContext_ComplexValidation(t *testing.T) {
-	t.Parallel()
-	assert := assert.New(t)
-
-	ctx := context.Background()
-
-	// Test with complex validation rules
-	values, ctx, err := ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just("valid@email.com"),
-			ValidateWithContext[string](
-				ozzo.Required,
-				is.Email,
-				ozzo.Length(1, 50),
-			),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 1)
-	assert.True(values[0].IsOk())
-	assert.Equal("valid@email.com", values[0].Unwrap())
-
-	// Test with complex validation rules that fail
-	values, ctx, err = ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just("invalid-email"),
-			ValidateWithContext[string](
-				ozzo.Required,
-				is.Email,
-				ozzo.Length(1, 50),
-			),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 1)
-	assert.True(values[0].IsError())
-}
-
-func TestValidate_EdgeCases(t *testing.T) {
+func TestValidate_edgeCases(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -529,40 +220,7 @@ func TestValidate_EdgeCases(t *testing.T) {
 	is.Equal("test", values[0].Unwrap())
 }
 
-func TestValidateWithContext_EdgeCases(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	ctx := context.Background()
-
-	// Test with nil rules
-	values, ctx, err := ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just("test"),
-			ValidateWithContext[string](),
-		),
-	)
-	is.Nil(err)
-	is.Len(values, 1)
-	is.True(values[0].IsOk())
-	is.Equal("test", values[0].Unwrap())
-
-	// Test with multiple rules
-	values, ctx, err = ro.CollectWithContext(
-		ctx,
-		ro.Pipe1(
-			ro.Just("test"),
-			ValidateWithContext[string](ozzo.Required, ozzo.Length(1, 10), ozzo.Match(regexp.MustCompile(`^[a-z]+$`))),
-		),
-	)
-	is.Nil(err)
-	is.Len(values, 1)
-	is.True(values[0].IsOk())
-	is.Equal("test", values[0].Unwrap())
-}
-
-func TestValidate_SimpleTypes(t *testing.T) {
+func TestValidate_simpleTypes(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -602,7 +260,7 @@ func TestValidate_SimpleTypes(t *testing.T) {
 	is.True(intValues[0].IsError())
 }
 
-func TestValidate_MultipleRules(t *testing.T) {
+func TestValidate_multipleRules(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -638,7 +296,7 @@ func TestValidate_MultipleRules(t *testing.T) {
 	assert.True(values[0].IsError())
 }
 
-func TestValidate_ErrorObservable(t *testing.T) {
+func TestValidate_errorObservable(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -653,7 +311,145 @@ func TestValidate_ErrorObservable(t *testing.T) {
 	is.Empty(values)
 }
 
-func TestValidateWithContext_ErrorObservable(t *testing.T) {
+func TestValidateWithContext(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	ctx := context.Background()
+
+	// Test successful validation with simple string
+	values, ctx, err := ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just("test"),
+			ValidateWithContext[string](ozzo.Required, ozzo.Length(1, 10)),
+		),
+	)
+	is.Nil(err)
+	is.Len(values, 1)
+	is.True(values[0].IsOk())
+	is.Equal("test", values[0].Unwrap())
+
+	// Test failed validation with simple string
+	values, ctx, err = ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just(""),
+			ValidateWithContext[string](ozzo.Required, ozzo.Length(1, 10)),
+		),
+	)
+	is.Nil(err)
+	is.Len(values, 1)
+	is.True(values[0].IsError())
+	is.NotNil(values[0].Error())
+}
+
+func TestValidateWithContext_additionalValidationRules(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	ctx := context.Background()
+
+	// Test with URL validation
+	values, ctx, err := ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just("https://example.com"),
+			ValidateWithContext[string](ozzo.Required, is.URL),
+		),
+	)
+	assert.Nil(err)
+	assert.Len(values, 1)
+	assert.True(values[0].IsOk())
+	assert.Equal("https://example.com", values[0].Unwrap())
+
+	// Test with invalid URL
+	values, ctx, err = ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just("not-a-url"),
+			ValidateWithContext[string](ozzo.Required, is.URL),
+		),
+	)
+	assert.Nil(err)
+	assert.Len(values, 1)
+	assert.True(values[0].IsError())
+}
+
+func TestValidateWithContext_complexValidation(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	ctx := context.Background()
+
+	// Test with complex validation rules
+	values, ctx, err := ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just("valid@email.com"),
+			ValidateWithContext[string](
+				ozzo.Required,
+				is.Email,
+				ozzo.Length(1, 50),
+			),
+		),
+	)
+	assert.Nil(err)
+	assert.Len(values, 1)
+	assert.True(values[0].IsOk())
+	assert.Equal("valid@email.com", values[0].Unwrap())
+
+	// Test with complex validation rules that fail
+	values, ctx, err = ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just("invalid-email"),
+			ValidateWithContext[string](
+				ozzo.Required,
+				is.Email,
+				ozzo.Length(1, 50),
+			),
+		),
+	)
+	assert.Nil(err)
+	assert.Len(values, 1)
+	assert.True(values[0].IsError())
+}
+
+func TestValidateWithContext_edgeCases(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	ctx := context.Background()
+
+	// Test with nil rules
+	values, ctx, err := ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just("test"),
+			ValidateWithContext[string](),
+		),
+	)
+	is.Nil(err)
+	is.Len(values, 1)
+	is.True(values[0].IsOk())
+	is.Equal("test", values[0].Unwrap())
+
+	// Test with multiple rules
+	values, ctx, err = ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just("test"),
+			ValidateWithContext[string](ozzo.Required, ozzo.Length(1, 10), ozzo.Match(regexp.MustCompile(`^[a-z]+$`))),
+		),
+	)
+	is.Nil(err)
+	is.Len(values, 1)
+	is.True(values[0].IsOk())
+	is.Equal("test", values[0].Unwrap())
+}
+
+func TestValidateWithContext_errorObservable(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -671,7 +467,59 @@ func TestValidateWithContext_ErrorObservable(t *testing.T) {
 	is.Empty(values)
 }
 
-func TestValidateOrError_ErrorObservable(t *testing.T) {
+func TestValidateOrError(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Test successful validation
+	values, err := ro.Collect(
+		ro.Pipe1(
+			ro.Just("test"),
+			ValidateOrError[string](ozzo.Required, ozzo.Length(1, 10)),
+		),
+	)
+	is.Nil(err)
+	is.Len(values, 1)
+	is.Equal("test", values[0])
+
+	// Test failed validation
+	values, err = ro.Collect(
+		ro.Pipe1(
+			ro.Just(""),
+			ValidateOrError[string](ozzo.Required, ozzo.Length(1, 10)),
+		),
+	)
+	is.NotNil(err)
+	is.Empty(values)
+}
+
+func TestValidateOrError_additionalValidationRules(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	// Test with URL validation
+	values, err := ro.Collect(
+		ro.Pipe1(
+			ro.Just("https://example.com"),
+			ValidateOrError[string](ozzo.Required, is.URL),
+		),
+	)
+	assert.Nil(err)
+	assert.Len(values, 1)
+	assert.Equal("https://example.com", values[0])
+
+	// Test with invalid URL
+	values, err = ro.Collect(
+		ro.Pipe1(
+			ro.Just("not-a-url"),
+			ValidateOrError[string](ozzo.Required, is.URL),
+		),
+	)
+	assert.NotNil(err)
+	assert.Empty(values)
+}
+
+func TestValidateOrError_errorObservable(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -686,7 +534,67 @@ func TestValidateOrError_ErrorObservable(t *testing.T) {
 	is.Empty(values)
 }
 
-func TestValidateOrErrorWithContext_ErrorObservable(t *testing.T) {
+func TestValidateOrErrorWithContext(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	ctx := context.Background()
+
+	// Test successful validation
+	values, ctx, err := ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just("test"),
+			ValidateOrErrorWithContext[string](ozzo.Required, ozzo.Length(1, 10)),
+		),
+	)
+	is.Nil(err)
+	is.Len(values, 1)
+	is.Equal("test", values[0])
+
+	// Test failed validation
+	values, ctx, err = ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just(""),
+			ValidateOrErrorWithContext[string](ozzo.Required, ozzo.Length(1, 10)),
+		),
+	)
+	is.NotNil(err)
+	is.Empty(values)
+}
+
+func TestValidateOrErrorWithContext_additionalValidationRules(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	ctx := context.Background()
+
+	// Test with URL validation
+	values, ctx, err := ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just("https://example.com"),
+			ValidateOrErrorWithContext[string](ozzo.Required, is.URL),
+		),
+	)
+	assert.Nil(err)
+	assert.Len(values, 1)
+	assert.Equal("https://example.com", values[0])
+
+	// Test with invalid URL
+	values, ctx, err = ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.Just("not-a-url"),
+			ValidateOrErrorWithContext[string](ozzo.Required, is.URL),
+		),
+	)
+	assert.NotNil(err)
+	assert.Empty(values)
+}
+
+func TestValidateOrErrorWithContext_errorObservable(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -704,7 +612,55 @@ func TestValidateOrErrorWithContext_ErrorObservable(t *testing.T) {
 	is.Empty(values)
 }
 
-func TestValidateOrSkip_ErrorObservable(t *testing.T) {
+func TestValidateOrSkip(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Test with valid and invalid strings
+	strings := []string{"test", "", "valid", "too-long-string-that-exceeds-limit"}
+
+	values, err := ro.Collect(
+		ro.Pipe1(
+			ro.FromSlice(strings),
+			ValidateOrSkip[string](ozzo.Required, ozzo.Length(1, 10)),
+		),
+	)
+	is.Nil(err)
+	is.Len(values, 2) // Only valid strings should pass through
+	is.Equal("test", values[0])
+	is.Equal("valid", values[1])
+
+	// Test empty observable
+	values, err = ro.Collect(
+		ro.Pipe1(
+			ro.Empty[string](),
+			ValidateOrSkip[string](ozzo.Required),
+		),
+	)
+	is.Nil(err)
+	is.Empty(values)
+}
+
+func TestValidateOrSkip_additionalValidationRules(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	// Test with URL validation
+	urls := []string{"https://example.com", "not-a-url", "https://google.com", "invalid"}
+
+	values, err := ro.Collect(
+		ro.Pipe1(
+			ro.FromSlice(urls),
+			ValidateOrSkip[string](ozzo.Required, is.URL),
+		),
+	)
+	assert.Nil(err)
+	assert.Len(values, 2) // Only valid URLs should pass through
+	assert.Equal("https://example.com", values[0])
+	assert.Equal("https://google.com", values[1])
+}
+
+func TestValidateOrSkip_errorObservable(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -719,7 +675,51 @@ func TestValidateOrSkip_ErrorObservable(t *testing.T) {
 	is.Empty(values)
 }
 
-func TestValidateOrSkipWithContext_ErrorObservable(t *testing.T) {
+func TestValidateOrSkipWithContext(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	ctx := context.Background()
+
+	// Test with valid and invalid strings
+	strings := []string{"test", "", "valid", "too-long-string-that-exceeds-limit"}
+
+	values, ctx, err := ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.FromSlice(strings),
+			ValidateOrSkipWithContext[string](ozzo.Required, ozzo.Length(1, 10)),
+		),
+	)
+	is.Nil(err)
+	is.Len(values, 2) // Only valid strings should pass through
+	is.Equal("test", values[0])
+	is.Equal("valid", values[1])
+}
+
+func TestValidateOrSkipWithContext_additionalValidationRules(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	ctx := context.Background()
+
+	// Test with URL validation
+	urls := []string{"https://example.com", "not-a-url", "https://google.com", "invalid"}
+
+	values, ctx, err := ro.CollectWithContext(
+		ctx,
+		ro.Pipe1(
+			ro.FromSlice(urls),
+			ValidateOrSkipWithContext[string](ozzo.Required, is.URL),
+		),
+	)
+	assert.Nil(err)
+	assert.Len(values, 2) // Only valid URLs should pass through
+	assert.Equal("https://example.com", values[0])
+	assert.Equal("https://google.com", values[1])
+}
+
+func TestValidateOrSkipWithContext_errorObservable(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 

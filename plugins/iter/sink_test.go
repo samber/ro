@@ -43,9 +43,43 @@ func TestToSeq(t *testing.T) {
 
 	// Verify that all values were collected
 	assert.Equal(t, []int{1, 2, 3, 4, 5}, values)
+
+	t.Run("early break", func(t *testing.T) {
+		// Create an observable that emits values
+		observable := ro.NewObservableWithContext(func(ctx context.Context, observer ro.Observer[int]) ro.Teardown {
+			for i := 1; i <= 10; i++ {
+				select {
+				case <-ctx.Done():
+					return nil
+				default:
+					observer.NextWithContext(ctx, i)
+				}
+			}
+			observer.CompleteWithContext(ctx)
+			return nil
+		})
+
+		// Transform the observable into an iterator
+		seq := ToSeq(observable)
+
+		// Collect only the first 3 values
+		var values []int
+		count := 0
+		for v := range seq {
+			values = append(values, v)
+			count++
+			if count >= 3 {
+				break
+			}
+		}
+
+		// Verify that only 3 values were collected
+		assert.Equal(t, []int{1, 2, 3}, values)
+		assert.Equal(t, 3, len(values))
+	})
 }
 
-func TestToSeqWithError(t *testing.T) {
+func TestToSeq_withError(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -70,40 +104,6 @@ func TestToSeqWithError(t *testing.T) {
 
 	// Verify that values were collected before the error
 	assert.Equal(t, []int{1, 2}, values)
-}
-
-func TestToSeqWithCancellation(t *testing.T) {
-	// Create an observable that emits values
-	observable := ro.NewObservableWithContext(func(ctx context.Context, observer ro.Observer[int]) ro.Teardown {
-		for i := 1; i <= 10; i++ {
-			select {
-			case <-ctx.Done():
-				return nil
-			default:
-				observer.NextWithContext(ctx, i)
-			}
-		}
-		observer.CompleteWithContext(ctx)
-		return nil
-	})
-
-	// Transform the observable into an iterator
-	seq := ToSeq(observable)
-
-	// Collect only the first 3 values
-	var values []int
-	count := 0
-	for v := range seq {
-		values = append(values, v)
-		count++
-		if count >= 3 {
-			break
-		}
-	}
-
-	// Verify that only 3 values were collected
-	assert.Equal(t, []int{1, 2, 3}, values)
-	assert.Equal(t, 3, len(values))
 }
 
 func TestToSeq2(t *testing.T) {
@@ -132,7 +132,7 @@ func TestToSeq2(t *testing.T) {
 	assert.Equal(t, []string{"a", "b", "c"}, values)
 }
 
-func TestToSeq2WithError(t *testing.T) {
+func TestToSeq2_withError(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 

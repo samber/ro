@@ -167,6 +167,35 @@ func TestOperatorMathMin(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	t.Run("NaN propagates for Min and Max", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		nan := math.NaN()
+		inputs := [][]float64{
+			{nan, 1, 2},
+			{1, nan, 2},
+			{1, 2, nan},
+			{nan},
+		}
+
+		for _, in := range inputs {
+			values, err := Collect(Min[float64]()(FromSlice(in)))
+			is.NoError(err)
+			is.Len(values, 1)
+			is.True(math.IsNaN(values[0]), "Min %v", in)
+
+			values, err = Collect(Max[float64]()(FromSlice(in)))
+			is.NoError(err)
+			is.Len(values, 1)
+			is.True(math.IsNaN(values[0]), "Max %v", in)
+		}
+
+		values, err := Collect(Max[float64]()(FromSlice([]float64{1, 3, 2})))
+		is.Equal([]float64{3}, values)
+		is.NoError(err)
+	})
 }
 
 func TestOperatorMathMax(t *testing.T) {
@@ -408,101 +437,138 @@ func TestOperatorMathFloorWithPrecision(t *testing.T) {
 	is.Equal(0.0, values[0])
 	is.True(math.IsInf(values[1], -1))
 	is.Equal(0.0, values[2])
-}
 
-func TestOperatorMathFloorWithPrecisionZeroEqualsFloor(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("zero places equals Floor", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	valuesFloor, err := Collect(
-		Floor()(Just(1.9, -1.9, 2.0, -2.0)),
-	)
-	is.NoError(err)
-
-	valuesWithPrecisionZero, err := Collect(
-		FloorWithPrecision(0)(Just(1.9, -1.9, 2.0, -2.0)),
-	)
-	is.NoError(err)
-
-	is.Equal(valuesFloor, valuesWithPrecisionZero)
-}
-
-func TestOperatorMathFloorWithPrecisionLargeChunkFallback(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	positiveFallback := maxPow10ChunkCount*maxPow10Chunk + 1
-	positiveWithinLimit := positiveFallback - 1
-
-	values, err := Collect(
-		FloorWithPrecision(positiveFallback)(Just(1.2345, -6.789)),
-	)
-	is.NoError(err)
-	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
-
-	values, err = Collect(
-		FloorWithPrecision(positiveWithinLimit)(Just(1.2345, -6.789)),
-	)
-	is.NoError(err)
-	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
-
-	values, err = Collect(
-		FloorWithPrecision(-positiveFallback)(Just(42.5, -42.5, 0.0)),
-	)
-	is.NoError(err)
-	is.Len(values, 3)
-	is.Equal(0.0, values[0])
-	is.True(math.IsInf(values[1], -1))
-	is.Equal(0.0, values[2])
-
-	values, err = Collect(
-		FloorWithPrecision(-positiveWithinLimit)(Just(42.5, -42.5, 0.0)),
-	)
-	is.NoError(err)
-	is.Len(values, 3)
-	is.Equal(0.0, values[0])
-	is.True(math.IsInf(values[1], -1))
-	is.Equal(0.0, values[2])
-}
-
-func TestOperatorMathFloorWithPrecisionUnderflowFallback(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	value := -1e-20
-	places := -maxPow10Chunk
-
-	values, err := Collect(
-		FloorWithPrecision(places)(Just(value)),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.InDelta(-math.Pow10(maxPow10Chunk), values[0], 1)
-}
-
-func TestOperatorMathFloorWithPrecisionMinInt(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	var (
-		values []float64
-		err    error
-	)
-
-	assert.NotPanics(t, func() {
-		values, err = Collect(
-			FloorWithPrecision(math.MinInt)(Just(42.5, -42.5, 0.0, math.Inf(1), math.Inf(-1), math.NaN())),
+		valuesFloor, err := Collect(
+			Floor()(Just(1.9, -1.9, 2.0, -2.0)),
 		)
+		is.NoError(err)
+
+		valuesWithPrecisionZero, err := Collect(
+			FloorWithPrecision(0)(Just(1.9, -1.9, 2.0, -2.0)),
+		)
+		is.NoError(err)
+
+		is.Equal(valuesFloor, valuesWithPrecisionZero)
 	})
 
-	is.NoError(err)
-	is.Len(values, 6)
-	is.Equal(0.0, values[0])
-	is.True(math.IsInf(values[1], -1))
-	is.Equal(0.0, values[2])
-	is.True(math.IsInf(values[3], 1))
-	is.True(math.IsInf(values[4], -1))
-	is.True(math.IsNaN(values[5]))
+	t.Run("large chunk fallback", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		positiveFallback := maxPow10ChunkCount*maxPow10Chunk + 1
+		positiveWithinLimit := positiveFallback - 1
+
+		values, err := Collect(
+			FloorWithPrecision(positiveFallback)(Just(1.2345, -6.789)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+
+		values, err = Collect(
+			FloorWithPrecision(positiveWithinLimit)(Just(1.2345, -6.789)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+
+		values, err = Collect(
+			FloorWithPrecision(-positiveFallback)(Just(42.5, -42.5, 0.0)),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.Equal(0.0, values[0])
+		is.True(math.IsInf(values[1], -1))
+		is.Equal(0.0, values[2])
+
+		values, err = Collect(
+			FloorWithPrecision(-positiveWithinLimit)(Just(42.5, -42.5, 0.0)),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.Equal(0.0, values[0])
+		is.True(math.IsInf(values[1], -1))
+		is.Equal(0.0, values[2])
+	})
+
+	t.Run("underflow fallback", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		value := -1e-20
+		places := -maxPow10Chunk
+
+		values, err := Collect(
+			FloorWithPrecision(places)(Just(value)),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.InDelta(-math.Pow10(maxPow10Chunk), values[0], 1)
+	})
+
+	t.Run("min int places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		var (
+			values []float64
+			err    error
+		)
+
+		assert.NotPanics(t, func() {
+			values, err = Collect(
+				FloorWithPrecision(math.MinInt)(Just(42.5, -42.5, 0.0, math.Inf(1), math.Inf(-1), math.NaN())),
+			)
+		})
+
+		is.NoError(err)
+		is.Len(values, 6)
+		is.Equal(0.0, values[0])
+		is.True(math.IsInf(values[1], -1))
+		is.Equal(0.0, values[2])
+		is.True(math.IsInf(values[3], 1))
+		is.True(math.IsInf(values[4], -1))
+		is.True(math.IsNaN(values[5]))
+	})
+
+	t.Run("maxPow10Chunk value", func(t *testing.T) {
+		t.Parallel()
+		if maxPow10Chunk != 308 {
+			t.Fatalf("expected maxPow10Chunk == 308, got %d", maxPow10Chunk)
+		}
+
+		v := math.Pow10(maxPow10Chunk)
+		if math.IsInf(v, 0) || math.IsNaN(v) {
+			t.Fatalf("expected math.Pow10(%d) to be finite, got %v", maxPow10Chunk, v)
+		}
+
+		v2 := math.Pow10(maxPow10Chunk + 1)
+		if !math.IsInf(v2, 1) {
+			t.Fatalf("expected math.Pow10(%d) to overflow to +Inf, got %v", maxPow10Chunk+1, v2)
+		}
+	})
+
+	t.Run("chunk count computation", func(t *testing.T) {
+		t.Parallel()
+		// a moderately large precision should require multiple chunks
+		places := 1000
+		chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
+		if chunkCount <= 1 {
+			t.Fatalf("expected chunkCount>1 for places=%d, got %d", places, chunkCount)
+		}
+		if chunkCount > maxPow10ChunkCount {
+			t.Fatalf("expected chunkCount <= maxPow10ChunkCount for places=%d, got %d", places, chunkCount)
+		}
+
+		// a huge precision should exceed the chunk count cap
+		largePlaces := maxPow10Chunk * (maxPow10ChunkCount + 1)
+		chunkCount2 := (largePlaces + maxPow10Chunk - 1) / maxPow10Chunk
+		if chunkCount2 <= maxPow10ChunkCount {
+			t.Fatalf("expected chunkCount2 > maxPow10ChunkCount for largePlaces, got %d", chunkCount2)
+		}
+	})
 }
 
 func TestOperatorMathCeil(t *testing.T) {
@@ -626,84 +692,84 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	is.True(math.IsInf(values[0], 1))
 	is.Equal(0.0, values[1])
 	is.Equal(0.0, values[2])
-}
 
-func TestOperatorMathCeilWithPrecisionLargeChunkFallback(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("large chunk fallback", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	positiveFallback := maxPow10ChunkCount*maxPow10Chunk + 1
-	positiveWithinLimit := positiveFallback - 1
+		positiveFallback := maxPow10ChunkCount*maxPow10Chunk + 1
+		positiveWithinLimit := positiveFallback - 1
 
-	values, err := Collect(
-		CeilWithPrecision(positiveFallback)(Just(1.2345, -6.789)),
-	)
-	is.NoError(err)
-	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
-
-	values, err = Collect(
-		CeilWithPrecision(positiveWithinLimit)(Just(1.2345, -6.789)),
-	)
-	is.NoError(err)
-	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
-
-	values, err = Collect(
-		CeilWithPrecision(-positiveFallback)(Just(42.5, -42.5, 0.0)),
-	)
-	is.NoError(err)
-	is.Len(values, 3)
-	is.True(math.IsInf(values[0], 1))
-	is.Equal(0.0, values[1])
-	is.Equal(0.0, values[2])
-
-	values, err = Collect(
-		CeilWithPrecision(-positiveWithinLimit)(Just(42.5, -42.5, 0.0)),
-	)
-	is.NoError(err)
-	is.Len(values, 3)
-	is.True(math.IsInf(values[0], 1))
-	is.Equal(0.0, values[1])
-	is.Equal(0.0, values[2])
-}
-
-func TestOperatorMathCeilWithPrecisionUnderflowFallback(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	value := 1e-20
-	places := -maxPow10Chunk
-
-	values, err := Collect(
-		CeilWithPrecision(places)(Just(value)),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.InDelta(math.Pow10(maxPow10Chunk), values[0], 1)
-}
-
-func TestOperatorMathCeilWithPrecisionMinInt(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	var (
-		values []float64
-		err    error
-	)
-
-	assert.NotPanics(t, func() {
-		values, err = Collect(
-			CeilWithPrecision(math.MinInt)(Just(42.5, -42.5, 0.0, math.Inf(1), math.Inf(-1), math.NaN())),
+		values, err := Collect(
+			CeilWithPrecision(positiveFallback)(Just(1.2345, -6.789)),
 		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+
+		values, err = Collect(
+			CeilWithPrecision(positiveWithinLimit)(Just(1.2345, -6.789)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+
+		values, err = Collect(
+			CeilWithPrecision(-positiveFallback)(Just(42.5, -42.5, 0.0)),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+		is.Equal(0.0, values[2])
+
+		values, err = Collect(
+			CeilWithPrecision(-positiveWithinLimit)(Just(42.5, -42.5, 0.0)),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+		is.Equal(0.0, values[2])
 	})
 
-	is.NoError(err)
-	is.Len(values, 6)
-	is.True(math.IsInf(values[0], 1))
-	is.Equal(0.0, values[1])
-	is.Equal(0.0, values[2])
-	is.True(math.IsInf(values[3], 1))
-	is.True(math.IsInf(values[4], -1))
-	is.True(math.IsNaN(values[5]))
+	t.Run("underflow fallback", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		value := 1e-20
+		places := -maxPow10Chunk
+
+		values, err := Collect(
+			CeilWithPrecision(places)(Just(value)),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.InDelta(math.Pow10(maxPow10Chunk), values[0], 1)
+	})
+
+	t.Run("min int places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		var (
+			values []float64
+			err    error
+		)
+
+		assert.NotPanics(t, func() {
+			values, err = Collect(
+				CeilWithPrecision(math.MinInt)(Just(42.5, -42.5, 0.0, math.Inf(1), math.Inf(-1), math.NaN())),
+			)
+		})
+
+		is.NoError(err)
+		is.Len(values, 6)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+		is.Equal(0.0, values[2])
+		is.True(math.IsInf(values[3], 1))
+		is.True(math.IsInf(values[4], -1))
+		is.True(math.IsNaN(values[5]))
+	})
 }
 
 func TestOperatorMathTrunc(t *testing.T) {
@@ -743,43 +809,6 @@ func TestOperatorMathTrunc(t *testing.T) {
 	)
 	is.Equal([]float64{}, values)
 	is.NoError(err)
-}
-
-func TestMaxPow10ChunkValue(t *testing.T) {
-	t.Parallel()
-	if maxPow10Chunk != 308 {
-		t.Fatalf("expected maxPow10Chunk == 308, got %d", maxPow10Chunk)
-	}
-
-	v := math.Pow10(maxPow10Chunk)
-	if math.IsInf(v, 0) || math.IsNaN(v) {
-		t.Fatalf("expected math.Pow10(%d) to be finite, got %v", maxPow10Chunk, v)
-	}
-
-	v2 := math.Pow10(maxPow10Chunk + 1)
-	if !math.IsInf(v2, 1) {
-		t.Fatalf("expected math.Pow10(%d) to overflow to +Inf, got %v", maxPow10Chunk+1, v2)
-	}
-}
-
-func TestChunkCountComputation(t *testing.T) {
-	t.Parallel()
-	// a moderately large precision should require multiple chunks
-	places := 1000
-	chunkCount := (places + maxPow10Chunk - 1) / maxPow10Chunk
-	if chunkCount <= 1 {
-		t.Fatalf("expected chunkCount>1 for places=%d, got %d", places, chunkCount)
-	}
-	if chunkCount > maxPow10ChunkCount {
-		t.Fatalf("expected chunkCount <= maxPow10ChunkCount for places=%d, got %d", places, chunkCount)
-	}
-
-	// a huge precision should exceed the chunk count cap
-	largePlaces := maxPow10Chunk * (maxPow10ChunkCount + 1)
-	chunkCount2 := (largePlaces + maxPow10Chunk - 1) / maxPow10Chunk
-	if chunkCount2 <= maxPow10ChunkCount {
-		t.Fatalf("expected chunkCount2 > maxPow10ChunkCount for largePlaces, got %d", chunkCount2)
-	}
 }
 
 func TestOperatorMathReduce(t *testing.T) {
@@ -843,33 +872,4 @@ func TestOperatorMathReduceI(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
-}
-
-func TestOperatorMathMinMaxNaN(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	nan := math.NaN()
-	inputs := [][]float64{
-		{nan, 1, 2},
-		{1, nan, 2},
-		{1, 2, nan},
-		{nan},
-	}
-
-	for _, in := range inputs {
-		values, err := Collect(Min[float64]()(FromSlice(in)))
-		is.NoError(err)
-		is.Len(values, 1)
-		is.True(math.IsNaN(values[0]), "Min %v", in)
-
-		values, err = Collect(Max[float64]()(FromSlice(in)))
-		is.NoError(err)
-		is.Len(values, 1)
-		is.True(math.IsNaN(values[0]), "Max %v", in)
-	}
-
-	values, err := Collect(Max[float64]()(FromSlice([]float64{1, 3, 2})))
-	is.Equal([]float64{3}, values)
-	is.NoError(err)
 }
