@@ -168,6 +168,47 @@ func TestObserverNext(t *testing.T) {
 	is.EqualValues(42, atomic.LoadInt64(&counter2))
 }
 
+func TestObserver_concurrentNextAfterClose(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 5*time.Second)
+	is := assert.New(t)
+
+	var counter int64
+
+	observer := NewObserver(
+		func(value int) { atomic.AddInt64(&counter, int64(value)) },
+		func(err error) {},
+		func() {},
+	)
+
+	// Close the observer
+	observer.Complete()
+
+	var wg sync.WaitGroup
+
+	numGoroutines := 100
+	numCalls := 100
+
+	// Concurrent Next calls after close
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < numCalls; j++ {
+				observer.Next(1)
+			}
+		}()
+	}
+
+	wg.Wait()
+	observer.Complete()
+
+	// Counter should remain 0 since observer is closed
+	is.Equal(int64(0), atomic.LoadInt64(&counter))
+}
+
 func TestObserverError(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
@@ -201,6 +242,51 @@ func TestObserverError(t *testing.T) {
 	observer2.Next(21)
 	is.EqualValues(21, atomic.LoadInt64(&counter1))
 	is.EqualValues(21, atomic.LoadInt64(&counter2))
+}
+
+func TestObserver_concurrentErrorAndComplete(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 5*time.Second)
+	is := assert.New(t)
+
+	var errorCount int64
+	var completeCount int64
+
+	observer := NewObserver(
+		func(value int) {},
+		func(err error) { atomic.AddInt64(&errorCount, 1) },
+		func() { atomic.AddInt64(&completeCount, 1) },
+	)
+
+	var wg sync.WaitGroup
+
+	numGoroutines := 50
+
+	// Concurrent Error and Complete calls
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			observer.Error(assert.AnError)
+		}()
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			observer.Complete()
+		}()
+	}
+
+	wg.Wait()
+
+	// Only one should succeed (either error or complete)
+	total := atomic.LoadInt64(&errorCount) + atomic.LoadInt64(&completeCount)
+	is.Equal(int64(1), total)
+	is.True(observer.IsClosed())
 }
 
 func TestObserverComplete(t *testing.T) {
@@ -336,280 +422,7 @@ func TestObserverPartialWithContext(t *testing.T) {
 	is.Equal(ctx, receivedCtx)
 }
 
-func TestObserverStateMethods(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	observer := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() {},
-	)
-
-	// Initial state
-	is.False(observer.IsClosed())
-	is.False(observer.HasThrown())
-	is.False(observer.IsCompleted())
-
-	// After error
-	observer.Error(assert.AnError)
-	is.True(observer.IsClosed())
-	is.True(observer.HasThrown())
-	is.False(observer.IsCompleted())
-
-	// Create new observer for completion test
-	observer2 := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() {},
-	)
-
-	// After completion
-	observer2.Complete()
-	is.True(observer2.IsClosed())
-	is.False(observer2.HasThrown())
-	is.True(observer2.IsCompleted())
-}
-
-func TestObserverNoopObserver(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	observer := NoopObserver[int]()
-
-	// Should not panic
-	observer.Next(42)
-
-	// After error, should be closed
-	observer.Error(assert.AnError)
-	is.True(observer.IsClosed())
-	is.True(observer.HasThrown())
-	is.False(observer.IsCompleted())
-
-	// Create new observer for complete test
-	observer2 := NoopObserver[int]()
-	observer2.Complete()
-	is.True(observer2.IsClosed())
-	is.False(observer2.HasThrown())
-	is.True(observer2.IsCompleted())
-}
-
-func TestObserverPrintObserver(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	observer := PrintObserver[int]()
-
-	// Should not panic
-	observer.Next(42)
-
-	// After error, should be closed
-	observer.Error(assert.AnError)
-	is.True(observer.IsClosed())
-	is.True(observer.HasThrown())
-	is.False(observer.IsCompleted())
-
-	// Create new observer for complete test
-	observer2 := PrintObserver[int]()
-	observer2.Complete()
-	is.True(observer2.IsClosed())
-	is.False(observer2.HasThrown())
-	is.True(observer2.IsCompleted())
-}
-
-func TestObserverNilCallbacks(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	// Test with nil callbacks
-	observer1 := NewObserver[int](nil, nil, nil)
-	observer2 := NewObserverWithContext[int](nil, nil, nil)
-
-	// Should not panic
-	observer1.Next(42)
-	observer1.Error(assert.AnError)
-	observer1.Complete()
-
-	observer2.NextWithContext(context.Background(), 42)
-	observer2.ErrorWithContext(context.Background(), assert.AnError)
-	observer2.CompleteWithContext(context.Background())
-
-	// NewObserver with nil callbacks: wrapper functions cause panics that change status
-	// NewObserverWithContext with nil callbacks: nil check prevents status changes
-	is.True(observer1.IsClosed())
-	is.False(observer2.IsClosed())
-}
-
-func TestObserverConcurrentAccess(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 5*time.Second)
-	is := assert.New(t)
-
-	var counter int64
-
-	observer := NewObserver(
-		func(value int) { atomic.AddInt64(&counter, int64(value)) },
-		func(err error) {},
-		func() {},
-	)
-
-	var wg sync.WaitGroup
-
-	numGoroutines := 100
-	numCalls := 100
-
-	// Concurrent Next calls
-	for i := 0; i < numGoroutines; i++ {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			for j := 0; j < numCalls; j++ {
-				observer.Next(1)
-			}
-		}()
-	}
-
-	wg.Wait()
-	observer.Complete()
-
-	expected := int64(numGoroutines * numCalls)
-	is.Equal(expected, atomic.LoadInt64(&counter))
-}
-
-func TestObserverConcurrentErrorAndComplete(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 5*time.Second)
-	is := assert.New(t)
-
-	var errorCount int64
-	var completeCount int64
-
-	observer := NewObserver(
-		func(value int) {},
-		func(err error) { atomic.AddInt64(&errorCount, 1) },
-		func() { atomic.AddInt64(&completeCount, 1) },
-	)
-
-	var wg sync.WaitGroup
-
-	numGoroutines := 50
-
-	// Concurrent Error and Complete calls
-	for i := 0; i < numGoroutines; i++ {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			observer.Error(assert.AnError)
-		}()
-
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			observer.Complete()
-		}()
-	}
-
-	wg.Wait()
-
-	// Only one should succeed (either error or complete)
-	total := atomic.LoadInt64(&errorCount) + atomic.LoadInt64(&completeCount)
-	is.Equal(int64(1), total)
-	is.True(observer.IsClosed())
-}
-
-func TestObserverConcurrentStateChecks(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 5*time.Second)
-	is := assert.New(t)
-
-	observer := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() {},
-	)
-
-	var wg sync.WaitGroup
-
-	numGoroutines := 100
-	numCalls := 100
-
-	// Concurrent state checks
-	for i := 0; i < numGoroutines; i++ {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			for j := 0; j < numCalls; j++ {
-				observer.IsClosed()
-				observer.HasThrown()
-				observer.IsCompleted()
-			}
-		}()
-	}
-
-	wg.Wait()
-
-	// Should not panic and should return consistent results
-	is.False(observer.IsClosed())
-	is.False(observer.HasThrown())
-	is.False(observer.IsCompleted())
-
-	observer.Complete()
-
-	is.True(observer.IsClosed())
-	is.False(observer.HasThrown())
-	is.True(observer.IsCompleted())
-}
-
-func TestObserverConcurrentNextAfterClose(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 5*time.Second)
-	is := assert.New(t)
-
-	var counter int64
-
-	observer := NewObserver(
-		func(value int) { atomic.AddInt64(&counter, int64(value)) },
-		func(err error) {},
-		func() {},
-	)
-
-	// Close the observer
-	observer.Complete()
-
-	var wg sync.WaitGroup
-
-	numGoroutines := 100
-	numCalls := 100
-
-	// Concurrent Next calls after close
-	for i := 0; i < numGoroutines; i++ {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			for j := 0; j < numCalls; j++ {
-				observer.Next(1)
-			}
-		}()
-	}
-
-	wg.Wait()
-	observer.Complete()
-
-	// Counter should remain 0 since observer is closed
-	is.Equal(int64(0), atomic.LoadInt64(&counter))
-}
-
-func TestObserverConcurrentContextMethods(t *testing.T) {
+func TestObserver_concurrentContextMethods(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 5*time.Second)
 	is := assert.New(t)
@@ -665,7 +478,226 @@ func TestObserverConcurrentContextMethods(t *testing.T) {
 	is.Equal(expected, atomic.LoadInt64(&counter))
 }
 
-func TestObserverPanicHandling(t *testing.T) {
+func TestObserver_contextCancellation(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	var receivedCtx context.Context
+
+	observer := NewObserverWithContext(
+		func(ctx context.Context, value int) {
+			receivedCtx = ctx
+		},
+		func(ctx context.Context, err error) {
+			receivedCtx = ctx
+		},
+		func(ctx context.Context) {
+			receivedCtx = ctx
+		},
+	)
+
+	// Test with cancelled context
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	observer.NextWithContext(ctx, 42)
+	is.Equal(ctx, receivedCtx)
+
+	observer.ErrorWithContext(ctx, assert.AnError)
+	is.Equal(ctx, receivedCtx)
+
+	observer.CompleteWithContext(ctx)
+	is.Equal(ctx, receivedCtx)
+}
+
+func TestObserverStateMethods(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	observer := NewObserver(
+		func(value int) {},
+		func(err error) {},
+		func() {},
+	)
+
+	// Initial state
+	is.False(observer.IsClosed())
+	is.False(observer.HasThrown())
+	is.False(observer.IsCompleted())
+
+	// After error
+	observer.Error(assert.AnError)
+	is.True(observer.IsClosed())
+	is.True(observer.HasThrown())
+	is.False(observer.IsCompleted())
+
+	// Create new observer for completion test
+	observer2 := NewObserver(
+		func(value int) {},
+		func(err error) {},
+		func() {},
+	)
+
+	// After completion
+	observer2.Complete()
+	is.True(observer2.IsClosed())
+	is.False(observer2.HasThrown())
+	is.True(observer2.IsCompleted())
+}
+
+func TestObserver_concurrentStateChecks(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 5*time.Second)
+	is := assert.New(t)
+
+	observer := NewObserver(
+		func(value int) {},
+		func(err error) {},
+		func() {},
+	)
+
+	var wg sync.WaitGroup
+
+	numGoroutines := 100
+	numCalls := 100
+
+	// Concurrent state checks
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < numCalls; j++ {
+				observer.IsClosed()
+				observer.HasThrown()
+				observer.IsCompleted()
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	// Should not panic and should return consistent results
+	is.False(observer.IsClosed())
+	is.False(observer.HasThrown())
+	is.False(observer.IsCompleted())
+
+	observer.Complete()
+
+	is.True(observer.IsClosed())
+	is.False(observer.HasThrown())
+	is.True(observer.IsCompleted())
+}
+
+func TestObserverNoopObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	observer := NoopObserver[int]()
+
+	// Should not panic
+	observer.Next(42)
+
+	// After error, should be closed
+	observer.Error(assert.AnError)
+	is.True(observer.IsClosed())
+	is.True(observer.HasThrown())
+	is.False(observer.IsCompleted())
+
+	// Create new observer for complete test
+	observer2 := NoopObserver[int]()
+	observer2.Complete()
+	is.True(observer2.IsClosed())
+	is.False(observer2.HasThrown())
+	is.True(observer2.IsCompleted())
+}
+
+func TestObserverPrintObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	observer := PrintObserver[int]()
+
+	// Should not panic
+	observer.Next(42)
+
+	// After error, should be closed
+	observer.Error(assert.AnError)
+	is.True(observer.IsClosed())
+	is.True(observer.HasThrown())
+	is.False(observer.IsCompleted())
+
+	// Create new observer for complete test
+	observer2 := PrintObserver[int]()
+	observer2.Complete()
+	is.True(observer2.IsClosed())
+	is.False(observer2.HasThrown())
+	is.True(observer2.IsCompleted())
+}
+
+func TestObserver_nilCallbacks(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Test with nil callbacks
+	observer1 := NewObserver[int](nil, nil, nil)
+	observer2 := NewObserverWithContext[int](nil, nil, nil)
+
+	// Should not panic
+	observer1.Next(42)
+	observer1.Error(assert.AnError)
+	observer1.Complete()
+
+	observer2.NextWithContext(context.Background(), 42)
+	observer2.ErrorWithContext(context.Background(), assert.AnError)
+	observer2.CompleteWithContext(context.Background())
+
+	// NewObserver with nil callbacks: wrapper functions cause panics that change status
+	// NewObserverWithContext with nil callbacks: nil check prevents status changes
+	is.True(observer1.IsClosed())
+	is.False(observer2.IsClosed())
+}
+
+func TestObserver_concurrentAccess(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 5*time.Second)
+	is := assert.New(t)
+
+	var counter int64
+
+	observer := NewObserver(
+		func(value int) { atomic.AddInt64(&counter, int64(value)) },
+		func(err error) {},
+		func() {},
+	)
+
+	var wg sync.WaitGroup
+
+	numGoroutines := 100
+	numCalls := 100
+
+	// Concurrent Next calls
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < numCalls; j++ {
+				observer.Next(1)
+			}
+		}()
+	}
+
+	wg.Wait()
+	observer.Complete()
+
+	expected := int64(numGoroutines * numCalls)
+	is.Equal(expected, atomic.LoadInt64(&counter))
+}
+
+func TestObserver_panicHandling(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -710,7 +742,7 @@ func TestObserverPanicHandling(t *testing.T) {
 	is.True(observer3.IsCompleted())
 }
 
-func TestObserverMixedOperations(t *testing.T) {
+func TestObserver_mixedOperations(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 5*time.Second)
 	is := assert.New(t)
@@ -771,39 +803,7 @@ func TestObserverMixedOperations(t *testing.T) {
 	is.Equal(int64(1), total)
 }
 
-func TestObserverContextCancellation(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	var receivedCtx context.Context
-
-	observer := NewObserverWithContext(
-		func(ctx context.Context, value int) {
-			receivedCtx = ctx
-		},
-		func(ctx context.Context, err error) {
-			receivedCtx = ctx
-		},
-		func(ctx context.Context) {
-			receivedCtx = ctx
-		},
-	)
-
-	// Test with cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	observer.NextWithContext(ctx, 42)
-	is.Equal(ctx, receivedCtx)
-
-	observer.ErrorWithContext(ctx, assert.AnError)
-	is.Equal(ctx, receivedCtx)
-
-	observer.CompleteWithContext(ctx)
-	is.Equal(ctx, receivedCtx)
-}
-
-func TestObserverMemoryLeak(t *testing.T) {
+func TestObserver_memoryLeak(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 10*time.Second)
 	is := assert.New(t)

@@ -202,7 +202,7 @@ func ExampleNewRateLimiter_realWorld() {
 	// Output: Processed log entries: 5
 }
 
-func TestNewRateLimiterExamples(t *testing.T) {
+func TestNewRateLimiter_examples(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 

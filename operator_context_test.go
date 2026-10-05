@@ -81,6 +81,56 @@ func TestOperatorContextContextWithValue(t *testing.T) {
 	sub.Unsubscribe()
 
 	is.Equal(13, count)
+
+	t.Run("chained operators accumulate values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		type ctxKey string
+
+		key1 := ctxKey("key1")
+		key2 := ctxKey("key2")
+
+		values := []int{}
+		contexts := []context.Context{}
+
+		obs := Pipe2(
+			Just(1, 2, 3, 4, 5),
+			ContextWithValue[int](key1, "value1"),
+			ContextWithValue[int](key2, "value2"),
+		)
+
+		sub := obs.SubscribeWithContext(
+			context.Background(),
+			NewObserverWithContext(
+				func(ctx context.Context, value int) {
+					// Should have context values
+					is.Equal("value1", ctx.Value(key1))
+					is.Equal("value2", ctx.Value(key2))
+
+					values = append(values, value)
+					contexts = append(contexts, ctx)
+				},
+				func(ctx context.Context, err error) {
+					is.Fail("should not error")
+				},
+				func(ctx context.Context) {
+					// Should complete normally
+				},
+			),
+		)
+
+		sub.Unsubscribe()
+
+		is.Equal([]int{1, 2, 3, 4, 5}, values)
+		is.Len(contexts, 5)
+
+		// Check that all contexts have the expected values
+		for _, ctx := range contexts {
+			is.Equal("value1", ctx.Value(key1))
+			is.Equal("value2", ctx.Value(key2))
+		}
+	})
 }
 
 func TestOperatorContextContextWithTimeout(t *testing.T) {
@@ -284,53 +334,53 @@ func TestOperatorContextContextReset(t *testing.T) {
 		is.Nil(ctx.Value(originalKey))
 		is.Equal("new_value", ctx.Value(newKey))
 	}
-}
 
-func TestOperatorContextContextResetWithNil(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
+	t.Run("nil context falls back to background", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	type ctxKey string
+		type ctxKey string
 
-	originalKey := ctxKey("original")
+		originalKey := ctxKey("original")
 
-	originalCtx := context.WithValue(context.Background(), originalKey, "original_value")
+		originalCtx := context.WithValue(context.Background(), originalKey, "original_value")
 
-	values := []int{}
-	contexts := []context.Context{}
+		values := []int{}
+		contexts := []context.Context{}
 
-	obs := Pipe1(
-		Just(1, 2, 3, 4, 5),
-		ContextReset[int](nil), //nolint:staticcheck
-	)
+		obs := Pipe1(
+			Just(1, 2, 3, 4, 5),
+			ContextReset[int](nil), //nolint:staticcheck
+		)
 
-	sub := obs.SubscribeWithContext(
-		originalCtx,
-		NewObserverWithContext(
-			func(ctx context.Context, value int) {
-				// Should have background context, not original
-				is.Nil(ctx.Value(originalKey))
+		sub := obs.SubscribeWithContext(
+			originalCtx,
+			NewObserverWithContext(
+				func(ctx context.Context, value int) {
+					// Should have background context, not original
+					is.Nil(ctx.Value(originalKey))
 
-				values = append(values, value)
-				contexts = append(contexts, ctx)
-			},
-			func(ctx context.Context, err error) {
-				is.Fail("should not error")
-			},
-			func(ctx context.Context) {
-				// Should complete normally
-			},
-		),
-	)
+					values = append(values, value)
+					contexts = append(contexts, ctx)
+				},
+				func(ctx context.Context, err error) {
+					is.Fail("should not error")
+				},
+				func(ctx context.Context) {
+					// Should complete normally
+				},
+			),
+		)
 
-	sub.Unsubscribe()
+		sub.Unsubscribe()
 
-	is.Equal([]int{1, 2, 3, 4, 5}, values)
-	is.Len(contexts, 5)
+		is.Equal([]int{1, 2, 3, 4, 5}, values)
+		is.Len(contexts, 5)
 
-	for _, ctx := range contexts {
-		is.Nil(ctx.Value(originalKey))
-	}
+		for _, ctx := range contexts {
+			is.Nil(ctx.Value(originalKey))
+		}
+	})
 }
 
 func TestOperatorContextContextMap(t *testing.T) {
@@ -518,53 +568,3 @@ func TestOperatorContextThrowOnContextCancel(t *testing.T) { //nolint:parallelte
 // 	// Should have received some values before timeout
 // 	is.Equal([]int{0, 1, 2}, values)
 // }
-
-func TestOperatorContextChaining(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	type ctxKey string
-
-	key1 := ctxKey("key1")
-	key2 := ctxKey("key2")
-
-	values := []int{}
-	contexts := []context.Context{}
-
-	obs := Pipe2(
-		Just(1, 2, 3, 4, 5),
-		ContextWithValue[int](key1, "value1"),
-		ContextWithValue[int](key2, "value2"),
-	)
-
-	sub := obs.SubscribeWithContext(
-		context.Background(),
-		NewObserverWithContext(
-			func(ctx context.Context, value int) {
-				// Should have context values
-				is.Equal("value1", ctx.Value(key1))
-				is.Equal("value2", ctx.Value(key2))
-
-				values = append(values, value)
-				contexts = append(contexts, ctx)
-			},
-			func(ctx context.Context, err error) {
-				is.Fail("should not error")
-			},
-			func(ctx context.Context) {
-				// Should complete normally
-			},
-		),
-	)
-
-	sub.Unsubscribe()
-
-	is.Equal([]int{1, 2, 3, 4, 5}, values)
-	is.Len(contexts, 5)
-
-	// Check that all contexts have the expected values
-	for _, ctx := range contexts {
-		is.Equal("value1", ctx.Value(key1))
-		is.Equal("value2", ctx.Value(key2))
-	}
-}

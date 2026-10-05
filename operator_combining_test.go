@@ -378,9 +378,54 @@ func TestOperatorCombiningMergeAll(t *testing.T) { //nolint:paralleltest
 	)
 	is.Equal([]int64{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	t.Run("inner lifecycle", func(t *testing.T) {
+		testWithTimeout(t, 2000*time.Millisecond)
+		is := assert.New(t)
+
+		// teardowns counts inner teardowns; the inner never completes by itself.
+		var teardowns int32
+		pending := func() Observable[int] {
+			return NewUnsafeObservable(func(Observer[int]) Teardown {
+				return func() { atomic.AddInt32(&teardowns, 1) }
+			})
+		}
+
+		// early unsubscription tears down active inners, and not the finished ones
+		outer := NewPublishSubject[Observable[int]]()
+		sub := MergeAll[int]()(outer).Subscribe(OnNext(func(int) {}))
+		outer.Next(pending())
+		outer.Next(Just(1)) // completes synchronously during subscription
+		outer.Next(pending())
+		is.Equal(int32(0), atomic.LoadInt32(&teardowns))
+		sub.Unsubscribe()
+		is.Equal(int32(2), atomic.LoadInt32(&teardowns))
+
+		// an inner emitted after teardown is not subscribed to
+		subscribed := false
+		outer.Next(NewUnsafeObservable(func(Observer[int]) Teardown {
+			subscribed = true
+			return nil
+		}))
+		is.False(subscribed)
+
+		// an inner error tears down sibling inners
+		atomic.StoreInt32(&teardowns, 0)
+		outer = NewPublishSubject[Observable[int]]()
+		var gotErr error
+		MergeAll[int]()(outer).Subscribe(NewObserver(
+			func(int) {},
+			func(err error) { gotErr = err },
+			func() {},
+		))
+		outer.Next(pending())
+		outer.Next(Throw[int](assert.AnError))
+		is.EqualError(gotErr, assert.AnError.Error())
+		is.Equal(int32(1), atomic.LoadInt32(&teardowns))
+	})
 }
 
-func TestOperatorCombiningMergeAllReleasesCompletedInners(t *testing.T) { //nolint:paralleltest
+func TestOperatorCombiningMergeAll_releasesCompletedInners(t *testing.T) { //nolint:paralleltest
 	// Not parallel: it measures the process-wide heap.
 	is := assert.New(t)
 
@@ -425,51 +470,6 @@ func TestOperatorCombiningMergeAllReleasesCompletedInners(t *testing.T) { //noli
 	outer.Complete()
 	sub.Wait()
 	is.True(completed)
-}
-
-func TestOperatorCombiningMergeAllInnerLifecycle(t *testing.T) { //nolint:paralleltest
-	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
-
-	// teardowns counts inner teardowns; the inner never completes by itself.
-	var teardowns int32
-	pending := func() Observable[int] {
-		return NewUnsafeObservable(func(Observer[int]) Teardown {
-			return func() { atomic.AddInt32(&teardowns, 1) }
-		})
-	}
-
-	// early unsubscription tears down active inners, and not the finished ones
-	outer := NewPublishSubject[Observable[int]]()
-	sub := MergeAll[int]()(outer).Subscribe(OnNext(func(int) {}))
-	outer.Next(pending())
-	outer.Next(Just(1)) // completes synchronously during subscription
-	outer.Next(pending())
-	is.Equal(int32(0), atomic.LoadInt32(&teardowns))
-	sub.Unsubscribe()
-	is.Equal(int32(2), atomic.LoadInt32(&teardowns))
-
-	// an inner emitted after teardown is not subscribed to
-	subscribed := false
-	outer.Next(NewUnsafeObservable(func(Observer[int]) Teardown {
-		subscribed = true
-		return nil
-	}))
-	is.False(subscribed)
-
-	// an inner error tears down sibling inners
-	atomic.StoreInt32(&teardowns, 0)
-	outer = NewPublishSubject[Observable[int]]()
-	var gotErr error
-	MergeAll[int]()(outer).Subscribe(NewObserver(
-		func(int) {},
-		func(err error) { gotErr = err },
-		func() {},
-	))
-	outer.Next(pending())
-	outer.Next(Throw[int](assert.AnError))
-	is.EqualError(gotErr, assert.AnError.Error())
-	is.Equal(int32(1), atomic.LoadInt32(&teardowns))
 }
 
 func TestOperatorCombiningMergeMap(t *testing.T) { //nolint:paralleltest
@@ -542,6 +542,21 @@ func TestOperatorCombiningMergeMap(t *testing.T) { //nolint:paralleltest
 	)
 	is.Equal([]string{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	t.Run("MergeMapI index restarts on each subscription", func(t *testing.T) {
+		is := assert.New(t)
+
+		obs := MergeMapI(func(item string, index int64) Observable[int64] {
+			return Just(index)
+		})(Just("a", "b", "c"))
+
+		// Each subscription must restart its index at 0.
+		for i := 0; i < 2; i++ {
+			values, err := Collect(obs)
+			is.Equal([]int64{0, 1, 2}, values)
+			is.NoError(err)
+		}
+	})
 }
 
 func TestOperatorCombiningCombineLatestWith(t *testing.T) { //nolint:paralleltest
@@ -1038,6 +1053,43 @@ func TestOperatorCombiningCombineLatestAllAny(t *testing.T) { //nolint:parallelt
 	)
 	is.Equal([][]any{}, values)
 	is.EqualError(err, assert.AnError.Error())
+}
+
+// A source completing without any value makes a tuple impossible: the result
+// must complete at once instead of waiting for the other sources.
+func TestOperatorCombiningCombineLatest_emptyAndNever(t *testing.T) { //nolint:paralleltest
+	testWithTimeout(t, 1000*time.Millisecond)
+	is := assert.New(t)
+
+	values1, err := Collect(CombineLatest2(Empty[int](), Never()))
+	is.Equal([]lo.Tuple2[int, struct{}]{}, values1)
+	is.NoError(err)
+
+	values1b, err := Collect(CombineLatest2(Never(), Empty[int]()))
+	is.Equal([]lo.Tuple2[struct{}, int]{}, values1b)
+	is.NoError(err)
+
+	values3, err := Collect(CombineLatest3(Never(), Empty[int](), Never()))
+	is.Equal([]lo.Tuple3[struct{}, int, struct{}]{}, values3)
+	is.NoError(err)
+
+	values4, err := Collect(CombineLatest4(Never(), Never(), Never(), Empty[int]()))
+	is.Equal([]lo.Tuple4[struct{}, struct{}, struct{}, int]{}, values4)
+	is.NoError(err)
+
+	values5, err := Collect(CombineLatest5(Never(), Never(), Never(), Never(), Empty[int]()))
+	is.Equal([]lo.Tuple5[struct{}, struct{}, struct{}, struct{}, int]{}, values5)
+	is.NoError(err)
+
+	neverAny := NewObservable(func(Observer[any]) Teardown { return nil })
+
+	valuesAll, err := Collect(CombineLatestAny(Empty[any](), neverAny))
+	is.Equal([][]any{}, valuesAll)
+	is.NoError(err)
+
+	valuesAll, err = Collect(CombineLatestAny(neverAny, Empty[any]()))
+	is.Equal([][]any{}, valuesAll)
+	is.NoError(err)
 }
 
 func TestOperatorCombiningConcatWith(t *testing.T) { //nolint:paralleltest
@@ -1792,7 +1844,7 @@ func zipRow(round, arity int) []int {
 	return row
 }
 
-func TestOperatorCombiningZipCompletedSource(t *testing.T) {
+func TestOperatorCombiningZip_completedSource(t *testing.T) {
 	t.Parallel()
 
 	for _, variant := range zipCompletionVariants() {
@@ -1859,7 +1911,7 @@ func TestOperatorCombiningZipCompletedSource(t *testing.T) {
 	}
 }
 
-func TestOperatorCombiningZipFutureCompletion(t *testing.T) {
+func TestOperatorCombiningZip_futureCompletion(t *testing.T) {
 	t.Parallel()
 
 	// A source completing while another goroutine delivers the last pair must not drop it.
@@ -1901,7 +1953,7 @@ func TestOperatorCombiningZipFutureCompletion(t *testing.T) {
 	}
 }
 
-func TestOperatorCombiningZipUnsubscribeFromNext(t *testing.T) {
+func TestOperatorCombiningZip_unsubscribeFromNext(t *testing.T) {
 	t.Parallel()
 
 	for _, variant := range zipCompletionVariants() {
@@ -1939,7 +1991,7 @@ func TestOperatorCombiningZipUnsubscribeFromNext(t *testing.T) {
 	}
 }
 
-func TestOperatorCombiningZipTerminalCleanup(t *testing.T) {
+func TestOperatorCombiningZip_terminalCleanup(t *testing.T) {
 	t.Parallel()
 
 	for _, variant := range zipCompletionVariants() {
@@ -2005,61 +2057,8 @@ func TestOperatorCombiningZipTerminalCleanup(t *testing.T) {
 	}
 }
 
-// A source completing without any value makes a tuple impossible: the result
-// must complete at once instead of waiting for the other sources.
-func TestOperatorCombiningCombineLatestEmptyAndNever(t *testing.T) { //nolint:paralleltest
-	testWithTimeout(t, 1000*time.Millisecond)
-	is := assert.New(t)
-
-	values1, err := Collect(CombineLatest2(Empty[int](), Never()))
-	is.Equal([]lo.Tuple2[int, struct{}]{}, values1)
-	is.NoError(err)
-
-	values1b, err := Collect(CombineLatest2(Never(), Empty[int]()))
-	is.Equal([]lo.Tuple2[struct{}, int]{}, values1b)
-	is.NoError(err)
-
-	values3, err := Collect(CombineLatest3(Never(), Empty[int](), Never()))
-	is.Equal([]lo.Tuple3[struct{}, int, struct{}]{}, values3)
-	is.NoError(err)
-
-	values4, err := Collect(CombineLatest4(Never(), Never(), Never(), Empty[int]()))
-	is.Equal([]lo.Tuple4[struct{}, struct{}, struct{}, int]{}, values4)
-	is.NoError(err)
-
-	values5, err := Collect(CombineLatest5(Never(), Never(), Never(), Never(), Empty[int]()))
-	is.Equal([]lo.Tuple5[struct{}, struct{}, struct{}, struct{}, int]{}, values5)
-	is.NoError(err)
-
-	neverAny := NewObservable(func(Observer[any]) Teardown { return nil })
-
-	valuesAll, err := Collect(CombineLatestAny(Empty[any](), neverAny))
-	is.Equal([][]any{}, valuesAll)
-	is.NoError(err)
-
-	valuesAll, err = Collect(CombineLatestAny(neverAny, Empty[any]()))
-	is.Equal([][]any{}, valuesAll)
-	is.NoError(err)
-}
-
-func TestOperatorCombiningMergeMapIIndexIsPerSubscription(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	obs := MergeMapI(func(item string, index int64) Observable[int64] {
-		return Just(index)
-	})(Just("a", "b", "c"))
-
-	// Each subscription must restart its index at 0.
-	for i := 0; i < 2; i++ {
-		values, err := Collect(obs)
-		is.Equal([]int64{0, 1, 2}, values)
-		is.NoError(err)
-	}
-}
-
 // A synchronous first source that fails closes the destination: the remaining sources must not be subscribed.
-func TestOperatorCombiningSkipSubscriptionWhenDestinationClosed(t *testing.T) {
+func TestOperatorCombining_skipSubscriptionWhenDestinationClosed(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {

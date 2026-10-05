@@ -440,7 +440,7 @@ func TestNewSensorsTemperatureWatcher(t *testing.T) { //nolint:paralleltest
 }
 
 // Test subscription lifecycle and teardown
-func TestWatcherSubscriptionLifecycle(t *testing.T) { //nolint:paralleltest
+func TestWatcher_subscriptionLifecycle(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	is := assert.New(t)
 
@@ -478,7 +478,7 @@ func TestWatcherSubscriptionLifecycle(t *testing.T) { //nolint:paralleltest
 }
 
 // Test error handling
-func TestWatcherErrorHandling(t *testing.T) { //nolint:paralleltest
+func TestWatcher_errorHandling(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	is := assert.New(t)
 
@@ -510,7 +510,7 @@ func TestWatcherErrorHandling(t *testing.T) { //nolint:paralleltest
 }
 
 // Test multiple subscriptions
-func TestWatcherMultipleSubscriptions(t *testing.T) { //nolint:paralleltest
+func TestWatcher_multipleSubscriptions(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	is := assert.New(t)
 
@@ -584,7 +584,7 @@ func TestWatcherMultipleSubscriptions(t *testing.T) { //nolint:paralleltest
 // }
 
 // Test interval timing
-func TestWatcherIntervalTiming(t *testing.T) { //nolint:paralleltest
+func TestWatcher_intervalTiming(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	is := assert.New(t)
 
@@ -628,7 +628,7 @@ func TestWatcherIntervalTiming(t *testing.T) { //nolint:paralleltest
 }
 
 // Test watcher with zero interval (edge case)
-func TestWatcherZeroInterval(t *testing.T) { //nolint:paralleltest
+func TestWatcher_zeroInterval(t *testing.T) { //nolint:paralleltest
 	t.Parallel()
 	is := assert.New(t)
 
@@ -655,7 +655,7 @@ func TestWatcherZeroInterval(t *testing.T) { //nolint:paralleltest
 }
 
 // Test watcher with very long interval
-func TestWatcherLongInterval(t *testing.T) { //nolint:paralleltest
+func TestWatcher_longInterval(t *testing.T) { //nolint:paralleltest
 	// t.Parallel() // Removed to avoid race condition
 	is := assert.New(t)
 
@@ -686,7 +686,7 @@ func TestWatcherLongInterval(t *testing.T) { //nolint:paralleltest
 }
 
 // Test watcher with invalid parameters
-func TestWatcherInvalidParameters(t *testing.T) { //nolint:paralleltest
+func TestWatcher_invalidParameters(t *testing.T) { //nolint:paralleltest
 	// t.Parallel() // Removed to avoid race condition
 	is := assert.New(t)
 
@@ -713,7 +713,7 @@ func TestWatcherInvalidParameters(t *testing.T) { //nolint:paralleltest
 }
 
 // Test watcher with specific disk names
-func TestWatcherWithSpecificDiskNames(t *testing.T) { //nolint:paralleltest
+func TestWatcher_withSpecificDiskNames(t *testing.T) { //nolint:paralleltest
 	// t.Parallel() // Removed to avoid race condition
 	is := assert.New(t)
 
@@ -744,7 +744,7 @@ func TestWatcherWithSpecificDiskNames(t *testing.T) { //nolint:paralleltest
 }
 
 // Test network watcher with specific parameters
-func TestWatcherNetworkParameters(t *testing.T) { //nolint:paralleltest
+func TestWatcher_networkParameters(t *testing.T) { //nolint:paralleltest
 	// t.Parallel() // Removed to avoid race condition
 	is := assert.New(t)
 
@@ -774,7 +774,7 @@ func TestWatcherNetworkParameters(t *testing.T) { //nolint:paralleltest
 }
 
 // Test conntrack watcher with perCPU parameter
-func TestWatcherConntrackParameters(t *testing.T) { //nolint:paralleltest
+func TestWatcher_conntrackParameters(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	is := assert.New(t)
 
@@ -805,7 +805,7 @@ func TestWatcherConntrackParameters(t *testing.T) { //nolint:paralleltest
 }
 
 // Test sensors watcher with perNIC parameter (note: parameter name seems incorrect in source)
-func TestWatcherSensorsParameters(t *testing.T) { //nolint:paralleltest
+func TestWatcher_sensorsParameters(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	is := assert.New(t)
 
@@ -835,7 +835,7 @@ func TestWatcherSensorsParameters(t *testing.T) { //nolint:paralleltest
 }
 
 // Test watcher with rapid unsubscribe
-func TestWatcherRapidUnsubscribe(t *testing.T) { //nolint:paralleltest
+func TestWatcher_rapidUnsubscribe(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	is := assert.New(t)
 
@@ -870,7 +870,7 @@ func TestWatcherRapidUnsubscribe(t *testing.T) { //nolint:paralleltest
 }
 
 // Test watcher with multiple rapid subscriptions and unsubscriptions
-func TestWatcherMultipleRapidSubscriptions(t *testing.T) { //nolint:paralleltest
+func TestWatcher_multipleRapidSubscriptions(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	is := assert.New(t)
 
@@ -901,7 +901,7 @@ func TestWatcherMultipleRapidSubscriptions(t *testing.T) { //nolint:paralleltest
 }
 
 // Test watcher with nil observer handlers
-func TestWatcherNilObserverHandlers(t *testing.T) { //nolint:paralleltest
+func TestWatcher_nilObserverHandlers(t *testing.T) { //nolint:paralleltest
 	// t.Parallel() // Removed to avoid race condition
 	is := assert.New(t)
 
@@ -924,7 +924,7 @@ func TestWatcherNilObserverHandlers(t *testing.T) { //nolint:paralleltest
 }
 
 // Test watcher with panic in observer (should be handled gracefully)
-func TestWatcherObserverPanic(t *testing.T) { //nolint:paralleltest
+func TestWatcher_observerPanic(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	is := assert.New(t)
 
@@ -952,7 +952,7 @@ func TestWatcherObserverPanic(t *testing.T) { //nolint:paralleltest
 }
 
 // Test watcher with concurrent subscriptions
-func TestWatcherConcurrentSubscriptions(t *testing.T) { //nolint:paralleltest
+func TestWatcher_concurrentSubscriptions(t *testing.T) { //nolint:paralleltest
 	// t.Parallel() // Removed to avoid race condition with assert object
 	is := assert.New(t)
 

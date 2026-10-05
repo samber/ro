@@ -298,6 +298,51 @@ func TestSubscriberError(t *testing.T) {
 	is.EqualValues(22, atomic.LoadInt64(&counter4))
 }
 
+func TestSubscriber_concurrentErrorHandling(t *testing.T) { //nolint:paralleltest
+	// t.Parallel()
+	testWithTimeout(t, 200*time.Millisecond)
+	is := assert.New(t)
+
+	var errorCounter int64
+	var nextCounter int64
+
+	observer := NewObserver(
+		func(value int) { atomic.AddInt64(&nextCounter, int64(value)) },
+		func(err error) { atomic.AddInt64(&errorCounter, 1) },
+		func() {},
+	)
+
+	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
+
+	is.True(ok)
+
+	// Test concurrent error and next calls
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+
+		go func(j int) {
+			defer wg.Done()
+
+			if j%2 == 0 {
+				subscriber.Error(assert.AnError)
+			} else {
+				subscriber.Next(j)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	// Should be in error state
+	is.True(subscriber.HasThrown())
+	is.True(subscriber.IsClosed())
+	is.False(subscriber.IsCompleted())
+
+	// At least one error should be processed
+	is.GreaterOrEqual(int64(1), atomic.LoadInt64(&errorCounter))
+}
+
 func TestSubscriberComplete(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
@@ -366,6 +411,51 @@ func TestSubscriberComplete(t *testing.T) {
 	is.EqualValues(22, atomic.LoadInt64(&counter2))
 	is.EqualValues(22, atomic.LoadInt64(&counter3))
 	is.EqualValues(22, atomic.LoadInt64(&counter4))
+}
+
+func TestSubscriber_concurrentCompleteHandling(t *testing.T) { //nolint:paralleltest
+	// t.Parallel()
+	testWithTimeout(t, 200*time.Millisecond)
+	is := assert.New(t)
+
+	var completeCounter int64
+	var nextCounter int64
+
+	observer := NewObserver(
+		func(value int) { atomic.AddInt64(&nextCounter, int64(value)) },
+		func(err error) {},
+		func() { atomic.AddInt64(&completeCounter, 1) },
+	)
+
+	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
+
+	is.True(ok)
+
+	// Test concurrent complete and next calls
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+
+		go func(j int) {
+			defer wg.Done()
+
+			if j%2 == 0 {
+				subscriber.Complete()
+			} else {
+				subscriber.Next(j)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	// Should be in complete state
+	is.False(subscriber.HasThrown())
+	is.True(subscriber.IsClosed())
+	is.True(subscriber.IsCompleted())
+
+	// At least one complete should be processed
+	is.GreaterOrEqual(int64(1), atomic.LoadInt64(&completeCounter))
 }
 
 func TestSubscriberWithContext(t *testing.T) {
@@ -439,6 +529,75 @@ func TestSubscriberWithContext(t *testing.T) {
 	is.Equal(assert.AnError, receivedError)
 }
 
+func TestSubscriber_concurrentContextOperations(t *testing.T) { //nolint:paralleltest
+	// t.Parallel()
+	testWithTimeout(t, 300*time.Millisecond)
+	is := assert.New(t)
+
+	type contextKey string
+
+	const contextKeyGoroutine = contextKey("goroutine")
+
+	var nextCounter int64
+
+	var errorCounter int64
+
+	var completeCounter int64
+
+	observer := NewObserverWithContext(
+		func(ctx context.Context, value int) {
+			v, ok := ctx.Value(contextKeyGoroutine).(int)
+			is.True(ok)
+			is.Equal(42, v)
+			atomic.AddInt64(&nextCounter, int64(value))
+		},
+		func(ctx context.Context, err error) {
+			v, ok := ctx.Value(contextKeyGoroutine).(int)
+			is.True(ok)
+			is.Equal(42, v)
+			atomic.AddInt64(&errorCounter, 1)
+		},
+		func(ctx context.Context) {
+			v, ok := ctx.Value(contextKeyGoroutine).(int)
+			is.True(ok)
+			is.Equal(42, v)
+			atomic.AddInt64(&completeCounter, 1)
+		},
+	)
+
+	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
+
+	is.True(ok)
+
+	// Test concurrent context operations
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			ctx := context.WithValue(context.Background(), contextKeyGoroutine, 42)
+
+			for j := 0; j < 10; j++ {
+				switch j % 3 {
+				case 0:
+					subscriber.NextWithContext(ctx, j)
+				case 1:
+					subscriber.ErrorWithContext(ctx, assert.AnError)
+				case 2:
+					subscriber.CompleteWithContext(ctx)
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	// Verify that the subscriber is in a consistent state
+	is.True(subscriber.IsClosed())
+}
+
 func TestSubscriberIsClosed(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
@@ -472,6 +631,60 @@ func TestSubscriberIsClosed(t *testing.T) {
 	// After complete, should be closed
 	subscriber2.Complete()
 	is.True(subscriber2.IsClosed())
+}
+
+func TestSubscriber_concurrentStatusChecks(t *testing.T) { //nolint:paralleltest
+	// t.Parallel()
+	testWithTimeout(t, 200*time.Millisecond)
+	is := assert.New(t)
+
+	observer := NewObserver(
+		func(value int) {},
+		func(err error) {},
+		func() {},
+	)
+
+	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
+
+	is.True(ok)
+
+	// Test concurrent status checks
+	var wg sync.WaitGroup
+
+	var isClosedCount int64
+
+	var hasThrownCount int64
+
+	var isCompletedCount int64
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			for j := 0; j < 100; j++ {
+				if subscriber.IsClosed() {
+					atomic.AddInt64(&isClosedCount, 1)
+				}
+
+				if subscriber.HasThrown() {
+					atomic.AddInt64(&hasThrownCount, 1)
+				}
+
+				if subscriber.IsCompleted() {
+					atomic.AddInt64(&isCompletedCount, 1)
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	// All status checks should be consistent
+	is.EqualValues(0, atomic.LoadInt64(&isClosedCount))
+	is.EqualValues(0, atomic.LoadInt64(&hasThrownCount))
+	is.EqualValues(0, atomic.LoadInt64(&isCompletedCount))
 }
 
 func TestSubscriberHasThrown(t *testing.T) {
@@ -581,7 +794,86 @@ func TestSubscriberUnsubscribe(t *testing.T) {
 	is.False(teardownCalled) // Should not call teardown again
 }
 
-func TestSubscriberEventuallySafeBackpressureDrop(t *testing.T) {
+func TestSubscriber_concurrentUnsubscribe(t *testing.T) { //nolint:paralleltest
+	// t.Parallel()
+	testWithTimeout(t, 200*time.Millisecond)
+	is := assert.New(t)
+
+	var teardownCounter int64
+
+	observer := NewObserver(
+		func(value int) {},
+		func(err error) {},
+		func() {},
+	)
+
+	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
+
+	is.True(ok)
+
+	subscriber.Add(func() {
+		atomic.AddInt64(&teardownCounter, 1)
+	})
+
+	// Test concurrent unsubscribe calls
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			subscriber.Unsubscribe()
+		}()
+	}
+
+	wg.Wait()
+
+	// Teardown should be called exactly once
+	is.EqualValues(1, atomic.LoadInt64(&teardownCounter))
+	is.True(subscriber.IsClosed())
+}
+
+func TestSubscriber_concurrentAddUnsubscribable(t *testing.T) { //nolint:paralleltest
+	// t.Parallel()
+	testWithTimeout(t, 200*time.Millisecond)
+	is := assert.New(t)
+
+	var teardownCounter int64
+
+	observer := NewObserver(
+		func(value int) {},
+		func(err error) {},
+		func() {},
+	)
+
+	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
+
+	is.True(ok)
+
+	// Test concurrent AddUnsubscribable calls
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			subscription := NewSubscription(func() {
+				atomic.AddInt64(&teardownCounter, 1)
+			})
+			subscriber.AddUnsubscribable(subscription)
+		}()
+	}
+
+	wg.Wait()
+
+	// Unsubscribe should trigger all teardown functions
+	subscriber.Unsubscribe()
+	is.EqualValues(50, atomic.LoadInt64(&teardownCounter))
+}
+
+func TestSubscriber_eventuallySafeBackpressureDrop(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
 	is := assert.New(t)
@@ -607,7 +899,7 @@ func TestSubscriberEventuallySafeBackpressureDrop(t *testing.T) {
 	is.EqualValues(42, atomic.LoadInt64(&counter))
 }
 
-func TestSubscriberEventuallySafeBackpressureDropConcurrent(t *testing.T) { //nolint:paralleltest
+func TestSubscriber_eventuallySafeBackpressureDropConcurrent(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
@@ -643,7 +935,7 @@ func TestSubscriberEventuallySafeBackpressureDropConcurrent(t *testing.T) { //no
 	is.Equal(int64(21), atomic.LoadInt64(&counter))
 }
 
-func TestSubscriberWrappingExistingSubscriber(t *testing.T) {
+func TestSubscriber_wrappingExistingSubscriber(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -672,7 +964,7 @@ func TestSubscriberWrappingExistingSubscriber(t *testing.T) {
 	is.Equal(subscriber1, subscriber5)
 }
 
-func TestSubscriberWithSubscriptionObserver(t *testing.T) {
+func TestSubscriber_withSubscriptionObserver(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -705,7 +997,7 @@ func TestSubscriberWithSubscriptionObserver(t *testing.T) {
 	is.True(teardownCalled)
 }
 
-func TestSubscriberConcurrentAccess(t *testing.T) { //nolint:paralleltest
+func TestSubscriber_concurrentAccess(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
 	is := assert.New(t)
@@ -742,7 +1034,7 @@ func TestSubscriberConcurrentAccess(t *testing.T) { //nolint:paralleltest
 
 // This test should be executed with -race flag, because it tests concurrent access to the subscriber.
 // It is not a problem for the safe subscriber, but it is for the eventually safe subscriber.
-func TestSubscriberEventuallySafeConcurrentAccess(t *testing.T) { //nolint:paralleltest
+func TestSubscriber_eventuallySafeConcurrentAccess(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
 	is := assert.New(t)
@@ -784,7 +1076,7 @@ func TestSubscriberEventuallySafeConcurrentAccess(t *testing.T) { //nolint:paral
 	is.NotEqualValues(4500, atomic.LoadInt64(&counter))
 }
 
-func TestSubscriberNilObserver(t *testing.T) {
+func TestSubscriber_nilObserver(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -805,7 +1097,7 @@ func TestSubscriberNilObserver(t *testing.T) {
 	is.False(subscriber.HasThrown())
 }
 
-func TestSubscriberStatusTransitions(t *testing.T) {
+func TestSubscriber_statusTransitions(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -867,7 +1159,7 @@ func TestSubscriberStatusTransitions(t *testing.T) {
 	is.True(subscriber3.IsCompleted())
 }
 
-func TestSubscriberConcurrentMixedOperations(t *testing.T) { //nolint:paralleltest
+func TestSubscriber_concurrentMixedOperations(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
@@ -918,209 +1210,7 @@ func TestSubscriberConcurrentMixedOperations(t *testing.T) { //nolint:parallelte
 	is.Equal(int64(1), atomic.LoadInt64(&errorCounter)+atomic.LoadInt64(&completeCounter))
 }
 
-func TestSubscriberConcurrentStatusChecks(t *testing.T) { //nolint:paralleltest
-	// t.Parallel()
-	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
-
-	observer := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() {},
-	)
-
-	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
-
-	is.True(ok)
-
-	// Test concurrent status checks
-	var wg sync.WaitGroup
-
-	var isClosedCount int64
-
-	var hasThrownCount int64
-
-	var isCompletedCount int64
-
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			for j := 0; j < 100; j++ {
-				if subscriber.IsClosed() {
-					atomic.AddInt64(&isClosedCount, 1)
-				}
-
-				if subscriber.HasThrown() {
-					atomic.AddInt64(&hasThrownCount, 1)
-				}
-
-				if subscriber.IsCompleted() {
-					atomic.AddInt64(&isCompletedCount, 1)
-				}
-			}
-		}()
-	}
-
-	wg.Wait()
-
-	// All status checks should be consistent
-	is.EqualValues(0, atomic.LoadInt64(&isClosedCount))
-	is.EqualValues(0, atomic.LoadInt64(&hasThrownCount))
-	is.EqualValues(0, atomic.LoadInt64(&isCompletedCount))
-}
-
-func TestSubscriberConcurrentContextOperations(t *testing.T) { //nolint:paralleltest
-	// t.Parallel()
-	testWithTimeout(t, 300*time.Millisecond)
-	is := assert.New(t)
-
-	type contextKey string
-
-	const contextKeyGoroutine = contextKey("goroutine")
-
-	var nextCounter int64
-
-	var errorCounter int64
-
-	var completeCounter int64
-
-	observer := NewObserverWithContext(
-		func(ctx context.Context, value int) {
-			v, ok := ctx.Value(contextKeyGoroutine).(int)
-			is.True(ok)
-			is.Equal(42, v)
-			atomic.AddInt64(&nextCounter, int64(value))
-		},
-		func(ctx context.Context, err error) {
-			v, ok := ctx.Value(contextKeyGoroutine).(int)
-			is.True(ok)
-			is.Equal(42, v)
-			atomic.AddInt64(&errorCounter, 1)
-		},
-		func(ctx context.Context) {
-			v, ok := ctx.Value(contextKeyGoroutine).(int)
-			is.True(ok)
-			is.Equal(42, v)
-			atomic.AddInt64(&completeCounter, 1)
-		},
-	)
-
-	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
-
-	is.True(ok)
-
-	// Test concurrent context operations
-	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			ctx := context.WithValue(context.Background(), contextKeyGoroutine, 42)
-
-			for j := 0; j < 10; j++ {
-				switch j % 3 {
-				case 0:
-					subscriber.NextWithContext(ctx, j)
-				case 1:
-					subscriber.ErrorWithContext(ctx, assert.AnError)
-				case 2:
-					subscriber.CompleteWithContext(ctx)
-				}
-			}
-		}()
-	}
-
-	wg.Wait()
-
-	// Verify that the subscriber is in a consistent state
-	is.True(subscriber.IsClosed())
-}
-
-func TestSubscriberConcurrentUnsubscribe(t *testing.T) { //nolint:paralleltest
-	// t.Parallel()
-	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
-
-	var teardownCounter int64
-
-	observer := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() {},
-	)
-
-	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
-
-	is.True(ok)
-
-	subscriber.Add(func() {
-		atomic.AddInt64(&teardownCounter, 1)
-	})
-
-	// Test concurrent unsubscribe calls
-	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			subscriber.Unsubscribe()
-		}()
-	}
-
-	wg.Wait()
-
-	// Teardown should be called exactly once
-	is.EqualValues(1, atomic.LoadInt64(&teardownCounter))
-	is.True(subscriber.IsClosed())
-}
-
-func TestSubscriberConcurrentAddUnsubscribable(t *testing.T) { //nolint:paralleltest
-	// t.Parallel()
-	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
-
-	var teardownCounter int64
-
-	observer := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() {},
-	)
-
-	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
-
-	is.True(ok)
-
-	// Test concurrent AddUnsubscribable calls
-	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			subscription := NewSubscription(func() {
-				atomic.AddInt64(&teardownCounter, 1)
-			})
-			subscriber.AddUnsubscribable(subscription)
-		}()
-	}
-
-	wg.Wait()
-
-	// Unsubscribe should trigger all teardown functions
-	subscriber.Unsubscribe()
-	is.EqualValues(50, atomic.LoadInt64(&teardownCounter))
-}
-
-func TestSubscriberConcurrentSafeVsUnsafe(t *testing.T) { //nolint:paralleltest
+func TestSubscriber_concurrentSafeVsUnsafe(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 300*time.Millisecond)
 	is := assert.New(t)
@@ -1171,7 +1261,7 @@ func TestSubscriberConcurrentSafeVsUnsafe(t *testing.T) { //nolint:paralleltest
 	is.Positive(atomic.LoadInt64(&unsafeCounter))
 }
 
-func TestSubscriberConcurrentEventuallySafeDropBehavior(t *testing.T) { //nolint:paralleltest
+func TestSubscriber_concurrentEventuallySafeDropBehavior(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 300*time.Millisecond)
 	is := assert.New(t)
@@ -1214,97 +1304,7 @@ func TestSubscriberConcurrentEventuallySafeDropBehavior(t *testing.T) { //nolint
 	is.Positive(atomic.LoadInt64(&counter)) // But some should get through
 }
 
-func TestSubscriberConcurrentErrorHandling(t *testing.T) { //nolint:paralleltest
-	// t.Parallel()
-	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
-
-	var errorCounter int64
-	var nextCounter int64
-
-	observer := NewObserver(
-		func(value int) { atomic.AddInt64(&nextCounter, int64(value)) },
-		func(err error) { atomic.AddInt64(&errorCounter, 1) },
-		func() {},
-	)
-
-	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
-
-	is.True(ok)
-
-	// Test concurrent error and next calls
-	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-
-		go func(j int) {
-			defer wg.Done()
-
-			if j%2 == 0 {
-				subscriber.Error(assert.AnError)
-			} else {
-				subscriber.Next(j)
-			}
-		}(i)
-	}
-
-	wg.Wait()
-
-	// Should be in error state
-	is.True(subscriber.HasThrown())
-	is.True(subscriber.IsClosed())
-	is.False(subscriber.IsCompleted())
-
-	// At least one error should be processed
-	is.GreaterOrEqual(int64(1), atomic.LoadInt64(&errorCounter))
-}
-
-func TestSubscriberConcurrentCompleteHandling(t *testing.T) { //nolint:paralleltest
-	// t.Parallel()
-	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
-
-	var completeCounter int64
-	var nextCounter int64
-
-	observer := NewObserver(
-		func(value int) { atomic.AddInt64(&nextCounter, int64(value)) },
-		func(err error) {},
-		func() { atomic.AddInt64(&completeCounter, 1) },
-	)
-
-	subscriber, ok := NewSafeSubscriber(observer).(*subscriberImpl[int])
-
-	is.True(ok)
-
-	// Test concurrent complete and next calls
-	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-
-		go func(j int) {
-			defer wg.Done()
-
-			if j%2 == 0 {
-				subscriber.Complete()
-			} else {
-				subscriber.Next(j)
-			}
-		}(i)
-	}
-
-	wg.Wait()
-
-	// Should be in complete state
-	is.False(subscriber.HasThrown())
-	is.True(subscriber.IsClosed())
-	is.True(subscriber.IsCompleted())
-
-	// At least one complete should be processed
-	is.GreaterOrEqual(int64(1), atomic.LoadInt64(&completeCounter))
-}
-
-func TestSubscriberConcurrentNilObserver(t *testing.T) { //nolint:paralleltest
+func TestSubscriber_concurrentNilObserver(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
 	is := assert.New(t)
@@ -1336,7 +1336,7 @@ func TestSubscriberConcurrentNilObserver(t *testing.T) { //nolint:paralleltest
 	is.True(subscriber.IsClosed())
 }
 
-func TestSubscriberConcurrentStatusTransitions(t *testing.T) { //nolint:paralleltest
+func TestSubscriber_concurrentStatusTransitions(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 300*time.Millisecond)
 	is := assert.New(t)

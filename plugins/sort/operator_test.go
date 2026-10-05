@@ -126,6 +126,65 @@ func TestSort(t *testing.T) {
 	)
 	is.Equal([]float64{1.41, 2.23, 2.71, 3.14}, valuesFloat)
 	is.Nil(err)
+
+	t.Run("error observable", func(t *testing.T) {
+		testWithTimeout(t, 100*time.Millisecond)
+		is := assert.New(t)
+
+		// Test with error observable
+		values, err := ro.Collect(
+			Sort(Compare[int])(
+				ro.Throw[int](assert.AnError),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("with context", func(t *testing.T) {
+		testWithTimeout(t, 100*time.Millisecond)
+		is := assert.New(t)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+
+		// Test with context
+		values, resultCtx, err := ro.CollectWithContext(ctx,
+			Sort(Compare[int])(
+				ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
+			),
+		)
+		is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
+		is.Nil(err)
+		is.NotNil(resultCtx)
+	})
+
+	t.Run("preserves per-item context", func(t *testing.T) {
+		testWithTimeout(t, 100*time.Millisecond)
+		is := assert.New(t)
+
+		type ctxKey string
+		key := ctxKey("index")
+
+		var seen []int
+
+		values, err := ro.Collect(
+			ro.Pipe3(
+				ro.Just(30, 10, 20),
+				ro.MapIWithContext(func(ctx context.Context, v int, i int64) (context.Context, int) {
+					return context.WithValue(ctx, key, int(i)), v
+				}),
+				Sort(Compare[int]),
+				ro.TapOnNextWithContext(func(ctx context.Context, _ int) {
+					index, _ := ctx.Value(key).(int)
+					seen = append(seen, index)
+				}),
+			),
+		)
+		is.Equal([]int{10, 20, 30}, values)
+		is.Equal([]int{1, 2, 0}, seen)
+		is.NoError(err)
+	})
 }
 
 func TestSortFunc(t *testing.T) {
@@ -210,6 +269,57 @@ func TestSortFunc(t *testing.T) {
 	)
 	is.Equal([]string{"apple", "Banana", "Cherry", "DATE"}, valuesStr)
 	is.Nil(err)
+
+	t.Run("error observable", func(t *testing.T) {
+		testWithTimeout(t, 100*time.Millisecond)
+		is := assert.New(t)
+
+		// Test with error observable
+		values, err := ro.Collect(
+			SortFunc(Compare[int])(
+				ro.Throw[int](assert.AnError),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("early unsubscribe", func(t *testing.T) {
+		is := assert.New(t)
+
+		var finalized int32
+
+		obs := ro.Pipe2(
+			ro.Never(),
+			ro.TapOnFinalize[struct{}](func() {
+				atomic.AddInt32(&finalized, 1)
+			}),
+			SortFunc(func(struct{}, struct{}) int { return 0 }),
+		)
+
+		sub := obs.Subscribe(ro.OnNext(func(struct{}) {}))
+		sub.Unsubscribe()
+
+		is.EqualValues(1, atomic.LoadInt32(&finalized))
+	})
+
+	t.Run("with context", func(t *testing.T) {
+		testWithTimeout(t, 100*time.Millisecond)
+		is := assert.New(t)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+
+		// Test with context
+		values, resultCtx, err := ro.CollectWithContext(ctx,
+			SortFunc(Compare[int])(
+				ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
+			),
+		)
+		is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
+		is.Nil(err)
+		is.NotNil(resultCtx)
+	})
 }
 
 func TestSortStableFunc(t *testing.T) {
@@ -294,192 +404,73 @@ func TestSortStableFunc(t *testing.T) {
 	)
 	is.Equal([]string{"apple", "Banana", "Cherry", "DATE"}, valuesStr)
 	is.Nil(err)
-}
 
-func TestSortWithError(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
+	t.Run("error observable", func(t *testing.T) {
+		testWithTimeout(t, 100*time.Millisecond)
+		is := assert.New(t)
 
-	// Test with error observable
-	values, err := ro.Collect(
-		Sort(Compare[int])(
-			ro.Throw[int](assert.AnError),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
-}
+		// Test with error observable
+		values, err := ro.Collect(
+			SortStableFunc(Compare[int])(
+				ro.Throw[int](assert.AnError),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
-func TestSortFuncWithError(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
+	t.Run("with context", func(t *testing.T) {
+		testWithTimeout(t, 100*time.Millisecond)
+		is := assert.New(t)
 
-	// Test with error observable
-	values, err := ro.Collect(
-		SortFunc(Compare[int])(
-			ro.Throw[int](assert.AnError),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
-}
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
 
-func TestSortStableFuncWithError(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
+		// Test with context
+		values, resultCtx, err := ro.CollectWithContext(ctx,
+			SortStableFunc(Compare[int])(
+				ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
+			),
+		)
+		is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
+		is.Nil(err)
+		is.NotNil(resultCtx)
+	})
 
-	// Test with error observable
-	values, err := ro.Collect(
-		SortStableFunc(Compare[int])(
-			ro.Throw[int](assert.AnError),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
-}
+	t.Run("stability of equal keys", func(t *testing.T) {
+		testWithTimeout(t, 100*time.Millisecond)
+		is := assert.New(t)
 
-func TestSortWithContext(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
+		type stableItem struct {
+			key   int
+			order int
+		}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
+		// Several items share the same key. A stable sort must preserve their
+		// original relative order (tracked here via the "order" field).
+		items := []stableItem{
+			{key: 1, order: 0},
+			{key: 2, order: 1},
+			{key: 1, order: 2},
+			{key: 2, order: 3},
+			{key: 1, order: 4},
+		}
 
-	// Test with context
-	values, resultCtx, err := ro.CollectWithContext(ctx,
-		Sort(Compare[int])(
-			ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
-		),
-	)
-	is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
-	is.Nil(err)
-	is.NotNil(resultCtx)
-}
+		values, err := ro.Collect(
+			SortStableFunc(func(a, b stableItem) int {
+				return Compare(a.key, b.key)
+			})(
+				ro.FromSlice(items),
+			),
+		)
+		is.NoError(err)
 
-func TestSortWithItemContext(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
-
-	type ctxKey string
-	key := ctxKey("index")
-
-	var seen []int
-
-	values, err := ro.Collect(
-		ro.Pipe3(
-			ro.Just(30, 10, 20),
-			ro.MapIWithContext(func(ctx context.Context, v int, i int64) (context.Context, int) {
-				return context.WithValue(ctx, key, int(i)), v
-			}),
-			Sort(Compare[int]),
-			ro.TapOnNextWithContext(func(ctx context.Context, _ int) {
-				index, _ := ctx.Value(key).(int)
-				seen = append(seen, index)
-			}),
-		),
-	)
-	is.Equal([]int{10, 20, 30}, values)
-	is.Equal([]int{1, 2, 0}, seen)
-	is.NoError(err)
-}
-
-func TestSortEarlyUnsubscribe(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	var finalized int32
-
-	obs := ro.Pipe2(
-		ro.Never(),
-		ro.TapOnFinalize[struct{}](func() {
-			atomic.AddInt32(&finalized, 1)
-		}),
-		SortFunc(func(struct{}, struct{}) int { return 0 }),
-	)
-
-	sub := obs.Subscribe(ro.OnNext(func(struct{}) {}))
-	sub.Unsubscribe()
-
-	is.EqualValues(1, atomic.LoadInt32(&finalized))
-}
-
-func TestSortFuncWithContext(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-
-	// Test with context
-	values, resultCtx, err := ro.CollectWithContext(ctx,
-		SortFunc(Compare[int])(
-			ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
-		),
-	)
-	is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
-	is.Nil(err)
-	is.NotNil(resultCtx)
-}
-
-func TestSortStableFuncWithContext(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-
-	// Test with context
-	values, resultCtx, err := ro.CollectWithContext(ctx,
-		SortStableFunc(Compare[int])(
-			ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
-		),
-	)
-	is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
-	is.Nil(err)
-	is.NotNil(resultCtx)
-}
-
-func TestSortStableFuncStability(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
-
-	type stableItem struct {
-		key   int
-		order int
-	}
-
-	// Several items share the same key. A stable sort must preserve their
-	// original relative order (tracked here via the "order" field).
-	items := []stableItem{
-		{key: 1, order: 0},
-		{key: 2, order: 1},
-		{key: 1, order: 2},
-		{key: 2, order: 3},
-		{key: 1, order: 4},
-	}
-
-	values, err := ro.Collect(
-		SortStableFunc(func(a, b stableItem) int {
-			return Compare(a.key, b.key)
-		})(
-			ro.FromSlice(items),
-		),
-	)
-	is.NoError(err)
-
-	orders := make([]int, len(values))
-	for i, v := range values {
-		orders[i] = v.order
-	}
-	is.Equal([]int{0, 2, 4, 1, 3}, orders)
+		orders := make([]int, len(values))
+		for i, v := range values {
+			orders[i] = v.order
+		}
+		is.Equal([]int{0, 2, 4, 1, 3}, orders)
+	})
 }
 
 // Helper functions
@@ -544,100 +535,96 @@ func TestReverse(t *testing.T) {
 	)
 	is.Equal([]string{"cherry", "banana", "apple"}, valuesStr)
 	is.NoError(err)
-}
 
-func TestReverseWithError(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
+	t.Run("error observable", func(t *testing.T) {
+		testWithTimeout(t, 100*time.Millisecond)
+		is := assert.New(t)
 
-	// Test with error observable
-	values, err := ro.Collect(
-		Reverse[int]()(
-			ro.Throw[int](assert.AnError),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
-
-	// An error raised after some items were already buffered must not emit
-	// any of the buffered items.
-	values, err = ro.Collect(
-		Reverse[int]()(
-			ro.Pipe1(
-				ro.Just(1, 2, 3),
-				ro.ConcatWith(ro.Throw[int](assert.AnError)),
+		// Test with error observable
+		values, err := ro.Collect(
+			Reverse[int]()(
+				ro.Throw[int](assert.AnError),
 			),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
-}
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
 
-func TestReverseWithContext(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
+		// An error raised after some items were already buffered must not emit
+		// any of the buffered items.
+		values, err = ro.Collect(
+			Reverse[int]()(
+				ro.Pipe1(
+					ro.Just(1, 2, 3),
+					ro.ConcatWith(ro.Throw[int](assert.AnError)),
+				),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
-	type ctxKey string
-	key := ctxKey("index")
+	t.Run("with item context", func(t *testing.T) {
+		testWithTimeout(t, 100*time.Millisecond)
+		is := assert.New(t)
 
-	var seen []int
+		type ctxKey string
+		key := ctxKey("index")
 
-	values, err := ro.Collect(
-		ro.Pipe3(
-			ro.Just(10, 20, 30),
-			ro.MapIWithContext(func(ctx context.Context, v int, i int64) (context.Context, int) {
-				return context.WithValue(ctx, key, int(i)), v
+		var seen []int
+
+		values, err := ro.Collect(
+			ro.Pipe3(
+				ro.Just(10, 20, 30),
+				ro.MapIWithContext(func(ctx context.Context, v int, i int64) (context.Context, int) {
+					return context.WithValue(ctx, key, int(i)), v
+				}),
+				Reverse[int](),
+				ro.TapOnNextWithContext(func(ctx context.Context, _ int) {
+					index, _ := ctx.Value(key).(int)
+					seen = append(seen, index)
+				}),
+			),
+		)
+		is.Equal([]int{30, 20, 10}, values)
+		is.Equal([]int{2, 1, 0}, seen)
+		is.NoError(err)
+	})
+
+	t.Run("with context cancellation", func(t *testing.T) {
+		testWithTimeout(t, 100*time.Millisecond)
+		is := assert.New(t)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+
+		values, resultCtx, err := ro.CollectWithContext(ctx,
+			Reverse[int]()(
+				ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
+			),
+		)
+		is.Equal([]int{6, 2, 9, 5, 1, 4, 1, 3}, values)
+		is.NoError(err)
+		is.NotNil(resultCtx)
+	})
+
+	t.Run("early unsubscribe", func(t *testing.T) {
+		is := assert.New(t)
+
+		var finalized int32
+
+		obs := ro.Pipe2(
+			ro.Never(),
+			ro.TapOnFinalize[struct{}](func() {
+				atomic.AddInt32(&finalized, 1)
 			}),
-			Reverse[int](),
-			ro.TapOnNextWithContext(func(ctx context.Context, _ int) {
-				index, _ := ctx.Value(key).(int)
-				seen = append(seen, index)
-			}),
-		),
-	)
-	is.Equal([]int{30, 20, 10}, values)
-	is.Equal([]int{2, 1, 0}, seen)
-	is.NoError(err)
-}
+			Reverse[struct{}](),
+		)
 
-func TestReverseWithContextCancellation(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
+		sub := obs.Subscribe(ro.OnNext(func(struct{}) {}))
+		sub.Unsubscribe()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-
-	values, resultCtx, err := ro.CollectWithContext(ctx,
-		Reverse[int]()(
-			ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
-		),
-	)
-	is.Equal([]int{6, 2, 9, 5, 1, 4, 1, 3}, values)
-	is.NoError(err)
-	is.NotNil(resultCtx)
-}
-
-func TestReverseEarlyUnsubscribe(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	var finalized int32
-
-	obs := ro.Pipe2(
-		ro.Never(),
-		ro.TapOnFinalize[struct{}](func() {
-			atomic.AddInt32(&finalized, 1)
-		}),
-		Reverse[struct{}](),
-	)
-
-	sub := obs.Subscribe(ro.OnNext(func(struct{}) {}))
-	sub.Unsubscribe()
-
-	is.EqualValues(1, atomic.LoadInt32(&finalized))
+		is.EqualValues(1, atomic.LoadInt32(&finalized))
+	})
 }
 
 func testWithTimeout(t *testing.T, timeout time.Duration) {

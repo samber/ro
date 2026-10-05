@@ -101,6 +101,38 @@ func TestSubscription_Add_reentrantOnClosedSubscription(t *testing.T) {
 	}), "Add deadlocked on re-entrant Add")
 }
 
+func TestSubscription_concurrentAdd(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	sub := NewSubscription(nil)
+
+	var wg sync.WaitGroup
+
+	counter := int32(0)
+
+	// Add teardowns concurrently
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			sub.Add(func() {
+				atomic.AddInt32(&counter, 1)
+			})
+		}()
+	}
+
+	wg.Wait()
+	is.False(sub.IsClosed())
+
+	// Unsubscribe should execute all teardowns
+	sub.Unsubscribe()
+	is.Equal(int32(100), counter)
+	is.True(sub.IsClosed())
+}
+
 func TestSubscriptionAddUnsubscribable(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
@@ -174,123 +206,7 @@ func TestSubscriptionUnsubscribe(t *testing.T) {
 	is.True(sub2.IsClosed())
 }
 
-func TestSubscriptionIsClosed(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	sub := NewSubscription(nil)
-	is.False(sub.IsClosed())
-
-	sub.Unsubscribe()
-	is.True(sub.IsClosed())
-
-	// Test after double unsubscribe
-	sub.Unsubscribe()
-	is.True(sub.IsClosed())
-}
-
-func TestSubscriptionWait(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	sub := NewSubscription(nil)
-
-	// Test that Wait blocks until unsubscribe
-	done := make(chan bool, 1)
-
-	go func() {
-		sub.Wait()
-
-		done <- true
-	}()
-
-	// Give some time for the goroutine to start
-	time.Sleep(10 * time.Millisecond)
-
-	// The channel should not have received anything yet
-	select {
-	case <-done:
-		is.Fail("Wait should block until unsubscribe")
-	default:
-		// Expected - Wait is blocking
-	}
-
-	// Unsubscribe should unblock Wait
-	sub.Unsubscribe()
-
-	// Wait for the goroutine to complete
-	select {
-	case <-done:
-		// Expected
-	case <-time.After(100 * time.Millisecond):
-		is.Fail("Wait should unblock after unsubscribe")
-	}
-}
-
-func TestSubscriptionPanicHandling(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	// Test teardown that panics
-	panicTeardown := func() {
-		panic("test panic")
-	}
-	sub := NewSubscription(panicTeardown)
-
-	// Should panic when unsubscribe is called
-	is.Panics(func() {
-		sub.Unsubscribe()
-	})
-
-	// Test multiple teardowns with one that panics
-	called := false
-	normalTeardown := func() {
-		called = true
-	}
-
-	sub2 := NewSubscription(normalTeardown)
-	sub2.Add(panicTeardown)
-
-	// Should panic, but normal teardown should still be called
-	is.Panics(func() {
-		sub2.Unsubscribe()
-	})
-	is.True(called)
-}
-
-func TestSubscriptionConcurrentAdd(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	sub := NewSubscription(nil)
-
-	var wg sync.WaitGroup
-
-	counter := int32(0)
-
-	// Add teardowns concurrently
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			sub.Add(func() {
-				atomic.AddInt32(&counter, 1)
-			})
-		}()
-	}
-
-	wg.Wait()
-	is.False(sub.IsClosed())
-
-	// Unsubscribe should execute all teardowns
-	sub.Unsubscribe()
-	is.Equal(int32(100), counter)
-	is.True(sub.IsClosed())
-}
-
-func TestSubscriptionConcurrentUnsubscribe(t *testing.T) {
+func TestSubscription_concurrentUnsubscribe(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -323,7 +239,7 @@ func TestSubscriptionConcurrentUnsubscribe(t *testing.T) {
 	is.True(sub.IsClosed())
 }
 
-func TestSubscriptionConcurrentAddAndUnsubscribe(t *testing.T) {
+func TestSubscription_concurrentAddAndUnsubscribe(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -365,7 +281,53 @@ func TestSubscriptionConcurrentAddAndUnsubscribe(t *testing.T) {
 	is.GreaterOrEqual(counter, int32(1))
 }
 
-func TestSubscriptionConcurrentIsClosed(t *testing.T) {
+func TestSubscription_panicHandling(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Test teardown that panics
+	panicTeardown := func() {
+		panic("test panic")
+	}
+	sub := NewSubscription(panicTeardown)
+
+	// Should panic when unsubscribe is called
+	is.Panics(func() {
+		sub.Unsubscribe()
+	})
+
+	// Test multiple teardowns with one that panics
+	called := false
+	normalTeardown := func() {
+		called = true
+	}
+
+	sub2 := NewSubscription(normalTeardown)
+	sub2.Add(panicTeardown)
+
+	// Should panic, but normal teardown should still be called
+	is.Panics(func() {
+		sub2.Unsubscribe()
+	})
+	is.True(called)
+}
+
+func TestSubscriptionIsClosed(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	sub := NewSubscription(nil)
+	is.False(sub.IsClosed())
+
+	sub.Unsubscribe()
+	is.True(sub.IsClosed())
+
+	// Test after double unsubscribe
+	sub.Unsubscribe()
+	is.True(sub.IsClosed())
+}
+
+func TestSubscription_concurrentIsClosed(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -404,7 +366,45 @@ func TestSubscriptionConcurrentIsClosed(t *testing.T) {
 	is.True(sub.IsClosed())
 }
 
-func TestSubscriptionConcurrentWait(t *testing.T) {
+func TestSubscriptionWait(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	sub := NewSubscription(nil)
+
+	// Test that Wait blocks until unsubscribe
+	done := make(chan bool, 1)
+
+	go func() {
+		sub.Wait()
+
+		done <- true
+	}()
+
+	// Give some time for the goroutine to start
+	time.Sleep(10 * time.Millisecond)
+
+	// The channel should not have received anything yet
+	select {
+	case <-done:
+		is.Fail("Wait should block until unsubscribe")
+	default:
+		// Expected - Wait is blocking
+	}
+
+	// Unsubscribe should unblock Wait
+	sub.Unsubscribe()
+
+	// Wait for the goroutine to complete
+	select {
+	case <-done:
+		// Expected
+	case <-time.After(100 * time.Millisecond):
+		is.Fail("Wait should unblock after unsubscribe")
+	}
+}
+
+func TestSubscription_concurrentWait(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -442,7 +442,7 @@ func TestSubscriptionConcurrentWait(t *testing.T) {
 	is.Equal(int32(10), waitCount)
 }
 
-func TestSubscriptionMixedOperations(t *testing.T) {
+func TestSubscription_mixedOperations(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -489,7 +489,7 @@ func TestSubscriptionMixedOperations(t *testing.T) {
 	is.True(sub.IsClosed())
 }
 
-func TestSubscriptionErrorHandling(t *testing.T) {
+func TestSubscription_errorHandling(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -520,7 +520,7 @@ func TestSubscriptionErrorHandling(t *testing.T) {
 	is.True(normalCalled)
 }
 
-func TestSubscriptionNilHandling(t *testing.T) {
+func TestSubscription_nilHandling(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
@@ -537,7 +537,7 @@ func TestSubscriptionNilHandling(t *testing.T) {
 	is.True(sub.IsClosed())
 }
 
-func TestSubscriptionMemoryLeak(t *testing.T) {
+func TestSubscription_memoryLeak(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 

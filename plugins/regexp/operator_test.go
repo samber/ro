@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 package roregexp
 
 import (
@@ -141,6 +140,30 @@ func TestFindAll(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, result)
+
+	t.Run("with limit", func(t *testing.T) {
+		pattern := regexp.MustCompile(`\d+`)
+		operator := FindAll[[]byte](pattern, 2) // limit to 2 matches
+
+		observable := ro.FromSlice([][]byte{
+			[]byte("abc123def456ghi789"),
+			[]byte("no numbers"),
+			[]byte("789xyz123abc456"),
+		})
+
+		result, err := ro.Collect(operator(observable))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := [][][]byte{
+			{[]byte("123"), []byte("456")}, // only first 2 matches
+			nil,                            // no match
+			{[]byte("789"), []byte("123")}, // only first 2 matches
+		}
+
+		assert.Equal(t, expected, result)
+	})
 }
 
 func TestFindAllString(t *testing.T) {
@@ -165,6 +188,30 @@ func TestFindAllString(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, result)
+
+	t.Run("with limit", func(t *testing.T) {
+		pattern := regexp.MustCompile(`\d+`)
+		operator := FindAllString[string](pattern, 1) // limit to 1 match
+
+		observable := ro.FromSlice([]string{
+			"abc123def456ghi789",
+			"no numbers",
+			"789xyz123abc456",
+		})
+
+		result, err := ro.Collect(operator(observable))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := [][]string{
+			{"123"}, // only first match
+			nil,     // no match
+			{"789"}, // only first match
+		}
+
+		assert.Equal(t, expected, result)
+	})
 }
 
 func TestFindAllSubmatch(t *testing.T) {
@@ -196,6 +243,36 @@ func TestFindAllSubmatch(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, result)
+
+	t.Run("with limit", func(t *testing.T) {
+		pattern := regexp.MustCompile(`(\d+)([a-z]+)`)
+		operator := FindAllSubmatch[[]byte](pattern, 2) // limit to 2 matches
+
+		observable := ro.FromSlice([][]byte{
+			[]byte("123abc456def789ghi"),
+			[]byte("no match"),
+			[]byte("789xyz123abc456def"),
+		})
+
+		result, err := ro.Collect(operator(observable))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := [][][][]byte{
+			{
+				{[]byte("123abc"), []byte("123"), []byte("abc")},
+				{[]byte("456def"), []byte("456"), []byte("def")},
+			},
+			nil, // no match
+			{
+				{[]byte("789xyz"), []byte("789"), []byte("xyz")},
+				{[]byte("123abc"), []byte("123"), []byte("abc")},
+			},
+		}
+
+		assert.Equal(t, expected, result)
+	})
 }
 
 func TestFindAllStringSubmatch(t *testing.T) {
@@ -227,6 +304,34 @@ func TestFindAllStringSubmatch(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, result)
+
+	t.Run("with limit", func(t *testing.T) {
+		pattern := regexp.MustCompile(`(\d+)([a-z]+)`)
+		operator := FindAllStringSubmatch[string](pattern, 1) // limit to 1 match
+
+		observable := ro.FromSlice([]string{
+			"123abc456def789ghi",
+			"no match",
+			"789xyz123abc456def",
+		})
+
+		result, err := ro.Collect(operator(observable))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := [][][]string{
+			{
+				{"123abc", "123", "abc"},
+			},
+			nil, // no match
+			{
+				{"789xyz", "789", "xyz"},
+			},
+		}
+
+		assert.Equal(t, expected, result)
+	})
 }
 
 func TestMatch(t *testing.T) {
@@ -372,112 +477,6 @@ func TestFilterMatchString(t *testing.T) {
 	expected := []string{
 		"123",
 		"456",
-	}
-
-	assert.Equal(t, expected, result)
-}
-
-func TestFindWithLimit(t *testing.T) {
-	pattern := regexp.MustCompile(`\d+`)
-	operator := FindAll[[]byte](pattern, 2) // limit to 2 matches
-
-	observable := ro.FromSlice([][]byte{
-		[]byte("abc123def456ghi789"),
-		[]byte("no numbers"),
-		[]byte("789xyz123abc456"),
-	})
-
-	result, err := ro.Collect(operator(observable))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := [][][]byte{
-		{[]byte("123"), []byte("456")}, // only first 2 matches
-		nil,                            // no match
-		{[]byte("789"), []byte("123")}, // only first 2 matches
-	}
-
-	assert.Equal(t, expected, result)
-}
-
-func TestFindAllStringWithLimit(t *testing.T) {
-	pattern := regexp.MustCompile(`\d+`)
-	operator := FindAllString[string](pattern, 1) // limit to 1 match
-
-	observable := ro.FromSlice([]string{
-		"abc123def456ghi789",
-		"no numbers",
-		"789xyz123abc456",
-	})
-
-	result, err := ro.Collect(operator(observable))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := [][]string{
-		{"123"}, // only first match
-		nil,     // no match
-		{"789"}, // only first match
-	}
-
-	assert.Equal(t, expected, result)
-}
-
-func TestFindAllSubmatchWithLimit(t *testing.T) {
-	pattern := regexp.MustCompile(`(\d+)([a-z]+)`)
-	operator := FindAllSubmatch[[]byte](pattern, 2) // limit to 2 matches
-
-	observable := ro.FromSlice([][]byte{
-		[]byte("123abc456def789ghi"),
-		[]byte("no match"),
-		[]byte("789xyz123abc456def"),
-	})
-
-	result, err := ro.Collect(operator(observable))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := [][][][]byte{
-		{
-			{[]byte("123abc"), []byte("123"), []byte("abc")},
-			{[]byte("456def"), []byte("456"), []byte("def")},
-		},
-		nil, // no match
-		{
-			{[]byte("789xyz"), []byte("789"), []byte("xyz")},
-			{[]byte("123abc"), []byte("123"), []byte("abc")},
-		},
-	}
-
-	assert.Equal(t, expected, result)
-}
-
-func TestFindAllStringSubmatchWithLimit(t *testing.T) {
-	pattern := regexp.MustCompile(`(\d+)([a-z]+)`)
-	operator := FindAllStringSubmatch[string](pattern, 1) // limit to 1 match
-
-	observable := ro.FromSlice([]string{
-		"123abc456def789ghi",
-		"no match",
-		"789xyz123abc456def",
-	})
-
-	result, err := ro.Collect(operator(observable))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := [][][]string{
-		{
-			{"123abc", "123", "abc"},
-		},
-		nil, // no match
-		{
-			{"789xyz", "789", "xyz"},
-		},
 	}
 
 	assert.Equal(t, expected, result)
