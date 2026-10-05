@@ -208,35 +208,35 @@ Every new or changed operator MUST have a native `FuzzXxx(f *testing.F)` target 
 - A synchronous source emits inside `Subscribe`. Your teardown is registered only after `Subscribe` returns, so it cannot stop that source.
 - An asynchronous source emits from its own goroutine. Its `Next` races `Unsubscribe` and `Complete`.
 
-Let a bit of the fuzz input pick the kind, with `fuzzSource` and `fuzzIsAsync`.
+Take the kind from a typed fuzz argument (`asyncSource bool`) and pass it to `newSource(count, asyncSource)`. Use one bool per source.
 
 **Always run with `-race`.** Use `go test -race ./...`, `make test` or `make fuzz`. A clean run without `-race` proves nothing.
 
-**Inputs encode the interleaving, never the expected result.** Typical inputs: seed, goroutine count, item count, sync/async bitmask, unsubscribe-after index. The body asserts invariants:
+**Inputs encode the interleaving, never the expected result.** Give `f.Fuzz` typed arguments named by meaning: `items uint8`, `asyncSource bool`, `unsubscribeAfter uint8`. Never pack bits into a mask. The body asserts invariants:
 
 - no overlapping `Next`
 - at most one terminal notification, and nothing after it
 - every upstream, notifier and inner subscription released
 - no goroutine leak
-- no deadlock: every wait is bounded (`fuzzWaitFor`, `fuzzDeadline`)
+- no deadlock: every wait is bounded (`waitUntil`, `runWithinDeadline`)
 
-**Where the targets and helpers live.** Core fuzz targets live in the `fuzz/` directory (`package fuzz`, same module, imports `github.com/samber/ro`). Its test-only file `fuzz/helpers_test.go` provides:
+**Where the targets and primitives live.** Core fuzz targets live in the `fuzz/` directory (`package fuzz`, same module, imports `github.com/samber/ro`). Its test-only files provide readable primitives. `fuzz/doc.go` lists them all and the target-writing rules.
 
-| Helper                                | Purpose                                                            |
-| ------------------------------------- | ------------------------------------------------------------------ |
-| `fuzzSource(seed, n, async)`          | Emits `0..n-1`, then completes, synchronously or from a goroutine  |
-| `fuzzIsAsync(mask, i)`                | Reads bit `i` of a fuzz byte to pick sync or async                 |
-| `fuzzBound(v, lo, hi)`                | Maps any fuzz integer into `[lo, hi]`                              |
-| `fuzzJitter(seed, step)`              | Yields the scheduler at seed-chosen points                         |
-| `serialGuard`                         | Counts overlapping callback calls (`enter`, `leave`, `overlapped`) |
-| `activeCounter`, `trackSubscriptions` | Count live subscriptions to a source                               |
-| `fuzzWaitFor`, `fuzzDeadline`         | Bounded polling and waiting                                        |
+| File                | Primitives                                                                        | Purpose                                                                   |
+| ------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `seeds_test.go`     | `fuzzSeeds`, `seedByte`, `bounded`, `maxItems`                                    | Register seeds, map any fuzz integer into `[low, high]`                   |
+| `source_test.go`    | `newSource(items, async)`, `.ignoringStop`, `.failingAtEnd`, `.yieldingWith`...   | Emit `0..items-1`, then complete, synchronously or from a goroutine       |
+| `recorder_test.go`  | `collect`, `newRecorder`, `expectValues`, `expectCompletedOnce`, `expectContract` | Record notifications, check overlaps and terminals                        |
+| `guards_test.go`    | `overlapGuard`, `countSubscriptions`, `expectAllReleased`                         | Detect overlapping callbacks, count live upstream subscriptions           |
+| `predicate_test.go` | `newCountingPredicate`, `expectNoCallAfterDecision`                               | Count predicate calls after a short-circuit decision                      |
+| `stop_test.go`      | `subscribeInBackground`, `unsubscribeAfterItems`, `cancelAfterItems`              | Stop a stream from outside, fail when `Subscribe` hangs                   |
+| `waits_test.go`     | `waitUntil`, `runWithinDeadline`, `waitDeadline`                                  | Bounded polling and waiting                                               |
 
-The same file runs `goleak` in `TestMain`, so a leaked goroutine fails the package.
+`fuzz/main_test.go` runs `goleak` in `TestMain`, so a leaked goroutine fails the package.
 
 **Seeds and iterations.**
 
-- Register seeds with `xfuzz.AddSeeds` (`internal/xfuzz`), so a plain `go test -race` explores them without `-fuzz`.
+- Register seeds with `fuzzSeeds` (core) or `xfuzz.AddSeeds` (plugins, `internal/xfuzz`), so a plain `go test -race` explores them without `-fuzz`.
 - `RO_FUZZ_ITERATIONS` sets the seed count of every target: 100 by default, 10 under `go test -short`. `make fuzz` sets it to 1000.
 - Run `make fuzz RO_FUZZ_ITERATIONS=10000` for a soak run.
 - Commit crashers found by the fuzz engine under `testdata/fuzz/<FuzzName>/`.
@@ -585,7 +585,7 @@ mu.Unlock()
 
 The teardown copies `active` under the lock, then unsubscribes each entry outside it. See also the section "Higher-order Observables: races and memory leaks" above.
 
-**How to test:** many short-lived inner Observables wrapped with `trackSubscriptions`. Assert `activeCounter.activeCount()` returns to 0.
+**How to test:** many short-lived inner Observables wrapped with `countSubscriptions`. Assert `subscriptionCounter.expectAllReleased`.
 
 ### Pattern 8: lock-free `destination` called from several goroutines
 
@@ -612,7 +612,7 @@ return ro.NewSafeObservableWithContext(func(subscriberCtx context.Context, desti
 
 **Rule:** use the unsafe constructor only when a single goroutine calls `destination` at a time.
 
-**How to test:** wrap the observer body with `serialGuard`, use concurrent async sources, assert `overlapped() == 0`.
+**How to test:** use concurrent async sources and `collect`, then `expectContract` (the recorder detects overlaps). Wrap other callbacks with `overlapGuard` and call `expectNone`.
 
 ### Pattern 9: short-circuit operator keeps evaluating after its decision
 
@@ -643,7 +643,7 @@ func(ctx context.Context, value T) {
 
 The `Complete` handler emits the fallback result only when `CompareAndSwapInt32(&decided, 0, 1)` succeeds.
 
-**How to test:** count predicate calls after the terminal notification. Expect 0, with sync and async sources.
+**How to test:** count predicate calls after the terminal notification with `newCountingPredicate`. Expect 0 (`expectNoCallAfterDecision`), with sync and async sources.
 
 ### Pattern 10: synchronous loop ignores the stop signal
 
@@ -672,7 +672,7 @@ return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, des
 
 **Rule:** check `destination.IsClosed()` before every iteration and before every new subscription.
 
-**How to test:** sync source. Subscribe with a `Subscriber` and call its `Unsubscribe` from inside the `Next` callback. Bound the wait with `fuzzDeadline`.
+**How to test:** sync source. Subscribe with a `Subscriber` and call its `Unsubscribe` from inside the `Next` callback. Bound the wait with `subscribeInBackground` and `expectReturn`.
 
 ### Pattern 11: timer, ticker or goroutine outlives the teardown
 
@@ -740,7 +740,7 @@ destination.NextWithContext(ctx, value)
 
 Emitting after unlock can reorder items from several goroutines (pattern 4). In that case, use the `serializer` of pattern 15.
 
-**How to test:** call `Unsubscribe` or `Next` from inside the observer callback. Bound the wait with `fuzzDeadline`.
+**How to test:** call `Unsubscribe` or `Next` from inside the observer callback. Bound the wait with `runWithinDeadline`.
 
 ### Pattern 13: unsubscription not propagated upstream
 
@@ -770,7 +770,7 @@ return func() {
 
 `destination` runs the teardown after a terminal notification too, so one teardown covers the three cases.
 
-**How to test:** wrap each upstream with `trackSubscriptions`. Assert `activeCount()` reaches 0 after `Unsubscribe`, `Complete` and `Error`.
+**How to test:** wrap each upstream with `countSubscriptions`. Assert `expectAllReleased` after `Unsubscribe`, `Complete` and `Error`.
 
 ### Pattern 14: deadlock
 
@@ -790,7 +790,7 @@ return func() {
 
 **Rule:** a teardown signals goroutines to stop. It never waits for them.
 
-**How to test:** bound every blocking call with `fuzzWaitFor` or `fuzzDeadline`. Unsubscribe from inside callbacks and from other goroutines.
+**How to test:** bound every blocking call with `waitUntil` or `runWithinDeadline`. Unsubscribe from inside callbacks and from other goroutines.
 
 ### Pattern 15: lock held during the whole emission
 
@@ -852,7 +852,7 @@ s.emit(func() func() {
 
 A re-entrant `emit` from inside a job only enqueues, so it cannot deadlock. The queue is unbounded when sources outpace the downstream: document it in the operator comment.
 
-**How to test:** slow observer, concurrent async sources and a concurrent `Unsubscribe` with a short deadline. Assert order with `serialGuard` at 0.
+**How to test:** slow observer, concurrent async sources and a concurrent `Unsubscribe` with a short deadline. Assert order with `expectValues` and no overlap with `expectContract`.
 
 ### Writing a fuzz target
 
@@ -861,62 +861,47 @@ Name the file after the source file it tests:
 - Core: `fuzz/<root source file without .go>_fuzz_test.go`, e.g. `fuzz/operator_filter_fuzz_test.go` for `operator_filter.go`.
 - Plugins: `<source file without .go>_fuzz_test.go` next to it, in the plugin directory, e.g. `plugins/<name>/source_fuzz_test.go` for `source.go`.
 
+Write each core target in the same shape (full rules in `fuzz/doc.go`):
+
+- Name it `FuzzOperator`, or `FuzzOperatorScenario` when one operator has several scenarios. Keep one scenario per target.
+- Open with a doc comment: scenario, invariant, seeds.
+- Give `f.Fuzz` typed arguments named by meaning. Bound each one inline with `bounded`.
+- Keep the body inline and short: build sources, build the pipeline, run it, assert.
+- Skip a target that reproduces a known bug with `f.Skip("race: <id>; remove when fixed")`. Never weaken it to pass.
+
 The target below lives in `fuzz/` (`package fuzz`), so it qualifies the library with `ro.`. It covers sync and async sources, early unsubscription, overlapping `Next`, duplicated terminals and upstream release.
 
 ```go
+// FuzzMyOperator runs MyOperator on a source of `items` integers and unsubscribes from outside after
+// `unsubscribeAfter` values. It asserts the observer contract and the release of the upstream.
+// Seeds: sync and async sources, with unsubscribeAfter spread over the item range.
 func FuzzMyOperator(f *testing.F) {
-    // Seeds run under a plain `go test -race`, without -fuzz.
-    xfuzz.AddSeeds(f, func(i int) []any { return []any{int64(i), uint8(i), uint8(i * 7)} })
+    fuzzSeeds(f, func(i int) []any {
+        // items, unsubscribeAfter, asyncSource
+        return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0}
+    })
 
-    f.Fuzz(func(t *testing.T, seed int64, mask uint8, stopAt uint8) {
-        n := fuzzBound(seed, 0, fuzzMaxItems)
-        async := fuzzIsAsync(mask, 0)                     // bit 0: sync or async source
-        stop := fuzzBound(int64(stopAt), 0, fuzzMaxItems) // unsubscribe after `stop` items when stop < n
+    f.Fuzz(func(t *testing.T, items, unsubscribeAfter uint8, asyncSource bool) {
+        count := bounded(items, 0, maxItems)
+        stopAt := bounded(unsubscribeAfter, 0, count) // stopAt == count: the source ends first
 
-        upstream := &activeCounter{}
-        guard := &serialGuard{}
-        var received, terminals int32
-        done := make(chan struct{})
-        terminate := func() {
-            if atomic.AddInt32(&terminals, 1) == 1 {
-                close(done)
-            }
-        }
+        upstream := &subscriptionCounter{}
+        numbers := newSource(count, asyncSource)
+        pipeline := ro.MyOperator[int]()(countSubscriptions(upstream, numbers.observable()))
 
-        source := trackSubscriptions(upstream, fuzzSource(seed, n, async))
-        sub := ro.MyOperator[int]()(source).Subscribe(ro.NewObserver(
-            func(int) {
-                guard.enter() // detects overlapping Next
-                defer guard.leave()
-                if atomic.LoadInt32(&terminals) > 0 {
-                    t.Error("Next after terminal")
-                }
-                atomic.AddInt32(&received, 1)
-            },
-            func(error) { terminate() },
-            terminate,
-        ))
+        got := newRecorder[int]()
+        subscription := subscribeInBackground(context.Background(), pipeline, got)
+        subscription.unsubscribeAfterItems(t, got, stopAt)
+        numbers.waitForProducers()
 
-        if stop < n { // unsubscribe while items may still be in flight
-            fuzzWaitFor(t, "items before stop", func() bool {
-                return int(atomic.LoadInt32(&received)) >= stop || atomic.LoadInt32(&terminals) > 0
-            })
-            sub.Unsubscribe()
-        } else {
-            select {
-            case <-done:
-            case <-time.After(fuzzDeadline):
-                t.Fatal("no terminal notification")
-            }
-        }
-
-        fuzzWaitFor(t, "upstream released", func() bool { return upstream.activeCount() == 0 })
-        if guard.overlapped() > 0 || atomic.LoadInt32(&terminals) > 1 {
-            t.Fatalf("overlaps=%d terminals=%d", guard.overlapped(), atomic.LoadInt32(&terminals))
-        }
+        got.expectAtMostValues(t, count) // operator-specific: replace with expectValues when the output is known
+        got.expectContract(t)            // no overlapping Next, at most one terminal, nothing after it
+        upstream.expectAllReleased(t)
     })
 }
 ```
+
+For a run to completion, call `collect(t, pipeline, numbers)`, then `expectValues` and `expectCompletedOnce`.
 
 ## Core vs plugins
 

@@ -337,7 +337,7 @@ These issues have recurred across multiple sessions. Read them before starting.
 - **Adding an import before its first usage** causes `imported and not used` compile errors. Add the import and its usage in the same edit.
 - **`go.work.sum` churn**: the workspace sum file is modified by routine `go` tool invocations. Do not commit it unless it is the only intentional change. Restore with `git checkout go.work.sum` when it appears as an unintentional modification.
 - **Porting from `samber/lo` — bytes UTF-8 divergence**: `bytes.ToLower` via `strings.ToLower` produces `U+FFFD` replacement characters on invalid UTF-8, whereas `cases.Lower(...).Bytes()` preserves the raw bytes. Adjust test fixtures accordingly when porting from `samber/lo` string helpers to the `bytes` plugin.
-- **A fuzz target with only synchronous sources** misses every `Unsubscribe`-vs-`Next` race. Select sync or async from a bit of the fuzz input (`fuzzSource`, `fuzzIsAsync`).
+- **A fuzz target with only synchronous sources** misses every `Unsubscribe`-vs-`Next` race. Take the kind from a typed fuzz argument (`asyncSource bool`) and pass it to `newSource(count, asyncSource)`.
 - **A race test that passes without `-race`** proves nothing. Always run `go test -race`, `make test` or `make fuzz`.
 
 ## Definition of done

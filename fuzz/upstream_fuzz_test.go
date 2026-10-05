@@ -16,164 +16,240 @@ package fuzz
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"runtime"
-	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/samber/ro"
 )
 
-// upstreamInputs holds the tracked sources an operator may subscribe to.
-type upstreamInputs struct {
-	main     ro.Observable[int]
-	signal   ro.Observable[int]
-	fallback ro.Observable[int]
-	k        int
+const (
+	// maxSignalItems and maxFallbackItems bound the items of the secondary sources. A signal source
+	// emitting nothing, one or two items covers "never fires", "fires once" and "fires again".
+	maxSignalItems   = 2
+	maxFallbackItems = 4
+
+	// maxYieldsBeforeUnsubscribe bounds the scheduler yields before the downstream unsubscribes.
+	maxYieldsBeforeUnsubscribe = 50
+)
+
+// upstreamSources are the counted sources an operator may subscribe to. mainSource is the one the
+// operator is applied to, signalSource is the notifier of TakeUntil and SkipUntil, fallbackSource is the
+// replacement of Catch. threshold is the argument of the operators that take a count or a bound.
+type upstreamSources struct {
+	mainSource     ro.Observable[int]
+	signalSource   ro.Observable[int]
+	fallbackSource ro.Observable[int]
+	threshold      int
 }
 
-// terminalCounter records downstream terminal notifications.
-type terminalCounter struct{ terminals int32 }
-
-// upstreamCase wires one operator over the tracked sources of an iteration.
-type upstreamCase struct {
-	name string
-	run  func(ctx context.Context, in upstreamInputs, term *terminalCounter) ro.Subscription
+// upstreamOperator is one row of the table: the operator name, shown in failures, and a function that
+// applies it to the sources and subscribes a recorder to the result.
+type upstreamOperator struct {
+	name      string
+	subscribe func(ctx context.Context, sources upstreamSources) (ro.Subscription, progress)
 }
 
-func newUpstreamCase[R any](name string, build func(in upstreamInputs) ro.Observable[R]) upstreamCase {
-	return upstreamCase{
+func newUpstreamOperator[R any](name string, apply func(sources upstreamSources) ro.Observable[R]) upstreamOperator {
+	return upstreamOperator{
 		name: name,
-		run: func(ctx context.Context, in upstreamInputs, term *terminalCounter) ro.Subscription {
-			return build(in).SubscribeWithContext(ctx, ro.NewObserverWithContext(
-				func(_ context.Context, _ R) {},
-				func(_ context.Context, _ error) { atomic.AddInt32(&term.terminals, 1) },
-				func(_ context.Context) { atomic.AddInt32(&term.terminals, 1) },
-			))
+		subscribe: func(ctx context.Context, sources upstreamSources) (ro.Subscription, progress) {
+			observed := newRecorder[R]()
+
+			return apply(sources).SubscribeWithContext(ctx, observed), observed
 		},
 	}
 }
 
-func upstreamCases() []upstreamCase {
-	return []upstreamCase{
-		newUpstreamCase("Map", func(in upstreamInputs) ro.Observable[int] {
-			return ro.Map(func(v int) int { return v + 1 })(in.main)
+// upstreamOperators lists the operators that must release every upstream they subscribed to.
+func upstreamOperators() []upstreamOperator {
+	return []upstreamOperator{
+		newUpstreamOperator("Map", func(s upstreamSources) ro.Observable[int] {
+			return ro.Map(func(item int) int { return item + 1 })(s.mainSource)
 		}),
-		newUpstreamCase("Filter", func(in upstreamInputs) ro.Observable[int] {
-			return ro.Filter(func(v int) bool { return v%2 == 0 })(in.main)
+		newUpstreamOperator("Filter", func(s upstreamSources) ro.Observable[int] {
+			return ro.Filter(func(item int) bool { return item%2 == 0 })(s.mainSource)
 		}),
-		newUpstreamCase("Take", func(in upstreamInputs) ro.Observable[int] { return ro.Take[int](int64(in.k))(in.main) }),
-		newUpstreamCase("Skip", func(in upstreamInputs) ro.Observable[int] { return ro.Skip[int](int64(in.k))(in.main) }),
-		newUpstreamCase("TakeWhile", func(in upstreamInputs) ro.Observable[int] {
-			return ro.TakeWhile(func(v int) bool { return v < in.k })(in.main)
+		newUpstreamOperator("Take", func(s upstreamSources) ro.Observable[int] { return ro.Take[int](int64(s.threshold))(s.mainSource) }),
+		newUpstreamOperator("Skip", func(s upstreamSources) ro.Observable[int] { return ro.Skip[int](int64(s.threshold))(s.mainSource) }),
+		newUpstreamOperator("TakeWhile", func(s upstreamSources) ro.Observable[int] {
+			return ro.TakeWhile(func(item int) bool { return item < s.threshold })(s.mainSource)
 		}),
-		newUpstreamCase("TakeLast", func(in upstreamInputs) ro.Observable[int] { return ro.TakeLast[int](in.k)(in.main) }),
-		newUpstreamCase("SkipLast", func(in upstreamInputs) ro.Observable[int] { return ro.SkipLast[int](in.k)(in.main) }),
-		newUpstreamCase("SkipWhile", func(in upstreamInputs) ro.Observable[int] {
-			return ro.SkipWhile(func(v int) bool { return v < in.k })(in.main)
+		newUpstreamOperator("TakeLast", func(s upstreamSources) ro.Observable[int] { return ro.TakeLast[int](s.threshold)(s.mainSource) }),
+		newUpstreamOperator("SkipLast", func(s upstreamSources) ro.Observable[int] { return ro.SkipLast[int](s.threshold)(s.mainSource) }),
+		newUpstreamOperator("SkipWhile", func(s upstreamSources) ro.Observable[int] {
+			return ro.SkipWhile(func(item int) bool { return item < s.threshold })(s.mainSource)
 		}),
-		newUpstreamCase("Scan", func(in upstreamInputs) ro.Observable[int] {
-			return ro.Scan(func(acc, v int) int { return acc + v }, 0)(in.main)
+		newUpstreamOperator("Scan", func(s upstreamSources) ro.Observable[int] {
+			return ro.Scan(func(sum, item int) int { return sum + item }, 0)(s.mainSource)
 		}),
-		newUpstreamCase("Distinct", func(in upstreamInputs) ro.Observable[int] { return ro.Distinct[int]()(in.main) }),
-		newUpstreamCase("Tap", func(in upstreamInputs) ro.Observable[int] {
-			return ro.Tap(func(int) {}, func(error) {}, func() {})(in.main)
+		newUpstreamOperator("Distinct", func(s upstreamSources) ro.Observable[int] { return ro.Distinct[int]()(s.mainSource) }),
+		newUpstreamOperator("Tap", func(s upstreamSources) ro.Observable[int] {
+			return ro.Tap(func(int) {}, func(error) {}, func() {})(s.mainSource)
 		}),
-		newUpstreamCase("Materialize", func(in upstreamInputs) ro.Observable[ro.Notification[int]] {
-			return ro.Materialize[int]()(in.main)
+		newUpstreamOperator("Materialize", func(s upstreamSources) ro.Observable[ro.Notification[int]] {
+			return ro.Materialize[int]()(s.mainSource)
 		}),
-		newUpstreamCase("Timestamp", func(in upstreamInputs) ro.Observable[ro.TimestampValue[int]] {
-			return ro.Timestamp[int]()(in.main)
+		newUpstreamOperator("Timestamp", func(s upstreamSources) ro.Observable[ro.TimestampValue[int]] {
+			return ro.Timestamp[int]()(s.mainSource)
 		}),
-		newUpstreamCase("Head", func(in upstreamInputs) ro.Observable[int] { return ro.Head[int]()(in.main) }),
-		newUpstreamCase("First", func(in upstreamInputs) ro.Observable[int] {
-			return ro.First(func(v int) bool { return v >= in.k })(in.main)
+		newUpstreamOperator("Head", func(s upstreamSources) ro.Observable[int] { return ro.Head[int]()(s.mainSource) }),
+		newUpstreamOperator("First", func(s upstreamSources) ro.Observable[int] {
+			return ro.First(func(item int) bool { return item >= s.threshold })(s.mainSource)
 		}),
-		newUpstreamCase("ElementAt", func(in upstreamInputs) ro.Observable[int] { return ro.ElementAt[int](in.k)(in.main) }),
-		newUpstreamCase("TakeUntil", func(in upstreamInputs) ro.Observable[int] { return ro.TakeUntil[int, int](in.signal)(in.main) }),
-		newUpstreamCase("SkipUntil", func(in upstreamInputs) ro.Observable[int] { return ro.SkipUntil[int, int](in.signal)(in.main) }),
-		newUpstreamCase("StartWith", func(in upstreamInputs) ro.Observable[int] { return ro.StartWith(-1, -2)(in.main) }),
-		newUpstreamCase("EndWith", func(in upstreamInputs) ro.Observable[int] { return ro.EndWith(-1, -2)(in.main) }),
-		newUpstreamCase("Pairwise", func(in upstreamInputs) ro.Observable[[]int] { return ro.Pairwise[int]()(in.main) }),
-		newUpstreamCase("DefaultIfEmpty", func(in upstreamInputs) ro.Observable[int] { return ro.DefaultIfEmpty(-1)(in.main) }),
-		newUpstreamCase("ThrowIfEmpty", func(in upstreamInputs) ro.Observable[int] {
-			return ro.ThrowIfEmpty[int](func() error { return errShortCircuitBoom })(in.main)
+		newUpstreamOperator("ElementAt", func(s upstreamSources) ro.Observable[int] { return ro.ElementAt[int](s.threshold)(s.mainSource) }),
+		newUpstreamOperator("TakeUntil", func(s upstreamSources) ro.Observable[int] {
+			return ro.TakeUntil[int, int](s.signalSource)(s.mainSource)
 		}),
-		newUpstreamCase("Catch", func(in upstreamInputs) ro.Observable[int] {
-			return ro.Catch(func(error) ro.Observable[int] { return in.fallback })(in.main)
+		newUpstreamOperator("SkipUntil", func(s upstreamSources) ro.Observable[int] {
+			return ro.SkipUntil[int, int](s.signalSource)(s.mainSource)
 		}),
-		newUpstreamCase("OnErrorReturn", func(in upstreamInputs) ro.Observable[int] { return ro.OnErrorReturn(-1)(in.main) }),
+		newUpstreamOperator("StartWith", func(s upstreamSources) ro.Observable[int] { return ro.StartWith(-1, -2)(s.mainSource) }),
+		newUpstreamOperator("EndWith", func(s upstreamSources) ro.Observable[int] { return ro.EndWith(-1, -2)(s.mainSource) }),
+		newUpstreamOperator("Pairwise", func(s upstreamSources) ro.Observable[[]int] { return ro.Pairwise[int]()(s.mainSource) }),
+		newUpstreamOperator("DefaultIfEmpty", func(s upstreamSources) ro.Observable[int] { return ro.DefaultIfEmpty(-1)(s.mainSource) }),
+		newUpstreamOperator("ThrowIfEmpty", func(s upstreamSources) ro.Observable[int] {
+			return ro.ThrowIfEmpty[int](func() error { return errInjectedFailure })(s.mainSource)
+		}),
+		newUpstreamOperator("Catch", func(s upstreamSources) ro.Observable[int] {
+			return ro.Catch(func(error) ro.Observable[int] { return s.fallbackSource })(s.mainSource)
+		}),
+		newUpstreamOperator("OnErrorReturn", func(s upstreamSources) ro.Observable[int] { return ro.OnErrorReturn(-1)(s.mainSource) }),
 	}
 }
 
-// FuzzUpstreamPropagation asserts that every tracked upstream (source, signal, fallback) is unsubscribed
-// once the downstream completed, errored or unsubscribed.
-func FuzzUpstreamPropagation(f *testing.F) {
-	addShortCircuitSeeds(f)
+// upstreamScenario is what a fuzz input says about one iteration: which operator, and the sources
+// it is applied to.
+type upstreamScenario struct {
+	operator upstreamOperator
+	main     *source
+	signal   *source
+	fallback *source
 
-	table := upstreamCases()
+	mainCounter, signalCounter, fallbackCounter subscriptionCounter
+	threshold                                   int
+}
 
-	f.Fuzz(func(t *testing.T, seed int64, mask uint8) {
-		c := table[fuzzBound(seed, 0, len(table)-1)]
-		n := pickShortCircuitValue(seed, 0, 0, fuzzMaxItems)
-		k := pickShortCircuitValue(seed, 1, 0, n+1)
-		mode := pickShortCircuitValue(seed, 5, 0, upstreamStopModeCount-1)
-		signalItems := pickShortCircuitValue(seed, 7, 0, 2)
-		fallbackItems := pickShortCircuitValue(seed, 8, 0, 4)
-		yields := pickShortCircuitValue(seed, 6, 0, maxSchedulerYields)
+func newUpstreamScenario(operatorIndex, items, threshold, signalItems, fallbackItems uint8, asyncMain, asyncSignal, asyncFallback, mainFails bool) *upstreamScenario {
+	operators := upstreamOperators()
+	count := bounded(items, 0, maxItems)
 
-		var main, signal, fallback activeCounter
+	scenario := &upstreamScenario{
+		operator:  operators[bounded(operatorIndex, 0, len(operators)-1)],
+		main:      newSource(count, asyncMain),
+		signal:    newSource(bounded(signalItems, 0, maxSignalItems), asyncSignal),
+		fallback:  newSource(bounded(fallbackItems, 0, maxFallbackItems), asyncFallback),
+		threshold: bounded(threshold, 0, count+1), // count+1: a threshold beyond the last item
+	}
 
-		in := upstreamInputs{
-			main:     trackSubscriptions(&main, shortCircuitSource(seed, n, fuzzIsAsync(mask, 0), true, mode == upstreamStopError, nil)),
-			signal:   trackSubscriptions(&signal, fuzzSource(seed, signalItems, fuzzIsAsync(mask, 1))),
-			fallback: trackSubscriptions(&fallback, fuzzSource(seed, fallbackItems, fuzzIsAsync(mask, 2))),
-			k:        k,
+	if mainFails {
+		scenario.main.failingAtEnd(errInjectedFailure)
+	}
+
+	return scenario
+}
+
+func (s *upstreamScenario) sources() upstreamSources {
+	return upstreamSources{
+		mainSource:     countSubscriptions(&s.mainCounter, s.main.observable()),
+		signalSource:   countSubscriptions(&s.signalCounter, s.signal.observable()),
+		fallbackSource: countSubscriptions(&s.fallbackCounter, s.fallback.observable()),
+		threshold:      s.threshold,
+	}
+}
+
+// subscribe applies the operator to the sources and subscribes to the result. A Subscribe that does not
+// return fails the test.
+func (s *upstreamScenario) subscribe(t *testing.T) (ro.Subscription, progress) {
+	t.Helper()
+
+	var (
+		subscription ro.Subscription
+		observed     progress
+	)
+
+	runWithinDeadline(t, func() { subscription, observed = s.operator.subscribe(context.Background(), s.sources()) })
+
+	return subscription, observed
+}
+
+// expectEveryUpstreamReleased waits until the main, signal and fallback sources have no live subscription.
+func (s *upstreamScenario) expectEveryUpstreamReleased(t *testing.T) {
+	t.Helper()
+
+	for label, counter := range map[string]*subscriptionCounter{"main": &s.mainCounter, "signal": &s.signalCounter, "fallback": &s.fallbackCounter} {
+		waitUntil(t, label+" source (operator "+s.operator.name+") to be released", func() bool { return counter.activeCount() == 0 })
+	}
+}
+
+// FuzzUpstreamReleasedOnCompletion applies one of 25 operators to a main source that completes, with a
+// signal source and a fallback source on the side. Each of the three sources is synchronous or asynchronous.
+//
+// Invariant: once the downstream completed and the test unsubscribed, no source keeps a live subscription.
+//
+// Seeds: operatorIndex walks the table; the numeric inputs spread over their range; the three async flags
+// cycle through every combination.
+func FuzzUpstreamReleasedOnCompletion(f *testing.F) {
+	fuzzSeeds(f, func(i int) []any {
+		// operatorIndex, items, threshold, signalItems, fallbackItems, asyncMain, asyncSignal, asyncFallback
+		return []any{uint8(i), seedByte(i, 0), seedByte(i, 1), seedByte(i, 2), seedByte(i, 3), i%2 == 0, i%4 < 2, i%8 < 4}
+	})
+
+	f.Fuzz(func(t *testing.T, operatorIndex, items, threshold, signalItems, fallbackItems uint8, asyncMain, asyncSignal, asyncFallback bool) {
+		scenario := newUpstreamScenario(operatorIndex, items, threshold, signalItems, fallbackItems, asyncMain, asyncSignal, asyncFallback, false)
+
+		subscription, observed := scenario.subscribe(t)
+		waitUntil(t, "the downstream terminal notification", func() bool { return observed.terminalCount() > 0 })
+		subscription.Unsubscribe()
+
+		scenario.expectEveryUpstreamReleased(t)
+	})
+}
+
+// FuzzUpstreamReleasedOnError is FuzzUpstreamReleasedOnCompletion with a main source that fails at its end.
+//
+// Invariant: once the downstream terminated (with an error, or by recovering from it) and the test
+// unsubscribed, no source keeps a live subscription.
+//
+// Seeds: as FuzzUpstreamReleasedOnCompletion.
+func FuzzUpstreamReleasedOnError(f *testing.F) {
+	fuzzSeeds(f, func(i int) []any {
+		// operatorIndex, items, threshold, signalItems, fallbackItems, asyncMain, asyncSignal, asyncFallback
+		return []any{uint8(i), seedByte(i, 0), seedByte(i, 1), seedByte(i, 2), seedByte(i, 3), i%2 == 0, i%4 < 2, i%8 < 4}
+	})
+
+	f.Fuzz(func(t *testing.T, operatorIndex, items, threshold, signalItems, fallbackItems uint8, asyncMain, asyncSignal, asyncFallback bool) {
+		scenario := newUpstreamScenario(operatorIndex, items, threshold, signalItems, fallbackItems, asyncMain, asyncSignal, asyncFallback, true)
+
+		subscription, observed := scenario.subscribe(t)
+		waitUntil(t, "the downstream terminal notification", func() bool { return observed.terminalCount() > 0 })
+		subscription.Unsubscribe()
+
+		scenario.expectEveryUpstreamReleased(t)
+	})
+}
+
+// FuzzUpstreamReleasedOnUnsubscribe is FuzzUpstreamReleasedOnCompletion with an Unsubscribe from the test
+// after a few scheduler yields, whatever the stream did before.
+//
+// Invariant: no source keeps a live subscription after the Unsubscribe.
+//
+// Seeds: as FuzzUpstreamReleasedOnCompletion; yields spreads over its range.
+func FuzzUpstreamReleasedOnUnsubscribe(f *testing.F) {
+	fuzzSeeds(f, func(i int) []any {
+		// operatorIndex, items, threshold, signalItems, fallbackItems, yields, asyncMain, asyncSignal, asyncFallback
+		return []any{uint8(i), seedByte(i, 0), seedByte(i, 1), seedByte(i, 2), seedByte(i, 3), seedByte(i, 4), i%2 == 0, i%4 < 2, i%8 < 4}
+	})
+
+	f.Fuzz(func(t *testing.T, operatorIndex, items, threshold, signalItems, fallbackItems, yields uint8, asyncMain, asyncSignal, asyncFallback bool) {
+		scenario := newUpstreamScenario(operatorIndex, items, threshold, signalItems, fallbackItems, asyncMain, asyncSignal, asyncFallback, false)
+
+		subscription, _ := scenario.subscribe(t)
+		for yield := 0; yield < bounded(yields, 0, maxYieldsBeforeUnsubscribe); yield++ {
+			runtime.Gosched()
 		}
 
-		name := fmt.Sprintf("%s (async=%v/%v/%v mode=%d)", c.name, fuzzIsAsync(mask, 0), fuzzIsAsync(mask, 1), fuzzIsAsync(mask, 2), mode)
-		term := &terminalCounter{}
+		subscription.Unsubscribe()
 
-		runShortCircuitIteration(t, name, func() error {
-			sub := c.run(context.Background(), in, term)
-
-			if mode == upstreamStopUnsubscribe {
-				for i := 0; i < yields; i++ {
-					runtime.Gosched()
-				}
-			} else {
-				deadline := time.Now().Add(fuzzDeadline / 2)
-				for atomic.LoadInt32(&term.terminals) == 0 {
-					if time.Now().After(deadline) {
-						return errors.New("downstream never terminated")
-					}
-
-					time.Sleep(time.Millisecond)
-				}
-			}
-
-			sub.Unsubscribe()
-
-			counters := []struct {
-				label string
-				c     *activeCounter
-			}{{"main", &main}, {"signal", &signal}, {"fallback", &fallback}}
-
-			for _, cnt := range counters {
-				deadline := time.Now().Add(fuzzDeadline / 4)
-				for cnt.c.activeCount() != 0 {
-					if time.Now().After(deadline) {
-						return fmt.Errorf("%s source still has %d active subscription(s) (opened %d) after terminate/unsubscribe",
-							cnt.label, cnt.c.activeCount(), cnt.c.totalCount())
-					}
-
-					time.Sleep(time.Millisecond)
-				}
-			}
-
-			return nil
-		})
+		scenario.expectEveryUpstreamReleased(t)
 	})
 }

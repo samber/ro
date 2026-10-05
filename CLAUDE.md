@@ -110,9 +110,9 @@ Other naming patterns:
 - Test files follow Go convention: `foo_test.go` alongside `foo.go`
 - Example tests use `_example_test.go` suffix
 - The `plugins/testify` plugin provides reactive stream assertion helpers
-- Write race tests as native `FuzzXxx` targets, seeded via `internal/xfuzz` (`xfuzz.AddSeeds`); `RO_FUZZ_ITERATIONS` sets the seed count everywhere. See [Race condition patterns](docs/docs/contributing.md#race-condition-patterns)
-- Core fuzz targets live in `fuzz/` (`package fuzz`), one file per root source file: `fuzz/<file>_fuzz_test.go`; shared helpers are in `fuzz/helpers_test.go`. Plugin fuzz targets sit next to their code: `plugins/<name>/<file>_fuzz_test.go`
-- Cover both sync and async sources in every fuzz target (`fuzzSource`, `fuzzIsAsync`)
+- Write race tests as native `FuzzXxx` targets, seeded via `fuzzSeeds` (core) or `xfuzz.AddSeeds` (plugins, `internal/xfuzz`); `RO_FUZZ_ITERATIONS` sets the seed count everywhere. See [Race condition patterns](docs/docs/contributing.md#race-condition-patterns)
+- Core fuzz targets live in `fuzz/` (`package fuzz`), one file per root source file: `fuzz/<file>_fuzz_test.go`; shared primitives (`fuzzSeeds`, `bounded`, `newSource`, `collect`, `overlapGuard`, `countSubscriptions`, `waitUntil`...) are in purpose-named `fuzz/*_test.go` files, indexed in `fuzz/doc.go`. Plugin fuzz targets sit next to their code: `plugins/<name>/<file>_fuzz_test.go`, and use `internal/xfuzz` helpers
+- Cover both sync and async sources in every fuzz target: typed `asyncSource bool` argument passed to `newSource(count, asyncSource)`
 - Always run tests with `-race`
 
 Typical test pattern — use `Collect()` to gather all emitted values and assert:
