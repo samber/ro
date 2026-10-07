@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 make build                    # Build all modules
 make test                     # Run all tests with race detector
+make fuzz                     # Run all fuzz targets on RO_FUZZ_ITERATIONS seeds (default 1000)
 make lint                     # Run golangci-lint + license header check
 make lint-fix                 # Auto-fix lint issues
 make bench                    # Run benchmarks
@@ -36,7 +37,8 @@ The SIMD plugin (`plugins/exp/simd`) requires `GOEXPERIMENT=simd` and `GOWORK=of
 ## Code Layout
 
 - **Root package (`ro`)** — Core types and all built-in operators
-- **`internal/`** — Internal helpers: `xsync` (mutex wrappers), `xatomic`, `xrand`, `xtime`, `xerrors`, `constraints`
+- **`internal/`** — Internal helpers: `xsync` (mutex wrappers), `xatomic`, `xrand`, `xtime`, `xerrors`, `xfuzz` (fuzz seed count), `constraints`
+- **`fuzz/`** — Race fuzz targets of the root package (`package fuzz`, same module). Run with `go test -race ./fuzz/`
 - **`testing/`** — Package `rotesting` with `AssertSpec[T]` interface for fluent test assertions
 - **`plugins/`** — Each plugin is a separate Go module with its own `go.mod`. Categories: encoding, observability, rate limiting, I/O, data manipulation, etc.
 - **`ee/`** — Enterprise Edition (separate license). Contains `otel` and `prometheus` plugins, plus licensing infrastructure. See [`ee/README.md`](ee/README.md) and the [`ee/cmd/license` CLI](ee/cmd/license/README.md)
@@ -108,6 +110,10 @@ Other naming patterns:
 - Test files follow Go convention: `foo_test.go` alongside `foo.go`
 - Example tests use `_example_test.go` suffix
 - The `plugins/testify` plugin provides reactive stream assertion helpers
+- Write race tests as native `FuzzXxx` targets, seeded via `fuzzSeeds` (core) or `xfuzz.AddSeeds` (plugins, `internal/xfuzz`); `RO_FUZZ_ITERATIONS` sets the seed count everywhere. See [Race condition patterns](docs/docs/contributing.md#race-condition-patterns)
+- Core fuzz targets live in `fuzz/` (`package fuzz`), one file per root source file: `fuzz/<file>_fuzz_test.go`; shared primitives (`fuzzSeeds`, `bounded`, `newSource`, `collect`, `overlapGuard`, `countSubscriptions`, `waitUntil`...) are in purpose-named `fuzz/*_test.go` files, indexed in `fuzz/doc.go`. Plugin fuzz targets sit next to their code: `plugins/<name>/<file>_fuzz_test.go`, and use `internal/xfuzz` helpers
+- Cover both sync and async sources in every fuzz target: typed `asyncSource bool` argument passed to `newSource(count, asyncSource)`
+- Always run tests with `-race`
 
 Typical test pattern — use `Collect()` to gather all emitted values and assert:
 

@@ -19,8 +19,6 @@ import (
 	"io/fs"
 	"math"
 	"os"
-	"runtime"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -391,62 +389,6 @@ func TestOperatorTransformationGroupBy(t *testing.T) {
 	)
 	is.Equal([]int64{}, values)
 	is.EqualError(err, assert.AnError.Error())
-}
-
-// Unsubscribing while the source is still emitting new and existing keys must
-// neither race on the group registry nor leave a group uncompleted.
-func TestOperatorTransformationGroupBy_teardownRacesInFlightValues(t *testing.T) {
-	t.Parallel()
-	is := assert.New(t)
-
-	const (
-		rounds    = 200
-		keys      = 8
-		emissions = 2000
-	)
-
-	for r := 0; r < rounds; r++ {
-		source := NewPublishSubject[int]()
-
-		var open int64 // groups emitted but not yet completed; atomic.Int64 needs Go 1.19
-
-		// Yielding in the iteratee keeps values in flight while teardown runs.
-		iteratee := func(v int) int {
-			runtime.Gosched()
-			return v % keys
-		}
-
-		sub := GroupBy(iteratee)(source).Subscribe(
-			OnNext(func(group Observable[int]) {
-				atomic.AddInt64(&open, 1)
-				group.Subscribe(NewObserver(
-					func(int) {},
-					func(error) { atomic.AddInt64(&open, -1) },
-					func() { atomic.AddInt64(&open, -1) },
-				))
-			}),
-		)
-
-		done := make(chan struct{})
-		started := make(chan struct{})
-		go func() {
-			defer close(done)
-
-			for i := 0; i < emissions; i++ {
-				source.Next(i)
-
-				if i == keys {
-					close(started)
-				}
-			}
-		}()
-
-		<-started // unsubscribe while values for existing keys are still in flight
-		sub.Unsubscribe()
-		<-done
-
-		is.Zero(atomic.LoadInt64(&open), "every emitted group must be completed on teardown")
-	}
 }
 
 func TestOperatorTransformationBufferWhen(t *testing.T) { //nolint:paralleltest

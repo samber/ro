@@ -1911,48 +1911,6 @@ func TestOperatorCombiningZip_completedSource(t *testing.T) {
 	}
 }
 
-func TestOperatorCombiningZip_futureCompletion(t *testing.T) {
-	t.Parallel()
-
-	// A source completing while another goroutine delivers the last pair must not drop it.
-	// The window is a few instructions wide, so repeat to hit it reliably.
-	const iterations = 10
-
-	for _, variant := range zipCompletionVariants() {
-		variant := variant
-		t.Run(variant.name, func(t *testing.T) {
-			t.Parallel()
-			testWithTimeout(t, 5*time.Second)
-			is := assert.New(t)
-
-			want := make([]int, variant.arity)
-			for i := range want {
-				want[i] = i
-			}
-
-			for n := 0; n < iterations; n++ {
-				release := make(chan struct{})
-				sources := make([]Observable[int], variant.arity)
-				for i := range sources {
-					i := i
-					sources[i] = Future(func() (int, error) {
-						<-release
-						return i, nil
-					})
-				}
-
-				// Collect blocks until completion, so release the futures concurrently.
-				go close(release)
-				values, err := Collect(variant.zip(sources))
-				is.NoError(err)
-				if !is.Equal([][]int{want}, values) {
-					return
-				}
-			}
-		})
-	}
-}
-
 func TestOperatorCombiningZip_unsubscribeFromNext(t *testing.T) {
 	t.Parallel()
 
