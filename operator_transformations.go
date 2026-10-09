@@ -136,7 +136,7 @@ func MapErrIWithContext[T, R any](project func(ctx context.Context, item T, inde
 			// checks IsClosed().
 			var upstream Subscriber[T]
 
-			upstream = NewSubscriber(NewObserverWithContext(
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
 				func(ctx context.Context, value T) {
 					v, ctx, err := project(ctx, value, count)
 					count++

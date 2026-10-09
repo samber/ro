@@ -377,7 +377,7 @@ func Take[T any](count int64) func(Observable[T]) Observable[T] {
 			// checks IsClosed().
 			var upstream Subscriber[T]
 
-			upstream = NewSubscriber(
+			upstream = NewUnsafeSubscriber(
 				NewObserverWithContext(
 					func(ctx context.Context, value T) {
 						destination.NextWithContext(ctx, value)
@@ -452,15 +452,15 @@ func TakeWhileIWithContext[T any](predicate func(ctx context.Context, item T, in
 			// checks IsClosed().
 			var upstream Subscriber[T]
 
-			upstream = NewSubscriber(NewObserverWithContext(
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
 				func(ctx context.Context, value T) {
 					if !skipping {
 						if currentCtx, ok := predicate(ctx, value, i); ok {
 							destination.NextWithContext(currentCtx, value)
 						} else {
 							destination.CompleteWithContext(currentCtx)
-							upstream.Unsubscribe()
 							skipping = true
+							upstream.Unsubscribe()
 						}
 					}
 
@@ -608,7 +608,7 @@ func Head[T any]() func(Observable[T]) Observable[T] {
 			// checks IsClosed().
 			var upstream Subscriber[T]
 
-			upstream = NewSubscriber(NewObserverWithContext(
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
 				func(ctx context.Context, value T) {
 					destination.NextWithContext(ctx, value)
 					destination.CompleteWithContext(ctx)
@@ -697,7 +697,7 @@ func FirstIWithContext[T any](predicate func(ctx context.Context, item T, index 
 			// checks IsClosed().
 			var upstream Subscriber[T]
 
-			upstream = NewSubscriber(NewObserverWithContext(
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
 				func(ctx context.Context, value T) {
 					if currentCtx, ok := predicate(ctx, value, i); ok {
 						destination.NextWithContext(currentCtx, value)
@@ -800,7 +800,7 @@ func ElementAt[T any](nth int) func(Observable[T]) Observable[T] {
 			// checks IsClosed().
 			var upstream Subscriber[T]
 
-			upstream = NewSubscriber(NewObserverWithContext(
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
 				func(ctx context.Context, value T) {
 					if count == nth {
 						destination.NextWithContext(ctx, value)
@@ -842,7 +842,7 @@ func ElementAtOrDefault[T any](nth int64, fallback T) func(Observable[T]) Observ
 			// checks IsClosed().
 			var upstream Subscriber[T]
 
-			upstream = NewSubscriber(NewObserverWithContext(
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
 				func(ctx context.Context, value T) {
 					if count == nth {
 						destination.NextWithContext(ctx, value)

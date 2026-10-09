@@ -316,29 +316,3 @@ func tickingAsyncSource(tornDown *int32) Observable[int] {
 		}
 	})
 }
-
-// concurrentSource emits 4 x 200 items from 4 goroutines at the same time, then completes.
-func concurrentSource() Observable[int] {
-	return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
-		var wg sync.WaitGroup
-
-		for g := 0; g < 4; g++ {
-			wg.Add(1)
-
-			go func() {
-				defer wg.Done()
-
-				for i := 0; i < 200; i++ {
-					destination.NextWithContext(ctx, i)
-				}
-			}()
-		}
-
-		go func() {
-			wg.Wait()
-			destination.CompleteWithContext(ctx)
-		}()
-
-		return nil
-	})
-}

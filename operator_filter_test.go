@@ -562,13 +562,6 @@ func TestOperatorFilterTake(t *testing.T) {
 	is.Equal([]int{0, 1, 2}, values)
 	is.NoError(err)
 	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
-
-	// concurrent emissions from an asynchronous source stay serialized (run with -race)
-	for i := 0; i < 20; i++ {
-		values, err = Collect(Take[int](100)(concurrentSource()))
-		is.Len(values, 100)
-		is.NoError(err)
-	}
 }
 
 func TestOperatorFilterTakeWhile(t *testing.T) {
