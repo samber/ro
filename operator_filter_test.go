@@ -15,7 +15,9 @@
 package ro
 
 import (
+	"context"
 	"math"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -501,6 +503,7 @@ func TestOperatorFilterSkipUntil_signalOrder(t *testing.T) {
 
 func TestOperatorFilterTake(t *testing.T) {
 	t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
 
 	values, err := Collect(
@@ -532,10 +535,38 @@ func TestOperatorFilterTake(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// early completion stops a synchronous source
+	var emitted int64
+
+	values, err = Collect(Take[int](2)(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0, 1}, values)
+	is.NoError(err)
+	is.Equal(int64(2), atomic.LoadInt64(&emitted))
+
+	emitted = 0
+	values, err = Collect(Take[int](1)(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0}, values)
+	is.NoError(err)
+	is.Equal(int64(1), atomic.LoadInt64(&emitted))
+
+	// an unbounded synchronous source never returns unless the operator stops it
+	infinite, err := Collect(Take[int64](2)(Range(0, math.MaxInt64)))
+	is.Equal([]int64{0, 1}, infinite)
+	is.NoError(err)
+
+	// early completion tears down an asynchronous source
+	var tornDown int32
+
+	values, err = Collect(Take[int](3)(tickingAsyncSource(&tornDown)))
+	is.Equal([]int{0, 1, 2}, values)
+	is.NoError(err)
+	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
 }
 
 func TestOperatorFilterTakeWhile(t *testing.T) {
 	t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
 
 	predicate := func(v int) bool {
@@ -571,10 +602,44 @@ func TestOperatorFilterTakeWhile(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// early completion stops a synchronous source
+	var emitted int64
+
+	values, err = Collect(TakeWhile(func(v int) bool { return v < 3 })(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0, 1, 2}, values)
+	is.NoError(err)
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	emitted = 0
+	values, err = Collect(TakeWhile(func(v int) bool { return false })(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{}, values)
+	is.NoError(err)
+	is.Equal(int64(1), atomic.LoadInt64(&emitted))
+
+	emitted = 0
+	values, err = Collect(TakeWhileWithContext(func(ctx context.Context, v int) (context.Context, bool) { return ctx, v < 3 })(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0, 1, 2}, values)
+	is.NoError(err)
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	// an unbounded synchronous source never returns unless the operator stops it
+	infinite, err := Collect(TakeWhile(func(v int64) bool { return v < 2 })(Range(0, math.MaxInt64)))
+	is.Equal([]int64{0, 1}, infinite)
+	is.NoError(err)
+
+	// early completion tears down an asynchronous source
+	var tornDown int32
+
+	values, err = Collect(TakeWhile(func(v int) bool { return v < 3 })(tickingAsyncSource(&tornDown)))
+	is.Equal([]int{0, 1, 2}, values)
+	is.NoError(err)
+	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
 }
 
 func TestOperatorFilterTakeWhileI(t *testing.T) {
 	t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
 
 	predicate := func(v int, i int64) bool {
@@ -619,6 +684,28 @@ func TestOperatorFilterTakeWhileI(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// early completion stops a synchronous source
+	var emitted int64
+
+	values, err = Collect(TakeWhileI(func(v int, i int64) bool { return i < 3 })(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0, 1, 2}, values)
+	is.NoError(err)
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	emitted = 0
+	values, err = Collect(TakeWhileIWithContext(func(ctx context.Context, v int, i int64) (context.Context, bool) { return ctx, i < 3 })(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0, 1, 2}, values)
+	is.NoError(err)
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	// early completion tears down an asynchronous source
+	var tornDown int32
+
+	values, err = Collect(TakeWhileI(func(v int, i int64) bool { return i < 3 })(tickingAsyncSource(&tornDown)))
+	is.Equal([]int{0, 1, 2}, values)
+	is.NoError(err)
+	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
 }
 
 func TestOperatorFilterTakeLast(t *testing.T) {
@@ -773,6 +860,7 @@ func TestOperatorFilterTakeUntil_signalOrder(t *testing.T) {
 
 func TestOperatorFilterHead(t *testing.T) {
 	t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
 
 	values, err := Collect(
@@ -798,6 +886,27 @@ func TestOperatorFilterHead(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// early completion stops a synchronous source
+	var emitted int64
+
+	values, err = Collect(Head[int]()(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0}, values)
+	is.NoError(err)
+	is.Equal(int64(1), atomic.LoadInt64(&emitted))
+
+	// an unbounded synchronous source never returns unless the operator stops it
+	infinite, err := Collect(Head[int64]()(Repeat(int64(7), math.MaxInt64)))
+	is.Equal([]int64{7}, infinite)
+	is.NoError(err)
+
+	// early completion tears down an asynchronous source
+	var tornDown int32
+
+	values, err = Collect(Head[int]()(tickingAsyncSource(&tornDown)))
+	is.Equal([]int{0}, values)
+	is.NoError(err)
+	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
 }
 
 func TestOperatorFilterTail(t *testing.T) {
@@ -831,6 +940,7 @@ func TestOperatorFilterTail(t *testing.T) {
 
 func TestOperatorFilterFirst(t *testing.T) {
 	t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
 
 	values, err := Collect(
@@ -887,6 +997,45 @@ func TestOperatorFilterFirst(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// early completion stops a synchronous source
+	var emitted int64
+
+	values, err = Collect(First(func(v int) bool { return v == 3 })(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{3}, values)
+	is.NoError(err)
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	emitted = 0
+	values, err = Collect(FirstI(func(v int, i int64) bool { return i == 3 })(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{3}, values)
+	is.NoError(err)
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	emitted = 0
+	values, err = Collect(FirstWithContext(func(ctx context.Context, v int) (context.Context, bool) { return ctx, v == 3 })(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{3}, values)
+	is.NoError(err)
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	emitted = 0
+	values, err = Collect(FirstIWithContext(func(ctx context.Context, v int, i int64) (context.Context, bool) { return ctx, i == 3 })(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{3}, values)
+	is.NoError(err)
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	// an unbounded synchronous source never returns unless the operator stops it
+	infinite, err := Collect(First(func(v int64) bool { return v == 2 })(Range(0, math.MaxInt64)))
+	is.Equal([]int64{2}, infinite)
+	is.NoError(err)
+
+	// early completion tears down an asynchronous source
+	var tornDown int32
+
+	values, err = Collect(First(func(v int) bool { return v == 2 })(tickingAsyncSource(&tornDown)))
+	is.Equal([]int{2}, values)
+	is.NoError(err)
+	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
 }
 
 func TestOperatorFilterLast(t *testing.T) {
@@ -951,6 +1100,7 @@ func TestOperatorFilterLast(t *testing.T) {
 
 func TestOperatorFilterElementAt(t *testing.T) {
 	t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
 
 	is.PanicsWithError(
@@ -983,10 +1133,38 @@ func TestOperatorFilterElementAt(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// early completion stops a synchronous source
+	var emitted int64
+
+	values, err = Collect(ElementAt[int](3)(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{3}, values)
+	is.NoError(err)
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	emitted = 0
+	values, err = Collect(ElementAt[int](0)(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0}, values)
+	is.NoError(err)
+	is.Equal(int64(1), atomic.LoadInt64(&emitted))
+
+	// an unbounded synchronous source never returns unless the operator stops it
+	infinite, err := Collect(ElementAt[int64](2)(Range(0, math.MaxInt64)))
+	is.Equal([]int64{2}, infinite)
+	is.NoError(err)
+
+	// early completion tears down an asynchronous source
+	var tornDown int32
+
+	values, err = Collect(ElementAt[int](2)(tickingAsyncSource(&tornDown)))
+	is.Equal([]int{2}, values)
+	is.NoError(err)
+	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
 }
 
 func TestOperatorFilterElementAtOrDefault(t *testing.T) {
 	t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
 
 	is.PanicsWithError(
@@ -1019,4 +1197,25 @@ func TestOperatorFilterElementAtOrDefault(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// early completion stops a synchronous source
+	var emitted int64
+
+	values, err = Collect(ElementAtOrDefault(3, -1)(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{3}, values)
+	is.NoError(err)
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	// an unbounded synchronous source never returns unless the operator stops it
+	infinite, err := Collect(ElementAtOrDefault(2, int64(-1))(Range(0, math.MaxInt64)))
+	is.Equal([]int64{2}, infinite)
+	is.NoError(err)
+
+	// early completion tears down an asynchronous source
+	var tornDown int32
+
+	values, err = Collect(ElementAtOrDefault(2, -1)(tickingAsyncSource(&tornDown)))
+	is.Equal([]int{2}, values)
+	is.NoError(err)
+	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
 }

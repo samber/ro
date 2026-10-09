@@ -1484,7 +1484,7 @@ func TestOperatorCreationZip6(t *testing.T) { //nolint:paralleltest
 
 func TestOperatorCreationConcat(t *testing.T) {
 	t.Parallel()
-	testWithTimeout(t, 100*time.Millisecond)
+	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
 
 	values, err := Collect(
@@ -1507,6 +1507,102 @@ func TestOperatorCreationConcat(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	// Subscribe does not block while an inner Observable is active
+	released := make(chan struct{})
+	blocking := NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+		go func() {
+			<-released
+			destination.NextWithContext(ctx, 1)
+			destination.CompleteWithContext(ctx)
+		}()
+
+		return nil
+	})
+
+	var got []int
+
+	completed := make(chan struct{})
+	subscribed := make(chan Subscription, 1)
+
+	go func() {
+		subscribed <- Concat(blocking, Just(2, 3)).Subscribe(NewObserver(
+			func(v int) { got = append(got, v) },
+			func(err error) {},
+			func() { close(completed) },
+		))
+	}()
+
+	var concatSub Subscription
+
+	select {
+	case concatSub = <-subscribed:
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("Subscribe blocked while the first inner Observable is still active")
+	}
+
+	close(released)
+	<-completed
+	concatSub.Wait()
+
+	is.Equal([]int{1, 2, 3}, got)
+
+	// unsubscribing stops the active inner Observable and never subscribes the next one
+	var tornDown, nextSubscribed int32
+
+	active := NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+		return func() { atomic.AddInt32(&tornDown, 1) }
+	})
+	next := NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+		atomic.AddInt32(&nextSubscribed, 1)
+		destination.NextWithContext(ctx, 99)
+		destination.CompleteWithContext(ctx)
+
+		return nil
+	})
+
+	Concat(active, next).Subscribe(NoopObserver[int]()).Unsubscribe()
+	is.Equal(int32(1), atomic.LoadInt32(&tornDown))
+	is.Equal(int32(0), atomic.LoadInt32(&nextSubscribed))
+
+	// an error stops the following Observables from being subscribed
+	values, err = Collect(Concat(Just(1), Throw[int](assert.AnError), next, next))
+	is.Equal([]int{1}, values)
+	is.EqualError(err, assert.AnError.Error())
+	is.Equal(int32(0), atomic.LoadInt32(&nextSubscribed))
+
+	// asynchronous inner Observables keep their order
+	async := func(v int) Observable[int] {
+		return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+			go func() {
+				time.Sleep(5 * time.Millisecond)
+				destination.NextWithContext(ctx, v)
+				destination.CompleteWithContext(ctx)
+			}()
+
+			return nil
+		})
+	}
+
+	values, err = Collect(Concat(Just(0), async(1), Empty[int](), async(2), Just(3)))
+	is.Equal([]int{0, 1, 2, 3}, values)
+	is.NoError(err)
+
+	values, err = Collect(Concat(async(1), Throw[int](assert.AnError), async(2)))
+	is.Equal([]int{1}, values)
+	is.EqualError(err, assert.AnError.Error())
+
+	// many synchronous inner Observables
+	const manyInners = 5_000
+
+	inners := make([]Observable[int], manyInners)
+	for i := range inners {
+		inners[i] = Just(1)
+	}
+
+	values, err = Collect(Concat(inners...))
+	is.Len(values, manyInners)
+	is.NoError(err)
 }
 
 func TestOperatorCreationRace(t *testing.T) { //nolint:paralleltest

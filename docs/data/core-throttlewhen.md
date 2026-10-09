@@ -1,7 +1,7 @@
 ---
 name: ThrottleWhen
 slug: throttlewhen
-sourceRef: operator_transformations.go#L780
+sourceRef: operator_transformations.go#L844
 type: core
 category: transformation
 signatures:

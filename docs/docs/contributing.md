@@ -13,6 +13,7 @@ Hey! We are happy to have you as a new contributor. ✌️
 Operators must be self-explanatory and respect standards (other languages, libraries...). Feel free to suggest many names in your contributions or the related issue.
 
 `samber/ro` has been inspired by `ReactiveX` and `RxJS`. Find some inspiration in existing libraries:
+
 - https://reactivex.io/documentation/operators.html
 - https://reactivex.io/documentation/operators/buffer.html
 - https://rxjs.dev/api
@@ -20,6 +21,7 @@ Operators must be self-explanatory and respect standards (other languages, libra
 Many operators have variants. Please follow the same convention. Examples:
 
 Map:
+
 - Map: base operator
 - MapI: the transformer function receives a forever increasing index
 - MapWithContext: the transformer function receives a `context.Context`
@@ -27,17 +29,20 @@ Map:
 - MapErr: the transformer function returns an error
 
 Buffer:
+
 - BufferWhen: the buffer is emitted on Observable notification
 - BufferWithTime: the buffer is emitted when a timeout reached
 - BufferWithCount: the buffer is emitted when size is reached
 - BufferWithTimeOrCount: the buffer is emitted when a timeout or size is reached
 
 Take:
+
 - Take: emits N first items
 - TakeWhile: emits items while a condition is met
 - TakeUntil: emits items until a signal is sent over an Observable
 
 Zip:
+
 - Zip/ZipX/ZipAll/ZipWith/ZipWithX
 - CombineLatest/CombineLatestX/CombineLatestAny/CombineLatestWith/CombineLatestWithX
 - Merge/MergeAll/MergeWith/MergeWithX
@@ -51,6 +56,7 @@ We hate breaking changes, so better think twice ;)
 `samber/ro` has been built with strict context propagation. New operators must not break the chain (propagation on subscription, message passing and unsubscription).
 
 Example:
+
 ```go
 func MapIWithContext[T, R any](project func(ctx context.Context, item T, index int64) (context.Context, R)) func(Observable[T]) Observable[R] {
     return func(source Observable[T]) Observable[R] {
@@ -86,6 +92,7 @@ func MapIWithContext[T, R any](project func(ctx context.Context, item T, index i
 Many operators accept variadic parameters, providing flexibility while maintaining type safety:
 
 Examples:
+
 - `ro.Zip(...Observable[T])`
 - `ro.ZipAll(...Observable[T])`
 - `ro.Merge(...Observable[T])`
@@ -96,6 +103,7 @@ Examples:
 Some operators use `~[]T` constraints to accept any slice type, including named slice types, not just `[]T`. This design choice makes the library more flexible in real-world usage.
 
 Examples:
+
 - `func Flatten[T any, Slice ~[]T]() func(Observable[Slice]) Observable[T]`
 
 ## Variants
@@ -103,6 +111,7 @@ Examples:
 When applicable, some operator might be declined in multiple ways. Update the documentation for each helper.
 
 Examples:
+
 - Map: base operator
 - MapI: the transformer function receives a forever increasing index
 - MapWithContext: the transformer function receives a `context.Context`
@@ -115,9 +124,10 @@ Examples:
 
 We try to maintain code coverage high.
 
-Use the `ro.Collect(...)` for testing.
+Use the `ro.Collect(...)` for testing. Asynchronous sources must respect the [serialization contract](./hacking#serialization-contract).
 
 Example:
+
 ```go
 values, err := Collect(
     Pipe1(
@@ -132,6 +142,7 @@ is.NoError(err)
 Test edge cases with `ro.Empty[int]()` and `ro.Throw[[]int](assert.AnError)` as source.
 
 Example:
+
 ```go
 values, err := Collect(
     Pipe1(
@@ -153,6 +164,7 @@ is.EqualError(err, assert.AnError.Error())
 ```
 
 Test more edge cases:
+
 - early unsubscription
 - context propagation
 - context cancellation
@@ -248,6 +260,7 @@ func MyOperator(param int) func(ro.Observable[T]) ro.Observable[T] {
 ```
 
 **Rules:**
+
 - Use `errors.New` — never `fmt.Errorf` or a bare string — for sentinel error declarations.
 - Error variable names follow the pattern `Err{OperatorName}{WhatIsWrong}` (e.g., `ErrRandomWrongSize`, `ErrWebsocketSubjectURLRequired`).
 - Error messages follow the pattern `{package}.{FunctionName}: {lowercase description}` (e.g., `"rostrings.Random: size must be greater than 0"`).

@@ -1,7 +1,7 @@
 ---
 name: RandIntN
 slug: randintn
-sourceRef: operator_creation.go#L598
+sourceRef: operator_creation.go#L658
 type: core
 category: creation
 signatures:

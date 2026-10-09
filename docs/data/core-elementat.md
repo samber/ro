@@ -1,7 +1,7 @@
 ---
 name: ElementAt
 slug: elementat
-sourceRef: operator_filter.go#L738
+sourceRef: operator_filter.go#L782
 type: core
 category: filtering
 signatures:

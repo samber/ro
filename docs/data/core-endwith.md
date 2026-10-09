@@ -1,7 +1,7 @@
 ---
 name: EndWith
 slug: endwith
-sourceRef: operator_combining.go#L949
+sourceRef: operator_combining.go#L1300
 type: core
 category: combining
 signatures:

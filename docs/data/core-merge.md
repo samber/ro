@@ -1,7 +1,7 @@
 ---
 name: Merge
 slug: merge
-sourceRef: operator_creation.go#L476
+sourceRef: operator_creation.go#L536
 type: core
 category: combining
 signatures:

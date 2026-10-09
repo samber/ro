@@ -1,7 +1,7 @@
 ---
 name: RangeWithStep
 slug: rangewithstep
-sourceRef: operator_creation.go#L210
+sourceRef: operator_creation.go#L253
 type: core
 category: creation
 signatures:

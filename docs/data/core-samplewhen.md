@@ -1,7 +1,7 @@
 ---
 name: SampleWhen
 slug: samplewhen
-sourceRef: operator_transformations.go#L707
+sourceRef: operator_transformations.go#L767
 type: core
 category: transformation
 signatures:

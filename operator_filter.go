@@ -371,8 +371,13 @@ func Take[T any](count int64) func(Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			var index int64
 
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
+			// The upstream subscriber is created before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, so the returned Subscription does not exist
+			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
+			// checks IsClosed().
+			var upstream Subscriber[T]
+
+			upstream = NewUnsafeSubscriber(
 				NewObserverWithContext(
 					func(ctx context.Context, value T) {
 						destination.NextWithContext(ctx, value)
@@ -381,6 +386,8 @@ func Take[T any](count int64) func(Observable[T]) Observable[T] {
 
 						if index >= count {
 							destination.CompleteWithContext(ctx)
+							upstream.Unsubscribe()
+							return
 						}
 					},
 					destination.ErrorWithContext,
@@ -388,6 +395,7 @@ func Take[T any](count int64) func(Observable[T]) Observable[T] {
 				),
 			)
 
+			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
 		})
 	}
@@ -438,34 +446,39 @@ func TakeWhileIWithContext[T any](predicate func(ctx context.Context, item T, in
 			skipping := false
 			i := int64(0)
 
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, value T) {
-						if !skipping {
-							if currentCtx, ok := predicate(ctx, value, i); ok {
-								destination.NextWithContext(currentCtx, value)
-							} else {
-								destination.CompleteWithContext(currentCtx)
-								skipping = true
-							}
-						}
+			// The upstream subscriber is created before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, so the returned Subscription does not exist
+			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
+			// checks IsClosed().
+			var upstream Subscriber[T]
 
-						i++
-					},
-					func(ctx context.Context, err error) {
-						if !skipping {
-							destination.ErrorWithContext(ctx, err)
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					if !skipping {
+						if currentCtx, ok := predicate(ctx, value, i); ok {
+							destination.NextWithContext(currentCtx, value)
+						} else {
+							destination.CompleteWithContext(currentCtx)
+							skipping = true
+							upstream.Unsubscribe()
 						}
-					},
-					func(ctx context.Context) {
-						if !skipping {
-							destination.CompleteWithContext(ctx)
-						}
-					},
-				),
-			)
+					}
 
+					i++
+				},
+				func(ctx context.Context, err error) {
+					if !skipping {
+						destination.ErrorWithContext(ctx, err)
+					}
+				},
+				func(ctx context.Context) {
+					if !skipping {
+						destination.CompleteWithContext(ctx)
+					}
+				},
+			))
+
+			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
 		})
 	}
@@ -589,20 +602,25 @@ func TakeUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T]
 func Head[T any]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, value T) {
-						destination.NextWithContext(ctx, value)
-						destination.CompleteWithContext(ctx)
-					},
-					destination.ErrorWithContext,
-					func(ctx context.Context) {
-						destination.ErrorWithContext(ctx, ErrHeadEmpty)
-					},
-				),
-			)
+			// The upstream subscriber is created before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, so the returned Subscription does not exist
+			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
+			// checks IsClosed().
+			var upstream Subscriber[T]
 
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					destination.NextWithContext(ctx, value)
+					destination.CompleteWithContext(ctx)
+					upstream.Unsubscribe()
+				},
+				destination.ErrorWithContext,
+				func(ctx context.Context) {
+					destination.ErrorWithContext(ctx, ErrHeadEmpty)
+				},
+			))
+
+			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
 		})
 	}
@@ -673,24 +691,29 @@ func FirstIWithContext[T any](predicate func(ctx context.Context, item T, index 
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			i := int64(0)
 
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, value T) {
-						if currentCtx, ok := predicate(ctx, value, i); ok {
-							destination.NextWithContext(currentCtx, value)
-							destination.CompleteWithContext(currentCtx)
-						}
+			// The upstream subscriber is created before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, so the returned Subscription does not exist
+			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
+			// checks IsClosed().
+			var upstream Subscriber[T]
 
-						i++
-					},
-					destination.ErrorWithContext,
-					func(ctx context.Context) {
-						destination.ErrorWithContext(ctx, ErrFirstEmpty)
-					},
-				),
-			)
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					if currentCtx, ok := predicate(ctx, value, i); ok {
+						destination.NextWithContext(currentCtx, value)
+						destination.CompleteWithContext(currentCtx)
+						upstream.Unsubscribe()
+					}
 
+					i++
+				},
+				destination.ErrorWithContext,
+				func(ctx context.Context) {
+					destination.ErrorWithContext(ctx, ErrFirstEmpty)
+				},
+			))
+
+			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
 		})
 	}
@@ -771,25 +794,31 @@ func ElementAt[T any](nth int) func(Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			count := 0
 
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, value T) {
-						if count == nth {
-							destination.NextWithContext(ctx, value)
-							destination.CompleteWithContext(ctx)
-							return
-						}
+			// The upstream subscriber is created before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, so the returned Subscription does not exist
+			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
+			// checks IsClosed().
+			var upstream Subscriber[T]
 
-						count++
-					},
-					destination.ErrorWithContext,
-					func(ctx context.Context) {
-						destination.ErrorWithContext(ctx, ErrElementAtNotFound)
-					},
-				),
-			)
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					if count == nth {
+						destination.NextWithContext(ctx, value)
+						destination.CompleteWithContext(ctx)
+						upstream.Unsubscribe()
 
+						return
+					}
+
+					count++
+				},
+				destination.ErrorWithContext,
+				func(ctx context.Context) {
+					destination.ErrorWithContext(ctx, ErrElementAtNotFound)
+				},
+			))
+
+			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
 		})
 	}
@@ -807,26 +836,32 @@ func ElementAtOrDefault[T any](nth int64, fallback T) func(Observable[T]) Observ
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			count := int64(0)
 
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, value T) {
-						if count == nth {
-							destination.NextWithContext(ctx, value)
-							destination.CompleteWithContext(ctx)
-							return
-						}
+			// The upstream subscriber is created before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, so the returned Subscription does not exist
+			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
+			// checks IsClosed().
+			var upstream Subscriber[T]
 
-						count++
-					},
-					destination.ErrorWithContext,
-					func(ctx context.Context) {
-						destination.NextWithContext(ctx, fallback)
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					if count == nth {
+						destination.NextWithContext(ctx, value)
 						destination.CompleteWithContext(ctx)
-					},
-				),
-			)
+						upstream.Unsubscribe()
 
+						return
+					}
+
+					count++
+				},
+				destination.ErrorWithContext,
+				func(ctx context.Context) {
+					destination.NextWithContext(ctx, fallback)
+					destination.CompleteWithContext(ctx)
+				},
+			))
+
+			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
 		})
 	}

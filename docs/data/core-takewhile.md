@@ -1,7 +1,7 @@
 ---
 name: TakeWhile
 slug: takewhile
-sourceRef: operator_filter.go#L387
+sourceRef: operator_filter.go#L406
 type: core
 category: filtering
 signatures:

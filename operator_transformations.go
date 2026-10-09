@@ -129,25 +129,31 @@ func MapErrIWithContext[T, R any](project func(ctx context.Context, item T, inde
 	return func(source Observable[T]) Observable[R] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[R]) Teardown {
 			count := int64(0)
-			sub := source.SubscribeWithContext(
-				subscriberCtx,
-				NewObserverWithContext(
-					func(ctx context.Context, t T) {
-						v, ctx, err := project(ctx, t, count)
-						count++
 
-						if err != nil {
-							destination.ErrorWithContext(ctx, err)
-							return
-						}
+			// The upstream subscriber is created before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, so the returned Subscription does not exist
+			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
+			// checks IsClosed().
+			var upstream Subscriber[T]
 
-						destination.NextWithContext(ctx, v)
-					},
-					destination.ErrorWithContext,
-					destination.CompleteWithContext,
-				),
-			)
+			upstream = NewUnsafeSubscriber(NewObserverWithContext(
+				func(ctx context.Context, value T) {
+					v, ctx, err := project(ctx, value, count)
+					count++
 
+					if err != nil {
+						destination.ErrorWithContext(ctx, err)
+						upstream.Unsubscribe()
+						return
+					}
+
+					destination.NextWithContext(ctx, v)
+				},
+				destination.ErrorWithContext,
+				destination.CompleteWithContext,
+			))
+
+			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
 		})
 	}
