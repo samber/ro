@@ -1102,6 +1102,14 @@ func ConcatWith[T any](obs ...Observable[T]) func(Observable[T]) Observable[T] {
 	}
 }
 
+// concatAllPending is an inner Observable waiting in the ConcatAll queue, with the
+// context it was emitted with. It is declared at package level because Go does not
+// support type declarations inside generic functions.
+type concatAllPending[T any] struct {
+	ctx    context.Context
+	source Observable[T]
+}
+
 // ConcatAll concatenates the source Observable with other Observables. It subscribes
 // to each inner Observable only after the previous one completes, maintaining their
 // order. It completes when all inner Observables are done.
@@ -1112,14 +1120,9 @@ func ConcatWith[T any](obs ...Observable[T]) func(Observable[T]) Observable[T] {
 func ConcatAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 	return func(sources Observable[Observable[T]]) Observable[T] {
 		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
-			type pendingInner struct {
-				ctx    context.Context
-				source Observable[T]
-			}
-
 			var mu sync.Mutex
 
-			queue := xqueue.NewQueue[pendingInner]()
+			queue := xqueue.NewQueue[concatAllPending[T]]()
 			// running is true while an inner Observable is being subscribed to or is active.
 			// It makes sure a single pump owns the queue at any time.
 			running := false
@@ -1227,7 +1230,7 @@ func ConcatAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 						return
 					}
 
-					queue.Push(pendingInner{ctx: ctx, source: source})
+					queue.Push(concatAllPending[T]{ctx: ctx, source: source})
 
 					start := !running
 					running = true
