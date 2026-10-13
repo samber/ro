@@ -1211,7 +1211,7 @@ func TestOperatorCombiningConcatAll_asyncInnersFromSynchronousOuter(t *testing.T
 	testWithTimeout(t, 2*time.Second)
 	is := assert.New(t)
 
-	// Each inner emits from its own goroutine, so the pump and the unsubscription of
+	// Each inner emits from its own goroutine, so the queue drain and the unsubscription of
 	// the outer run on goroutines other than the one delivering the outer events.
 	inner := func(v int64) Observable[int64] {
 		return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
