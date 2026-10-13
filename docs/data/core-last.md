@@ -1,7 +1,7 @@
 ---
 name: Last
 slug: last
-sourceRef: operator_filter.go#L675
+sourceRef: operator_filter.go#L719
 type: core
 category: filtering
 signatures:

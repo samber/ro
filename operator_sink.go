@@ -121,7 +121,7 @@ func ToChannel[T any](size int) func(Observable[T]) Observable[<-chan Notificati
 	}
 
 	return func(source Observable[T]) Observable[<-chan Notification[T]] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[<-chan Notification[T]]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[<-chan Notification[T]]) Teardown {
 			ch := make(chan Notification[T], size)
 
 			// Closing a channel while another goroutine sends on it panics. Senders

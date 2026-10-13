@@ -1,7 +1,7 @@
 ---
 name: Just
 slug: just
-sourceRef: operator_creation.go#L42
+sourceRef: operator_creation.go#L46
 type: core
 category: creation
 signatures:

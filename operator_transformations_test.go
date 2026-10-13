@@ -131,6 +131,7 @@ func TestOperatorTransformationMapTo(t *testing.T) {
 
 func TestOperatorTransformationMapErr(t *testing.T) {
 	t.Parallel()
+	testWithTimeout(t, 500*time.Millisecond)
 	is := assert.New(t)
 
 	values, err := Collect(
@@ -177,10 +178,86 @@ func TestOperatorTransformationMapErr(t *testing.T) {
 	)
 	is.Equal([]int{1, 2, 4, 5, 6}, values)
 	is.NoError(err)
+
+	// early completion stops a synchronous source
+	var emitted int64
+
+	values, err = Collect(MapErr(func(v int) (int, error) {
+		if v == 3 {
+			return 0, assert.AnError
+		}
+		return v, nil
+	})(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0, 1, 2}, values)
+	is.EqualError(err, assert.AnError.Error())
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	emitted = 0
+	values, err = Collect(MapErrWithContext(func(ctx context.Context, v int) (int, context.Context, error) {
+		if v == 3 {
+			return 0, ctx, assert.AnError
+		}
+		return v, ctx, nil
+	})(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0, 1, 2}, values)
+	is.EqualError(err, assert.AnError.Error())
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	// early completion tears down an asynchronous source
+	var tornDown int32
+
+	values, err = Collect(MapErr(func(v int) (int, error) {
+		if v == 2 {
+			return 0, assert.AnError
+		}
+		return v, nil
+	})(tickingAsyncSource(&tornDown)))
+	is.Equal([]int{0, 1}, values)
+	is.EqualError(err, assert.AnError.Error())
+	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
 }
 
 func TestOperatorTransformationMapErrI(t *testing.T) { //nolint:paralleltest
 	// @TODO: Implement tests
+
+	is := assert.New(t)
+
+	// early completion stops a synchronous source
+	var emitted int64
+
+	values, err := Collect(MapErrI(func(v int, i int64) (int, error) {
+		if i == 3 {
+			return 0, assert.AnError
+		}
+		return v, nil
+	})(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0, 1, 2}, values)
+	is.EqualError(err, assert.AnError.Error())
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	emitted = 0
+	values, err = Collect(MapErrIWithContext(func(ctx context.Context, v int, i int64) (int, context.Context, error) {
+		if i == 3 {
+			return 0, ctx, assert.AnError
+		}
+		return v, ctx, nil
+	})(countingSyncSource(1000, &emitted)))
+	is.Equal([]int{0, 1, 2}, values)
+	is.EqualError(err, assert.AnError.Error())
+	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+	// early completion tears down an asynchronous source
+	var tornDown int32
+
+	values, err = Collect(MapErrI(func(v int, i int64) (int, error) {
+		if i == 2 {
+			return 0, assert.AnError
+		}
+		return v, nil
+	})(tickingAsyncSource(&tornDown)))
+	is.Equal([]int{0, 1}, values)
+	is.EqualError(err, assert.AnError.Error())
+	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
 }
 
 func TestOperatorTransformationFlatMap(t *testing.T) {

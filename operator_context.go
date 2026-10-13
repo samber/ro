@@ -254,7 +254,7 @@ func ContextMapI[T any](project func(ctx context.Context, index int64) context.C
 // Play: https://go.dev/play/p/K9oGdZFa-b1
 func ThrowOnContextCancel[T any]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			if subscriberCtx.Err() != nil {
 				destination.ErrorWithContext(subscriberCtx, subscriberCtx.Err())
 				return nil

@@ -26,7 +26,7 @@ import (
 // Play: https://go.dev/play/p/V4meCiGc3bx
 func NewRateLimiter[T any](limiter *limiter.Limiter, keyGetter func(T) string) func(destination ro.Observable[T]) ro.Observable[T] {
 	return func(source ro.Observable[T]) ro.Observable[T] {
-		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
+		return ro.NewSafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
 			sub := source.SubscribeWithContext(
 				subscriberCtx,
 				ro.NewObserverWithContext( // @TODO: use unsafe observer implem, for performance ?

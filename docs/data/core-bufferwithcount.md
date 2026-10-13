@@ -1,7 +1,7 @@
 ---
 name: BufferWithCount
 slug: bufferwithcount
-sourceRef: operator_transformations.go#L580
+sourceRef: operator_transformations.go#L618
 type: core
 category: transformation
 signatures:

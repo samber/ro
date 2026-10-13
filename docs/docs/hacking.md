@@ -154,6 +154,18 @@ func SyncHTTPRequest(req *http.Request) ro.Observable[*http.Response] {
 }
 ```
 
+## Serialization contract
+
+Every Observable must deliver its events to the destination one at a time.
+
+A synchronous Observable (`Just`, `Range`...) needs no race protection: a single goroutine calls the destination.
+
+An asynchronous Observable (several goroutines, timers, channels) must serialize its events itself. Use `NewSafeObservable` or `NewSafeObservableWithContext`, or hold your own lock around the destination calls.
+
+An operator can therefore rely on its upstream being serialized. This is why operators build their own output with `NewUnsafeObservableWithContext`.
+
+A Subscriber passed to `SubscribeWithContext` is used as is, so the Observable's own mode is not applied to it. An operator that passes its own Subscriber is responsible for that Subscriber's concurrency mode.
+
 ## Error handling
 
 Always handle errors properly in custom operators. Unhandled errors can cause memory leaks or undefined behavior.
@@ -221,6 +233,7 @@ func WithTimeout[T any](timeout time.Duration) func(ro.Observable[T]) ro.Observa
 `samber/ro` has been built with strict context propagation. Your operators must not break the chain (propagation on subscription, message passing and unsubscription).
 
 Example:
+
 ```go
 func MapIWithContext[T, R any](project func(ctx context.Context, item T, index int64) (context.Context, R)) func(Observable[T]) Observable[R] {
     return func(source Observable[T]) Observable[R] {
@@ -258,6 +271,7 @@ We try to maintain code coverage high.
 Use the `ro.Collect(...)` for testing.
 
 Example:
+
 ```go
 values, err := Collect(
     Pipe1(
@@ -272,6 +286,7 @@ is.NoError(err)
 Test edge cases with `ro.Empty[int]()` and `ro.Throw[[]int](assert.AnError)` as source.
 
 Example:
+
 ```go
 values, err := Collect(
     Pipe1(
@@ -293,6 +308,7 @@ is.EqualError(err, assert.AnError.Error())
 ```
 
 Test more edge cases:
+
 - early unsubscription
 - context propagation
 - context cancellation

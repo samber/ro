@@ -1,7 +1,7 @@
 ---
 name: Amb
 slug: amb
-sourceRef: operator_creation.go#L591
+sourceRef: operator_creation.go#L651
 type: core
 category: combining
 signatures:

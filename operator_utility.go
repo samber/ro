@@ -292,7 +292,7 @@ func Timestamp[T any]() func(Observable[T]) Observable[TimestampValue[T]] {
 // Play: https://go.dev/play/p/K3md7WPtZGI
 func Delay[T any](duration time.Duration) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			// Using time.AfterFunc is not convenient because it may introduce race
 			// conditions and/or change message order.
 			// We need a double mutex to prevent message reordering:
@@ -444,7 +444,7 @@ func RepeatWith[T any](count int64) func(Observable[T]) Observable[T] {
 // Play: https://go.dev/play/p/t0xKoj-_AqZ
 func Timeout[T any](duration time.Duration) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			var sub Subscription
 
 			var lastCtx atomic.Value
@@ -584,7 +584,7 @@ func ObserveOn[T any](bufferSize int) func(Observable[T]) Observable[T] {
 
 func detachOn[T any](bufferSize int, onUpstream, onDownstream bool) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			ch := make(chan lo.Tuple2[context.Context, Notification[T]], bufferSize)
 
 			once := sync.Once{}

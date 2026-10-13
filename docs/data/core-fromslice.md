@@ -1,7 +1,7 @@
 ---
 name: FromSlice
 slug: fromslice
-sourceRef: operator_creation.go#L369
+sourceRef: operator_creation.go#L425
 type: core
 category: creation
 signatures:

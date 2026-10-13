@@ -20,6 +20,7 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -271,4 +272,47 @@ func TestProcessNotificationWithObserver(t *testing.T) {
 			)
 		})
 	}
+}
+
+// countingSyncSource emits 0..total-1 synchronously, stops when its destination is
+// closed, and counts the items it tried to emit.
+func countingSyncSource(total int, emitted *int64) Observable[int] {
+	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+		for i := 0; i < total; i++ {
+			if destination.IsClosed() {
+				return nil
+			}
+
+			atomic.AddInt64(emitted, 1)
+			destination.NextWithContext(ctx, i)
+		}
+
+		destination.CompleteWithContext(ctx)
+
+		return nil
+	})
+}
+
+// tickingAsyncSource emits 0, 1, 2... every millisecond from a goroutine, until its
+// teardown runs. tornDown counts the teardown calls.
+func tickingAsyncSource(tornDown *int32) Observable[int] {
+	return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+		stop := make(chan struct{})
+
+		go func() {
+			for i := 0; ; i++ {
+				select {
+				case <-stop:
+					return
+				case <-time.After(time.Millisecond):
+					destination.NextWithContext(ctx, i)
+				}
+			}
+		}()
+
+		return func() {
+			atomic.AddInt32(tornDown, 1)
+			close(stop)
+		}
+	})
 }

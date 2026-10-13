@@ -1,7 +1,7 @@
 ---
 name: GroupBy
 slug: groupby
-sourceRef: operator_transformations.go#L311
+sourceRef: operator_transformations.go#L317
 type: core
 category: transformation
 signatures:

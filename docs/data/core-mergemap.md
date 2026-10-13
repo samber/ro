@@ -1,7 +1,7 @@
 ---
 name: MergeMap
 slug: mergemap
-sourceRef: operator_combining.go#L177
+sourceRef: operator_combining.go#L227
 type: core
 category: combining
 signatures:

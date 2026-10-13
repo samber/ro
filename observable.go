@@ -434,7 +434,7 @@ func NewConnectableObservable[T any](subscribe func(destination Observer[T]) Tea
 // NewConnectableObservableWithConfig.
 func NewConnectableObservableWithContext[T any](subscribe func(ctx context.Context, destination Observer[T]) Teardown) ConnectableObservable[T] {
 	return newConnectableObservableImpl(
-		NewObservableWithContext(subscribe),
+		NewSafeObservableWithContext(subscribe),
 		ConnectableConfig[T]{
 			Connector:         defaultConnector[T],
 			ResetOnDisconnect: true,
@@ -467,7 +467,7 @@ func NewConnectableObservableWithConfig[T any](subscribe func(destination Observ
 // ConnectableObservable is disconnected, it will create a new source when reconnected.
 func NewConnectableObservableWithConfigAndContext[T any](subscribe func(ctx context.Context, destination Observer[T]) Teardown, config ConnectableConfig[T]) ConnectableObservable[T] {
 	return newConnectableObservableImpl(
-		NewObservableWithContext(subscribe),
+		NewSafeObservableWithContext(subscribe),
 		config,
 	)
 }

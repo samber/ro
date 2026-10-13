@@ -28,6 +28,10 @@ import (
 func Of[T any](values ...T) Observable[T] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[T]) Teardown {
 		for _, v := range values {
+			if destination.IsClosed() {
+				return nil
+			}
+
 			destination.NextWithContext(ctx, v)
 		}
 
@@ -79,7 +83,7 @@ func Timer(duration time.Duration) Observable[time.Duration] {
 // immediately, but after the first interval has passed.
 // Play: https://go.dev/play/p/7yskMPPFHA7
 func Interval(interval time.Duration) Observable[int64] {
-	return NewObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
+	return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
 		ticker := time.NewTicker(interval)
 		done := make(chan struct{})
 
@@ -115,7 +119,7 @@ func Interval(interval time.Duration) Observable[int64] {
 // When initial is zero, the first value is emitted synchronously during subscription.
 // Play: https://go.dev/play/p/Xhi6c336ldy
 func IntervalWithInitial(initial, interval time.Duration) Observable[int64] {
-	return NewObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
+	return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
 		ticker := time.NewTicker(interval)
 		ticker.Stop()
 		timer := time.NewTimer(initial)
@@ -184,6 +188,10 @@ func Range(start, end int64) Observable[int64] {
 
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
 		for cursor := start; rangeHasNext(cursor, end, sign); cursor += sign {
+			if destination.IsClosed() {
+				return nil
+			}
+
 			destination.NextWithContext(ctx, cursor)
 		}
 
@@ -259,6 +267,10 @@ func RangeWithStep(start, end, step float64) Observable[float64] {
 
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[float64]) Teardown {
 		for i := int64(0); i < count; i++ {
+			if destination.IsClosed() {
+				return nil
+			}
+
 			destination.NextWithContext(ctx, rangeWithStepValue(start, step, sign, i))
 		}
 
@@ -346,6 +358,10 @@ func Repeat[T any](item T, count int64) Observable[T] {
 
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[T]) Teardown {
 		for i := int64(0); i < count; i++ {
+			if destination.IsClosed() {
+				return nil
+			}
+
 			destination.NextWithContext(ctx, item)
 		}
 
@@ -410,6 +426,10 @@ func FromSlice[T any](collections ...[]T) Observable[T] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[T]) Teardown {
 		for _, collection := range collections {
 			for _, value := range collection {
+				if destination.IsClosed() {
+					return nil
+				}
+
 				destination.NextWithContext(ctx, value)
 			}
 		}
@@ -638,6 +658,10 @@ func Amb[T any](sources ...Observable[T]) Observable[T] {
 func RandIntN(n, count int) Observable[int] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
 		for i := 0; i < count; i++ {
+			if destination.IsClosed() {
+				return nil
+			}
+
 			destination.NextWithContext(ctx, xrand.IntN(n))
 		}
 
@@ -653,6 +677,10 @@ func RandIntN(n, count int) Observable[int] {
 func RandFloat64(count int) Observable[float64] {
 	return NewUnsafeObservableWithContext(func(ctx context.Context, destination Observer[float64]) Teardown {
 		for i := 0; i < count; i++ {
+			if destination.IsClosed() {
+				return nil
+			}
+
 			destination.NextWithContext(ctx, xrand.Float64())
 		}
 

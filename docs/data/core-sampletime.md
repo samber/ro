@@ -1,7 +1,7 @@
 ---
 name: SampleTime
 slug: sampletime
-sourceRef: operator_transformations.go#L825
+sourceRef: operator_transformations.go#L831
 type: core
 category: transformation
 signatures:

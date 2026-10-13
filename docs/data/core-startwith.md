@@ -1,7 +1,7 @@
 ---
 name: StartWith
 slug: startwith
-sourceRef: operator_combining.go#L933
+sourceRef: operator_combining.go#L1284
 type: core
 category: combining
 signatures:

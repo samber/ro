@@ -30,7 +30,7 @@ var NotFound = errors.New("rohot.GetOrFetchOrError: not found")
 // Play: https://go.dev/play/p/7mKj3n8fH4b
 func GetOrFetch[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Observable[K]) ro.Observable[lo.Tuple2[V, bool]] {
 	return func(source ro.Observable[K]) ro.Observable[lo.Tuple2[V, bool]] {
-		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[lo.Tuple2[V, bool]]) ro.Teardown {
+		return ro.NewSafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[lo.Tuple2[V, bool]]) ro.Teardown {
 			sub := source.SubscribeWithContext(
 				subscriberCtx,
 				ro.NewObserverWithContext(
@@ -57,7 +57,7 @@ func GetOrFetch[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Observab
 // Play: https://go.dev/play/p/2gN9k8fJ3bL
 func GetOrFetchOrSkip[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Observable[K]) ro.Observable[V] {
 	return func(source ro.Observable[K]) ro.Observable[V] {
-		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[V]) ro.Teardown {
+		return ro.NewSafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[V]) ro.Teardown {
 			sub := source.SubscribeWithContext(
 				subscriberCtx,
 				ro.NewObserverWithContext(
@@ -86,7 +86,7 @@ func GetOrFetchOrSkip[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Ob
 // Play: https://go.dev/play/p/9hJ7k6fL2mN
 func GetOrFetchOrError[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Observable[K]) ro.Observable[V] {
 	return func(source ro.Observable[K]) ro.Observable[V] {
-		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[V]) ro.Teardown {
+		return ro.NewSafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[V]) ro.Teardown {
 			sub := source.SubscribeWithContext(
 				subscriberCtx,
 				ro.NewObserverWithContext(
@@ -117,7 +117,7 @@ func GetOrFetchOrError[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.O
 // Play: https://go.dev/play/p/4hK8n7fJ3mP
 func GetOrFetchMany[K comparable, V any](cache *hot.HotCache[K, V]) func(ro.Observable[[]K]) ro.Observable[map[K]V] {
 	return func(source ro.Observable[[]K]) ro.Observable[map[K]V] {
-		return ro.NewObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[map[K]V]) ro.Teardown {
+		return ro.NewSafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[map[K]V]) ro.Teardown {
 			sub := source.SubscribeWithContext(
 				subscriberCtx,
 				ro.NewObserverWithContext(

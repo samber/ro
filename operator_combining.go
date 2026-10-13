@@ -114,7 +114,7 @@ func MergeWith5[T any](obsB, obsC, obsD, obsE, obsF Observable[T]) func(Observab
 // Play: https://go.dev/play/p/m3nHZZJbwMF
 func MergeAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 	return func(sources Observable[Observable[T]]) Observable[T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			var parentCtx context.Context
 			var parentCtxMu sync.Mutex // atomic.Value has been introduced in go 1.19 and this library support go 1.18
 
@@ -254,7 +254,7 @@ func MergeMapI[T, R any](projection func(item T, index int64) Observable[R]) fun
 func MergeMapIWithContext[T, R any](projection func(ctx context.Context, item T, index int64) (context.Context, Observable[R])) func(Observable[T]) Observable[R] {
 	return func(source Observable[T]) Observable[R] {
 		return MergeAll[R]()(
-			NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[Observable[R]]) Teardown {
+			NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[Observable[R]]) Teardown {
 				// Index is per subscription: declaring it outside would share it between subscribers.
 				i := int64(0)
 
@@ -295,7 +295,7 @@ func CombineLatestWith[A, B any](obsB Observable[B]) func(Observable[A]) Observa
 // Play: https://go.dev/play/p/KXb19PPjCb1
 func CombineLatestWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tuple2[A, B]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple2[A, B]] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple2[A, B]]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple2[A, B]]) Teardown {
 			var valueA xatomic.Pointer[A]
 			var valueB xatomic.Pointer[B]
 
@@ -404,7 +404,7 @@ func CombineLatestWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observ
 // Play: https://go.dev/play/p/hPDCDwEOB84
 func CombineLatestWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observable[A]) Observable[lo.Tuple3[A, B, C]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple3[A, B, C]] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple3[A, B, C]]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple3[A, B, C]]) Teardown {
 			var valueA xatomic.Pointer[A]
 			var valueB xatomic.Pointer[B]
 			var valueC xatomic.Pointer[C]
@@ -552,7 +552,7 @@ func CombineLatestWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) fun
 // Play: https://go.dev/play/p/PcMxo8yakQq
 func CombineLatestWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Observable[D]) func(Observable[A]) Observable[lo.Tuple4[A, B, C, D]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple4[A, B, C, D]] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple4[A, B, C, D]]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple4[A, B, C, D]]) Teardown {
 			var valueA xatomic.Pointer[A]
 			var valueB xatomic.Pointer[B]
 			var valueC xatomic.Pointer[C]
@@ -738,7 +738,7 @@ func CombineLatestWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], 
 // It is a curried function that takes the other Observable as an argument.
 func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Observable[D], obsE Observable[E]) func(Observable[A]) Observable[lo.Tuple5[A, B, C, D, E]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple5[A, B, C, D, E]] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple5[A, B, C, D, E]]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple5[A, B, C, D, E]]) Teardown {
 			var valueA xatomic.Pointer[A]
 			var valueB xatomic.Pointer[B]
 			var valueC xatomic.Pointer[C]
@@ -962,7 +962,7 @@ func CombineLatestWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C
 // Play: https://go.dev/play/p/nT1qq9ipwZL
 func CombineLatestAll[T any]() func(Observable[Observable[T]]) Observable[[]T] {
 	return func(sources Observable[Observable[T]]) Observable[[]T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
 			subscriptions := NewSubscription(nil)
 
 			var observables []Observable[T]
@@ -1102,47 +1102,196 @@ func ConcatWith[T any](obs ...Observable[T]) func(Observable[T]) Observable[T] {
 	}
 }
 
+// concatAllPendingOuter is an inner Observable waiting in the ConcatAll queue, with the
+// context it was emitted with. It is declared at package level because Go does not
+// support type declarations inside generic functions.
+type concatAllPendingOuter[T any] struct {
+	ctx    context.Context
+	source Observable[T]
+}
+
 // ConcatAll concatenates the source Observable with other Observables. It subscribes
 // to each inner Observable only after the previous one completes, maintaining their
 // order. It completes when all inner Observables are done.
+//
+// Subscribing never blocks: when the outer Observable emits faster than the inner
+// ones complete, pending inner Observables wait in an unbounded queue.
 // Play: https://go.dev/play/p/zygV4Ld9tcv
 func ConcatAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 	return func(sources Observable[Observable[T]]) Observable[T] {
-		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
-			subscriptions := NewSubscription(nil)
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+			// mu guards queue, running, outerDone, outerCtx, current and closed.
+			// They are shared between the outer events, the inner events (possibly on
+			// another goroutine) and the teardown. It is never held while calling the
+			// destination or subscribing to an inner Observable: those calls can re-enter
+			// the callbacks below.
+			var mu sync.Mutex
 
-			subscriptions.AddUnsubscribable(
-				sources.SubscribeWithContext(
-					subscriberCtx,
-					NewObserverWithContext(
-						func(ctx context.Context, source Observable[T]) {
-							sub := source.SubscribeWithContext(
-								ctx,
-								NewObserverWithContext(
-									destination.NextWithContext,
-									func(ctx context.Context, err error) {
-										subscriptions.Unsubscribe()
-										destination.ErrorWithContext(ctx, err)
-									},
-									func(ctx context.Context) {},
-								),
-							)
+			// queue holds the inner Observables emitted by the outer Observable and not
+			// subscribed to yet, in emission order. It is unbounded.
+			queue := xqueue.NewQueue[concatAllPendingOuter[T]]()
+			// running is true while an inner Observable is being subscribed to or is active.
+			// It makes sure a single drainQueue call owns the queue at any time.
+			running := false
+			outerDone := false
+			closed := false
+			// outerCtx is the context of the outer completion.
+			var outerCtx context.Context
+			// current is the active inner subscription: a finished inner must not be retained.
+			var current Unsubscribable
 
-							// `subscriptions` cancels `sub` when it unsubscribes
-							// but `sub` cannot unsubscribe `subscriptions`
-							subscriptions.AddUnsubscribable(sub)
-							sub.Wait()
-						},
-						func(ctx context.Context, err error) {
-							subscriptions.Unsubscribe()
-							destination.ErrorWithContext(ctx, err)
-						},
-						destination.CompleteWithContext,
-					),
+			// The outer subscriber is built up front, so that it can be unsubscribed
+			// while a synchronous outer Observable is still emitting.
+			var outerSub Subscriber[Observable[T]]
+
+			// drainQueue subscribes to the queued inner Observables one at a time, in order.
+			// It loops while inners end synchronously, and returns once an inner is still
+			// active, or the queue is empty, or the operator is closed. The active inner's
+			// completion calls it again for the next one. It completes the destination when
+			// the queue is empty and the outer Observable is done.
+			var drainQueue func()
+
+			drainQueue = func() {
+				for {
+					mu.Lock()
+
+					if closed || destination.IsClosed() {
+						queue.Reset()
+
+						running = false
+
+						mu.Unlock()
+						outerSub.Unsubscribe()
+
+						return
+					}
+
+					if queue.Len() == 0 {
+						running = false
+						done := outerDone
+						ctx := outerCtx
+
+						mu.Unlock()
+
+						if done {
+							destination.CompleteWithContext(ctx)
+						}
+
+						return
+					}
+
+					next := queue.Pop()
+
+					mu.Unlock()
+
+					// 0: subscribing, 1: ended during Subscribe, 2: Subscribe returned with the inner still active.
+					// An inner ending synchronously is handled by the loop: recursing would grow
+					// the stack with the number of inner Observables.
+					state := int32(0)
+
+					sub := next.source.SubscribeWithContext(
+						next.ctx,
+						NewObserverWithContext(
+							destination.NextWithContext,
+							func(ctx context.Context, err error) {
+								destination.ErrorWithContext(ctx, err)
+								outerSub.Unsubscribe()
+								atomic.CompareAndSwapInt32(&state, 0, 1)
+							},
+							func(ctx context.Context) {
+								if atomic.CompareAndSwapInt32(&state, 0, 1) {
+									return
+								}
+
+								mu.Lock()
+								current = nil
+								mu.Unlock()
+
+								drainQueue()
+							},
+						),
+					)
+
+					mu.Lock()
+
+					if atomic.CompareAndSwapInt32(&state, 0, 2) {
+						if closed {
+							mu.Unlock()
+							sub.Unsubscribe()
+
+							return
+						}
+
+						current = sub
+
+						mu.Unlock()
+
+						return
+					}
+
+					mu.Unlock()
+				}
+			}
+
+			outerSub = NewUnsafeSubscriber(
+				NewObserverWithContext(
+					func(ctx context.Context, source Observable[T]) {
+						mu.Lock()
+
+						if closed || destination.IsClosed() {
+							mu.Unlock()
+							return
+						}
+
+						queue.Push(concatAllPendingOuter[T]{ctx: ctx, source: source})
+
+						start := !running
+						running = true
+
+						mu.Unlock()
+
+						if start {
+							drainQueue()
+						}
+					},
+					func(ctx context.Context, err error) {
+						destination.ErrorWithContext(ctx, err)
+					},
+					func(ctx context.Context) {
+						mu.Lock()
+
+						outerDone = true
+						outerCtx = ctx
+						idle := !running
+
+						mu.Unlock()
+
+						if idle {
+							destination.CompleteWithContext(ctx)
+						}
+					},
 				),
 			)
 
-			return subscriptions.Unsubscribe
+			sources.SubscribeWithContext(subscriberCtx, outerSub)
+
+			return func() {
+				mu.Lock()
+
+				closed = true
+				inner := current
+				current = nil
+
+				queue.Reset()
+				mu.Unlock()
+
+				// Run outside the lock: unsubscribing may re-enter the callbacks above.
+				outerSub.Unsubscribe()
+
+				if inner != nil {
+					inner.Unsubscribe()
+				}
+			}
 		})
 	}
 }
@@ -1237,7 +1386,7 @@ func RaceWith[T any](sources ...Observable[T]) func(Observable[T]) Observable[T]
 	return func(source Observable[T]) Observable[T] {
 		all := append([]Observable[T]{source}, sources...)
 
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			subscriptions := make([]Subscription, len(all))
 			won := int32(-1)
 			mu := sync.Mutex{}
@@ -1384,7 +1533,7 @@ func ZipWith[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tup
 // It is a curried function that takes the other Observable as an argument.
 func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tuple2[A, B]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple2[A, B]] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple2[A, B]]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple2[A, B]]) Teardown {
 			var mu sync.Mutex
 
 			// Number of popped values whose Next call is still running outside mu. A source
@@ -1470,7 +1619,7 @@ func ZipWith1[A, B any](obsB Observable[B]) func(Observable[A]) Observable[lo.Tu
 // Play: https://go.dev/play/p/MMq82Rkb0oh
 func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observable[A]) Observable[lo.Tuple3[A, B, C]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple3[A, B, C]] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple3[A, B, C]]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple3[A, B, C]]) Teardown {
 			var mu sync.Mutex
 
 			// Number of popped values whose Next call is still running outside mu. A source
@@ -1570,7 +1719,7 @@ func ZipWith2[A, B, C any](obsB Observable[B], obsC Observable[C]) func(Observab
 // It is a curried function that takes the other Observable as an argument.
 func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Observable[D]) func(Observable[A]) Observable[lo.Tuple4[A, B, C, D]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple4[A, B, C, D]] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple4[A, B, C, D]]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple4[A, B, C, D]]) Teardown {
 			var mu sync.Mutex
 
 			// Number of popped values whose Next call is still running outside mu. A source
@@ -1685,7 +1834,7 @@ func ZipWith3[A, B, C, D any](obsB Observable[B], obsC Observable[C], obsD Obser
 // It is a curried function that takes the other Observable as an argument.
 func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Observable[D], obsE Observable[E]) func(Observable[A]) Observable[lo.Tuple5[A, B, C, D, E]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple5[A, B, C, D, E]] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple5[A, B, C, D, E]]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple5[A, B, C, D, E]]) Teardown {
 			var mu sync.Mutex
 
 			// Number of popped values whose Next call is still running outside mu. A source
@@ -1816,7 +1965,7 @@ func ZipWith4[A, B, C, D, E any](obsB Observable[B], obsC Observable[C], obsD Ob
 // Play: https://go.dev/play/p/OJz-AVo0-hY
 func ZipWith5[A, B, C, D, E, F any](obsB Observable[B], obsC Observable[C], obsD Observable[D], obsE Observable[E], obsF Observable[F]) func(Observable[A]) Observable[lo.Tuple6[A, B, C, D, E, F]] {
 	return func(obsA Observable[A]) Observable[lo.Tuple6[A, B, C, D, E, F]] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple6[A, B, C, D, E, F]]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[lo.Tuple6[A, B, C, D, E, F]]) Teardown {
 			var mu sync.Mutex
 
 			// Number of popped values whose Next call is still running outside mu. A source
@@ -2057,7 +2206,7 @@ func zipAllInnerSubscriptions[T any](outerCtx context.Context, sources []Observa
 // Play: https://go.dev/play/p/FcpgTItKX-Q
 func ZipAll[T any]() func(Observable[Observable[T]]) Observable[[]T] {
 	return func(sources Observable[Observable[T]]) Observable[[]T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
 			innerSub := NewSubscription(nil)
 
 			// First, we consume the high-order observable...

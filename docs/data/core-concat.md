@@ -1,7 +1,7 @@
 ---
 name: Concat
 slug: concat
-sourceRef: operator_creation.go#L571
+sourceRef: operator_creation.go#L631
 type: core
 category: combining
 signatures:

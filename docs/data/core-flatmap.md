@@ -1,7 +1,7 @@
 ---
 name: FlatMap
 slug: flatmap
-sourceRef: operator_transformations.go#L159
+sourceRef: operator_transformations.go#L165
 type: core
 category: transformation
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: TakeUntil
 slug: takeuntil
-sourceRef: operator_filter.go#L530
+sourceRef: operator_filter.go#L544
 type: core
 category: filtering
 signatures:

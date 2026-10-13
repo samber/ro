@@ -108,7 +108,7 @@ func ShareWithConfig[T any](config ShareConfig[T]) func(Observable[T]) Observabl
 			}
 		}
 
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			mu.Lock()
 
 			refCount++
