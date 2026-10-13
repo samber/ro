@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'samber/ro — Reactive Streams for Go',
+  title: 'samber/ro - Reactive Streams for Go',
   tagline: 'Streams and reactive programming for Go',
   favicon: 'img/favicon.ico',
 
@@ -91,50 +91,16 @@ const config: Config = {
             'data-key': 'ZlVVDleFCGZPB8Nd2KkKrw'
         }
     },
-        // DNS prefetch for better performance
-        {
-            tagName: 'link',
-            attributes: {
-                rel: 'dns-prefetch',
-        href: '//fonts.googleapis.com',
-      },
-    },
-    {
-      tagName: 'link',
-      attributes: {
-        rel: 'preconnect',
-        href: 'https://fonts.gstatic.com',
-        crossorigin: 'anonymous',
-      },
-    },
-    {
-      tagName: 'meta',
-      attributes: {
-        name: 'keywords',
-        content: 'go, golang, reactive programming, pipeline, ro, rxjs, rxgo, observable, observer, subscription, backpressure, operator, subject, concurrency, error handling, resusable, utility, framework, library, samber',
-      },
-    },
-    {
-      tagName: 'meta',
-      attributes: {
-        property: 'og:image',
-        content: 'https://ro.samber.dev/img/cover.png',
-      },
-    },
-    {
-      tagName: 'meta',
-      attributes: {
-        name: 'twitter:card',
-        content: 'summary_large_image',
-      },
-    },
-    {
-      tagName: 'meta',
-      attributes: {
-        name: 'twitter:image',
-        content: 'https://ro.samber.dev/img/cover.png',
-      },
-    },
+    // NOTE: no dns-prefetch/preconnect to fonts.googleapis.com/fonts.gstatic.com
+    // here — the site doesn't load any Google Font, so those hints only
+    // opened two unused connections on every page load.
+    // NOTE: no `keywords` meta either — Google has ignored it for SEO
+    // ranking for years, and it only added dead weight to every page.
+    // og:image, twitter:card, twitter:image and og:locale are NOT declared
+    // here: Docusaurus already generates them from `themeConfig.image` and
+    // `i18n.defaultLocale` below. Duplicating them produced two conflicting
+    // <meta property="og:locale"> tags in the rendered HTML (this file said
+    // en_US, Docusaurus's own tag said en).
     {
       tagName: 'meta',
       attributes: {
@@ -148,14 +114,6 @@ const config: Config = {
       attributes: {
         name: 'twitter:site',
         content: '@samuelberthe',
-      },
-    },
-    // og:locale signals language/region to crawlers and social platforms
-    {
-      tagName: 'meta',
-      attributes: {
-        property: 'og:locale',
-        content: 'en_US',
       },
     },
     // og:site_name provides branding context in social share cards
@@ -177,8 +135,8 @@ const config: Config = {
         name: 'DBOS',
         url: 'https://www.dbos.dev/?utm_campaign=gh-smbr',
         title: 'DBOS - Durable workflow orchestration library for Go',
-        logo_light: '/img/sponsors/dbos-black.png',
-        logo_dark: '/img/sponsors/dbos-white.png',
+        logo_light: '/img/sponsors/dbos-black-optimized.png',
+        logo_dark: '/img/sponsors/dbos-white-optimized.png',
       },
     ],
   },
@@ -192,7 +150,7 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-          'https://github.com/samber/ro/tree/master/docs/',
+          'https://github.com/samber/ro/tree/main/docs/',
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
           // Enhanced docs features from 3.8+
@@ -208,6 +166,11 @@ const config: Config = {
           remarkPlugins: [],
           rehypePlugins: [],
         },
+        // No blog/ directory exists — the sidebar's "Blog" entry links to
+        // Substack instead. Without this, Docusaurus's classic preset
+        // still enables its default blog plugin and publishes an empty,
+        // indexed /blog page.
+        blog: false,
           sitemap: {
           lastmod: 'date',
           changefreq: 'weekly',
@@ -243,7 +206,7 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/cover.png',
+    image: 'img/cover-optimized.jpg',
     colorMode: {
       defaultMode: 'light',
       disableSwitch: false,
@@ -260,7 +223,7 @@ const config: Config = {
 
       // Enhanced metadata
     metadata: [
-      {name: 'og:type', content: 'website'},
+      {property: 'og:type', content: 'website'},
       // Fallback description for pages that don't set their own
       {name: 'description', content: 'Reactive programming for Go using generics. An implementation of the ReactiveX spec with Observables, Operators, and Subjects for building event-driven and asynchronous applications.'},
     ],
@@ -269,7 +232,9 @@ const config: Config = {
       title: '🌊 samber/ro',
       logo: {
         alt: 'ro - Reactive programming for Go',
-        src: 'img/icon.png',
+        src: 'img/icon-optimized.png',
+        width: 32,
+        height: 32,
       },
       items: [
         {
@@ -327,6 +292,10 @@ const config: Config = {
               to: '/docs/getting-started',
             },
             {
+              label: 'Comparisons',
+              to: '/docs/comparison',
+            },
+            {
               label: 'Changelog',
               to: 'https://github.com/samber/ro/releases',
             },
@@ -336,7 +305,7 @@ const config: Config = {
             },
             {
               label: 'License',
-              to: 'https://github.com/samber/ro/blob/master/LICENSE',
+              to: 'https://github.com/samber/ro/blob/main/LICENSE',
             },
             {
               label: '💖 Sponsor',

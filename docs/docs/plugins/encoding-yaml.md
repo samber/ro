@@ -3,6 +3,7 @@ title: Encoding / YAML
 description: YAML operators for ro — Go reactive streams. Marshal, unmarshal, and parse YAML documents with go-yaml; emit decoded values as Observable values.
 sidebar_position: 35
 hide_table_of_contents: true
+draft: true
 ---
 
 # Encoding/YAML - Plugin operators
@@ -20,7 +21,7 @@ Your feedback helps us improve!
 First, import the sub-package in your project:
 
 ```bash
-go get -u github.com/samber/ro/plugins/yaml
+go get -u github.com/samber/ro/plugins/encoding/yaml
 ```
 
 import HelperList from '@site/plugins/helpers-pages/components/HelperList';

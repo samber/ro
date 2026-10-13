@@ -30,7 +30,7 @@ The purpose of Reactive Programming is to simplify the development of event-driv
 
 ----
 
-![cover](/docs/static/img/cover.png)
+![cover](/docs/static/img/cover-optimized.jpg)
 
 **See also:**
 
@@ -48,12 +48,12 @@ What makes it different from **samber/lo**?
 Reactive Programming is focused on handling asynchronous data streams where values (like user input, API responses, or sensor data) are emitted over time. Instead of pulling data or waiting for events manually, you react to changes as they occur using `Observable`, `Observer`, and `Operator`. This approach simplifies building systems that are responsive, resilient, and scalable, especially in event-driven or real-time applications.
 
 ```go
-observable := ro.Pipe(
+observable := ro.Pipe[int64, string](
     ro.RangeWithInterval(0, 5, 1*time.Second),
-    ro.Filter(func(x int) bool {
+    ro.Filter(func(x int64) bool {
         return x%2 == 0
     }),
-    ro.Map(func(x int) string {
+    ro.Map(func(x int64) string {
         return fmt.Sprintf("even-%d", x)
     }),
 )
@@ -62,7 +62,7 @@ observable := ro.Pipe(
 observable.Subscribe(ro.NewObserver(
     func(s string) { fmt.Println(s) },
     func(err error) { fmt.Println(err.Error()) },
-    func() { fmt.Println("Completed!") }
+    func() { fmt.Println("Completed!") },
 ))
 // Output:
 //   "even-0"

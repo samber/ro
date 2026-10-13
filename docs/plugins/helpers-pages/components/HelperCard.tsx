@@ -102,7 +102,7 @@ export default function HelperCard({
     <div className="helper-card">
       <div className="helper-card__header">
         {/* Heading registered in MDX ToC */}
-        <Heading as="h3" id={helper.slug} className="helper-card__title anchor">
+        <Heading as="h2" id={helper.slug} className="helper-card__title anchor">
           {helper.name}
         </Heading>
         {/* <h3 className="helper-card__title">

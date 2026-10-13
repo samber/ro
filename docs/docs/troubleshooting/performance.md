@@ -125,7 +125,7 @@ var stringBuilderPool = sync.Pool{
     },
 }
 
-func memoryEfficientOperator(source ro.Observable[string]) ro.Observable<string] {
+func memoryEfficientOperator(source ro.Observable[string]) ro.Observable[string] {
     return ro.Map(func(s string) string {
         builder := stringBuilderPool.Get().(*strings.Builder)
         defer func() {

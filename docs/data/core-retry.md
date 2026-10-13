@@ -53,7 +53,7 @@ obs := ro.Pipe[int, int](
         }
         return ro.Just(42)
     }),
-    ro.RetryWithConfig[int](RetryConfig{
+    ro.RetryWithConfig[int](ro.RetryConfig{
         MaxRetries:     3,
         Delay:          100 * time.Millisecond,
         ResetOnSuccess: true,
@@ -78,7 +78,7 @@ obs := ro.Pipe[string, string](
             ro.Throw[string](errors.New("rate limited")),
         )
     }),
-    ro.RetryWithConfig[string](RetryConfig{
+    ro.RetryWithConfig[string](ro.RetryConfig{
         MaxRetries:     5,
         Delay:          1 * time.Second,
         ResetOnSuccess: true,
@@ -105,7 +105,7 @@ obs := ro.Pipe[int, int](
         }
         return ro.Throw[int](errors.New("suddenly failed"))
     }),
-    ro.RetryWithConfig[int](RetryConfig{
+    ro.RetryWithConfig[int](ro.RetryConfig{
         MaxRetries:     3,
         Delay:          50 * time.Millisecond,
         ResetOnSuccess: true, // Success resets retry counter
@@ -142,7 +142,7 @@ simulateAPICall := func() Observable[Response] {
 
 obs := ro.Pipe[Response, string](
     simulateAPICall(),
-    ro.RetryWithConfig[Response](RetryConfig{
+    ro.RetryWithConfig[Response](ro.RetryConfig{
         MaxRetries:     10,
         Delay:          200 * time.Millisecond,
         ResetOnSuccess: true,
