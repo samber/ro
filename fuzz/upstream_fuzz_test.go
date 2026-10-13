@@ -110,6 +110,41 @@ func upstreamOperators() []upstreamOperator {
 		newUpstreamOperator("ThrowIfEmpty", func(s upstreamSources) ro.Observable[int] {
 			return ro.ThrowIfEmpty[int](func() error { return errInjectedFailure })(s.mainSource)
 		}),
+		newUpstreamOperator("ElementAtOrDefault", func(s upstreamSources) ro.Observable[int] {
+			return ro.ElementAtOrDefault(int64(s.threshold), -1)(s.mainSource)
+		}),
+		newUpstreamOperator("Last", func(s upstreamSources) ro.Observable[int] {
+			return ro.Last(func(item int) bool { return item >= s.threshold })(s.mainSource)
+		}),
+		// MapErr ends the stream from inside its callback, so it must stop a synchronous source on its own.
+		newUpstreamOperator("MapErr", func(s upstreamSources) ro.Observable[int] {
+			return ro.MapErr(func(item int) (int, error) {
+				if item == s.threshold {
+					return 0, errInjectedFailure
+				}
+
+				return item, nil
+			})(s.mainSource)
+		}),
+		newUpstreamOperator("Contains", func(s upstreamSources) ro.Observable[bool] {
+			return ro.Contains(func(item int) bool { return item >= s.threshold })(s.mainSource)
+		}),
+		newUpstreamOperator("Find", func(s upstreamSources) ro.Observable[int] {
+			return ro.Find(func(item int) bool { return item >= s.threshold })(s.mainSource)
+		}),
+		newUpstreamOperator("All", func(s upstreamSources) ro.Observable[bool] {
+			return ro.All(func(item int) bool { return item < s.threshold })(s.mainSource)
+		}),
+		// The concatenation operators subscribe to the second source only once the first one ended.
+		newUpstreamOperator("Concat", func(s upstreamSources) ro.Observable[int] {
+			return ro.Concat(s.mainSource, s.signalSource)
+		}),
+		newUpstreamOperator("ConcatWith", func(s upstreamSources) ro.Observable[int] {
+			return ro.ConcatWith(s.fallbackSource)(s.mainSource)
+		}),
+		newUpstreamOperator("ConcatAll", func(s upstreamSources) ro.Observable[int] {
+			return ro.ConcatAll[int]()(ro.Just(s.mainSource, s.fallbackSource))
+		}),
 		newUpstreamOperator("Catch", func(s upstreamSources) ro.Observable[int] {
 			return ro.Catch(func(error) ro.Observable[int] { return s.fallbackSource })(s.mainSource)
 		}),
@@ -181,7 +216,7 @@ func (s *upstreamScenario) expectEveryUpstreamReleased(t *testing.T) {
 	}
 }
 
-// FuzzUpstreamReleasedOnCompletion applies one of 25 operators to a main source that completes, with a
+// FuzzUpstreamReleasedOnCompletion applies one of 34 operators to a main source that completes, with a
 // signal source and a fallback source on the side. Each of the three sources is synchronous or asynchronous.
 //
 // Invariant: once the downstream completed and the test unsubscribed, no source keeps a live subscription.

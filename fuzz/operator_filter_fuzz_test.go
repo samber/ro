@@ -33,8 +33,6 @@ const fallbackItem = -1
 // Seeds: items and decisionIndex spread over their range; asyncSource, sourceIgnoresStop and
 // withIndex (FirstI instead of First) alternate.
 func FuzzFirst(f *testing.F) {
-	f.Skip("race: first-predicate-after-decision (sync source keeps calling predicate); remove when fixed")
-
 	fuzzSeeds(f, func(i int) []any {
 		// items, decisionIndex, asyncSource, sourceIgnoresStop, withIndex
 		return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0, i%4 < 2, i%3 == 0}

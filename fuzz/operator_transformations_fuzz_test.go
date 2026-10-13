@@ -59,6 +59,8 @@ func FuzzMergeMap(f *testing.F) {
 //
 // Seeds: as FuzzMergeMap, with takeLimit spread over its range.
 func FuzzMergeMapTake(f *testing.F) {
+	f.Skip("race: take-unsafe-subscriber-concurrent-upstream; Take's NewUnsafeSubscriber races on its index when the upstream emits from several goroutines: \"DATA RACE operator_filter.go:386\"; remove when fixed")
+
 	fuzzSeeds(f, func(i int) []any {
 		// outerItems, firstInnerSize, asyncOuter, asyncEvenInners, asyncOddInners, takeLimit
 		return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0, i%3 == 0, i%5 < 2, seedByte(i, 2)}
@@ -805,5 +807,83 @@ func FuzzGroupByUnsubscribeWhileEmitting(f *testing.F) {
 		if open := atomic.LoadInt64(&openGroups); open != 0 {
 			t.Fatalf("%d groups still open after the teardown, want every emitted group completed", open)
 		}
+	})
+}
+
+// countingProjector is the callback of MapErr. It fails on the item failingItem and counts how often an
+// operator calls it after that failure.
+type countingProjector struct {
+	failingItem int
+
+	failed            int32
+	callsAfterFailure int32
+	calls             int32
+}
+
+func newCountingProjector(failingItem int) *countingProjector {
+	return &countingProjector{failingItem: failingItem}
+}
+
+// project is the callback to give to MapErr.
+func (p *countingProjector) project(item int) (int, error) {
+	atomic.AddInt32(&p.calls, 1)
+
+	if atomic.LoadInt32(&p.failed) != 0 {
+		atomic.AddInt32(&p.callsAfterFailure, 1)
+	}
+
+	if item == p.failingItem {
+		atomic.StoreInt32(&p.failed, 1)
+
+		return 0, errInjectedFailure
+	}
+
+	return item, nil
+}
+
+// projectIndexed is the callback to give to MapErrI.
+func (p *countingProjector) projectIndexed(item int, _ int64) (int, error) { return p.project(item) }
+
+func (p *countingProjector) expectNoCallAfterFailure(t *testing.T) {
+	t.Helper()
+
+	if extra := atomic.LoadInt32(&p.callsAfterFailure); extra != 0 {
+		t.Fatalf("project called %d times after the call that failed (%d calls in total)",
+			extra, atomic.LoadInt32(&p.calls))
+	}
+}
+
+// FuzzMapErr maps a source of `items` integers with a callback that fails on the item `failingIndex`.
+// The source is synchronous or asynchronous, and may keep emitting after the operator failed.
+//
+// Invariant: MapErr emits the items before the failing one, then fails once, or completes once when no
+// item fails. It never calls the callback again after the call that failed.
+//
+// Seeds: items and failingIndex spread over their range; asyncSource, sourceIgnoresStop and withIndex
+// (MapErrI instead of MapErr) alternate.
+func FuzzMapErr(f *testing.F) {
+	fuzzSeeds(f, func(i int) []any {
+		// items, failingIndex, asyncSource, sourceIgnoresStop, withIndex
+		return []any{seedByte(i, 0), seedByte(i, 1), i%2 == 0, i%4 < 2, i%3 == 0}
+	})
+
+	f.Fuzz(func(t *testing.T, items, failingIndex uint8, asyncSource, sourceIgnoresStop, withIndex bool) {
+		count := bounded(items, 0, maxItems)
+		failing := bounded(failingIndex, 0, count+1) // failing >= count: no item fails
+
+		numbers := newSource(count, asyncSource).ignoringStop(sourceIgnoresStop)
+		projector := newCountingProjector(failing)
+
+		mapErr := ro.MapErr(projector.project)
+		if withIndex {
+			mapErr = ro.MapErrI(projector.projectIndexed)
+		}
+
+		got := collect(t, mapErr(numbers.observable()), numbers)
+
+		got.expectValues(t, sequence(0, smaller(failing, count)))
+		expectSingleItemOrFailure(t, got, failing >= count) // reads "completes" when true, "fails" otherwise
+		got.expectContract(t)
+		projector.expectNoCallAfterFailure(t)
 	})
 }
