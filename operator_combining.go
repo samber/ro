@@ -1221,7 +1221,7 @@ func ConcatAll[T any]() func(Observable[Observable[T]]) Observable[T] {
 				}
 			}
 
-			outerSub = NewSafeSubscriber(NewObserverWithContext(
+			outerSub = NewUnsafeSubscriber(NewObserverWithContext(
 				func(ctx context.Context, source Observable[T]) {
 					mu.Lock()
 

@@ -1206,6 +1206,48 @@ func TestOperatorCombiningConcatAll(t *testing.T) { //nolint:paralleltest
 	is.EqualError(err, assert.AnError.Error())
 }
 
+func TestOperatorCombiningConcatAll_asyncInnersFromSynchronousOuter(t *testing.T) {
+	t.Parallel()
+	testWithTimeout(t, 2*time.Second)
+	is := assert.New(t)
+
+	// Each inner emits from its own goroutine, so the pump and the unsubscription of
+	// the outer run on goroutines other than the one delivering the outer events.
+	inner := func(v int64) Observable[int64] {
+		return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
+			go func() {
+				destination.NextWithContext(ctx, v)
+				destination.CompleteWithContext(ctx)
+			}()
+
+			return nil
+		})
+	}
+
+	const innerCount int64 = 200
+
+	values, err := Collect(
+		ConcatAll[int64]()(
+			Map(inner)(Range(0, innerCount)),
+		),
+	)
+	is.Len(values, int(innerCount))
+	is.Equal(int64(0), values[0])
+	is.Equal(innerCount-1, values[innerCount-1])
+	is.NoError(err)
+
+	// early completion of the downstream while inners are still pending
+	values, err = Collect(
+		Take[int64](3)(
+			ConcatAll[int64]()(
+				Map(inner)(Range(0, innerCount)),
+			),
+		),
+	)
+	is.Equal([]int64{0, 1, 2}, values)
+	is.NoError(err)
+}
+
 func TestOperatorCombiningStartWith(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
