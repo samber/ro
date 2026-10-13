@@ -124,7 +124,7 @@ Examples:
 
 We try to maintain code coverage high.
 
-Use the `ro.Collect(...)` for testing. Asynchronous sources must respect the [serialization contract](./hacking#serialization-contract).
+Use the `ro.Collect(...)` for testing. Asynchronous sources must respect the [serialization contract](./hacking#Serialization-contract).
 
 Example:
 
