@@ -371,10 +371,11 @@ func Take[T any](count int64) func(Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			var index int64
 
-			// The upstream subscriber is created before subscribing: a synchronous source emits
-			// everything inside SubscribeWithContext, so the returned Subscription does not exist
-			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
-			// checks IsClosed().
+			// Build the upstream subscriber before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, before the Subscription is returned.
+			// Unsubscribing this subscriber closes it, and the source stops at its next IsClosed() check.
+			// The subscriber is unsafe (no lock) because the source delivers events one at a time,
+			// see "Serialization contract" in docs/docs/hacking.md.
 			var upstream Subscriber[T]
 
 			upstream = NewUnsafeSubscriber(
@@ -446,37 +447,40 @@ func TakeWhileIWithContext[T any](predicate func(ctx context.Context, item T, in
 			skipping := false
 			i := int64(0)
 
-			// The upstream subscriber is created before subscribing: a synchronous source emits
-			// everything inside SubscribeWithContext, so the returned Subscription does not exist
-			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
-			// checks IsClosed().
+			// Build the upstream subscriber before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, before the Subscription is returned.
+			// Unsubscribing this subscriber closes it, and the source stops at its next IsClosed() check.
+			// The subscriber is unsafe (no lock) because the source delivers events one at a time,
+			// see "Serialization contract" in docs/docs/hacking.md.
 			var upstream Subscriber[T]
 
-			upstream = NewUnsafeSubscriber(NewObserverWithContext(
-				func(ctx context.Context, value T) {
-					if !skipping {
-						if currentCtx, ok := predicate(ctx, value, i); ok {
-							destination.NextWithContext(currentCtx, value)
-						} else {
-							destination.CompleteWithContext(currentCtx)
-							skipping = true
-							upstream.Unsubscribe()
+			upstream = NewUnsafeSubscriber(
+				NewObserverWithContext(
+					func(ctx context.Context, value T) {
+						if !skipping {
+							if currentCtx, ok := predicate(ctx, value, i); ok {
+								destination.NextWithContext(currentCtx, value)
+							} else {
+								destination.CompleteWithContext(currentCtx)
+								skipping = true
+								upstream.Unsubscribe()
+							}
 						}
-					}
 
-					i++
-				},
-				func(ctx context.Context, err error) {
-					if !skipping {
-						destination.ErrorWithContext(ctx, err)
-					}
-				},
-				func(ctx context.Context) {
-					if !skipping {
-						destination.CompleteWithContext(ctx)
-					}
-				},
-			))
+						i++
+					},
+					func(ctx context.Context, err error) {
+						if !skipping {
+							destination.ErrorWithContext(ctx, err)
+						}
+					},
+					func(ctx context.Context) {
+						if !skipping {
+							destination.CompleteWithContext(ctx)
+						}
+					},
+				),
+			)
 
 			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
@@ -602,23 +606,26 @@ func TakeUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T]
 func Head[T any]() func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
-			// The upstream subscriber is created before subscribing: a synchronous source emits
-			// everything inside SubscribeWithContext, so the returned Subscription does not exist
-			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
-			// checks IsClosed().
+			// Build the upstream subscriber before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, before the Subscription is returned.
+			// Unsubscribing this subscriber closes it, and the source stops at its next IsClosed() check.
+			// The subscriber is unsafe (no lock) because the source delivers events one at a time,
+			// see "Serialization contract" in docs/docs/hacking.md.
 			var upstream Subscriber[T]
 
-			upstream = NewUnsafeSubscriber(NewObserverWithContext(
-				func(ctx context.Context, value T) {
-					destination.NextWithContext(ctx, value)
-					destination.CompleteWithContext(ctx)
-					upstream.Unsubscribe()
-				},
-				destination.ErrorWithContext,
-				func(ctx context.Context) {
-					destination.ErrorWithContext(ctx, ErrHeadEmpty)
-				},
-			))
+			upstream = NewUnsafeSubscriber(
+				NewObserverWithContext(
+					func(ctx context.Context, value T) {
+						destination.NextWithContext(ctx, value)
+						destination.CompleteWithContext(ctx)
+						upstream.Unsubscribe()
+					},
+					destination.ErrorWithContext,
+					func(ctx context.Context) {
+						destination.ErrorWithContext(ctx, ErrHeadEmpty)
+					},
+				),
+			)
 
 			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
@@ -691,27 +698,30 @@ func FirstIWithContext[T any](predicate func(ctx context.Context, item T, index 
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			i := int64(0)
 
-			// The upstream subscriber is created before subscribing: a synchronous source emits
-			// everything inside SubscribeWithContext, so the returned Subscription does not exist
-			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
-			// checks IsClosed().
+			// Build the upstream subscriber before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, before the Subscription is returned.
+			// Unsubscribing this subscriber closes it, and the source stops at its next IsClosed() check.
+			// The subscriber is unsafe (no lock) because the source delivers events one at a time,
+			// see "Serialization contract" in docs/docs/hacking.md.
 			var upstream Subscriber[T]
 
-			upstream = NewUnsafeSubscriber(NewObserverWithContext(
-				func(ctx context.Context, value T) {
-					if currentCtx, ok := predicate(ctx, value, i); ok {
-						destination.NextWithContext(currentCtx, value)
-						destination.CompleteWithContext(currentCtx)
-						upstream.Unsubscribe()
-					}
+			upstream = NewUnsafeSubscriber(
+				NewObserverWithContext(
+					func(ctx context.Context, value T) {
+						if currentCtx, ok := predicate(ctx, value, i); ok {
+							destination.NextWithContext(currentCtx, value)
+							destination.CompleteWithContext(currentCtx)
+							upstream.Unsubscribe()
+						}
 
-					i++
-				},
-				destination.ErrorWithContext,
-				func(ctx context.Context) {
-					destination.ErrorWithContext(ctx, ErrFirstEmpty)
-				},
-			))
+						i++
+					},
+					destination.ErrorWithContext,
+					func(ctx context.Context) {
+						destination.ErrorWithContext(ctx, ErrFirstEmpty)
+					},
+				),
+			)
 
 			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
@@ -794,29 +804,32 @@ func ElementAt[T any](nth int) func(Observable[T]) Observable[T] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			count := 0
 
-			// The upstream subscriber is created before subscribing: a synchronous source emits
-			// everything inside SubscribeWithContext, so the returned Subscription does not exist
-			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
-			// checks IsClosed().
+			// Build the upstream subscriber before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, before the Subscription is returned.
+			// Unsubscribing this subscriber closes it, and the source stops at its next IsClosed() check.
+			// The subscriber is unsafe (no lock) because the source delivers events one at a time,
+			// see "Serialization contract" in docs/docs/hacking.md.
 			var upstream Subscriber[T]
 
-			upstream = NewUnsafeSubscriber(NewObserverWithContext(
-				func(ctx context.Context, value T) {
-					if count == nth {
-						destination.NextWithContext(ctx, value)
-						destination.CompleteWithContext(ctx)
-						upstream.Unsubscribe()
+			upstream = NewUnsafeSubscriber(
+				NewObserverWithContext(
+					func(ctx context.Context, value T) {
+						if count == nth {
+							destination.NextWithContext(ctx, value)
+							destination.CompleteWithContext(ctx)
+							upstream.Unsubscribe()
 
-						return
-					}
+							return
+						}
 
-					count++
-				},
-				destination.ErrorWithContext,
-				func(ctx context.Context) {
-					destination.ErrorWithContext(ctx, ErrElementAtNotFound)
-				},
-			))
+						count++
+					},
+					destination.ErrorWithContext,
+					func(ctx context.Context) {
+						destination.ErrorWithContext(ctx, ErrElementAtNotFound)
+					},
+				),
+			)
 
 			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
@@ -836,30 +849,33 @@ func ElementAtOrDefault[T any](nth int64, fallback T) func(Observable[T]) Observ
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			count := int64(0)
 
-			// The upstream subscriber is created before subscribing: a synchronous source emits
-			// everything inside SubscribeWithContext, so the returned Subscription does not exist
-			// yet to stop it. Unsubscribing this subscriber closes it, and the source stops when it
-			// checks IsClosed().
+			// Build the upstream subscriber before subscribing: a synchronous source emits
+			// everything inside SubscribeWithContext, before the Subscription is returned.
+			// Unsubscribing this subscriber closes it, and the source stops at its next IsClosed() check.
+			// The subscriber is unsafe (no lock) because the source delivers events one at a time,
+			// see "Serialization contract" in docs/docs/hacking.md.
 			var upstream Subscriber[T]
 
-			upstream = NewUnsafeSubscriber(NewObserverWithContext(
-				func(ctx context.Context, value T) {
-					if count == nth {
-						destination.NextWithContext(ctx, value)
+			upstream = NewUnsafeSubscriber(
+				NewObserverWithContext(
+					func(ctx context.Context, value T) {
+						if count == nth {
+							destination.NextWithContext(ctx, value)
+							destination.CompleteWithContext(ctx)
+							upstream.Unsubscribe()
+
+							return
+						}
+
+						count++
+					},
+					destination.ErrorWithContext,
+					func(ctx context.Context) {
+						destination.NextWithContext(ctx, fallback)
 						destination.CompleteWithContext(ctx)
-						upstream.Unsubscribe()
-
-						return
-					}
-
-					count++
-				},
-				destination.ErrorWithContext,
-				func(ctx context.Context) {
-					destination.NextWithContext(ctx, fallback)
-					destination.CompleteWithContext(ctx)
-				},
-			))
+					},
+				),
+			)
 
 			sub := source.SubscribeWithContext(subscriberCtx, upstream)
 			return sub.Unsubscribe
