@@ -394,7 +394,7 @@ func GroupByIWithContext[T any, K comparable](iteratee func(ctx context.Context,
 
 						if !ok {
 							subject := g
-							groupObservable := NewObservableWithContext(func(subCtx context.Context, observer Observer[T]) Teardown {
+							groupObservable := NewSafeObservableWithContext(func(subCtx context.Context, observer Observer[T]) Teardown {
 								sub := subject.SubscribeWithContext(subCtx, observer)
 								return func() {
 									sub.Unsubscribe()
@@ -445,7 +445,7 @@ func GroupByIWithContext[T any, K comparable](iteratee func(ctx context.Context,
 // Play: https://go.dev/play/p/w8c_zuaLl9l
 func BufferWhen[T, B any](boundary Observable[B]) func(Observable[T]) Observable[[]T] {
 	return func(source Observable[T]) Observable[[]T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
 			buffer := []T{}
 			mu := xsync.NewMutexWithSpinlock()
 
@@ -527,7 +527,7 @@ func BufferWithTimeOrCount[T any](size int, duration time.Duration) func(Observa
 	}
 
 	return func(source Observable[T]) Observable[[]T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[[]T]) Teardown {
 			buffer := []T{}
 			mu := xsync.NewMutexWithSpinlock()
 
@@ -679,7 +679,7 @@ func BufferWithTime[T any](duration time.Duration) func(Observable[T]) Observabl
 // Play: https://go.dev/play/p/vK0elE-rPbl
 func WindowWhen[T, B any](boundary Observable[B]) func(Observable[T]) Observable[Observable[T]] {
 	return func(source Observable[T]) Observable[Observable[T]] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[Observable[T]]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[Observable[T]]) Teardown {
 			var window Subject[T]
 
 			mu := xsync.MutexWithSpinlock{}
@@ -769,7 +769,7 @@ func WindowWhen[T, B any](boundary Observable[B]) func(Observable[T]) Observable
 // Play: https://go.dev/play/p/tr4FEd-CSce
 func SampleWhen[T, t any](tick Observable[t]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			var last lo.Tuple2[context.Context, T]
 
 			var hasValue bool
@@ -846,7 +846,7 @@ func SampleTime[T any](interval time.Duration) func(Observable[T]) Observable[T]
 // Play: https://go.dev/play/p/q3ISV03EL3q
 func ThrottleWhen[T, t any](tick Observable[t]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			// 0: don't send
 			// 1: send
 			var send int32
@@ -901,7 +901,7 @@ func ThrottleTime[T any](interval time.Duration) func(Observable[T]) Observable[
 	intervalNano := interval.Nanoseconds()
 
 	return func(source Observable[T]) Observable[T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			// The monotonic clock counts from process start, so a zero `lastAt` cannot
 			// stand for "nothing emitted yet": while uptime < interval, the first value
 			// would be dropped.

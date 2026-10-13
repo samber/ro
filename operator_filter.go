@@ -308,7 +308,7 @@ func SkipLast[T any](count int) func(Observable[T]) Observable[T] {
 // Play: https://go.dev/play/p/tAwg2LT3Hqn
 func SkipUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			ready := uint32(0)
 
 			subscriptions := NewSubscription(nil)
@@ -551,7 +551,7 @@ func TakeLast[T any](count int) func(Observable[T]) Observable[T] {
 // Play: https://go.dev/play/p/moJPw7uKjrz
 func TakeUntil[T, S any](signal Observable[S]) func(Observable[T]) Observable[T] {
 	return func(source Observable[T]) Observable[T] {
-		return NewObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+		return NewSafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
 			ready := uint32(0)
 
 			subscriptions := NewSubscription(nil)
