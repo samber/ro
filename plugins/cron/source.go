@@ -37,7 +37,7 @@ type ScheduleJob struct {
 //	NewScheduler(gocron.CronJob("42 23 * * *"), false).Subscribe(...)
 func NewScheduler(job gocron.JobDefinition) ro.Observable[ScheduleJob] {
 	return ro.ThrowOnContextCancel[ScheduleJob]()(
-		ro.NewObservableWithContext(func(ctx context.Context, destination ro.Observer[ScheduleJob]) ro.Teardown {
+		ro.NewSafeObservableWithContext(func(ctx context.Context, destination ro.Observer[ScheduleJob]) ro.Teardown {
 			counter := int64(-1)
 
 			s, err := gocron.NewScheduler()

@@ -32,7 +32,7 @@ func HTTPRequest(req *http.Request, client *http.Client) ro.Observable[*http.Res
 		client = http.DefaultClient
 	}
 
-	return ro.NewObservable(func(destination ro.Observer[*http.Response]) ro.Teardown {
+	return ro.NewSafeObservableWithContext(func(_ context.Context, destination ro.Observer[*http.Response]) ro.Teardown {
 		ctx, cancel := context.WithCancel(req.Context())
 
 		go func() {

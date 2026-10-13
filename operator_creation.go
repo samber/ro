@@ -83,7 +83,7 @@ func Timer(duration time.Duration) Observable[time.Duration] {
 // immediately, but after the first interval has passed.
 // Play: https://go.dev/play/p/7yskMPPFHA7
 func Interval(interval time.Duration) Observable[int64] {
-	return NewObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
+	return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
 		ticker := time.NewTicker(interval)
 		done := make(chan struct{})
 
@@ -119,7 +119,7 @@ func Interval(interval time.Duration) Observable[int64] {
 // When initial is zero, the first value is emitted synchronously during subscription.
 // Play: https://go.dev/play/p/Xhi6c336ldy
 func IntervalWithInitial(initial, interval time.Duration) Observable[int64] {
-	return NewObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
+	return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int64]) Teardown {
 		ticker := time.NewTicker(interval)
 		ticker.Stop()
 		timer := time.NewTimer(initial)
