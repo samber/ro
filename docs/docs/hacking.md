@@ -357,8 +357,8 @@ These issues have recurred across multiple sessions. Read them before starting.
 - **Porting from `samber/lo` — bytes UTF-8 divergence**: `bytes.ToLower` via `strings.ToLower` produces `U+FFFD` replacement characters on invalid UTF-8, whereas `cases.Lower(...).Bytes()` preserves the raw bytes. Adjust test fixtures accordingly when porting from `samber/lo` string helpers to the `bytes` plugin.
 - **A fuzz target with only synchronous sources** misses every `Unsubscribe`-vs-`Next` race. Take the kind from a typed fuzz argument (`asyncSource bool`) and pass it to `newSource(count, asyncSource)`.
 - **A race test that passes without `-race`** proves nothing. Always run `go test -race`, `make test` or `make fuzz`.
-- **Accumulating a float step** (`v += step`) drifts with every item. Compute `start + i*step` instead (see [Floating-point ranges](./contributing#Floating-point-ranges)).
-- **Tests appended at the end of a file with unprefixed names** get regrouped later. Follow the [test-naming rule](./contributing#Test-naming).
+- **Accumulating a float step** (`v += step`) drifts with every item. Compute `start + i*step` instead (see [Floating-point ranges](./contributing#floating-point-ranges)).
+- **Tests appended at the end of a file with unprefixed names** get regrouped later. Follow the [test-naming rule](./contributing#test-naming).
 
 ## Definition of done
 
