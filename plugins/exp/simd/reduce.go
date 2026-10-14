@@ -367,14 +367,13 @@ func ReduceMinUint64[V Uint64Vector[V]]() func(ro.Observable[V]) ro.Observable[u
 //
 // An empty stream emits nothing, matching ro.Min.
 //
-// NaN is handled the opposite way round from the element-wise MinFloat32. The
-// comparison is a plain <, false for any NaN, so a NaN lane never displaces the
-// accumulator — which is what ro.Min does, and the point of this operator is to agree
-// with it. A stream whose very first lane is NaN still reduces to NaN, again matching
-// ro.Min, because nothing can compare less than it.
+// NaN is absorbing, matching ro.Min and unlike the element-wise MinFloat32: the first
+// NaN lane becomes the result at once, and the stream completes without reading the
+// remaining lanes. The upstream is unsubscribed, so a source that checks for
+// cancellation stops there.
 func ReduceMinFloat32[V Float32Vector[V]]() func(ro.Observable[V]) ro.Observable[float32] {
 	return func(source ro.Observable[V]) ro.Observable[float32] {
-		return reduceLanes(
+		return reduceLanesUntil(
 			source,
 			func(acc, lane float32) float32 {
 				if lane < acc {
@@ -384,6 +383,7 @@ func ReduceMinFloat32[V Float32Vector[V]]() func(ro.Observable[V]) ro.Observable
 				return acc
 			},
 			emitWhenSeen[float32],
+			func(lane float32) bool { return lane != lane },
 		)
 	}
 }
@@ -392,14 +392,13 @@ func ReduceMinFloat32[V Float32Vector[V]]() func(ro.Observable[V]) ro.Observable
 //
 // An empty stream emits nothing, matching ro.Min.
 //
-// NaN is handled the opposite way round from the element-wise MinFloat64. The
-// comparison is a plain <, false for any NaN, so a NaN lane never displaces the
-// accumulator — which is what ro.Min does, and the point of this operator is to agree
-// with it. A stream whose very first lane is NaN still reduces to NaN, again matching
-// ro.Min, because nothing can compare less than it.
+// NaN is absorbing, matching ro.Min and unlike the element-wise MinFloat64: the first
+// NaN lane becomes the result at once, and the stream completes without reading the
+// remaining lanes. The upstream is unsubscribed, so a source that checks for
+// cancellation stops there.
 func ReduceMinFloat64[V Float64Vector[V]]() func(ro.Observable[V]) ro.Observable[float64] {
 	return func(source ro.Observable[V]) ro.Observable[float64] {
-		return reduceLanes(
+		return reduceLanesUntil(
 			source,
 			func(acc, lane float64) float64 {
 				if lane < acc {
@@ -409,6 +408,7 @@ func ReduceMinFloat64[V Float64Vector[V]]() func(ro.Observable[V]) ro.Observable
 				return acc
 			},
 			emitWhenSeen[float64],
+			func(lane float64) bool { return lane != lane },
 		)
 	}
 }
@@ -519,11 +519,11 @@ func ReduceMaxUint64[V Uint64Vector[V]]() func(ro.Observable[V]) ro.Observable[u
 
 // ReduceMaxFloat32 emits the largest valid lane of the stream on completion.
 //
-// An empty stream emits nothing. NaN never displaces the accumulator, matching ro.Max
-// — see ReduceMinFloat32 for why this differs from the element-wise MaxFloat32.
+// An empty stream emits nothing. NaN is absorbing, matching ro.Max: the first NaN lane
+// becomes the result and the stream completes early. See ReduceMinFloat32.
 func ReduceMaxFloat32[V Float32Vector[V]]() func(ro.Observable[V]) ro.Observable[float32] {
 	return func(source ro.Observable[V]) ro.Observable[float32] {
-		return reduceLanes(
+		return reduceLanesUntil(
 			source,
 			func(acc, lane float32) float32 {
 				if lane > acc {
@@ -533,17 +533,18 @@ func ReduceMaxFloat32[V Float32Vector[V]]() func(ro.Observable[V]) ro.Observable
 				return acc
 			},
 			emitWhenSeen[float32],
+			func(lane float32) bool { return lane != lane },
 		)
 	}
 }
 
 // ReduceMaxFloat64 emits the largest valid lane of the stream on completion.
 //
-// An empty stream emits nothing. NaN never displaces the accumulator, matching ro.Max
-// — see ReduceMinFloat64 for why this differs from the element-wise MaxFloat64.
+// An empty stream emits nothing. NaN is absorbing, matching ro.Max: the first NaN lane
+// becomes the result and the stream completes early. See ReduceMinFloat64.
 func ReduceMaxFloat64[V Float64Vector[V]]() func(ro.Observable[V]) ro.Observable[float64] {
 	return func(source ro.Observable[V]) ro.Observable[float64] {
-		return reduceLanes(
+		return reduceLanesUntil(
 			source,
 			func(acc, lane float64) float64 {
 				if lane > acc {
@@ -553,6 +554,7 @@ func ReduceMaxFloat64[V Float64Vector[V]]() func(ro.Observable[V]) ro.Observable
 				return acc
 			},
 			emitWhenSeen[float64],
+			func(lane float64) bool { return lane != lane },
 		)
 	}
 }

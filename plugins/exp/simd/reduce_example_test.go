@@ -108,9 +108,8 @@ func ExampleReduceMinInt8_empty() {
 	// Output: 0
 }
 
-// The reductions compare with < and >, both false for NaN, so a NaN never displaces the
-// accumulator — matching core ro.Min and ro.Max. The element-wise MinFloat64 does the
-// opposite and propagates it.
+// A NaN lane is absorbing: the reduction emits NaN as soon as it meets one, completes
+// without reading the rest of the stream, and matches core ro.Min and ro.Max.
 func ExampleReduceMinFloat64_nan() {
 	obs := ro.Pipe2[float64, rosimd.PartialFloat64s, float64](
 		ro.Just(3.0, math.NaN(), 1.0),
@@ -123,7 +122,7 @@ func ExampleReduceMinFloat64_nan() {
 	}))
 	defer sub.Unsubscribe()
 
-	// Output: 1
+	// Output: NaN
 }
 
 // The reductions accept the standard library's vector type too. Such a vector carries no

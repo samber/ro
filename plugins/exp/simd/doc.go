@@ -55,9 +55,9 @@
 // min and max builtins. A stdlib simd.Float64s passed through the same operator uses
 // the raw instruction and does not carry that guarantee.
 //
-// Reductions deliberately differ: ReduceMin and ReduceMax compare with < and >, both
-// false for NaN, so a NaN never displaces the accumulator. That matches core ro.Min
-// and ro.Max rather than the NaN-propagating builtins.
+// ReduceMin and ReduceMax agree with them and with core ro.Min and ro.Max: NaN is
+// absorbing. The first NaN lane becomes the result, the stream completes at once, and
+// the upstream is unsubscribed without reading the remaining lanes.
 //
 // Operators chain in a Pipe like any other ro operator, each stage keeping the stream in
 // vector space:

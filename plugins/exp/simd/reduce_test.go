@@ -28,9 +28,8 @@ import (
 // Differential tests for ReduceSum, ReduceMin and ReduceMax against core ro.Sum,
 // ro.Min and ro.Max.
 
-// Reductions go the opposite way from the element-wise methods: they compare with < and
-// >, both false for NaN, so a NaN never displaces the accumulator. That is what ro.Min
-// and ro.Max do, and agreeing with them is the whole point.
+// Reductions return NaN as soon as one lane is NaN, which is what ro.Min and ro.Max do,
+// and agreeing with them is the whole point.
 func TestReduceMinMaxFloat32MatchCoreOnNaN(t *testing.T) {
 	t.Parallel()
 
@@ -62,9 +61,8 @@ func TestReduceMinMaxFloat32MatchCoreOnNaN(t *testing.T) {
 	}
 }
 
-// Reductions go the opposite way from the element-wise methods: they compare with < and
-// >, both false for NaN, so a NaN never displaces the accumulator. That is what ro.Min
-// and ro.Max do, and agreeing with them is the whole point.
+// Reductions return NaN as soon as one lane is NaN, which is what ro.Min and ro.Max do,
+// and agreeing with them is the whole point.
 func TestReduceMinMaxFloat64MatchCoreOnNaN(t *testing.T) {
 	t.Parallel()
 
@@ -707,4 +705,106 @@ func TestReductionsAcceptStdlibVectors(t *testing.T) {
 	largest, err := ro.Collect(ReduceMaxInt8[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
 	assert.NoError(t, err)
 	assert.Equal(t, []int8{5}, largest)
+}
+
+// A NaN lane ends the reduction: the result is NaN and the source is not read further.
+func TestReduceFloat32MinMaxStopSourceOnNaN(t *testing.T) {
+	t.Parallel()
+
+	nan := float32(math.NaN())
+
+	// Many full vectors follow the NaN, so an operator that kept reading would pull them.
+	const itemsAfterNaN = 4096
+
+	reducers := map[string]func() func(ro.Observable[PartialFloat32s]) ro.Observable[float32]{
+		"ReduceMin": ReduceMinFloat32[PartialFloat32s],
+		"ReduceMax": ReduceMaxFloat32[PartialFloat32s],
+	}
+
+	for name, reduce := range reducers {
+		var pulled int
+
+		// A source that honours the contract: it checks for closure before each item.
+		source := ro.NewUnsafeObservable(func(destination ro.Observer[float32]) ro.Teardown {
+			items := make([]float32, 0, itemsAfterNaN+2)
+			items = append(items, 1, nan)
+
+			for i := 0; i < itemsAfterNaN; i++ {
+				items = append(items, float32(i))
+			}
+
+			for _, item := range items {
+				if destination.IsClosed() {
+					return nil
+				}
+
+				pulled++
+
+				destination.Next(item)
+			}
+
+			destination.Complete()
+
+			return nil
+		})
+
+		values, err := ro.Collect(
+			ro.Pipe2[float32, PartialFloat32s, float32](source, VectorizeFloat32[PartialFloat32s](), reduce()),
+		)
+		assert.NoError(t, err, name)
+		assert.Len(t, values, 1, name)
+		assert.True(t, isNaNFloat32(values[0]), "%s must emit NaN, got %v", name, values[0])
+		assert.Less(t, pulled, itemsAfterNaN, "%s must stop reading the source after NaN", name)
+	}
+}
+
+// A NaN lane ends the reduction: the result is NaN and the source is not read further.
+func TestReduceFloat64MinMaxStopSourceOnNaN(t *testing.T) {
+	t.Parallel()
+
+	nan := float64(math.NaN())
+
+	// Many full vectors follow the NaN, so an operator that kept reading would pull them.
+	const itemsAfterNaN = 4096
+
+	reducers := map[string]func() func(ro.Observable[PartialFloat64s]) ro.Observable[float64]{
+		"ReduceMin": ReduceMinFloat64[PartialFloat64s],
+		"ReduceMax": ReduceMaxFloat64[PartialFloat64s],
+	}
+
+	for name, reduce := range reducers {
+		var pulled int
+
+		// A source that honours the contract: it checks for closure before each item.
+		source := ro.NewUnsafeObservable(func(destination ro.Observer[float64]) ro.Teardown {
+			items := make([]float64, 0, itemsAfterNaN+2)
+			items = append(items, 1, nan)
+
+			for i := 0; i < itemsAfterNaN; i++ {
+				items = append(items, float64(i))
+			}
+
+			for _, item := range items {
+				if destination.IsClosed() {
+					return nil
+				}
+
+				pulled++
+
+				destination.Next(item)
+			}
+
+			destination.Complete()
+
+			return nil
+		})
+
+		values, err := ro.Collect(
+			ro.Pipe2[float64, PartialFloat64s, float64](source, VectorizeFloat64[PartialFloat64s](), reduce()),
+		)
+		assert.NoError(t, err, name)
+		assert.Len(t, values, 1, name)
+		assert.True(t, isNaNFloat64(values[0]), "%s must emit NaN, got %v", name, values[0])
+		assert.Less(t, pulled, itemsAfterNaN, "%s must stop reading the source after NaN", name)
+	}
 }
