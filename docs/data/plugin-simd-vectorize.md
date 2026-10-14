@@ -1,7 +1,7 @@
 ---
 name: Vectorize
 slug: vectorize
-sourceRef: plugins/exp/simd/vectorize.go#L57
+sourceRef: plugins/exp/simd/vectorize.go#L59
 type: plugin
 category: simd
 signatures:

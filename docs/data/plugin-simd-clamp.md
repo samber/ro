@@ -1,7 +1,7 @@
 ---
 name: Clamp
 slug: clamp
-sourceRef: plugins/exp/simd/bounds.go#L231
+sourceRef: plugins/exp/simd/bounds.go#L233
 type: plugin
 category: simd
 signatures:

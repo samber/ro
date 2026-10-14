@@ -1,7 +1,7 @@
 ---
 name: Count
 slug: count
-sourceRef: plugins/exp/simd/vectorize.go#L230
+sourceRef: plugins/exp/simd/vectorize.go#L212
 type: plugin
 category: simd
 signatures:

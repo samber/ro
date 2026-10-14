@@ -1,7 +1,7 @@
 ---
 name: Flatten
 slug: flatten
-sourceRef: plugins/exp/simd/vectorize.go#L191
+sourceRef: plugins/exp/simd/vectorize.go#L173
 type: plugin
 category: simd
 signatures:

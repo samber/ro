@@ -1,7 +1,7 @@
 ---
 name: MulWith
 slug: mulwith
-sourceRef: plugins/exp/simd/arithmetic.go#L486
+sourceRef: plugins/exp/simd/arithmetic.go#L491
 type: plugin
 category: simd
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: ReduceSum
 slug: reducesum
-sourceRef: plugins/exp/simd/reduce.go#L39
+sourceRef: plugins/exp/simd/reduce.go#L41
 type: plugin
 category: simd
 signatures:

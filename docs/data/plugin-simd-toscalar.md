@@ -1,7 +1,7 @@
 ---
 name: ToScalar
 slug: toscalar
-sourceRef: plugins/exp/simd/vectorize.go#L148
+sourceRef: plugins/exp/simd/vectorize.go#L130
 type: plugin
 category: simd
 signatures:

@@ -1,7 +1,7 @@
 ---
 name: Sub
 slug: sub
-sourceRef: plugins/exp/simd/arithmetic.go#L164
+sourceRef: plugins/exp/simd/arithmetic.go#L169
 type: plugin
 category: simd
 signatures:

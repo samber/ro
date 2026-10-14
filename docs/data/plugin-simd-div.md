@@ -1,7 +1,7 @@
 ---
 name: Div
 slug: div
-sourceRef: plugins/exp/simd/arithmetic.go#L309
+sourceRef: plugins/exp/simd/arithmetic.go#L304
 type: plugin
 category: simd
 signatures:

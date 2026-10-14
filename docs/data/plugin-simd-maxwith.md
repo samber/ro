@@ -1,7 +1,7 @@
 ---
 name: MaxWith
 slug: maxwith
-sourceRef: plugins/exp/simd/bounds.go#L416
+sourceRef: plugins/exp/simd/bounds.go#L418
 type: plugin
 category: simd
 signatures:
