@@ -114,6 +114,8 @@ Other naming patterns:
 - Core fuzz targets live in `fuzz/` (`package fuzz`), one file per root source file: `fuzz/<file>_fuzz_test.go`; shared primitives (`fuzzSeeds`, `bounded`, `newSource`, `collect`, `overlapGuard`, `countSubscriptions`, `waitUntil`...) are in purpose-named `fuzz/*_test.go` files, indexed in `fuzz/doc.go`. Plugin fuzz targets sit next to their code: `plugins/<name>/<file>_fuzz_test.go`, and use `internal/xfuzz` helpers
 - Cover both sync and async sources in every fuzz target: typed `asyncSource bool` argument passed to `newSource(count, asyncSource)`
 - Always run tests with `-race`
+- Name and place tests per the [test-naming rule](docs/docs/contributing.md#test-naming)
+- Follow the [pull request rules](docs/docs/contributing.md#pull-requests)
 
 Typical test pattern — use `Collect()` to gather all emitted values and assert:
 

@@ -174,7 +174,6 @@ similarHelpers: [core#transformation#mapto, core#transformation#maperr, core#tra
 name: MapErr
 slug: maperr
 signatures:
-signatures:
   - "func MapErr[T any, R any](project func(item T) (R, error))"
   - "func MapErrWithContext[T any, R any](project func(ctx context.Context, item T) (R, error))"
   - "func MapErrI[T any, R any](project func(item T, index int64) (R, error))"

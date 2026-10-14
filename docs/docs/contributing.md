@@ -169,6 +169,19 @@ Test more edge cases:
 - context propagation
 - context cancellation
 
+### Test naming
+
+- Add a scenario of an existing operator to its main test, as a `t.Run` subtest.
+- Name a distinct scenario that needs its own test `TestXxx_scenario`, and place it right after the main test.
+- Keep tests named after a real function or variant (`XxxI`, `XxxWithContext`, `Xxx2`) unchanged.
+- Never merge a test into a parent that calls `testWithTimeout` (see `ro_test.go`) when the subtest calls `t.Parallel()`. Parent cleanup waits for parallel subtests, so the timeout panics under the full suite. Drop `t.Parallel()` from the subtest, or keep a separate `TestXxx_scenario`.
+- Verify merges with the full `go test -race .`, not a `-run` filter: a filtered run hides the timeout.
+
+### Floating-point ranges
+
+- Never accumulate a float step: compute the i-th value as `start + i*step`, so rounding error does not grow with `i` (see `rangeWithStepValue`).
+- Derive the count as `ceil(|end-start|/step - epsilon)`, with an epsilon scaled by `(|start|+|end|)/step` (see `rangeWithStepCount` and `rangeWithStepEpsilon`). A fixed tolerance is too loose for small ranges and too tight for large offsets.
+
 ## Benchmark and performance
 
 Write performant operators and limit extra memory consumption. Build an helper for general purpose and don't optimize for a particular use-case.
@@ -935,6 +948,12 @@ Create a [Go Playground](https://go.dev/play/) demonstration for each operator, 
 
 Please add an example of your operator in the file named `ro_example_test.go`. It will be visible in Godoc website: https://pkg.go.dev/github.com/samber/ro
 
+## Pull requests
+
+- Keep one concern per PR. Never mix a fix, a performance change and a refactor.
+- A failing-test-first PR may land its tests skipped with the bug id: `t.Skip("race: <id>; remove when fixed")` or `f.Skip(...)`. The fix PR removes the skip.
+- Update the docs in the same PR as the code: `docs/data/`, `docs/static/llms.txt` and every `sourceRef` that points into a changed file.
+
 ## Error conventions
 
 Errors must be declared as package-level sentinel variables using `errors.New`, never as inline strings or `fmt.Errorf` calls in a `panic`.
@@ -970,6 +989,9 @@ func MyOperator(param int) func(ro.Observable[T]) ro.Observable[T] {
 - Error messages follow the pattern `{package}.{FunctionName}: {lowercase description}` (e.g., `"rostrings.Random: size must be greater than 0"`).
 - Never write `panic("some string")` or `panic(errors.New("..."))` inline — always use a pre-declared variable.
 - Panics are reserved for programmer errors detected at construction time (invalid parameters), never for runtime stream errors.
+- Reject invalid parameters at construction: size or count `<= 0`, interval or duration `<= 0`, invalid ranges. Never accept them silently. See `BufferWithTime`, `SampleTime` and `ThrottleTime`.
+- Test the panic at pivot values, and `NotPanics` at the smallest valid one. `SampleTime` tests `0`, `-1`, `-time.Second` and `time.Duration(math.MinInt64)`.
+- Cover pivot inputs too: `NaN` and `±Inf` for float operators (see `operator_math_test.go`), `math.MinInt64` and `math.MaxInt64` bounds for integer ranges (see `Range` tests).
 
 ## Upstream parity
 
