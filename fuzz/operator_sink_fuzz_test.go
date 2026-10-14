@@ -204,7 +204,10 @@ func FuzzToChannelUnsubscribeWhileSending(f *testing.F) {
 
 		// Draining only terminates once the channel is closed.
 		runWithinDeadline(t, func() {
-			for range notifications { //nolint:revive // draining is the whole point.
+			for {
+				if _, open := <-notifications; !open {
+					return
+				}
 			}
 		})
 	})
