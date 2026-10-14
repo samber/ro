@@ -170,7 +170,7 @@ Tests and examples mirror the same split, with the per-type test fixtures in `te
 
 ## Contributing
 
-The Go 1.27 compiler rewrites every function that touches a simd type into a dispatcher plus per-width clones, and several ordinary-looking Go constructs do not survive that rewrite. The "Editing this package" section of the [package doc](https://pkg.go.dev/github.com/samber/ro/plugins/exp/simd) states the rules; [COMPILER-CONSTRAINTS.md](./COMPILER-CONSTRAINTS.md) records the probes that established them, including the exact error each rejected shape produces. Read the latter before concluding a rule is wrong — several shapes that look obviously fine do not compile.
+The Go 1.27 compiler rewrites every function that touches a simd type into a dispatcher plus per-width clones, and several ordinary-looking Go constructs do not survive that rewrite. The "Editing this package" section of the [package doc](https://pkg.go.dev/github.com/samber/ro/plugins/exp/simd) states the rules. Several shapes that look obviously fine do not compile, so read them before concluding a rule is wrong.
 
 The short version:
 

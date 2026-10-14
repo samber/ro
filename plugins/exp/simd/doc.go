@@ -160,8 +160,4 @@
 //     file counts as simd-dependent when it names a concrete Partial type. The operator
 //     files are exempt even though they drive all the vector work, because they stay
 //     generic throughout and reach simd only through methods on their type parameter.
-//
-// COMPILER-CONSTRAINTS.md records the probes behind these rules and the exact error
-// each rejected shape produces; read it before concluding a rule is wrong, because
-// several shapes that look obviously fine do not compile.
 package rosimd
