@@ -871,3 +871,39 @@ func TestContainsMatchesAStdlibCompareOnAFullVector(t *testing.T) {
 
 	assert.Equal(t, want, got)
 }
+
+// A match ends the search: the result is true and a synchronous source is not read
+// further. The source checks for closure before each item, as the Observable contract
+// asks of synchronous sources.
+func TestReduceContainsInt32StopsSourceAfterMatch(t *testing.T) {
+	t.Parallel()
+
+	// Far more items than one vector holds, so an operator that kept reading would pull them all.
+	const totalItems = 4096
+
+	var pulled int
+
+	source := ro.NewUnsafeObservable(func(destination ro.Observer[int32]) ro.Teardown {
+		for i := range totalItems {
+			if destination.IsClosed() {
+				return nil
+			}
+
+			pulled++
+
+			// The target is the very first item, so the first full vector matches.
+			destination.Next(int32(i + 1))
+		}
+
+		destination.Complete()
+
+		return nil
+	})
+
+	found, err := ro.Collect(
+		ro.Pipe2[int32, PartialInt32s, bool](source, VectorizeInt32[PartialInt32s](), ReduceContainsInt32[PartialInt32s](1)),
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, []bool{true}, found)
+	assert.Less(t, pulled, totalItems, "the source must stop after the match")
+}

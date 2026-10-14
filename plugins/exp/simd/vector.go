@@ -185,8 +185,14 @@ func vectorize[T any, V LaneBuffer[V, T]](source ro.Observable[T]) ro.Observable
 		// context keeps the tail on the same chain as the values it holds.
 		lastCtx := subscriberCtx
 
-		sub := source.SubscribeWithContext(
-			subscriberCtx,
+		// The upstream subscriber exists before subscribing: a synchronous source emits
+		// everything inside SubscribeWithContext, before the Subscription is returned.
+		// Unsubscribing it closes it, and the source stops at its next IsClosed() check.
+		// It is unsafe (no lock) because the source delivers events one at a time, see
+		// "Serialization contract" in docs/docs/hacking.md.
+		var upstream ro.Subscriber[T]
+
+		upstream = ro.NewUnsafeSubscriber(
 			ro.NewObserverWithContext(
 				func(ctx context.Context, value T) {
 					lastCtx = ctx
@@ -195,6 +201,12 @@ func vectorize[T any, V LaneBuffer[V, T]](source ro.Observable[T]) ro.Observable
 					if len(buffer) == lanes {
 						destination.NextWithContext(ctx, proto.Load(buffer))
 						buffer = buffer[:0]
+
+						// A downstream that finished early, such as ReduceContains after
+						// a match, has nothing left to read: stop feeding it.
+						if destination.IsClosed() {
+							upstream.Unsubscribe()
+						}
 					}
 				},
 				destination.ErrorWithContext,
@@ -208,6 +220,8 @@ func vectorize[T any, V LaneBuffer[V, T]](source ro.Observable[T]) ro.Observable
 				},
 			),
 		)
+
+		sub := source.SubscribeWithContext(subscriberCtx, upstream)
 
 		return sub.Unsubscribe
 	})

@@ -165,8 +165,14 @@ func containsAny[V LaneMatcher[V]](source ro.Observable[V], target V) ro.Observa
 	return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[bool]) ro.Teardown {
 		found := false
 
-		sub := source.SubscribeWithContext(
-			subscriberCtx,
+		// The upstream subscriber exists before subscribing: a synchronous source emits
+		// everything inside SubscribeWithContext, before the Subscription is returned.
+		// Unsubscribing it after a match closes it, and the source stops at its next
+		// IsClosed() check. It is unsafe (no lock) because the source delivers events one
+		// at a time, see "Serialization contract" in docs/docs/hacking.md.
+		var upstream ro.Subscriber[V]
+
+		upstream = ro.NewUnsafeSubscriber(
 			ro.NewObserverWithContext(
 				func(ctx context.Context, value V) {
 					if found || !value.anyMatch(target) {
@@ -176,6 +182,7 @@ func containsAny[V LaneMatcher[V]](source ro.Observable[V], target V) ro.Observa
 					found = true
 					destination.NextWithContext(ctx, true)
 					destination.CompleteWithContext(ctx)
+					upstream.Unsubscribe()
 				},
 				destination.ErrorWithContext,
 				func(ctx context.Context) {
@@ -188,6 +195,8 @@ func containsAny[V LaneMatcher[V]](source ro.Observable[V], target V) ro.Observa
 				},
 			),
 		)
+
+		sub := source.SubscribeWithContext(subscriberCtx, upstream)
 
 		return sub.Unsubscribe
 	})
