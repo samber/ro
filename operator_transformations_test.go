@@ -19,6 +19,7 @@ import (
 	"io/fs"
 	"math"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
