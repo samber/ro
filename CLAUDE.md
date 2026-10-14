@@ -49,18 +49,18 @@ The SIMD plugin (`plugins/exp/simd`) requires `GOEXPERIMENT=simd` and `GOWORK=of
 
 All chainable operators follow this signature pattern:
 ```go
-func OperatorName[T any](params) func(Observable[T]) Observable[R]
+func OperatorName[T any](params) func(ro.Observable[T]) ro.Observable[R]
 ```
 
 Example:
 
 ```go
-func Filter[T any](predicate func(item T) bool) func(Observable[T]) Observable[T] {
-	return func(source Observable[T]) Observable[T] {
-		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+func Filter[T any](predicate func(item T) bool) func(ro.Observable[T]) ro.Observable[T] {
+	return func(source ro.Observable[T]) ro.Observable[T] {
+		return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
 			sub := source.SubscribeWithContext(
 				subscriberCtx,
-				NewObserverWithContext(
+				ro.NewObserverWithContext(
 					func(ctx context.Context, value T) {
 						ok := predicate(value)
 						if ok {
@@ -124,15 +124,15 @@ func TestOperatorTransformationMap(t *testing.T) {
 	t.Parallel()
 	is := assert.New(t)
 
-	values, err := Collect(
-		Map(func(v int) int { return v * 2 })(Just(1, 2, 3)),
+	values, err := ro.Collect(
+		ro.Map(func(v int) int { return v * 2 })(ro.Just(1, 2, 3)),
 	)
 	is.Equal([]int{2, 4, 6}, values)
 	is.NoError(err)
 
 	// Test error propagation
-	values, err = Collect(
-		Map(func(v int) int { return v * 2 })(Throw[int](assert.AnError)),
+	values, err = ro.Collect(
+		ro.Map(func(v int) int { return v * 2 })(ro.Throw[int](assert.AnError)),
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())

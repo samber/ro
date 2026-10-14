@@ -58,16 +58,16 @@ We hate breaking changes, so better think twice ;)
 Example:
 
 ```go
-func MapIWithContext[T, R any](project func(ctx context.Context, item T, index int64) (context.Context, R)) func(Observable[T]) Observable[R] {
-    return func(source Observable[T]) Observable[R] {
+func MapIWithContext[T, R any](project func(ctx context.Context, item T, index int64) (context.Context, R)) func(ro.Observable[T]) ro.Observable[R] {
+    return func(source ro.Observable[T]) ro.Observable[R] {
         // This context has been provided by the downstream subscriber
-        return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[R]) Teardown {
+        return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[R]) ro.Teardown {
             i := int64(0)
 
             sub := source.SubscribeWithContext(
                 // Subscribe to upstream with context received from downstream
                 subscriberCtx,
-                NewObserverWithContext(
+                ro.NewObserverWithContext(
                     func(ctx context.Context, value T) {
                         // The callback receives a context and return a new one (the same ?).
                         newCtx, result := project(ctx, value, i)
@@ -129,10 +129,10 @@ Use the `ro.Collect(...)` for testing. Asynchronous sources must respect the [se
 Example:
 
 ```go
-values, err := Collect(
-    Pipe1(
-        Just([]int{1, 2, 3}, []int{4, 5, 6}),
-        Flatten[int](),
+values, err := ro.Collect(
+    ro.Pipe1(
+        ro.Just([]int{1, 2, 3}, []int{4, 5, 6}),
+        ro.Flatten[int](),
     ),
 )
 is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
@@ -144,19 +144,19 @@ Test edge cases with `ro.Empty[int]()` and `ro.Throw[[]int](assert.AnError)` as 
 Example:
 
 ```go
-values, err := Collect(
-    Pipe1(
-        Empty[[]int](),
-        Flatten[int](),
+values, err := ro.Collect(
+    ro.Pipe1(
+        ro.Empty[[]int](),
+        ro.Flatten[int](),
     ),
 )
 is.Equal([]int{}, values)
 is.NoError(err)
 
-values, err = Collect(
-    Pipe1(
-        Throw[[]int](assert.AnError),
-        Flatten[int](),
+values, err = ro.Collect(
+    ro.Pipe1(
+        ro.Throw[[]int](assert.AnError),
+        ro.Flatten[int](),
     ),
 )
 is.Equal([]int{}, values)

@@ -16,8 +16,6 @@ For advanced demonstrations, please check the `samber/ro` source code.
 
 Remember that a stream might run indefinitely. You should pay attention to memory leaks, non-tail recursive function calls, retry mechanism, dangerous side-effects...
 
-Examples below are written from a plugin or your own package, so they qualify the library with `ro.`. The Skeleton and `MapIWithContext` examples are written as core-package code, without the prefix.
-
 ## Basic Operator abstraction
 
 The simplest way to create custom operators is by composing existing ones:
@@ -37,16 +35,16 @@ func DoubleAndFilterEven[T constraints.Integer]() func(ro.Observable[T]) ro.Obse
 Here is a commented skeleton of your next operator:
 
 ```go
-func MyOperator[T, R any](param1 int, param2 string) func(Observable[T]) Observable[R] {
+func MyOperator[T, R any](param1 int, param2 string) func(ro.Observable[T]) ro.Observable[R] {
     // Your code here will be executed once.
     // Useful for validating operator parameters.
-    return func(source Observable[T]) Observable[R] {
+    return func(source ro.Observable[T]) ro.Observable[R] {
         // Your code here will be executed once, when the operator is applied to an observable.
         // Don't code here.
-        return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[R]) Teardown {
+        return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[R]) ro.Teardown {
             // Your code here will be executed lazily, on every subscription.
 
-            sub := source.SubscribeWithContext(subscriberCtx, NewObserverWithContext(
+            sub := source.SubscribeWithContext(subscriberCtx, ro.NewObserverWithContext(
                 func(ctx context.Context, value T) {
                     // your code here will be executed for each message
 
@@ -239,16 +237,16 @@ func WithTimeout[T any](timeout time.Duration) func(ro.Observable[T]) ro.Observa
 Example:
 
 ```go
-func MapIWithContext[T, R any](project func(ctx context.Context, item T, index int64) (context.Context, R)) func(Observable[T]) Observable[R] {
-    return func(source Observable[T]) Observable[R] {
+func MapIWithContext[T, R any](project func(ctx context.Context, item T, index int64) (context.Context, R)) func(ro.Observable[T]) ro.Observable[R] {
+    return func(source ro.Observable[T]) ro.Observable[R] {
         // This context has been provided by the downstream subscriber
-        return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[R]) Teardown {
+        return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[R]) ro.Teardown {
             i := int64(0)
 
             sub := source.SubscribeWithContext(
                 // Subscribe to upstream with context received from downstream
                 subscriberCtx,
-                NewObserverWithContext(
+                ro.NewObserverWithContext(
                     func(ctx context.Context, value T) {
                         // The callback receives a context and return a new one (the same ?).
                         newCtx, result := project(ctx, value, i)
@@ -277,10 +275,10 @@ Use the `ro.Collect(...)` for testing.
 Example:
 
 ```go
-values, err := Collect(
-    Pipe1(
-        Just([]int{1, 2, 3}, []int{4, 5, 6}),
-        Flatten[int](),
+values, err := ro.Collect(
+    ro.Pipe1(
+        ro.Just([]int{1, 2, 3}, []int{4, 5, 6}),
+        ro.Flatten[int](),
     ),
 )
 is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
@@ -292,19 +290,19 @@ Test edge cases with `ro.Empty[int]()` and `ro.Throw[[]int](assert.AnError)` as 
 Example:
 
 ```go
-values, err := Collect(
-    Pipe1(
-        Empty[[]int](),
-        Flatten[int](),
+values, err := ro.Collect(
+    ro.Pipe1(
+        ro.Empty[[]int](),
+        ro.Flatten[int](),
     ),
 )
 is.Equal([]int{}, values)
 is.NoError(err)
 
-values, err = Collect(
-    Pipe1(
-        Throw[[]int](assert.AnError),
-        Flatten[int](),
+values, err = ro.Collect(
+    ro.Pipe1(
+        ro.Throw[[]int](assert.AnError),
+        ro.Flatten[int](),
     ),
 )
 is.Equal([]int{}, values)
