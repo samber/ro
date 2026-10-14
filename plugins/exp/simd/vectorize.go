@@ -57,72 +57,52 @@ import (
 // constructor method, and a generic function cannot reach the simd.LoadXxx package
 // functions.
 func VectorizeInt8[V Int8Buffer[V]]() func(ro.Observable[int8]) ro.Observable[V] {
-	return func(source ro.Observable[int8]) ro.Observable[V] {
-		return vectorize[int8, V](source)
-	}
+	return vectorize[int8, V]
 }
 
 // VectorizeInt16 batches a scalar stream into vectors of int16 lanes. See VectorizeInt8.
 func VectorizeInt16[V Int16Buffer[V]]() func(ro.Observable[int16]) ro.Observable[V] {
-	return func(source ro.Observable[int16]) ro.Observable[V] {
-		return vectorize[int16, V](source)
-	}
+	return vectorize[int16, V]
 }
 
 // VectorizeInt32 batches a scalar stream into vectors of int32 lanes. See VectorizeInt8.
 func VectorizeInt32[V Int32Buffer[V]]() func(ro.Observable[int32]) ro.Observable[V] {
-	return func(source ro.Observable[int32]) ro.Observable[V] {
-		return vectorize[int32, V](source)
-	}
+	return vectorize[int32, V]
 }
 
 // VectorizeInt64 batches a scalar stream into vectors of int64 lanes. See VectorizeInt8.
 func VectorizeInt64[V Int64Buffer[V]]() func(ro.Observable[int64]) ro.Observable[V] {
-	return func(source ro.Observable[int64]) ro.Observable[V] {
-		return vectorize[int64, V](source)
-	}
+	return vectorize[int64, V]
 }
 
 // VectorizeUint8 batches a scalar stream into vectors of uint8 lanes. See VectorizeInt8.
 func VectorizeUint8[V Uint8Buffer[V]]() func(ro.Observable[uint8]) ro.Observable[V] {
-	return func(source ro.Observable[uint8]) ro.Observable[V] {
-		return vectorize[uint8, V](source)
-	}
+	return vectorize[uint8, V]
 }
 
 // VectorizeUint16 batches a scalar stream into vectors of uint16 lanes. See VectorizeInt8.
 func VectorizeUint16[V Uint16Buffer[V]]() func(ro.Observable[uint16]) ro.Observable[V] {
-	return func(source ro.Observable[uint16]) ro.Observable[V] {
-		return vectorize[uint16, V](source)
-	}
+	return vectorize[uint16, V]
 }
 
 // VectorizeUint32 batches a scalar stream into vectors of uint32 lanes. See VectorizeInt8.
 func VectorizeUint32[V Uint32Buffer[V]]() func(ro.Observable[uint32]) ro.Observable[V] {
-	return func(source ro.Observable[uint32]) ro.Observable[V] {
-		return vectorize[uint32, V](source)
-	}
+	return vectorize[uint32, V]
 }
 
 // VectorizeUint64 batches a scalar stream into vectors of uint64 lanes. See VectorizeInt8.
 func VectorizeUint64[V Uint64Buffer[V]]() func(ro.Observable[uint64]) ro.Observable[V] {
-	return func(source ro.Observable[uint64]) ro.Observable[V] {
-		return vectorize[uint64, V](source)
-	}
+	return vectorize[uint64, V]
 }
 
 // VectorizeFloat32 batches a scalar stream into vectors of float32 lanes. See VectorizeInt8.
 func VectorizeFloat32[V Float32Buffer[V]]() func(ro.Observable[float32]) ro.Observable[V] {
-	return func(source ro.Observable[float32]) ro.Observable[V] {
-		return vectorize[float32, V](source)
-	}
+	return vectorize[float32, V]
 }
 
 // VectorizeFloat64 batches a scalar stream into vectors of float64 lanes. See VectorizeInt8.
 func VectorizeFloat64[V Float64Buffer[V]]() func(ro.Observable[float64]) ro.Observable[V] {
-	return func(source ro.Observable[float64]) ro.Observable[V] {
-		return vectorize[float64, V](source)
-	}
+	return vectorize[float64, V]
 }
 
 // ToScalar hands each vector's valid lanes downstream as a slice.
