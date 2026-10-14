@@ -265,7 +265,7 @@ Take the kind from a typed fuzz argument (`asyncSource bool`) and pass it to `ne
 - `RO_FUZZ_ITERATIONS` sets the seed count of every target: 100 by default, 10 under `go test -short`. `make fuzz` sets it to 1000.
 - Run `make fuzz RO_FUZZ_ITERATIONS=10000` for a soak run.
 - Commit crashers found by the fuzz engine under `testdata/fuzz/<FuzzName>/`.
-- CI runs `make fuzz` on the stable Go version.
+- CI runs `make fuzz RO_FUZZ_ITERATIONS=100` on the stable Go version, on pushes to `main` and on pull requests that are not drafts.
 - Plugin fuzz tests import `github.com/samber/ro/internal/xfuzz` and call `xfuzz.AddSeeds`, with the same `RO_FUZZ_ITERATIONS` variable.
 - Reuse the shared helpers of `internal/xfuzz` instead of copying them: `StandardSeeds`, `WaitChan`, `WaitGroup`, `GoRecover`, `RecoverInto`, `FailOnErrs`.
 - Also shared: `AssertNoLeak` (goroutine leak check), `Delay` (seed-derived async delay) and `FailingWriter` (io.Writer failing after N writes).

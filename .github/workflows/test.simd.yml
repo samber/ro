@@ -14,6 +14,12 @@ env:
   GOEXPERIMENT: simd
   GOWORK: off
 
+# One run per workflow and ref: a new push to a pull request cancels the run still in progress.
+# Runs on main, scheduled and manual runs are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test-simd:
     # GitHub hosted runners run on several architectures.

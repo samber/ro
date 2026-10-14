@@ -97,8 +97,9 @@ func TestOperatorConnectableShare(t *testing.T) { //nolint:paralleltest
 	is.True(sub3.IsClosed())
 }
 
-func TestOperatorConnectableShare_concurrentSubscribe(t *testing.T) {
-	t.Parallel()
+func TestOperatorConnectableShare_concurrentSubscribe(t *testing.T) { //nolint:paralleltest
+	// Not parallel: the hammer saturates the CPU, so running it next to the rest of the suite
+	// starves both it and the timeout guard below.
 	testWithTimeout(t, 1*time.Second)
 
 	// Enough goroutines and rounds for the race detector to observe
@@ -129,9 +130,7 @@ func TestOperatorConnectableShare_concurrentSubscribe(t *testing.T) {
 
 	// Completes synchronously during subscription, so every round resets the
 	// shared state while other goroutines are creating it.
-	t.Run("sync source", func(t *testing.T) {
-		t.Parallel()
-
+	t.Run("sync source", func(t *testing.T) { //nolint:paralleltest
 		source := Pipe1(Just(1, 2, 3), Share[int]())
 
 		hammer(func() {
@@ -140,9 +139,7 @@ func TestOperatorConnectableShare_concurrentSubscribe(t *testing.T) {
 	})
 
 	// Stays alive, so resets only come from the ref count reaching zero.
-	t.Run("async source", func(t *testing.T) {
-		t.Parallel()
-
+	t.Run("async source", func(t *testing.T) { //nolint:paralleltest
 		source := Pipe1(Never(), Share[struct{}]())
 
 		hammer(func() {

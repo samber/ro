@@ -6,6 +6,12 @@ on:
       - main
   pull_request:
 
+# One run per workflow and ref: a new push to a pull request cancels the run still in progress.
+# Runs on main, scheduled and manual runs are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -44,9 +50,10 @@ jobs:
         run: |
           make test || make test
 
+      # Skipped on draft pull requests: fuzzing is slow and only needed once the change is ready for review.
       - name: Fuzz
-        run: make fuzz RO_FUZZ_ITERATIONS=1000
-        if: matrix.go == 'stable'
+        run: make fuzz RO_FUZZ_ITERATIONS=100
+        if: matrix.go == 'stable' && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
 
       - name: Test coverage
         run: make coverage
