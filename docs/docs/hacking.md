@@ -35,13 +35,13 @@ func DoubleAndFilterEven[T constraints.Integer]() func(ro.Observable[T]) ro.Obse
 Here is a commented skeleton of your next operator:
 
 ```go
-func MyOperator[T, R any](param1 int, param2 string) func(Observable[T]) Observable[R] {
+func MyOperator[T, R any](param1 int, param2 string) func(ro.Observable[T]) ro.Observable[R] {
     // Your code here will be executed once.
     // Useful for validating operator parameters.
-    return func(source Observable[T]) Observable[R] {
+    return func(source ro.Observable[T]) ro.Observable[R] {
         // Your code here will be executed once, when the operator is applied to an observable.
         // Don't code here.
-        return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[R]) Teardown {
+        return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[R]) ro.Teardown {
             // Your code here will be executed lazily, on every subscription.
 
             sub := source.SubscribeWithContext(subscriberCtx, ro.NewObserverWithContext(
@@ -79,19 +79,19 @@ func MyOperator[T, R any](param1 int, param2 string) func(Observable[T]) Observa
 Each subscription creates a new state. The state must be declard in the Observable. If created outside, the state will be shared between subscriptions.
 
 ```go
-func Scan[T, R any](initial R, accumulator func(R, T) R) func(Observable[T]) Observable[R] {
-    return func(source Observable[T]) Observable[R] {
-        return NewUnsafeObservable(func(destination Observer[R]) Teardown {
+func Scan[T, R any](initial R, accumulator func(R, T) R) func(ro.Observable[T]) ro.Observable[R] {
+    return func(source ro.Observable[T]) ro.Observable[R] {
+        return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[R]) ro.Teardown {
             // State 👇
             state := initial
 
-            sub := source.Subscribe(ro.NewObserver(
-                func(value T) {
+            sub := source.SubscribeWithContext(subscriberCtx, ro.NewObserverWithContext(
+                func(ctx context.Context, value T) {
                     state = accumulator(state, value)
-                    destination.Next(state)
+                    destination.NextWithContext(ctx, state)
                 },
-                destination.Error,
-                destination.Complete,
+                destination.ErrorWithContext,
+                destination.CompleteWithContext,
             ))
 
             return sub.Unsubscribe
@@ -136,17 +136,18 @@ func AsyncHTTPRequest(req *http.Request) ro.Observable[*http.Response] {
 // Note: This is a creation operator, not chainable operator
 func SyncHTTPRequest(req *http.Request) ro.Observable[*http.Response] {
     // An "unsafe" observable is not protected against concurrent message passing through destination.Next()
-    return ro.NewUnsafeObservable(func(destination ro.Observer[*http.Response]) ro.Teardown {
-        req = req.WithContext(context.Background())
+    return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[*http.Response]) ro.Teardown {
+        // A local copy: reassigning req would leak between subscriptions
+        r := req.WithContext(subscriberCtx)
 
-        res, err := http.DefaultClient.Do(req)
+        res, err := http.DefaultClient.Do(r)
         if err != nil {
-            destination.ErrorWithContext(ctx, err)
+            destination.ErrorWithContext(subscriberCtx, err)
             return nil
         }
 
-        destination.NextWithContext(ctx, res)
-        destination.CompleteWithContext(ctx)
+        destination.NextWithContext(subscriberCtx, res)
+        destination.CompleteWithContext(subscriberCtx)
 
         // The request is already ended. No need to return canceler.
         return nil
@@ -173,19 +174,19 @@ Always handle errors properly in custom operators. Unhandled errors can cause me
 ```go
 func SafeMap[T, R any](mapper func(T) (R, error)) func(ro.Observable[T]) ro.Observable[R] {
     return func(source ro.Observable[T]) ro.Observable[R] {
-        return ro.NewObservable(func(observer ro.Observer[R]) ro.Teardown {
-            sub := source.Subscribe(ro.NewObserver(
-                func(value T) {
+        return ro.NewObservableWithContext(func(subscriberCtx context.Context, observer ro.Observer[R]) ro.Teardown {
+            sub := source.SubscribeWithContext(subscriberCtx, ro.NewObserverWithContext(
+                func(ctx context.Context, value T) {
                     result, err := mapper(value)
                     if err != nil {
                         // Graceful stop of the stream
-                        observer.Error(err)
+                        observer.ErrorWithContext(ctx, err)
                         return
                     }
-                    observer.Next(result)
+                    observer.NextWithContext(ctx, result)
                 },
-                observer.Error,
-                observer.Complete,
+                observer.ErrorWithContext,
+                observer.CompleteWithContext,
             ))
             return sub.Unsubscribe
         })
@@ -198,28 +199,29 @@ func SafeMap[T, R any](mapper func(T) (R, error)) func(ro.Observable[T]) ro.Obse
 Always clean up resources properly. Use teardown functions to prevent memory leaks.
 
 ```go
+// Declared in errors.go
+var ErrWithTimeoutExpired = errors.New("mypkg.WithTimeout: timeout expired")
+
 func WithTimeout[T any](timeout time.Duration) func(ro.Observable[T]) ro.Observable[T] {
     return func(source ro.Observable[T]) ro.Observable[T] {
-        return ro.NewObservable(func(observer ro.Observer[T]) ro.Teardown {
+        return ro.NewObservableWithContext(func(subscriberCtx context.Context, observer ro.Observer[T]) ro.Teardown {
             timer := time.NewTimer(timeout)
-            done := make(chan struct{})
 
-            subscription := source.Subscribe(ro.NewObserver(
-                func(value T) {
+            subscription := source.SubscribeWithContext(subscriberCtx, ro.NewObserverWithContext(
+                func(ctx context.Context, value T) {
                     select {
                     case <-timer.C:
-                        observer.Error(fmt.Errorf("timeout"))
+                        observer.ErrorWithContext(ctx, ErrWithTimeoutExpired)
                     default:
-                        observer.Next(value)
+                        observer.NextWithContext(ctx, value)
                     }
                 },
-                observer.Error,
-                observer.Complete,
+                observer.ErrorWithContext,
+                observer.CompleteWithContext,
             ))
 
             return func() {
                 // Called on error, completion or unsubscription
-                close(done)
                 timer.Stop()
                 subscription.Unsubscribe()
             }
@@ -235,16 +237,16 @@ func WithTimeout[T any](timeout time.Duration) func(ro.Observable[T]) ro.Observa
 Example:
 
 ```go
-func MapIWithContext[T, R any](project func(ctx context.Context, item T, index int64) (context.Context, R)) func(Observable[T]) Observable[R] {
-    return func(source Observable[T]) Observable[R] {
+func MapIWithContext[T, R any](project func(ctx context.Context, item T, index int64) (context.Context, R)) func(ro.Observable[T]) ro.Observable[R] {
+    return func(source ro.Observable[T]) ro.Observable[R] {
         // This context has been provided by the downstream subscriber
-        return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[R]) Teardown {
+        return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[R]) ro.Teardown {
             i := int64(0)
 
             sub := source.SubscribeWithContext(
                 // Subscribe to upstream with context received from downstream
                 subscriberCtx,
-                NewObserverWithContext(
+                ro.NewObserverWithContext(
                     func(ctx context.Context, value T) {
                         // The callback receives a context and return a new one (the same ?).
                         newCtx, result := project(ctx, value, i)
@@ -273,10 +275,10 @@ Use the `ro.Collect(...)` for testing.
 Example:
 
 ```go
-values, err := Collect(
-    Pipe1(
-        Just([]int{1, 2, 3}, []int{4, 5, 6}),
-        Flatten[int](),
+values, err := ro.Collect(
+    ro.Pipe1(
+        ro.Just([]int{1, 2, 3}, []int{4, 5, 6}),
+        ro.Flatten[int](),
     ),
 )
 is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
@@ -288,19 +290,19 @@ Test edge cases with `ro.Empty[int]()` and `ro.Throw[[]int](assert.AnError)` as 
 Example:
 
 ```go
-values, err := Collect(
-    Pipe1(
-        Empty[[]int](),
-        Flatten[int](),
+values, err := ro.Collect(
+    ro.Pipe1(
+        ro.Empty[[]int](),
+        ro.Flatten[int](),
     ),
 )
 is.Equal([]int{}, values)
 is.NoError(err)
 
-values, err = Collect(
-    Pipe1(
-        Throw[[]int](assert.AnError),
-        Flatten[int](),
+values, err = ro.Collect(
+    ro.Pipe1(
+        ro.Throw[[]int](assert.AnError),
+        ro.Flatten[int](),
     ),
 )
 is.Equal([]int{}, values)
@@ -355,6 +357,8 @@ These issues have recurred across multiple sessions. Read them before starting.
 - **Porting from `samber/lo` — bytes UTF-8 divergence**: `bytes.ToLower` via `strings.ToLower` produces `U+FFFD` replacement characters on invalid UTF-8, whereas `cases.Lower(...).Bytes()` preserves the raw bytes. Adjust test fixtures accordingly when porting from `samber/lo` string helpers to the `bytes` plugin.
 - **A fuzz target with only synchronous sources** misses every `Unsubscribe`-vs-`Next` race. Take the kind from a typed fuzz argument (`asyncSource bool`) and pass it to `newSource(count, asyncSource)`.
 - **A race test that passes without `-race`** proves nothing. Always run `go test -race`, `make test` or `make fuzz`.
+- **Accumulating a float step** (`v += step`) drifts with every item. Compute `start + i*step` instead (see [Floating-point ranges](./contributing#floating-point-ranges)).
+- **Tests appended at the end of a file with unprefixed names** get regrouped later. Follow the [test-naming rule](./contributing#test-naming).
 
 ## Definition of done
 

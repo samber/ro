@@ -73,6 +73,7 @@ defer sub.Unsubscribe()
 
 ## Code Style Guidelines
 
+- Prefix every library identifier in a Go code example with `ro.` (`ro.NewObserverWithContext`, `ro.Observable[T]`, `ro.Collect`), including in operator skeletons and tests. Frontmatter `signatures` keep the unprefixed source form.
 - Use `Pipe` instead of `PipeX` variants.
 - Use `NewObserver` or `NewObserverWithContext` instead of `Observer{...}`. Prefer NewObserver when no context is used.
 - Example: `NewObserver(next, error, complete)` instead of `Observer{Next: next, Error: error, Complete: complete}`
@@ -173,7 +174,6 @@ similarHelpers: [core#transformation#mapto, core#transformation#maperr, core#tra
 ---
 name: MapErr
 slug: maperr
-signatures:
 signatures:
   - "func MapErr[T any, R any](project func(item T) (R, error))"
   - "func MapErrWithContext[T any, R any](project func(ctx context.Context, item T) (R, error))"
