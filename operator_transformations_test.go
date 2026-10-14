@@ -775,8 +775,11 @@ func TestOperatorTransformationWindowWhen(t *testing.T) {
 	t.Parallel()
 	testWithTimeout(t, 1000*time.Millisecond)
 
+	// The subtests run sequentially. The timeout above is released by the parent's cleanup,
+	// which waits for every parallel subtest: queued behind the rest of the suite on a
+	// loaded runner, they would trip it.
+
 	t.Run("collect windows of a synchronous source", func(t *testing.T) {
-		t.Parallel()
 		is := assert.New(t)
 
 		// Never() boundary: a single window holding every item. Windows must be
@@ -797,7 +800,6 @@ func TestOperatorTransformationWindowWhen(t *testing.T) {
 	})
 
 	t.Run("empty source emits one empty window", func(t *testing.T) {
-		t.Parallel()
 		is := assert.New(t)
 
 		windows, err := Collect(
@@ -815,7 +817,6 @@ func TestOperatorTransformationWindowWhen(t *testing.T) {
 	})
 
 	t.Run("source error propagates without emitting a window", func(t *testing.T) {
-		t.Parallel()
 		is := assert.New(t)
 
 		windows, err := Collect(
@@ -833,7 +834,6 @@ func TestOperatorTransformationWindowWhen(t *testing.T) {
 	})
 
 	t.Run("boundary splits the source into windows", func(t *testing.T) {
-		t.Parallel()
 		is := assert.New(t)
 
 		source := NewPublishSubject[int]()
@@ -870,7 +870,6 @@ func TestOperatorTransformationWindowWhen(t *testing.T) {
 	})
 
 	t.Run("consecutive boundary notifications emit empty windows", func(t *testing.T) {
-		t.Parallel()
 		is := assert.New(t)
 
 		source := NewPublishSubject[int]()
@@ -890,7 +889,6 @@ func TestOperatorTransformationWindowWhen(t *testing.T) {
 	})
 
 	t.Run("source completion closes the open window and completes", func(t *testing.T) {
-		t.Parallel()
 		is := assert.New(t)
 
 		source := NewPublishSubject[int]()
@@ -913,7 +911,6 @@ func TestOperatorTransformationWindowWhen(t *testing.T) {
 	})
 
 	t.Run("source error closes the open window and propagates", func(t *testing.T) {
-		t.Parallel()
 		is := assert.New(t)
 
 		source := NewPublishSubject[int]()
@@ -935,7 +932,6 @@ func TestOperatorTransformationWindowWhen(t *testing.T) {
 	})
 
 	t.Run("boundary error closes the open window and propagates", func(t *testing.T) {
-		t.Parallel()
 		is := assert.New(t)
 
 		source := NewPublishSubject[int]()
@@ -954,7 +950,6 @@ func TestOperatorTransformationWindowWhen(t *testing.T) {
 	})
 
 	t.Run("boundary completion closes the open window and completes", func(t *testing.T) {
-		t.Parallel()
 		is := assert.New(t)
 
 		source := NewPublishSubject[int]()
@@ -973,7 +968,6 @@ func TestOperatorTransformationWindowWhen(t *testing.T) {
 	})
 
 	t.Run("early unsubscription releases source and boundary", func(t *testing.T) {
-		t.Parallel()
 		is := assert.New(t)
 
 		source := NewPublishSubject[int]()
@@ -997,7 +991,6 @@ func TestOperatorTransformationWindowWhen(t *testing.T) {
 	})
 
 	t.Run("context is propagated to window items", func(t *testing.T) {
-		t.Parallel()
 		is := assert.New(t)
 
 		type ctxKey struct{}
