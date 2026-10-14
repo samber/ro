@@ -185,14 +185,8 @@ func vectorize[T any, V LaneBuffer[V, T]](source ro.Observable[T]) ro.Observable
 		// context keeps the tail on the same chain as the values it holds.
 		lastCtx := subscriberCtx
 
-		// The upstream subscriber exists before subscribing: a synchronous source emits
-		// everything inside SubscribeWithContext, before the Subscription is returned.
-		// Unsubscribing it closes it, and the source stops at its next IsClosed() check.
-		// It is unsafe (no lock) because the source delivers events one at a time, see
-		// "Serialization contract" in docs/docs/hacking.md.
-		var upstream ro.Subscriber[T]
-
-		upstream = ro.NewUnsafeSubscriber(
+		sub := source.SubscribeWithContext(
+			subscriberCtx,
 			ro.NewObserverWithContext(
 				func(ctx context.Context, value T) {
 					lastCtx = ctx
@@ -201,12 +195,6 @@ func vectorize[T any, V LaneBuffer[V, T]](source ro.Observable[T]) ro.Observable
 					if len(buffer) == lanes {
 						destination.NextWithContext(ctx, proto.Load(buffer))
 						buffer = buffer[:0]
-
-						// A downstream that finished early, such as a reduction that met
-						// NaN, has nothing left to read: stop feeding it.
-						if destination.IsClosed() {
-							upstream.Unsubscribe()
-						}
 					}
 				},
 				destination.ErrorWithContext,
@@ -220,8 +208,6 @@ func vectorize[T any, V LaneBuffer[V, T]](source ro.Observable[T]) ro.Observable
 				},
 			),
 		)
-
-		sub := source.SubscribeWithContext(subscriberCtx, upstream)
 
 		return sub.Unsubscribe
 	})
@@ -239,22 +225,6 @@ func reduceLanes[T any, V LaneStore[T]](
 	accumulate func(acc, lane T) T,
 	onComplete func(acc T, seen bool, emit func(T)),
 ) ro.Observable[T] {
-	return reduceLanesUntil(source, accumulate, onComplete, nil)
-}
-
-// reduceLanesUntil is reduceLanes with a short-circuit. When isTerminal accepts a lane,
-// that lane becomes the result at once: it is emitted, the stream completes, and the
-// upstream is unsubscribed without reading the remaining lanes or vectors. A nil
-// isTerminal disables the short-circuit.
-//
-// NaN is the intended terminal lane for float min and max: it is absorbing, so no later
-// lane can change the result.
-func reduceLanesUntil[T any, V LaneStore[T]](
-	source ro.Observable[V],
-	accumulate func(acc, lane T) T,
-	onComplete func(acc T, seen bool, emit func(T)),
-	isTerminal func(lane T) bool,
-) ro.Observable[T] {
 	return ro.NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination ro.Observer[T]) ro.Teardown {
 		var (
 			acc  T
@@ -263,13 +233,8 @@ func reduceLanesUntil[T any, V LaneStore[T]](
 
 		lastCtx := subscriberCtx
 
-		// The upstream subscriber exists before subscribing: a synchronous source emits
-		// everything inside SubscribeWithContext, before the Subscription is returned.
-		// It is unsafe (no lock) because the source delivers events one at a time, see
-		// "Serialization contract" in docs/docs/hacking.md.
-		var upstream ro.Subscriber[V]
-
-		upstream = ro.NewUnsafeSubscriber(
+		sub := source.SubscribeWithContext(
+			subscriberCtx,
 			ro.NewObserverWithContext(
 				func(ctx context.Context, value V) {
 					lastCtx = ctx
@@ -278,14 +243,6 @@ func reduceLanesUntil[T any, V LaneStore[T]](
 					n := value.StorePart(buffer)
 
 					for i := range n {
-						if isTerminal != nil && isTerminal(buffer[i]) {
-							destination.NextWithContext(ctx, buffer[i])
-							destination.CompleteWithContext(ctx)
-							upstream.Unsubscribe()
-
-							return
-						}
-
 						if !seen {
 							acc, seen = buffer[i], true
 
@@ -305,8 +262,6 @@ func reduceLanesUntil[T any, V LaneStore[T]](
 				},
 			),
 		)
-
-		sub := source.SubscribeWithContext(subscriberCtx, upstream)
 
 		return sub.Unsubscribe
 	})

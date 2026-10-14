@@ -56,8 +56,7 @@
 // the raw instruction and does not carry that guarantee.
 //
 // ReduceMin and ReduceMax agree with them and with core ro.Min and ro.Max: NaN is
-// absorbing. The first NaN lane becomes the result, the stream completes at once, and
-// the upstream is unsubscribed without reading the remaining lanes.
+// absorbing, so one NaN lane makes the result NaN.
 //
 // Operators chain in a Pipe like any other ro operator, each stage keeping the stream in
 // vector space:

@@ -146,7 +146,7 @@ Unlike the rest, `ToScalar` and `Flatten` are not suffixed per type: their eleme
 
 For `Float32` and `Float64`, element-wise `Min` and `Max` are architecture-dependent in hardware: x86 discards NaN, arm64 propagates it. The `Partial` types detect NaN lanes explicitly and force it into the result, so behaviour is identical everywhere and matches Go's own `min`/`max` builtins. Passing a stdlib `simd.Float64s` through the same operator uses the raw instruction and does **not** carry that guarantee.
 
-`ReduceMin` and `ReduceMax` agree with them and with core `ro.Min` and `ro.Max`: NaN is absorbing. The first NaN lane becomes the result, the stream completes at once, and the upstream is unsubscribed without reading the remaining lanes.
+`ReduceMin` and `ReduceMax` agree with them and with core `ro.Min` and `ro.Max`: NaN is absorbing, so one NaN lane makes the result NaN.
 
 ## Performance
 

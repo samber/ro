@@ -367,23 +367,14 @@ func ReduceMinUint64[V Uint64Vector[V]]() func(ro.Observable[V]) ro.Observable[u
 //
 // An empty stream emits nothing, matching ro.Min.
 //
-// NaN is absorbing, matching ro.Min and unlike the element-wise MinFloat32: the first
-// NaN lane becomes the result at once, and the stream completes without reading the
-// remaining lanes. The upstream is unsubscribed, so a source that checks for
-// cancellation stops there.
+// NaN is absorbing, matching ro.Min and Go's min builtin: one NaN lane makes the
+// result NaN.
 func ReduceMinFloat32[V Float32Vector[V]]() func(ro.Observable[V]) ro.Observable[float32] {
 	return func(source ro.Observable[V]) ro.Observable[float32] {
-		return reduceLanesUntil(
+		return reduceLanes(
 			source,
-			func(acc, lane float32) float32 {
-				if lane < acc {
-					return lane
-				}
-
-				return acc
-			},
+			func(acc, lane float32) float32 { return min(acc, lane) },
 			emitWhenSeen[float32],
-			func(lane float32) bool { return lane != lane },
 		)
 	}
 }
@@ -392,23 +383,14 @@ func ReduceMinFloat32[V Float32Vector[V]]() func(ro.Observable[V]) ro.Observable
 //
 // An empty stream emits nothing, matching ro.Min.
 //
-// NaN is absorbing, matching ro.Min and unlike the element-wise MinFloat64: the first
-// NaN lane becomes the result at once, and the stream completes without reading the
-// remaining lanes. The upstream is unsubscribed, so a source that checks for
-// cancellation stops there.
+// NaN is absorbing, matching ro.Min and Go's min builtin: one NaN lane makes the
+// result NaN.
 func ReduceMinFloat64[V Float64Vector[V]]() func(ro.Observable[V]) ro.Observable[float64] {
 	return func(source ro.Observable[V]) ro.Observable[float64] {
-		return reduceLanesUntil(
+		return reduceLanes(
 			source,
-			func(acc, lane float64) float64 {
-				if lane < acc {
-					return lane
-				}
-
-				return acc
-			},
+			func(acc, lane float64) float64 { return min(acc, lane) },
 			emitWhenSeen[float64],
-			func(lane float64) bool { return lane != lane },
 		)
 	}
 }
@@ -519,42 +501,28 @@ func ReduceMaxUint64[V Uint64Vector[V]]() func(ro.Observable[V]) ro.Observable[u
 
 // ReduceMaxFloat32 emits the largest valid lane of the stream on completion.
 //
-// An empty stream emits nothing. NaN is absorbing, matching ro.Max: the first NaN lane
-// becomes the result and the stream completes early. See ReduceMinFloat32.
+// An empty stream emits nothing. NaN is absorbing, matching ro.Max and Go's max
+// builtin. See ReduceMinFloat32.
 func ReduceMaxFloat32[V Float32Vector[V]]() func(ro.Observable[V]) ro.Observable[float32] {
 	return func(source ro.Observable[V]) ro.Observable[float32] {
-		return reduceLanesUntil(
+		return reduceLanes(
 			source,
-			func(acc, lane float32) float32 {
-				if lane > acc {
-					return lane
-				}
-
-				return acc
-			},
+			func(acc, lane float32) float32 { return max(acc, lane) },
 			emitWhenSeen[float32],
-			func(lane float32) bool { return lane != lane },
 		)
 	}
 }
 
 // ReduceMaxFloat64 emits the largest valid lane of the stream on completion.
 //
-// An empty stream emits nothing. NaN is absorbing, matching ro.Max: the first NaN lane
-// becomes the result and the stream completes early. See ReduceMinFloat64.
+// An empty stream emits nothing. NaN is absorbing, matching ro.Max and Go's max
+// builtin. See ReduceMinFloat64.
 func ReduceMaxFloat64[V Float64Vector[V]]() func(ro.Observable[V]) ro.Observable[float64] {
 	return func(source ro.Observable[V]) ro.Observable[float64] {
-		return reduceLanesUntil(
+		return reduceLanes(
 			source,
-			func(acc, lane float64) float64 {
-				if lane > acc {
-					return lane
-				}
-
-				return acc
-			},
+			func(acc, lane float64) float64 { return max(acc, lane) },
 			emitWhenSeen[float64],
-			func(lane float64) bool { return lane != lane },
 		)
 	}
 }
