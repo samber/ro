@@ -1,5 +1,8 @@
 MODULES=$(shell go list -m)
 
+# Number of seeds registered per fuzz target (see internal/xfuzz). Override it: `make fuzz RO_FUZZ_ITERATIONS=10000`.
+RO_FUZZ_ITERATIONS ?= 1000
+
 build:
 	go build -v ${MODULES} ./...
 	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && GOWORK=off GOEXPERIMENT=simd go build -v ./...; fi
@@ -12,8 +15,6 @@ test:
 	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && GOWORK=off GOEXPERIMENT=simd go test -race ./...; fi
 
 # Runs every fuzz target on RO_FUZZ_ITERATIONS seeds (see internal/xfuzz). Example: `make fuzz RO_FUZZ_ITERATIONS=10000`.
-RO_FUZZ_ITERATIONS ?= 1000
-
 # Phony: the ./fuzz directory has the same name, so make would otherwise report "up to date".
 .PHONY: fuzz
 fuzz:
