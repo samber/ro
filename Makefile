@@ -14,12 +14,16 @@ test:
 	go test -race ${MODULES} ./...
 	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && GOWORK=off GOEXPERIMENT=simd go test -race ./...; fi
 
+# Per-package `go test` timeout of `make fuzz`. The default of 10m is too short: the ./fuzz package needs
+# about 90s per 100 seeds under -race, so 1000 seeds (CI) take about 15m. 30m leaves a 2x margin for slow runners.
+FUZZ_TIMEOUT ?= 30m
+
 # Runs every fuzz target on RO_FUZZ_ITERATIONS seeds (see internal/xfuzz). Example: `make fuzz RO_FUZZ_ITERATIONS=10000`.
 # Phony: the ./fuzz directory has the same name, so make would otherwise report "up to date".
 .PHONY: fuzz
 fuzz:
-	RO_FUZZ_ITERATIONS=$(RO_FUZZ_ITERATIONS) go test -race -run=^Fuzz ${MODULES} ./...
-	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && RO_FUZZ_ITERATIONS=$(RO_FUZZ_ITERATIONS) GOWORK=off GOEXPERIMENT=simd go test -race -run=^Fuzz ./...; fi
+	RO_FUZZ_ITERATIONS=$(RO_FUZZ_ITERATIONS) go test -race -timeout $(FUZZ_TIMEOUT) -run=^Fuzz ${MODULES} ./...
+	@if [ -n "$(GOEXPERIMENT)" ]; then cd ./plugins/exp/simd && RO_FUZZ_ITERATIONS=$(RO_FUZZ_ITERATIONS) GOWORK=off GOEXPERIMENT=simd go test -race -timeout $(FUZZ_TIMEOUT) -run=^Fuzz ./...; fi
 
 watch-test:
 	reflex -t 50ms -s -- sh -c 'gotest -timeout 300s -race ${MODULES} ./...'
