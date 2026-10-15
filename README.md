@@ -15,21 +15,6 @@ The purpose of Reactive Programming is to simplify the development of event-driv
 
 ----
 
-<div align="center">
-  <sup><b>💖 Sponsored by:</b></sup>
-  <br>
-  <a href="https://www.dbos.dev/?utm_campaign=gh-smbr">
-    <div>
-	  <img width="200" alt="dbos" src="https://github.com/user-attachments/assets/d583cb62-7735-4d3c-beb7-e6ef1a5faf49" />
-    </div>
-    <div>
-      DBOS - Durable workflow orchestration library for Go
-    </div>
-  </a>
-</div>
-
-----
-
 ![cover](/docs/static/img/cover.png)
 
 **See also:**
