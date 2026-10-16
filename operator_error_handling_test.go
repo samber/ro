@@ -358,7 +358,11 @@ func TestOperatorErrorHandlingOnErrorResumeNextWith(t *testing.T) {
 	})
 
 	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
+		t.Parallel()
+
 		forEachSourceMode(t, func(t *testing.T, async bool) {
+			t.Helper()
+
 			is := assert.New(t)
 
 			// source and first fallback fail, last fallback completes: the chain ends by itself.
@@ -383,6 +387,8 @@ func TestOperatorErrorHandlingOnErrorResumeNextWith(t *testing.T) {
 	})
 
 	t.Run("stops when downstream cancels", func(t *testing.T) {
+		t.Parallel()
+
 		// 3 sources in the chain, Take(1) is satisfied by the first one: the others must not be subscribed.
 		expectStopsOnDownstreamCancel(t, alwaysFails,
 			func(source Observable[int]) Observable[int] {
@@ -423,7 +429,8 @@ func TestOperatorErrorHandlingOnErrorReturn(t *testing.T) {
 	is.NoError(err)
 }
 
-func TestOperatorErrorHandlingRetry(t *testing.T) {
+// The subtests stay sequential: testWithTimeout below would time out waiting on parallel subtests.
+func TestOperatorErrorHandlingRetry(t *testing.T) { //nolint:tparallel
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
 	is := assert.New(t)
@@ -458,6 +465,8 @@ func TestOperatorErrorHandlingRetry(t *testing.T) {
 
 	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
 		forEachSourceMode(t, func(t *testing.T, async bool) {
+			t.Helper()
+
 			is := assert.New(t)
 
 			// attempts 1 and 2 fail, attempt 3 completes: Retry stops resubscribing by itself.
@@ -578,6 +587,8 @@ func TestOperatorErrorHandlingRetryWithConfig(t *testing.T) { //nolint:parallelt
 
 	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
 		forEachSourceMode(t, func(t *testing.T, async bool) {
+			t.Helper()
+
 			is := assert.New(t)
 
 			// retries exhausted: 1 initial subscription + 2 retries, then the error goes downstream.
@@ -759,7 +770,11 @@ func TestOperatorErrorHandlingDoWhile(t *testing.T) {
 	is.EqualError(err, assert.AnError.Error())
 
 	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
+		t.Parallel()
+
 		forEachSourceMode(t, func(t *testing.T, async bool) {
+			t.Helper()
+
 			is := assert.New(t)
 
 			// the condition turns false after the 3rd run: DoWhile stops by itself.
@@ -788,6 +803,8 @@ func TestOperatorErrorHandlingDoWhile(t *testing.T) {
 	})
 
 	t.Run("stops when downstream cancels", func(t *testing.T) {
+		t.Parallel()
+
 		expectStopsOnDownstreamCancel(t, neverFails,
 			func(source Observable[int]) Observable[int] {
 				runs := int32(0)
@@ -853,7 +870,11 @@ func TestOperatorErrorHandlingWhile(t *testing.T) {
 	is.EqualError(err, assert.AnError.Error())
 
 	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
+		t.Parallel()
+
 		forEachSourceMode(t, func(t *testing.T, async bool) {
+			t.Helper()
+
 			is := assert.New(t)
 
 			// the condition turns false on its 3rd check: the source ran twice, While stops by itself.
@@ -882,6 +903,8 @@ func TestOperatorErrorHandlingWhile(t *testing.T) {
 	})
 
 	t.Run("stops when downstream cancels", func(t *testing.T) {
+		t.Parallel()
+
 		expectStopsOnDownstreamCancel(t, neverFails,
 			func(source Observable[int]) Observable[int] {
 				checks := int32(0)
