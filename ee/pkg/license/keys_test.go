@@ -240,27 +240,30 @@ func TestVerifyDataSignature(t *testing.T) {
 	publicKeyPEM, err := MarshalPublicKey(publicKey)
 	require.NoError(t, err)
 
-	// Verify the signature
-	err = verifyDataSignature(container, publicKeyPEM)
-	assert.NoError(t, err)
+	t.Run("valid signature", func(t *testing.T) {
+		err := verifyDataSignature(container, publicKeyPEM)
+		assert.NoError(t, err)
+	})
 
-	// Test with tampered data
-	tamperedContainer := &signedContainer{
-		Data:      []byte("tampered data"),
-		Signature: container.Signature,
-	}
+	t.Run("tampered data", func(t *testing.T) {
+		tamperedContainer := &signedContainer{
+			Data:      []byte("tampered data"),
+			Signature: container.Signature,
+		}
 
-	err = verifyDataSignature(tamperedContainer, publicKeyPEM)
-	assert.Error(t, err)
+		err := verifyDataSignature(tamperedContainer, publicKeyPEM)
+		assert.Error(t, err)
+	})
 
-	// Test with tampered signature
-	tamperedContainer = &signedContainer{
-		Data:      container.Data,
-		Signature: []byte("tampered signature"),
-	}
+	t.Run("tampered signature", func(t *testing.T) {
+		tamperedContainer := &signedContainer{
+			Data:      container.Data,
+			Signature: []byte("tampered signature"),
+		}
 
-	err = verifyDataSignature(tamperedContainer, publicKeyPEM)
-	assert.Error(t, err)
+		err := verifyDataSignature(tamperedContainer, publicKeyPEM)
+		assert.Error(t, err)
+	})
 }
 
 func TestCurveConstant(t *testing.T) {

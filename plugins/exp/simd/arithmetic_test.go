@@ -748,37 +748,54 @@ func TestArithmeticOperatorsAcceptStdlibVectors(t *testing.T) {
 
 	batch := rampInt8(lanesInt8())
 
-	subtracted, err := ro.Collect(
-		ro.Pipe1(ro.Just(simd.LoadInt8s(batch)), SubInt8(simd.BroadcastInt8s(1))),
-	)
-	assert.NoError(t, err)
+	t.Run("sub", func(t *testing.T) {
+		t.Parallel()
 
-	multiplied, err := ro.Collect(
-		ro.Pipe1(ro.Just(simd.LoadInt8s(batch)), MulInt8(simd.BroadcastInt8s(2))),
-	)
-	assert.NoError(t, err)
+		subtracted, err := ro.Collect(
+			ro.Pipe1(ro.Just(simd.LoadInt8s(batch)), SubInt8(simd.BroadcastInt8s(1))),
+		)
+		assert.NoError(t, err)
 
-	var subOut, mulOut [maxLanes]int8
-	n := subtracted[0].StorePart(subOut[:])
-	multiplied[0].StorePart(mulOut[:])
+		var subOut [maxLanes]int8
+		n := subtracted[0].StorePart(subOut[:])
 
-	for i := range n {
-		assert.Equal(t, batch[i]-1, subOut[i], "Sub lane %d", i)
-		assert.Equal(t, batch[i]*2, mulOut[i], "Mul lane %d", i)
-	}
+		for i := range n {
+			assert.Equal(t, batch[i]-1, subOut[i], "Sub lane %d", i)
+		}
+	})
+
+	t.Run("mul", func(t *testing.T) {
+		t.Parallel()
+
+		multiplied, err := ro.Collect(
+			ro.Pipe1(ro.Just(simd.LoadInt8s(batch)), MulInt8(simd.BroadcastInt8s(2))),
+		)
+		assert.NoError(t, err)
+
+		var mulOut [maxLanes]int8
+		n := multiplied[0].StorePart(mulOut[:])
+
+		for i := range n {
+			assert.Equal(t, batch[i]*2, mulOut[i], "Mul lane %d", i)
+		}
+	})
 
 	// Div has no integer form, so it is checked on the float type instead.
-	floats := rampFloat64(lanesFloat64())
+	t.Run("div", func(t *testing.T) {
+		t.Parallel()
 
-	divided, err := ro.Collect(
-		ro.Pipe1(ro.Just(simd.LoadFloat64s(floats)), DivFloat64(simd.BroadcastFloat64s(2))),
-	)
-	assert.NoError(t, err)
+		floats := rampFloat64(lanesFloat64())
 
-	var divOut [maxLanes]float64
-	divided[0].StorePart(divOut[:])
+		divided, err := ro.Collect(
+			ro.Pipe1(ro.Just(simd.LoadFloat64s(floats)), DivFloat64(simd.BroadcastFloat64s(2))),
+		)
+		assert.NoError(t, err)
 
-	for i := range floats {
-		assert.Equal(t, floats[i]/2, divOut[i], "Div lane %d", i)
-	}
+		var divOut [maxLanes]float64
+		divided[0].StorePart(divOut[:])
+
+		for i := range floats {
+			assert.Equal(t, floats[i]/2, divOut[i], "Div lane %d", i)
+		}
+	})
 }

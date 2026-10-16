@@ -26,341 +26,535 @@ import (
 
 func TestOperatorFilterFilter(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
-
 	predicate := func(x int) bool {
 		return x%2 == 0
 	}
 
-	values, err := Collect(
-		Filter(predicate)(Just(0, 1, 2, 3)),
-	)
-	is.Equal([]int{0, 2}, values)
-	is.NoError(err)
+	t.Run("filters even values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Filter(predicate)(Just(1, 2)),
-	)
-	is.Equal([]int{2}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Filter(predicate)(Just(0, 1, 2, 3)),
+		)
+		is.Equal([]int{0, 2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Filter(predicate)(Just(1, -1)),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("keeps the matching tail", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Filter(predicate)(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Filter(predicate)(Just(1, 2)),
+		)
+		is.Equal([]int{2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Filter(predicate)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("no value matches", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Filter(predicate)(Just(1, -1)),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Filter(predicate)(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Filter(predicate)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorFilterFilterI(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
-
 	predicate := func(x int, i int64) bool {
 		return x%2 == 0
 	}
 
-	values, err := Collect(
-		FilterI(predicate)(Just(0, 1, 2, 3)),
-	)
-	is.Equal([]int{0, 2}, values)
-	is.NoError(err)
+	t.Run("filters even values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		FilterI(func(x int, i int64) bool {
-			is.Equal(int(i), x)
-			return x%2 == 0
-		})(Just(0, 1, 2, 3)),
-	)
-	is.Equal([]int{0, 2}, values)
-	is.NoError(err)
+		values, err := Collect(
+			FilterI(predicate)(Just(0, 1, 2, 3)),
+		)
+		is.Equal([]int{0, 2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		FilterI(predicate)(Just(1, 2)),
-	)
-	is.Equal([]int{2}, values)
-	is.NoError(err)
+	t.Run("index matches item position", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		FilterI(predicate)(Just(1, -1)),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			FilterI(func(x int, i int64) bool {
+				is.Equal(int(i), x)
+				return x%2 == 0
+			})(Just(0, 1, 2, 3)),
+		)
+		is.Equal([]int{0, 2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		FilterI(predicate)(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("keeps the matching tail", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		FilterI(predicate)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			FilterI(predicate)(Just(1, 2)),
+		)
+		is.Equal([]int{2}, values)
+		is.NoError(err)
+	})
+
+	t.Run("no value matches", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			FilterI(predicate)(Just(1, -1)),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			FilterI(predicate)(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			FilterI(predicate)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorFilterDistinct(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Distinct[int]()(Just(0, 1, 2)),
-	)
-	is.Equal([]int{0, 1, 2}, values)
-	is.NoError(err)
+	t.Run("all values unique", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Distinct[int]()(Just(0, 1, 2, 0, 1, 2)),
-	)
-	is.Equal([]int{0, 1, 2}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Distinct[int]()(Just(0, 1, 2)),
+		)
+		is.Equal([]int{0, 1, 2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Distinct[int]()(Just(0, 1, 2, 2, 1, 0)),
-	)
-	is.Equal([]int{0, 1, 2}, values)
-	is.NoError(err)
+	t.Run("repeated sequence", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Distinct[int]()(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Distinct[int]()(Just(0, 1, 2, 0, 1, 2)),
+		)
+		is.Equal([]int{0, 1, 2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Distinct[int]()(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("mirrored sequence", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Distinct[int]()(Just(0, 1, 2, 2, 1, 0)),
+		)
+		is.Equal([]int{0, 1, 2}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Distinct[int]()(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Distinct[int]()(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorFilterDistinctBy(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
-
 	type user struct {
 		id   int
 		name string
 	}
 
-	obs := Pipe1(
-		Just(
-			user{id: 1, name: "John"},
-			user{id: 2, name: "Jane"},
-			user{id: 1, name: "John"},
-			user{id: 3, name: "Jim"},
-		),
-		DistinctBy(func(item user) int {
-			return item.id
-		}),
-	)
-	values, err := Collect(obs)
-	is.Equal([]user{{id: 1, name: "John"}, {id: 2, name: "Jane"}, {id: 3, name: "Jim"}}, values)
-	is.NoError(err)
+	t.Run("distinct by key", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// empty
-	values, err = Collect(
-		DistinctBy(func(item user) int {
-			return item.id
-		})(Empty[user]()),
-	)
-	is.Equal([]user{}, values)
-	is.NoError(err)
+		obs := Pipe1(
+			Just(
+				user{id: 1, name: "John"},
+				user{id: 2, name: "Jane"},
+				user{id: 1, name: "John"},
+				user{id: 3, name: "Jim"},
+			),
+			DistinctBy(func(item user) int {
+				return item.id
+			}),
+		)
+		values, err := Collect(obs)
+		is.Equal([]user{{id: 1, name: "John"}, {id: 2, name: "Jane"}, {id: 3, name: "Jim"}}, values)
+		is.NoError(err)
+	})
 
-	// error
-	values, err = Collect(
-		DistinctBy(func(item user) int {
-			return item.id
-		})(Throw[user](assert.AnError)),
-	)
-	is.Equal([]user{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			DistinctBy(func(item user) int {
+				return item.id
+			})(Empty[user]()),
+		)
+		is.Equal([]user{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			DistinctBy(func(item user) int {
+				return item.id
+			})(Throw[user](assert.AnError)),
+		)
+		is.Equal([]user{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorFilterIgnoreElements(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		IgnoreElements[int]()(Just(1, 2, 3)),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("values are ignored", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		IgnoreElements[int]()(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			IgnoreElements[int]()(Just(1, 2, 3)),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		IgnoreElements[int]()(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			IgnoreElements[int]()(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			IgnoreElements[int]()(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorFilterSkip(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Skip[int](2)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{3}, values)
-	is.NoError(err)
+	t.Run("skips two values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Skip[int](0)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Skip[int](2)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Skip[int](42)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("skips zero values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Skip[int](0)(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Skip[int](0)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Skip[int](0)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("skips more than available", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Skip[int](42)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Skip[int](0)(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Skip[int](0)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorFilterSkipWhile(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
-
 	predicate := func(v int64) bool {
 		return v <= 5
 	}
 
-	values, err := Collect(
-		SkipWhile(predicate)(Range(1, 10)),
-	)
-	is.Equal([]int64{6, 7, 8, 9}, values)
-	is.NoError(err)
+	t.Run("skips leading matches", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		SkipWhile(predicate)(Range(1, 3)),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			SkipWhile(predicate)(Range(1, 10)),
+		)
+		is.Equal([]int64{6, 7, 8, 9}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		SkipWhile(predicate)(Just[int64](10, 11, 12)),
-	)
-	is.Equal([]int64{10, 11, 12}, values)
-	is.NoError(err)
+	t.Run("skips every value", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		SkipWhile(predicate)(Empty[int64]()),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			SkipWhile(predicate)(Range(1, 3)),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		SkipWhile(predicate)(Throw[int64](assert.AnError)),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("nothing to skip", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			SkipWhile(predicate)(Just[int64](10, 11, 12)),
+		)
+		is.Equal([]int64{10, 11, 12}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			SkipWhile(predicate)(Empty[int64]()),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			SkipWhile(predicate)(Throw[int64](assert.AnError)),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorFilterSkipWhileI(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
-
 	predicate := func(v, i int64) bool {
 		return v <= 5
 	}
 
-	values, err := Collect(
-		SkipWhileI(predicate)(Range(1, 10)),
-	)
-	is.Equal([]int64{6, 7, 8, 9}, values)
-	is.NoError(err)
+	t.Run("skips leading matches", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		SkipWhileI(func(v, i int64) bool {
-			is.Equal(v, i)
-			return v <= 5
-		})(Range(0, 10)),
-	)
-	is.Equal([]int64{6, 7, 8, 9}, values)
-	is.NoError(err)
+		values, err := Collect(
+			SkipWhileI(predicate)(Range(1, 10)),
+		)
+		is.Equal([]int64{6, 7, 8, 9}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		SkipWhileI(predicate)(Range(1, 3)),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+	t.Run("index matches item position", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		SkipWhileI(predicate)(Just[int64](10, 11, 12)),
-	)
-	is.Equal([]int64{10, 11, 12}, values)
-	is.NoError(err)
+		values, err := Collect(
+			SkipWhileI(func(v, i int64) bool {
+				is.Equal(v, i)
+				return v <= 5
+			})(Range(0, 10)),
+		)
+		is.Equal([]int64{6, 7, 8, 9}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		SkipWhileI(predicate)(Empty[int64]()),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+	t.Run("skips every value", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		SkipWhileI(predicate)(Throw[int64](assert.AnError)),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			SkipWhileI(predicate)(Range(1, 3)),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("nothing to skip", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			SkipWhileI(predicate)(Just[int64](10, 11, 12)),
+		)
+		is.Equal([]int64{10, 11, 12}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			SkipWhileI(predicate)(Empty[int64]()),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			SkipWhileI(predicate)(Throw[int64](assert.AnError)),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorFilterSkipLast(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		SkipLast[int64](2)(Range(1, 5)),
-	)
-	is.Equal([]int64{1, 2}, values)
-	is.NoError(err)
+	t.Run("skips last two values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		SkipLast[int64](10)(Range(1, 5)),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			SkipLast[int64](2)(Range(1, 5)),
+		)
+		is.Equal([]int64{1, 2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		SkipLast[int64](10)(Empty[int64]()),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+	t.Run("count exceeds source length", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		SkipLast[int64](10)(Throw[int64](assert.AnError)),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			SkipLast[int64](10)(Range(1, 5)),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			SkipLast[int64](10)(Empty[int64]()),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			SkipLast[int64](10)(Throw[int64](assert.AnError)),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
 	t.Run("zero count", func(t *testing.T) {
 		t.Parallel()
@@ -398,824 +592,1153 @@ func TestOperatorFilterSkipLast(t *testing.T) {
 func TestOperatorFilterSkipUntil(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 1000*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		Pipe1(
-			RangeWithInterval(0, 5, 50*time.Millisecond),
-			SkipUntil[int64](Interval(125*time.Millisecond)),
-		),
-	)
-	is.Equal([]int64{2, 3, 4}, values)
-	is.NoError(err)
+	t.Run("signal opens the gate mid-stream", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			RangeWithInterval(0, 3, 50*time.Millisecond),
-			SkipUntil[int64](Interval(500*time.Millisecond)),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(0, 5, 50*time.Millisecond),
+				SkipUntil[int64](Interval(125*time.Millisecond)),
+			),
+		)
+		is.Equal([]int64{2, 3, 4}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Empty[int64](),
-			SkipUntil[int64](Interval(10*time.Millisecond)),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+	t.Run("signal fires after the source ends", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			RangeWithInterval(0, 3, 10*time.Millisecond),
-			SkipUntil[int64](Empty[int64]()),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(0, 3, 50*time.Millisecond),
+				SkipUntil[int64](Interval(500*time.Millisecond)),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Throw[int64](assert.AnError),
-			SkipUntil[int64](Interval(10*time.Millisecond)),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			RangeWithInterval(0, 3, 10*time.Millisecond),
-			SkipUntil[int64](Throw[int64](assert.AnError)),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Pipe1(
+				Empty[int64](),
+				SkipUntil[int64](Interval(10*time.Millisecond)),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty signal", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(0, 3, 10*time.Millisecond),
+				SkipUntil[int64](Empty[int64]()),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("source error", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Throw[int64](assert.AnError),
+				SkipUntil[int64](Interval(10*time.Millisecond)),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("signal error", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(0, 3, 10*time.Millisecond),
+				SkipUntil[int64](Throw[int64](assert.AnError)),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorFilterSkipUntil_signalOrder(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// The signal is subscribed before the source: a synchronous signal opens
-	// the gate before a synchronous source emits.
-	values, err := Collect(
-		Pipe1(
-			Just(1, 2, 3),
-			SkipUntil[int](Just("go")),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("synchronous signal opens the gate", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// A signal that only completes never opens the gate.
-	values, err = Collect(
-		Pipe1(
-			Just(1, 2, 3),
-			SkipUntil[int](Empty[string]()),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+		// The signal is subscribed before the source: a synchronous signal opens
+		// the gate before a synchronous source emits.
+		values, err := Collect(
+			Pipe1(
+				Just(1, 2, 3),
+				SkipUntil[int](Just("go")),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	// A signal error terminates the stream, even when the source is synchronous.
-	values, err = Collect(
-		Pipe1(
-			Just(1, 2, 3),
-			SkipUntil[int](Throw[string](assert.AnError)),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("completing signal never opens the gate", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// The source error wins when the signal stays silent.
-	values, err = Collect(
-		Pipe1(
-			Throw[int](assert.AnError),
-			SkipUntil[int](Never()),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Pipe1(
+				Just(1, 2, 3),
+				SkipUntil[int](Empty[string]()),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("signal error terminates the stream", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Just(1, 2, 3),
+				SkipUntil[int](Throw[string](assert.AnError)),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("source error wins over silent signal", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Throw[int](assert.AnError),
+				SkipUntil[int](Never()),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
-func TestOperatorFilterTake(t *testing.T) {
-	t.Parallel()
+func TestOperatorFilterTake(t *testing.T) { //nolint:paralleltest
 	testWithTimeout(t, 500*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		Take[int](10)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("take more than available", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Take[int](2)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{1, 2}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Take[int](10)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Take[int](0)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("take two values", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Take[int](42)(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Take[int](2)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{1, 2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Take[int](42)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("take zero values", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// early completion stops a synchronous source
-	var emitted int64
+		values, err := Collect(
+			Take[int](0)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(Take[int](2)(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{0, 1}, values)
-	is.NoError(err)
-	is.Equal(int64(2), atomic.LoadInt64(&emitted))
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	emitted = 0
-	values, err = Collect(Take[int](1)(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{0}, values)
-	is.NoError(err)
-	is.Equal(int64(1), atomic.LoadInt64(&emitted))
+		values, err := Collect(
+			Take[int](42)(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
 
-	// an unbounded synchronous source never returns unless the operator stops it
-	infinite, err := Collect(Take[int64](2)(Range(0, math.MaxInt64)))
-	is.Equal([]int64{0, 1}, infinite)
-	is.NoError(err)
+	t.Run("error propagation", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// early completion tears down an asynchronous source
-	var tornDown int32
+		values, err := Collect(
+			Take[int](42)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
-	values, err = Collect(Take[int](3)(tickingAsyncSource(&tornDown)))
-	is.Equal([]int{0, 1, 2}, values)
-	is.NoError(err)
-	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+	t.Run("early completion stops a synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var emitted int64
+
+		values, err := Collect(Take[int](2)(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{0, 1}, values)
+		is.NoError(err)
+		is.Equal(int64(2), atomic.LoadInt64(&emitted))
+
+		emitted = 0
+		values, err = Collect(Take[int](1)(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{0}, values)
+		is.NoError(err)
+		is.Equal(int64(1), atomic.LoadInt64(&emitted))
+	})
+
+	t.Run("unbounded synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		infinite, err := Collect(Take[int64](2)(Range(0, math.MaxInt64)))
+		is.Equal([]int64{0, 1}, infinite)
+		is.NoError(err)
+	})
+
+	t.Run("early completion tears down an asynchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var tornDown int32
+
+		values, err := Collect(Take[int](3)(tickingAsyncSource(&tornDown)))
+		is.Equal([]int{0, 1, 2}, values)
+		is.NoError(err)
+		is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+	})
 }
 
-func TestOperatorFilterTakeWhile(t *testing.T) {
-	t.Parallel()
+func TestOperatorFilterTakeWhile(t *testing.T) { //nolint:paralleltest
 	testWithTimeout(t, 500*time.Millisecond)
-	is := assert.New(t)
 
 	predicate := func(v int) bool {
 		return v < 3
 	}
 
-	values, err := Collect(
-		TakeWhile(predicate)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{1, 2}, values)
-	is.NoError(err)
+	t.Run("stops at first failing value", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		TakeWhile(predicate)(Just(1, 2)),
-	)
-	is.Equal([]int{1, 2}, values)
-	is.NoError(err)
+		values, err := Collect(
+			TakeWhile(predicate)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{1, 2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		TakeWhile(predicate)(Just(1)),
-	)
-	is.Equal([]int{1}, values)
-	is.NoError(err)
+	t.Run("predicate holds for every value", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		TakeWhile(predicate)(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			TakeWhile(predicate)(Just(1, 2)),
+		)
+		is.Equal([]int{1, 2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		TakeWhile(predicate)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("single value", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// early completion stops a synchronous source
-	var emitted int64
+		values, err := Collect(
+			TakeWhile(predicate)(Just(1)),
+		)
+		is.Equal([]int{1}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(TakeWhile(func(v int) bool { return v < 3 })(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{0, 1, 2}, values)
-	is.NoError(err)
-	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	emitted = 0
-	values, err = Collect(TakeWhile(func(v int) bool { return false })(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{}, values)
-	is.NoError(err)
-	is.Equal(int64(1), atomic.LoadInt64(&emitted))
+		values, err := Collect(
+			TakeWhile(predicate)(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
 
-	emitted = 0
-	values, err = Collect(TakeWhileWithContext(func(ctx context.Context, v int) (context.Context, bool) { return ctx, v < 3 })(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{0, 1, 2}, values)
-	is.NoError(err)
-	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+	t.Run("error propagation", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// an unbounded synchronous source never returns unless the operator stops it
-	infinite, err := Collect(TakeWhile(func(v int64) bool { return v < 2 })(Range(0, math.MaxInt64)))
-	is.Equal([]int64{0, 1}, infinite)
-	is.NoError(err)
+		values, err := Collect(
+			TakeWhile(predicate)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
-	// early completion tears down an asynchronous source
-	var tornDown int32
+	t.Run("early completion stops a synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(TakeWhile(func(v int) bool { return v < 3 })(tickingAsyncSource(&tornDown)))
-	is.Equal([]int{0, 1, 2}, values)
-	is.NoError(err)
-	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+		var emitted int64
+
+		values, err := Collect(TakeWhile(func(v int) bool { return v < 3 })(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{0, 1, 2}, values)
+		is.NoError(err)
+		is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+		emitted = 0
+		values, err = Collect(TakeWhile(func(v int) bool { return false })(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{}, values)
+		is.NoError(err)
+		is.Equal(int64(1), atomic.LoadInt64(&emitted))
+
+		emitted = 0
+		values, err = Collect(TakeWhileWithContext(func(ctx context.Context, v int) (context.Context, bool) { return ctx, v < 3 })(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{0, 1, 2}, values)
+		is.NoError(err)
+		is.Equal(int64(4), atomic.LoadInt64(&emitted))
+	})
+
+	t.Run("unbounded synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		infinite, err := Collect(TakeWhile(func(v int64) bool { return v < 2 })(Range(0, math.MaxInt64)))
+		is.Equal([]int64{0, 1}, infinite)
+		is.NoError(err)
+	})
+
+	t.Run("early completion tears down an asynchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var tornDown int32
+
+		values, err := Collect(TakeWhile(func(v int) bool { return v < 3 })(tickingAsyncSource(&tornDown)))
+		is.Equal([]int{0, 1, 2}, values)
+		is.NoError(err)
+		is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+	})
 }
 
-func TestOperatorFilterTakeWhileI(t *testing.T) {
-	t.Parallel()
+func TestOperatorFilterTakeWhileI(t *testing.T) { //nolint:paralleltest
 	testWithTimeout(t, 500*time.Millisecond)
-	is := assert.New(t)
 
 	predicate := func(v int, i int64) bool {
 		return v < 3
 	}
 
-	values, err := Collect(
-		TakeWhileI(predicate)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{1, 2}, values)
-	is.NoError(err)
+	t.Run("stops at first failing value", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		TakeWhileI(func(v int, i int64) bool {
-			is.Equal(v, int(i))
-			return v < 3
-		})(Just(0, 1, 2, 3)),
-	)
-	is.Equal([]int{0, 1, 2}, values)
-	is.NoError(err)
+		values, err := Collect(
+			TakeWhileI(predicate)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{1, 2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		TakeWhileI(predicate)(Just(1, 2)),
-	)
-	is.Equal([]int{1, 2}, values)
-	is.NoError(err)
+	t.Run("index matches item position", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		TakeWhileI(predicate)(Just(1)),
-	)
-	is.Equal([]int{1}, values)
-	is.NoError(err)
+		values, err := Collect(
+			TakeWhileI(func(v int, i int64) bool {
+				is.Equal(v, int(i))
+				return v < 3
+			})(Just(0, 1, 2, 3)),
+		)
+		is.Equal([]int{0, 1, 2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		TakeWhileI(predicate)(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("predicate holds for every value", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		TakeWhileI(predicate)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			TakeWhileI(predicate)(Just(1, 2)),
+		)
+		is.Equal([]int{1, 2}, values)
+		is.NoError(err)
+	})
 
-	// early completion stops a synchronous source
-	var emitted int64
+	t.Run("single value", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(TakeWhileI(func(v int, i int64) bool { return i < 3 })(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{0, 1, 2}, values)
-	is.NoError(err)
-	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+		values, err := Collect(
+			TakeWhileI(predicate)(Just(1)),
+		)
+		is.Equal([]int{1}, values)
+		is.NoError(err)
+	})
 
-	emitted = 0
-	values, err = Collect(TakeWhileIWithContext(func(ctx context.Context, v int, i int64) (context.Context, bool) { return ctx, i < 3 })(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{0, 1, 2}, values)
-	is.NoError(err)
-	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// early completion tears down an asynchronous source
-	var tornDown int32
-
-	values, err = Collect(TakeWhileI(func(v int, i int64) bool { return i < 3 })(tickingAsyncSource(&tornDown)))
-	is.Equal([]int{0, 1, 2}, values)
-	is.NoError(err)
-	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
-}
-
-func TestOperatorFilterTakeLast(t *testing.T) {
-	t.Parallel()
-	testWithTimeout(t, 10*time.Millisecond)
-	is := assert.New(t)
-
-	values, err := Collect(
-		TakeLast[int](10)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
-
-	values, err = Collect(
-		TakeLast[int](2)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{2, 3}, values)
-	is.NoError(err)
-
-	values, err = Collect(
-		TakeLast[int](0)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
-
-	values, err = Collect(
-		TakeLast[int](42)(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
-
-	values, err = Collect(
-		TakeLast[int](42)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
-
-	is.Panics(func() {
-		values, err = Collect(
-			TakeLast[int](-1)(Just(1, 2, 3)),
+		values, err := Collect(
+			TakeWhileI(predicate)(Empty[int]()),
 		)
 		is.Equal([]int{}, values)
 		is.NoError(err)
+	})
+
+	t.Run("error propagation", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			TakeWhileI(predicate)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("early completion stops a synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var emitted int64
+
+		values, err := Collect(TakeWhileI(func(v int, i int64) bool { return i < 3 })(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{0, 1, 2}, values)
+		is.NoError(err)
+		is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+		emitted = 0
+		values, err = Collect(TakeWhileIWithContext(func(ctx context.Context, v int, i int64) (context.Context, bool) { return ctx, i < 3 })(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{0, 1, 2}, values)
+		is.NoError(err)
+		is.Equal(int64(4), atomic.LoadInt64(&emitted))
+	})
+
+	t.Run("early completion tears down an asynchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var tornDown int32
+
+		values, err := Collect(TakeWhileI(func(v int, i int64) bool { return i < 3 })(tickingAsyncSource(&tornDown)))
+		is.Equal([]int{0, 1, 2}, values)
+		is.NoError(err)
+		is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+	})
+}
+
+func TestOperatorFilterTakeLast(t *testing.T) { //nolint:paralleltest
+	testWithTimeout(t, 10*time.Millisecond)
+
+	t.Run("count exceeds source length", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			TakeLast[int](10)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("last two values", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			TakeLast[int](2)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("zero count", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			TakeLast[int](0)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			TakeLast[int](42)(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error propagation", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			TakeLast[int](42)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("negative count panics", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		is.Panics(func() {
+			values, err := Collect(
+				TakeLast[int](-1)(Just(1, 2, 3)),
+			)
+			is.Equal([]int{}, values)
+			is.NoError(err)
+		})
 	})
 }
 
 func TestOperatorFilterTakeUntil(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		Pipe1(
-			RangeWithInterval(0, 5, 20*time.Millisecond),
-			TakeUntil[int64](Interval(50*time.Millisecond)),
-		),
-	)
-	is.Equal([]int64{0, 1}, values)
-	is.NoError(err)
+	t.Run("signal fires mid-stream", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			RangeWithInterval(0, 3, 20*time.Millisecond),
-			TakeUntil[int64](Interval(10*time.Millisecond)),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(0, 5, 20*time.Millisecond),
+				TakeUntil[int64](Interval(50*time.Millisecond)),
+			),
+		)
+		is.Equal([]int64{0, 1}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Empty[int64](),
-			TakeUntil[int64](Interval(10*time.Millisecond)),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+	t.Run("signal fires before the first value", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			RangeWithInterval(0, 3, 10*time.Millisecond),
-			TakeUntil[int64](Empty[int64]()),
-		),
-	)
-	is.Equal([]int64{0, 1, 2}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(0, 3, 20*time.Millisecond),
+				TakeUntil[int64](Interval(10*time.Millisecond)),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Throw[int64](assert.AnError),
-			TakeUntil[int64](Interval(10*time.Millisecond)),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			RangeWithInterval(0, 3, 10*time.Millisecond),
-			TakeUntil[int64](Throw[int64](assert.AnError)),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Pipe1(
+				Empty[int64](),
+				TakeUntil[int64](Interval(10*time.Millisecond)),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty signal", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(0, 3, 10*time.Millisecond),
+				TakeUntil[int64](Empty[int64]()),
+			),
+		)
+		is.Equal([]int64{0, 1, 2}, values)
+		is.NoError(err)
+	})
+
+	t.Run("source error", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Throw[int64](assert.AnError),
+				TakeUntil[int64](Interval(10*time.Millisecond)),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("signal error", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(0, 3, 10*time.Millisecond),
+				TakeUntil[int64](Throw[int64](assert.AnError)),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorFilterTakeUntil_signalOrder(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// The signal is subscribed before the source: a synchronous signal
-	// completes the stream before a synchronous source emits.
-	values, err := Collect(
-		Pipe1(
-			Just(1, 2, 3),
-			TakeUntil[int](Just("stop")),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("synchronous signal completes before the source emits", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// A signal that only completes never stops the stream.
-	values, err = Collect(
-		Pipe1(
-			Just(1, 2, 3),
-			TakeUntil[int](Empty[string]()),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+		// The signal is subscribed before the source: a synchronous signal
+		// completes the stream before a synchronous source emits.
+		values, err := Collect(
+			Pipe1(
+				Just(1, 2, 3),
+				TakeUntil[int](Just("stop")),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
 
-	// A signal error terminates the stream, even when the source is synchronous.
-	values, err = Collect(
-		Pipe1(
-			Just(1, 2, 3),
-			TakeUntil[int](Throw[string](assert.AnError)),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("completing signal never stops the stream", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// The source error wins when the signal stays silent.
-	values, err = Collect(
-		Pipe1(
-			Throw[int](assert.AnError),
-			TakeUntil[int](Never()),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Pipe1(
+				Just(1, 2, 3),
+				TakeUntil[int](Empty[string]()),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("signal error terminates the stream", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Just(1, 2, 3),
+				TakeUntil[int](Throw[string](assert.AnError)),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("source error wins over silent signal", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Throw[int](assert.AnError),
+				TakeUntil[int](Never()),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
-func TestOperatorFilterHead(t *testing.T) {
-	t.Parallel()
+func TestOperatorFilterHead(t *testing.T) { //nolint:paralleltest
 	testWithTimeout(t, 500*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		Head[int]()(Just(1, 2, 3)),
-	)
-	is.Equal([]int{1}, values)
-	is.NoError(err)
+	t.Run("first of several values", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Head[int]()(Just(1)),
-	)
-	is.Equal([]int{1}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Head[int]()(Just(1, 2, 3)),
+		)
+		is.Equal([]int{1}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Head[int]()(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, ErrHeadEmpty.Error())
+	t.Run("single value", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Head[int]()(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Head[int]()(Just(1)),
+		)
+		is.Equal([]int{1}, values)
+		is.NoError(err)
+	})
 
-	// early completion stops a synchronous source
-	var emitted int64
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(Head[int]()(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{0}, values)
-	is.NoError(err)
-	is.Equal(int64(1), atomic.LoadInt64(&emitted))
+		values, err := Collect(
+			Head[int]()(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, ErrHeadEmpty.Error())
+	})
 
-	// an unbounded synchronous source never returns unless the operator stops it
-	infinite, err := Collect(Head[int64]()(Repeat(int64(7), math.MaxInt64)))
-	is.Equal([]int64{7}, infinite)
-	is.NoError(err)
+	t.Run("error propagation", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// early completion tears down an asynchronous source
-	var tornDown int32
+		values, err := Collect(
+			Head[int]()(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
-	values, err = Collect(Head[int]()(tickingAsyncSource(&tornDown)))
-	is.Equal([]int{0}, values)
-	is.NoError(err)
-	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+	t.Run("early completion stops a synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var emitted int64
+
+		values, err := Collect(Head[int]()(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{0}, values)
+		is.NoError(err)
+		is.Equal(int64(1), atomic.LoadInt64(&emitted))
+	})
+
+	t.Run("unbounded synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		infinite, err := Collect(Head[int64]()(Repeat(int64(7), math.MaxInt64)))
+		is.Equal([]int64{7}, infinite)
+		is.NoError(err)
+	})
+
+	t.Run("early completion tears down an asynchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var tornDown int32
+
+		values, err := Collect(Head[int]()(tickingAsyncSource(&tornDown)))
+		is.Equal([]int{0}, values)
+		is.NoError(err)
+		is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+	})
 }
 
 func TestOperatorFilterTail(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Tail[int]()(Just(1, 2, 3)),
-	)
-	is.Equal([]int{3}, values)
-	is.NoError(err)
+	t.Run("last of several values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Tail[int]()(Just(1)),
-	)
-	is.Equal([]int{1}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Tail[int]()(Just(1, 2, 3)),
+		)
+		is.Equal([]int{3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Tail[int]()(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, ErrTailEmpty.Error())
+	t.Run("single value", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Tail[int]()(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Tail[int]()(Just(1)),
+		)
+		is.Equal([]int{1}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Tail[int]()(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, ErrTailEmpty.Error())
+	})
+
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Tail[int]()(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
-func TestOperatorFilterFirst(t *testing.T) {
-	t.Parallel()
+func TestOperatorFilterFirst(t *testing.T) { //nolint:paralleltest
 	testWithTimeout(t, 500*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		Pipe1(
-			Just(1, 2, 3),
-			First(func(item int) bool {
-				return item > 1
-			}),
-		),
-	)
-	is.Equal([]int{2}, values)
-	is.NoError(err)
+	t.Run("first match", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			Just(1),
-			First(func(item int) bool {
-				return item > 0
-			}),
-		),
-	)
-	is.Equal([]int{1}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Pipe1(
+				Just(1, 2, 3),
+				First(func(item int) bool {
+					return item > 1
+				}),
+			),
+		)
+		is.Equal([]int{2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Just(1),
-			First(func(item int) bool {
-				return item > 1
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, ErrFirstEmpty.Error())
+	t.Run("match on the only value", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			Empty[int](),
-			First(func(item int) bool {
-				return item > 2
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, ErrFirstEmpty.Error())
+		values, err := Collect(
+			Pipe1(
+				Just(1),
+				First(func(item int) bool {
+					return item > 0
+				}),
+			),
+		)
+		is.Equal([]int{1}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Throw[int](assert.AnError),
-			First(func(item int) bool {
-				return item > 2
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("no value matches", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// early completion stops a synchronous source
-	var emitted int64
+		values, err := Collect(
+			Pipe1(
+				Just(1),
+				First(func(item int) bool {
+					return item > 1
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, ErrFirstEmpty.Error())
+	})
 
-	values, err = Collect(First(func(v int) bool { return v == 3 })(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{3}, values)
-	is.NoError(err)
-	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	emitted = 0
-	values, err = Collect(FirstI(func(v int, i int64) bool { return i == 3 })(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{3}, values)
-	is.NoError(err)
-	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+		values, err := Collect(
+			Pipe1(
+				Empty[int](),
+				First(func(item int) bool {
+					return item > 2
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, ErrFirstEmpty.Error())
+	})
 
-	emitted = 0
-	values, err = Collect(FirstWithContext(func(ctx context.Context, v int) (context.Context, bool) { return ctx, v == 3 })(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{3}, values)
-	is.NoError(err)
-	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+	t.Run("error propagation", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	emitted = 0
-	values, err = Collect(FirstIWithContext(func(ctx context.Context, v int, i int64) (context.Context, bool) { return ctx, i == 3 })(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{3}, values)
-	is.NoError(err)
-	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+		values, err := Collect(
+			Pipe1(
+				Throw[int](assert.AnError),
+				First(func(item int) bool {
+					return item > 2
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
-	// an unbounded synchronous source never returns unless the operator stops it
-	infinite, err := Collect(First(func(v int64) bool { return v == 2 })(Range(0, math.MaxInt64)))
-	is.Equal([]int64{2}, infinite)
-	is.NoError(err)
+	t.Run("early completion stops a synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// early completion tears down an asynchronous source
-	var tornDown int32
+		var emitted int64
 
-	values, err = Collect(First(func(v int) bool { return v == 2 })(tickingAsyncSource(&tornDown)))
-	is.Equal([]int{2}, values)
-	is.NoError(err)
-	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+		values, err := Collect(First(func(v int) bool { return v == 3 })(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{3}, values)
+		is.NoError(err)
+		is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+		emitted = 0
+		values, err = Collect(FirstI(func(v int, i int64) bool { return i == 3 })(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{3}, values)
+		is.NoError(err)
+		is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+		emitted = 0
+		values, err = Collect(FirstWithContext(func(ctx context.Context, v int) (context.Context, bool) { return ctx, v == 3 })(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{3}, values)
+		is.NoError(err)
+		is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+		emitted = 0
+		values, err = Collect(FirstIWithContext(func(ctx context.Context, v int, i int64) (context.Context, bool) { return ctx, i == 3 })(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{3}, values)
+		is.NoError(err)
+		is.Equal(int64(4), atomic.LoadInt64(&emitted))
+	})
+
+	t.Run("unbounded synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		infinite, err := Collect(First(func(v int64) bool { return v == 2 })(Range(0, math.MaxInt64)))
+		is.Equal([]int64{2}, infinite)
+		is.NoError(err)
+	})
+
+	t.Run("early completion tears down an asynchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var tornDown int32
+
+		values, err := Collect(First(func(v int) bool { return v == 2 })(tickingAsyncSource(&tornDown)))
+		is.Equal([]int{2}, values)
+		is.NoError(err)
+		is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+	})
 }
 
 func TestOperatorFilterLast(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Pipe1(
-			Just(1, 2, 3),
-			Last(func(item int) bool {
-				return item > 1
-			}),
-		),
-	)
-	is.Equal([]int{3}, values)
-	is.NoError(err)
+	t.Run("last match", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			Just(1),
-			Last(func(item int) bool {
-				return item > 0
-			}),
-		),
-	)
-	is.Equal([]int{1}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Pipe1(
+				Just(1, 2, 3),
+				Last(func(item int) bool {
+					return item > 1
+				}),
+			),
+		)
+		is.Equal([]int{3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Just(1),
-			Last(func(item int) bool {
-				return item > 1
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, ErrLastEmpty.Error())
+	t.Run("match on the only value", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			Empty[int](),
-			Last(func(item int) bool {
-				return item > 1
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, ErrLastEmpty.Error())
+		values, err := Collect(
+			Pipe1(
+				Just(1),
+				Last(func(item int) bool {
+					return item > 0
+				}),
+			),
+		)
+		is.Equal([]int{1}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Throw[int](assert.AnError),
-			Last(func(item int) bool {
-				return item > 1
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("no value matches", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Just(1),
+				Last(func(item int) bool {
+					return item > 1
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, ErrLastEmpty.Error())
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Empty[int](),
+				Last(func(item int) bool {
+					return item > 1
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, ErrLastEmpty.Error())
+	})
+
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Throw[int](assert.AnError),
+				Last(func(item int) bool {
+					return item > 1
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
-func TestOperatorFilterElementAt(t *testing.T) {
-	t.Parallel()
+func TestOperatorFilterElementAt(t *testing.T) { //nolint:paralleltest
 	testWithTimeout(t, 500*time.Millisecond)
-	is := assert.New(t)
 
-	is.PanicsWithError(
-		ErrElementAtWrongNth.Error(),
-		func() {
-			_ = ElementAt[int](-42)(Just(1, 2, 3))
-		},
-	)
+	t.Run("negative index panics", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err := Collect(
-		ElementAt[int](1)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{2}, values)
-	is.NoError(err)
+		is.PanicsWithError(
+			ErrElementAtWrongNth.Error(),
+			func() {
+				_ = ElementAt[int](-42)(Just(1, 2, 3))
+			},
+		)
+	})
 
-	values, err = Collect(
-		ElementAt[int](2)(Just(1)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, ErrElementAtNotFound.Error())
+	t.Run("element at index", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ElementAt[int](42)(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, ErrElementAtNotFound.Error())
+		values, err := Collect(
+			ElementAt[int](1)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ElementAt[int](42)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("index beyond source length", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// early completion stops a synchronous source
-	var emitted int64
+		values, err := Collect(
+			ElementAt[int](2)(Just(1)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, ErrElementAtNotFound.Error())
+	})
 
-	values, err = Collect(ElementAt[int](3)(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{3}, values)
-	is.NoError(err)
-	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	emitted = 0
-	values, err = Collect(ElementAt[int](0)(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{0}, values)
-	is.NoError(err)
-	is.Equal(int64(1), atomic.LoadInt64(&emitted))
+		values, err := Collect(
+			ElementAt[int](42)(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, ErrElementAtNotFound.Error())
+	})
 
-	// an unbounded synchronous source never returns unless the operator stops it
-	infinite, err := Collect(ElementAt[int64](2)(Range(0, math.MaxInt64)))
-	is.Equal([]int64{2}, infinite)
-	is.NoError(err)
+	t.Run("error propagation", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// early completion tears down an asynchronous source
-	var tornDown int32
+		values, err := Collect(
+			ElementAt[int](42)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
-	values, err = Collect(ElementAt[int](2)(tickingAsyncSource(&tornDown)))
-	is.Equal([]int{2}, values)
-	is.NoError(err)
-	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+	t.Run("early completion stops a synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var emitted int64
+
+		values, err := Collect(ElementAt[int](3)(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{3}, values)
+		is.NoError(err)
+		is.Equal(int64(4), atomic.LoadInt64(&emitted))
+
+		emitted = 0
+		values, err = Collect(ElementAt[int](0)(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{0}, values)
+		is.NoError(err)
+		is.Equal(int64(1), atomic.LoadInt64(&emitted))
+	})
+
+	t.Run("unbounded synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		infinite, err := Collect(ElementAt[int64](2)(Range(0, math.MaxInt64)))
+		is.Equal([]int64{2}, infinite)
+		is.NoError(err)
+	})
+
+	t.Run("early completion tears down an asynchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var tornDown int32
+
+		values, err := Collect(ElementAt[int](2)(tickingAsyncSource(&tornDown)))
+		is.Equal([]int{2}, values)
+		is.NoError(err)
+		is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+	})
 }
 
-func TestOperatorFilterElementAtOrDefault(t *testing.T) {
-	t.Parallel()
+func TestOperatorFilterElementAtOrDefault(t *testing.T) { //nolint:paralleltest
 	testWithTimeout(t, 500*time.Millisecond)
-	is := assert.New(t)
 
-	is.PanicsWithError(
-		ErrElementAtOrDefaultWrongNth.Error(),
-		func() {
-			_ = ElementAtOrDefault(-42, 42)(Just(1, 2, 3))
-		},
-	)
+	t.Run("negative index panics", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err := Collect(
-		ElementAtOrDefault(1, 100)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{2}, values)
-	is.NoError(err)
+		is.PanicsWithError(
+			ErrElementAtOrDefaultWrongNth.Error(),
+			func() {
+				_ = ElementAtOrDefault(-42, 42)(Just(1, 2, 3))
+			},
+		)
+	})
 
-	values, err = Collect(
-		ElementAtOrDefault(2, 100)(Just(1)),
-	)
-	is.Equal([]int{100}, values)
-	is.NoError(err)
+	t.Run("element at index", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ElementAtOrDefault(42, 100)(Empty[int]()),
-	)
-	is.Equal([]int{100}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ElementAtOrDefault(1, 100)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ElementAtOrDefault(42, 100)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("default when index is beyond source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// early completion stops a synchronous source
-	var emitted int64
+		values, err := Collect(
+			ElementAtOrDefault(2, 100)(Just(1)),
+		)
+		is.Equal([]int{100}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(ElementAtOrDefault(3, -1)(countingSyncSource(1000, &emitted)))
-	is.Equal([]int{3}, values)
-	is.NoError(err)
-	is.Equal(int64(4), atomic.LoadInt64(&emitted))
+	t.Run("default on empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// an unbounded synchronous source never returns unless the operator stops it
-	infinite, err := Collect(ElementAtOrDefault(2, int64(-1))(Range(0, math.MaxInt64)))
-	is.Equal([]int64{2}, infinite)
-	is.NoError(err)
+		values, err := Collect(
+			ElementAtOrDefault(42, 100)(Empty[int]()),
+		)
+		is.Equal([]int{100}, values)
+		is.NoError(err)
+	})
 
-	// early completion tears down an asynchronous source
-	var tornDown int32
+	t.Run("error propagation", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(ElementAtOrDefault(2, -1)(tickingAsyncSource(&tornDown)))
-	is.Equal([]int{2}, values)
-	is.NoError(err)
-	is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+		values, err := Collect(
+			ElementAtOrDefault(42, 100)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("early completion stops a synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var emitted int64
+
+		values, err := Collect(ElementAtOrDefault(3, -1)(countingSyncSource(1000, &emitted)))
+		is.Equal([]int{3}, values)
+		is.NoError(err)
+		is.Equal(int64(4), atomic.LoadInt64(&emitted))
+	})
+
+	t.Run("unbounded synchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		infinite, err := Collect(ElementAtOrDefault(2, int64(-1))(Range(0, math.MaxInt64)))
+		is.Equal([]int64{2}, infinite)
+		is.NoError(err)
+	})
+
+	t.Run("early completion tears down an asynchronous source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		var tornDown int32
+
+		values, err := Collect(ElementAtOrDefault(2, -1)(tickingAsyncSource(&tornDown)))
+		is.Equal([]int{2}, values)
+		is.NoError(err)
+		is.Eventually(func() bool { return atomic.LoadInt32(&tornDown) == 1 }, time.Second, time.Millisecond)
+	})
 }

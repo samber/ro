@@ -50,82 +50,105 @@ func Compare[T constraints.Ordered](x, y T) int {
 	return 0
 }
 
+//nolint:paralleltest // subtests share the testWithTimeout guard and must not run in parallel
 func TestSort(t *testing.T) {
-	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
 
-	// Test with empty observable
-	values, err := ro.Collect(
-		Sort(Compare[int])(
-			ro.Just[int](),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.Nil(err)
+	t.Run("empty observable", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with single value
-	values, err = ro.Collect(
-		Sort(Compare[int])(
-			ro.Just(42),
-		),
-	)
-	is.Equal([]int{42}, values)
-	is.Nil(err)
+		values, err := ro.Collect(
+			Sort(Compare[int])(
+				ro.Just[int](),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.Nil(err)
+	})
 
-	// Test with already sorted values
-	values, err = ro.Collect(
-		Sort(Compare[int])(
-			ro.Just(1, 2, 3, 4, 5),
-		),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5}, values)
-	is.Nil(err)
+	t.Run("single value", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with reverse sorted values
-	values, err = ro.Collect(
-		Sort(Compare[int])(
-			ro.Just(5, 4, 3, 2, 1),
-		),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5}, values)
-	is.Nil(err)
+		values, err := ro.Collect(
+			Sort(Compare[int])(
+				ro.Just(42),
+			),
+		)
+		is.Equal([]int{42}, values)
+		is.Nil(err)
+	})
 
-	// Test with mixed values
-	values, err = ro.Collect(
-		Sort(Compare[int])(
-			ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
-		),
-	)
-	is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
-	is.Nil(err)
+	t.Run("already sorted values", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with negative values
-	values, err = ro.Collect(
-		Sort(Compare[int])(
-			ro.Just(-5, 10, -3, 0, 7, -1),
-		),
-	)
-	is.Equal([]int{-5, -3, -1, 0, 7, 10}, values)
-	is.Nil(err)
+		values, err := ro.Collect(
+			Sort(Compare[int])(
+				ro.Just(1, 2, 3, 4, 5),
+			),
+		)
+		is.Equal([]int{1, 2, 3, 4, 5}, values)
+		is.Nil(err)
+	})
 
-	// Test with strings
-	valuesStr, err := ro.Collect(
-		Sort(Compare[string])(
-			ro.Just("banana", "apple", "cherry", "date"),
-		),
-	)
-	is.Equal([]string{"apple", "banana", "cherry", "date"}, valuesStr)
-	is.Nil(err)
+	t.Run("reverse sorted values", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with floats
-	valuesFloat, err := ro.Collect(
-		Sort(Compare[float64])(
-			ro.Just(3.14, 2.71, 1.41, 2.23),
-		),
-	)
-	is.Equal([]float64{1.41, 2.23, 2.71, 3.14}, valuesFloat)
-	is.Nil(err)
+		values, err := ro.Collect(
+			Sort(Compare[int])(
+				ro.Just(5, 4, 3, 2, 1),
+			),
+		)
+		is.Equal([]int{1, 2, 3, 4, 5}, values)
+		is.Nil(err)
+	})
+
+	t.Run("mixed values", func(t *testing.T) {
+		is := assert.New(t)
+
+		values, err := ro.Collect(
+			Sort(Compare[int])(
+				ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
+			),
+		)
+		is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
+		is.Nil(err)
+	})
+
+	t.Run("negative values", func(t *testing.T) {
+		is := assert.New(t)
+
+		values, err := ro.Collect(
+			Sort(Compare[int])(
+				ro.Just(-5, 10, -3, 0, 7, -1),
+			),
+		)
+		is.Equal([]int{-5, -3, -1, 0, 7, 10}, values)
+		is.Nil(err)
+	})
+
+	t.Run("strings", func(t *testing.T) {
+		is := assert.New(t)
+
+		valuesStr, err := ro.Collect(
+			Sort(Compare[string])(
+				ro.Just("banana", "apple", "cherry", "date"),
+			),
+		)
+		is.Equal([]string{"apple", "banana", "cherry", "date"}, valuesStr)
+		is.Nil(err)
+	})
+
+	t.Run("floats", func(t *testing.T) {
+		is := assert.New(t)
+
+		valuesFloat, err := ro.Collect(
+			Sort(Compare[float64])(
+				ro.Just(3.14, 2.71, 1.41, 2.23),
+			),
+		)
+		is.Equal([]float64{1.41, 2.23, 2.71, 3.14}, valuesFloat)
+		is.Nil(err)
+	})
 
 	t.Run("error observable", func(t *testing.T) {
 		testWithTimeout(t, 100*time.Millisecond)
@@ -187,88 +210,111 @@ func TestSort(t *testing.T) {
 	})
 }
 
+//nolint:paralleltest // subtests share the testWithTimeout guard and must not run in parallel
 func TestSortFunc(t *testing.T) {
-	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
 
-	// Test with empty observable
-	values, err := ro.Collect(
-		SortFunc(Compare[int])(
-			ro.Just[int](),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.Nil(err)
+	t.Run("empty observable", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with single value
-	values, err = ro.Collect(
-		SortFunc(Compare[int])(
-			ro.Just(42),
-		),
-	)
-	is.Equal([]int{42}, values)
-	is.Nil(err)
+		values, err := ro.Collect(
+			SortFunc(Compare[int])(
+				ro.Just[int](),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.Nil(err)
+	})
 
-	// Test with already sorted values
-	values, err = ro.Collect(
-		SortFunc(Compare[int])(
-			ro.Just(1, 2, 3, 4, 5),
-		),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5}, values)
-	is.Nil(err)
+	t.Run("single value", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with reverse sorted values
-	values, err = ro.Collect(
-		SortFunc(Compare[int])(
-			ro.Just(5, 4, 3, 2, 1),
-		),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5}, values)
-	is.Nil(err)
+		values, err := ro.Collect(
+			SortFunc(Compare[int])(
+				ro.Just(42),
+			),
+		)
+		is.Equal([]int{42}, values)
+		is.Nil(err)
+	})
 
-	// Test with mixed values
-	values, err = ro.Collect(
-		SortFunc(Compare[int])(
-			ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
-		),
-	)
-	is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
-	is.Nil(err)
+	t.Run("already sorted values", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with custom comparison function (reverse order)
-	values, err = ro.Collect(
-		SortFunc(func(a, b int) int {
-			return Compare(b, a) // reverse order
-		})(
-			ro.Just(1, 2, 3, 4, 5),
-		),
-	)
-	is.Equal([]int{5, 4, 3, 2, 1}, values)
-	is.Nil(err)
+		values, err := ro.Collect(
+			SortFunc(Compare[int])(
+				ro.Just(1, 2, 3, 4, 5),
+			),
+		)
+		is.Equal([]int{1, 2, 3, 4, 5}, values)
+		is.Nil(err)
+	})
 
-	// Test with custom comparison function (absolute value)
-	values, err = ro.Collect(
-		SortFunc(func(a, b int) int {
-			return Compare(abs(a), abs(b))
-		})(
-			ro.Just(-5, 3, -1, 4, -2),
-		),
-	)
-	is.Equal([]int{-1, -2, 3, 4, -5}, values)
-	is.Nil(err)
+	t.Run("reverse sorted values", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with strings using custom comparison (case insensitive)
-	valuesStr, err := ro.Collect(
-		SortFunc(func(a, b string) int {
-			return Compare(toLower(a), toLower(b))
-		})(
-			ro.Just("Banana", "apple", "Cherry", "DATE"),
-		),
-	)
-	is.Equal([]string{"apple", "Banana", "Cherry", "DATE"}, valuesStr)
-	is.Nil(err)
+		values, err := ro.Collect(
+			SortFunc(Compare[int])(
+				ro.Just(5, 4, 3, 2, 1),
+			),
+		)
+		is.Equal([]int{1, 2, 3, 4, 5}, values)
+		is.Nil(err)
+	})
+
+	t.Run("mixed values", func(t *testing.T) {
+		is := assert.New(t)
+
+		values, err := ro.Collect(
+			SortFunc(Compare[int])(
+				ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
+			),
+		)
+		is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
+		is.Nil(err)
+	})
+
+	t.Run("custom comparison function (reverse order)", func(t *testing.T) {
+		is := assert.New(t)
+
+		values, err := ro.Collect(
+			SortFunc(func(a, b int) int {
+				return Compare(b, a) // reverse order
+			})(
+				ro.Just(1, 2, 3, 4, 5),
+			),
+		)
+		is.Equal([]int{5, 4, 3, 2, 1}, values)
+		is.Nil(err)
+	})
+
+	t.Run("custom comparison function (absolute value)", func(t *testing.T) {
+		is := assert.New(t)
+
+		values, err := ro.Collect(
+			SortFunc(func(a, b int) int {
+				return Compare(abs(a), abs(b))
+			})(
+				ro.Just(-5, 3, -1, 4, -2),
+			),
+		)
+		is.Equal([]int{-1, -2, 3, 4, -5}, values)
+		is.Nil(err)
+	})
+
+	t.Run("strings using custom comparison (case insensitive)", func(t *testing.T) {
+		is := assert.New(t)
+
+		valuesStr, err := ro.Collect(
+			SortFunc(func(a, b string) int {
+				return Compare(toLower(a), toLower(b))
+			})(
+				ro.Just("Banana", "apple", "Cherry", "DATE"),
+			),
+		)
+		is.Equal([]string{"apple", "Banana", "Cherry", "DATE"}, valuesStr)
+		is.Nil(err)
+	})
 
 	t.Run("error observable", func(t *testing.T) {
 		testWithTimeout(t, 100*time.Millisecond)
@@ -322,88 +368,111 @@ func TestSortFunc(t *testing.T) {
 	})
 }
 
+//nolint:paralleltest // subtests share the testWithTimeout guard and must not run in parallel
 func TestSortStableFunc(t *testing.T) {
-	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
 
-	// Test with empty observable
-	values, err := ro.Collect(
-		SortStableFunc(Compare[int])(
-			ro.Just[int](),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.Nil(err)
+	t.Run("empty observable", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with single value
-	values, err = ro.Collect(
-		SortStableFunc(Compare[int])(
-			ro.Just(42),
-		),
-	)
-	is.Equal([]int{42}, values)
-	is.Nil(err)
+		values, err := ro.Collect(
+			SortStableFunc(Compare[int])(
+				ro.Just[int](),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.Nil(err)
+	})
 
-	// Test with already sorted values
-	values, err = ro.Collect(
-		SortStableFunc(Compare[int])(
-			ro.Just(1, 2, 3, 4, 5),
-		),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5}, values)
-	is.Nil(err)
+	t.Run("single value", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with reverse sorted values
-	values, err = ro.Collect(
-		SortStableFunc(Compare[int])(
-			ro.Just(5, 4, 3, 2, 1),
-		),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5}, values)
-	is.Nil(err)
+		values, err := ro.Collect(
+			SortStableFunc(Compare[int])(
+				ro.Just(42),
+			),
+		)
+		is.Equal([]int{42}, values)
+		is.Nil(err)
+	})
 
-	// Test with mixed values
-	values, err = ro.Collect(
-		SortStableFunc(Compare[int])(
-			ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
-		),
-	)
-	is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
-	is.Nil(err)
+	t.Run("already sorted values", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with custom comparison function (reverse order)
-	values, err = ro.Collect(
-		SortStableFunc(func(a, b int) int {
-			return Compare(b, a) // reverse order
-		})(
-			ro.Just(1, 2, 3, 4, 5),
-		),
-	)
-	is.Equal([]int{5, 4, 3, 2, 1}, values)
-	is.Nil(err)
+		values, err := ro.Collect(
+			SortStableFunc(Compare[int])(
+				ro.Just(1, 2, 3, 4, 5),
+			),
+		)
+		is.Equal([]int{1, 2, 3, 4, 5}, values)
+		is.Nil(err)
+	})
 
-	// Test with custom comparison function (absolute value)
-	values, err = ro.Collect(
-		SortStableFunc(func(a, b int) int {
-			return Compare(abs(a), abs(b))
-		})(
-			ro.Just(-5, 3, -1, 4, -2),
-		),
-	)
-	is.Equal([]int{-1, -2, 3, 4, -5}, values)
-	is.Nil(err)
+	t.Run("reverse sorted values", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with strings using custom comparison (case insensitive)
-	valuesStr, err := ro.Collect(
-		SortStableFunc(func(a, b string) int {
-			return Compare(toLower(a), toLower(b))
-		})(
-			ro.Just("Banana", "apple", "Cherry", "DATE"),
-		),
-	)
-	is.Equal([]string{"apple", "Banana", "Cherry", "DATE"}, valuesStr)
-	is.Nil(err)
+		values, err := ro.Collect(
+			SortStableFunc(Compare[int])(
+				ro.Just(5, 4, 3, 2, 1),
+			),
+		)
+		is.Equal([]int{1, 2, 3, 4, 5}, values)
+		is.Nil(err)
+	})
+
+	t.Run("mixed values", func(t *testing.T) {
+		is := assert.New(t)
+
+		values, err := ro.Collect(
+			SortStableFunc(Compare[int])(
+				ro.Just(3, 1, 4, 1, 5, 9, 2, 6),
+			),
+		)
+		is.Equal([]int{1, 1, 2, 3, 4, 5, 6, 9}, values)
+		is.Nil(err)
+	})
+
+	t.Run("custom comparison function (reverse order)", func(t *testing.T) {
+		is := assert.New(t)
+
+		values, err := ro.Collect(
+			SortStableFunc(func(a, b int) int {
+				return Compare(b, a) // reverse order
+			})(
+				ro.Just(1, 2, 3, 4, 5),
+			),
+		)
+		is.Equal([]int{5, 4, 3, 2, 1}, values)
+		is.Nil(err)
+	})
+
+	t.Run("custom comparison function (absolute value)", func(t *testing.T) {
+		is := assert.New(t)
+
+		values, err := ro.Collect(
+			SortStableFunc(func(a, b int) int {
+				return Compare(abs(a), abs(b))
+			})(
+				ro.Just(-5, 3, -1, 4, -2),
+			),
+		)
+		is.Equal([]int{-1, -2, 3, 4, -5}, values)
+		is.Nil(err)
+	})
+
+	t.Run("strings using custom comparison (case insensitive)", func(t *testing.T) {
+		is := assert.New(t)
+
+		valuesStr, err := ro.Collect(
+			SortStableFunc(func(a, b string) int {
+				return Compare(toLower(a), toLower(b))
+			})(
+				ro.Just("Banana", "apple", "Cherry", "DATE"),
+			),
+		)
+		is.Equal([]string{"apple", "Banana", "Cherry", "DATE"}, valuesStr)
+		is.Nil(err)
+	})
 
 	t.Run("error observable", func(t *testing.T) {
 		testWithTimeout(t, 100*time.Millisecond)
@@ -495,46 +564,57 @@ func toLower(s string) string {
 	return result
 }
 
+//nolint:paralleltest // subtests share the testWithTimeout guard and must not run in parallel
 func TestReverse(t *testing.T) {
-	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
 
-	// Test with empty observable
-	values, err := ro.Collect(
-		Reverse[int]()(
-			ro.Just[int](),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("empty observable", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with single value
-	values, err = ro.Collect(
-		Reverse[int]()(
-			ro.Just(42),
-		),
-	)
-	is.Equal([]int{42}, values)
-	is.NoError(err)
+		values, err := ro.Collect(
+			Reverse[int]()(
+				ro.Just[int](),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
 
-	// Test with multiple values
-	values, err = ro.Collect(
-		Reverse[int]()(
-			ro.Just(1, 2, 3, 4, 5),
-		),
-	)
-	is.Equal([]int{5, 4, 3, 2, 1}, values)
-	is.NoError(err)
+	t.Run("single value", func(t *testing.T) {
+		is := assert.New(t)
 
-	// Test with strings
-	valuesStr, err := ro.Collect(
-		Reverse[string]()(
-			ro.Just("apple", "banana", "cherry"),
-		),
-	)
-	is.Equal([]string{"cherry", "banana", "apple"}, valuesStr)
-	is.NoError(err)
+		values, err := ro.Collect(
+			Reverse[int]()(
+				ro.Just(42),
+			),
+		)
+		is.Equal([]int{42}, values)
+		is.NoError(err)
+	})
+
+	t.Run("multiple values", func(t *testing.T) {
+		is := assert.New(t)
+
+		values, err := ro.Collect(
+			Reverse[int]()(
+				ro.Just(1, 2, 3, 4, 5),
+			),
+		)
+		is.Equal([]int{5, 4, 3, 2, 1}, values)
+		is.NoError(err)
+	})
+
+	t.Run("strings", func(t *testing.T) {
+		is := assert.New(t)
+
+		valuesStr, err := ro.Collect(
+			Reverse[string]()(
+				ro.Just("apple", "banana", "cherry"),
+			),
+		)
+		is.Equal([]string{"cherry", "banana", "apple"}, valuesStr)
+		is.NoError(err)
+	})
 
 	t.Run("error observable", func(t *testing.T) {
 		testWithTimeout(t, 100*time.Millisecond)

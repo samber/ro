@@ -699,47 +699,58 @@ func TestObserver_concurrentAccess(t *testing.T) {
 
 func TestObserver_panicHandling(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// Test panic in Next callback
-	observer1 := NewObserver(
-		func(value int) { panic("test panic") },
-		func(err error) {},
-		func() {},
-	)
+	t.Run("panic in Next callback", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// Should not panic the test
-	observer1.Next(42)
-	// After panic in Next, the error handler is called but observer status is not changed
-	// This appears to be a limitation of the current implementation
-	is.False(observer1.IsClosed())
-	is.False(observer1.HasThrown())
+		observer := NewObserver(
+			func(value int) { panic("test panic") },
+			func(err error) {},
+			func() {},
+		)
 
-	// Test panic in Error callback
-	observer2 := NewObserver(
-		func(value int) {},
-		func(err error) { panic("test panic") },
-		func() {},
-	)
+		// Should not panic the test
+		observer.Next(42)
+		// After panic in Next, the error handler is called but observer status is not changed
+		// This appears to be a limitation of the current implementation
+		is.False(observer.IsClosed())
+		is.False(observer.HasThrown())
+	})
 
-	// Should not panic the test
-	observer2.Error(assert.AnError)
-	// After panic in Error, the observer should still be closed
-	is.True(observer2.IsClosed())
-	is.True(observer2.HasThrown())
+	t.Run("panic in Error callback", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// Test panic in Complete callback
-	observer3 := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() { panic("test panic") },
-	)
+		observer := NewObserver(
+			func(value int) {},
+			func(err error) { panic("test panic") },
+			func() {},
+		)
 
-	// Should not panic the test
-	observer3.Complete()
-	// After panic in Complete, the observer should still be closed
-	is.True(observer3.IsClosed())
-	is.True(observer3.IsCompleted())
+		// Should not panic the test
+		observer.Error(assert.AnError)
+		// After panic in Error, the observer should still be closed
+		is.True(observer.IsClosed())
+		is.True(observer.HasThrown())
+	})
+
+	t.Run("panic in Complete callback", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		observer := NewObserver(
+			func(value int) {},
+			func(err error) {},
+			func() { panic("test panic") },
+		)
+
+		// Should not panic the test
+		observer.Complete()
+		// After panic in Complete, the observer should still be closed
+		is.True(observer.IsClosed())
+		is.True(observer.IsCompleted())
+	})
 }
 
 func TestObserver_mixedOperations(t *testing.T) {

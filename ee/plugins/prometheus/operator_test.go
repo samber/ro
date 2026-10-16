@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 package roprometheus
 
 import (
@@ -194,34 +193,32 @@ func TestIncCounterOnSubscription(t *testing.T) {
 }
 
 func TestObserveNextLag(t *testing.T) {
-	// t.Parallel()
+	t.Run("delayed items", func(t *testing.T) {
+		bypassLicenseCheck = true
 
-	bypassLicenseCheck = true
+		var myHistogram = prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Name:        "my_histogram",
+				Help:        "My histogram",
+				ConstLabels: prometheus.Labels{"a": "b"},
+				Buckets:     prometheus.DefBuckets,
+			},
+		)
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(myHistogram)
 
-	var myHistogram = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Name:        "my_histogram",
-			Help:        "My histogram",
-			ConstLabels: prometheus.Labels{"a": "b"},
-			Buckets:     prometheus.DefBuckets,
-		},
-	)
-	reg := prometheus.NewRegistry()
-	reg.MustRegister(myHistogram)
+		obs := ro.Pipe2(
+			ro.Just(0, 1, 2, 3),
+			ObserveNextLag[int](myHistogram),
+			ro.Map(func(i int) int {
+				time.Sleep(time.Duration(i)*time.Second + 15*time.Millisecond)
+				return i
+			}),
+		)
+		_, _ = ro.Collect(obs)
 
-	// Test with immediate processing (should have very low latency)
-	obs := ro.Pipe2(
-		ro.Just(0, 1, 2, 3),
-		ObserveNextLag[int](myHistogram),
-		ro.Map(func(i int) int {
-			time.Sleep(time.Duration(i)*time.Second + 15*time.Millisecond)
-			return i
-		}),
-	)
-	_, _ = ro.Collect(obs)
-
-	// Check that the histogram has observations
-	expected := `
+		// Check that the histogram has observations
+		expected := `
 		# HELP my_histogram My histogram
 		# TYPE my_histogram histogram
 		my_histogram_bucket{a="b",le="0.005"} 0
@@ -238,9 +235,10 @@ func TestObserveNextLag(t *testing.T) {
 		my_histogram_bucket{a="b",le="+Inf"} 4
 		my_histogram_count{a="b"} 4
 	`
-	if err := testutil.CollectAndCompare(myHistogram, strings.NewReader(expected), "my_histogram_bucket"); err != nil {
-		t.Errorf("unexpected collecting result:\n%s", err)
-	}
+		if err := testutil.CollectAndCompare(myHistogram, strings.NewReader(expected), "my_histogram_bucket"); err != nil {
+			t.Errorf("unexpected collecting result:\n%s", err)
+		}
+	})
 
 	t.Run("observable that emits an error", func(t *testing.T) {
 		// t.Parallel()

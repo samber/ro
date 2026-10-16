@@ -614,11 +614,32 @@ func TestUnicastSubject_implBufferOverflow(t *testing.T) {
 
 func TestUnicastSubject_invalidBufferSize(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	is.PanicsWithValue(ErrUnicastSubjectWrongBufferSize, func() { NewUnicastSubject[int](-2) })
-	is.PanicsWithValue(ErrUnicastSubjectWrongBufferSize, func() { NewUnicastSubject[int](math.MinInt) })
+	t.Run("negative size panics", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	is.NotPanics(func() { NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize) })
-	is.NotPanics(func() { NewUnicastSubject[int](0) })
+		is.PanicsWithValue(ErrUnicastSubjectWrongBufferSize, func() { NewUnicastSubject[int](-2) })
+	})
+
+	t.Run("min int size panics", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		is.PanicsWithValue(ErrUnicastSubjectWrongBufferSize, func() { NewUnicastSubject[int](math.MinInt) })
+	})
+
+	t.Run("unlimited size does not panic", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		is.NotPanics(func() { NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize) })
+	})
+
+	t.Run("zero size does not panic", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		is.NotPanics(func() { NewUnicastSubject[int](0) })
+	})
 }

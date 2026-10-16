@@ -23,150 +23,245 @@ import (
 
 func TestOperatorMathAverage(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Average[int]()(Just(1, 2, 3)),
-	)
-	is.Equal([]float64{2}, values)
-	is.NoError(err)
+	t.Run("odd count", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Average[int]()(Just(1, 2)),
-	)
-	is.Equal([]float64{1.5}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Average[int]()(Just(1, 2, 3)),
+		)
+		is.Equal([]float64{2}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Average[int]()(Just(1, -1)),
-	)
-	is.Equal([]float64{0}, values)
-	is.NoError(err)
+	t.Run("fractional average", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Average[int]()(Empty[int]()),
-	)
-	is.True(math.IsNaN(values[0]))
-	is.NoError(err)
+		values, err := Collect(
+			Average[int]()(Just(1, 2)),
+		)
+		is.Equal([]float64{1.5}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Average[int]()(Throw[int](assert.AnError)),
-	)
-	is.Equal([]float64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("cancelling values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Average[int]()(Just(1, -1)),
+		)
+		is.Equal([]float64{0}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Average[int]()(Empty[int]()),
+		)
+		is.True(math.IsNaN(values[0]))
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Average[int]()(Throw[int](assert.AnError)),
+		)
+		is.Equal([]float64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorMathCount(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Count[int]()(Just(1, 2, 3)),
-	)
-	is.Equal([]int64{3}, values)
-	is.NoError(err)
+	t.Run("items", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Count[int]()(Empty[int]()),
-	)
-	is.Equal([]int64{0}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Count[int]()(Just(1, 2, 3)),
+		)
+		is.Equal([]int64{3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Count[int]()(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Count[int]()(Empty[int]()),
+		)
+		is.Equal([]int64{0}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Count[int]()(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorMathSum(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Sum[int]()(Just(1, 2, 3)),
-	)
-	is.Equal([]int{6}, values)
-	is.NoError(err)
+	t.Run("items", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Sum[int]()(Empty[int]()),
-	)
-	is.Equal([]int{0}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Sum[int]()(Just(1, 2, 3)),
+		)
+		is.Equal([]int{6}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Sum[int]()(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Sum[int]()(Empty[int]()),
+		)
+		is.Equal([]int{0}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Sum[int]()(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorMathRound(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Round()(Just(1.5, 2.3, -1.5, -2.7, 0.0)),
-	)
-	is.Equal([]float64{2, 2, -2, -3, 0}, values)
-	is.NoError(err)
+	t.Run("rounding to nearest", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Round()(Just(math.Inf(1), math.Inf(-1))),
-	)
-	is.NoError(err)
-	is.Len(values, 2)
-	is.True(math.IsInf(values[0], 1))
-	is.True(math.IsInf(values[1], -1))
+		values, err := Collect(
+			Round()(Just(1.5, 2.3, -1.5, -2.7, 0.0)),
+		)
+		is.Equal([]float64{2, 2, -2, -3, 0}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Round()(Just(math.NaN())),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.True(math.IsNaN(values[0]))
+	t.Run("infinities", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Round()(Empty[float64]()),
-	)
-	is.Equal([]float64{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Round()(Just(math.Inf(1), math.Inf(-1))),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.True(math.IsInf(values[0], 1))
+		is.True(math.IsInf(values[1], -1))
+	})
 
-	values, err = Collect(
-		Round()(Throw[float64](assert.AnError)),
-	)
-	is.Equal([]float64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("NaN", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Round()(Just(math.NaN())),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsNaN(values[0]))
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Round()(Empty[float64]()),
+		)
+		is.Equal([]float64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Round()(Throw[float64](assert.AnError)),
+		)
+		is.Equal([]float64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorMathMin(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Min[int]()(Just(1, 2, 3)),
-	)
-	is.Equal([]int{1}, values)
-	is.NoError(err)
+	t.Run("ascending items", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Min[int]()(Just(3, 2, 1, -42)),
-	)
-	is.Equal([]int{-42}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Min[int]()(Just(1, 2, 3)),
+		)
+		is.Equal([]int{1}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Min[int]()(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("descending items", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Min[int]()(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Min[int]()(Just(3, 2, 1, -42)),
+		)
+		is.Equal([]int{-42}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Min[int]()(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Min[int]()(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
 	t.Run("NaN propagates for Min and Max", func(t *testing.T) {
 		t.Parallel()
@@ -200,243 +295,397 @@ func TestOperatorMathMin(t *testing.T) {
 
 func TestOperatorMathMax(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Max[int]()(Just(1, 2, 3)),
-	)
-	is.Equal([]int{3}, values)
-	is.NoError(err)
+	t.Run("ascending items", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Max[int]()(Just(3, 2, 1, -42)),
-	)
-	is.Equal([]int{3}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Max[int]()(Just(1, 2, 3)),
+		)
+		is.Equal([]int{3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Max[int]()(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("descending items", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Max[int]()(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Max[int]()(Just(3, 2, 1, -42)),
+		)
+		is.Equal([]int{3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Max[int]()(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Max[int]()(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorMathClamp(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Clamp(0, 10)(Just(-5, 0, 5, 10, 15)),
-	)
-	is.Equal([]int{0, 0, 5, 10, 10}, values)
-	is.NoError(err)
+	t.Run("int values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	var floatValues []float64
-	floatValues, err = Collect(
-		Clamp(0.0, 1.0)(Just(-0.5, 0.0, 0.5, 1.0, 1.5)),
-	)
-	is.InDeltaSlice([]float64{0.0, 0.0, 0.5, 1.0, 1.0}, floatValues, 1e-9)
-	is.NoError(err)
+		values, err := Collect(
+			Clamp(0, 10)(Just(-5, 0, 5, 10, 15)),
+		)
+		is.Equal([]int{0, 0, 5, 10, 10}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Clamp(-42, 42)(Just(0)),
-	)
-	is.Equal([]int{0}, values)
-	is.NoError(err)
+	t.Run("float values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Clamp(0, 10)(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+		floatValues, err := Collect(
+			Clamp(0.0, 1.0)(Just(-0.5, 0.0, 0.5, 1.0, 1.5)),
+		)
+		is.InDeltaSlice([]float64{0.0, 0.0, 0.5, 1.0, 1.0}, floatValues, 1e-9)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Clamp(0, 10)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("single value", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Clamp(-42, 42)(Just(0)),
+		)
+		is.Equal([]int{0}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Clamp(0, 10)(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Clamp(0, 10)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorMathAbs(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Abs()(Just(-3.0, -1.5, 0.0, 1.5, 3.0)),
-	)
-	is.Equal([]float64{3, 1.5, 0, 1.5, 3}, values)
-	is.NoError(err)
+	t.Run("absolute values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Abs()(Just(math.Inf(-1))),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.True(math.IsInf(values[0], 1))
+		values, err := Collect(
+			Abs()(Just(-3.0, -1.5, 0.0, 1.5, 3.0)),
+		)
+		is.Equal([]float64{3, 1.5, 0, 1.5, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Abs()(Just(math.NaN())),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.True(math.IsNaN(values[0]))
+	t.Run("negative infinity", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Abs()(Empty[float64]()),
-	)
-	is.Equal([]float64{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Abs()(Just(math.Inf(-1))),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsInf(values[0], 1))
+	})
 
-	values, err = Collect(
-		Abs()(Throw[float64](assert.AnError)),
-	)
-	is.Equal([]float64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("NaN", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Abs()(Just(math.NaN())),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsNaN(values[0]))
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Abs()(Empty[float64]()),
+		)
+		is.Equal([]float64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Abs()(Throw[float64](assert.AnError)),
+		)
+		is.Equal([]float64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorMathFloor(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Floor()(Just(1.9, -1.9, 2.0, -2.0, 0.0)),
-	)
-	is.Equal([]float64{1, -2, 2, -2, 0}, values)
-	is.NoError(err)
+	t.Run("rounding down", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Floor()(Just(math.Inf(1))),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.True(math.IsInf(values[0], 1))
+		values, err := Collect(
+			Floor()(Just(1.9, -1.9, 2.0, -2.0, 0.0)),
+		)
+		is.Equal([]float64{1, -2, 2, -2, 0}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Floor()(Just(math.Inf(-1))),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.True(math.IsInf(values[0], -1))
+	t.Run("positive infinity", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Floor()(Just(math.NaN())),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.True(math.IsNaN(values[0]))
+		values, err := Collect(
+			Floor()(Just(math.Inf(1))),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsInf(values[0], 1))
+	})
 
-	values, err = Collect(
-		Floor()(Empty[float64]()),
-	)
-	is.Equal([]float64{}, values)
-	is.NoError(err)
+	t.Run("negative infinity", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Floor()(Throw[float64](assert.AnError)),
-	)
-	is.Equal([]float64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Floor()(Just(math.Inf(-1))),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsInf(values[0], -1))
+	})
+
+	t.Run("NaN", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Floor()(Just(math.NaN())),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsNaN(values[0]))
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Floor()(Empty[float64]()),
+		)
+		is.Equal([]float64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Floor()(Throw[float64](assert.AnError)),
+		)
+		is.Equal([]float64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorMathFloorWithPrecision(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		FloorWithPrecision(2)(Just(1.234, -1.234, 9.999)),
-	)
-	is.NoError(err)
-	is.InDeltaSlice([]float64{1.23, -1.24, 9.99}, values, 1e-9)
+	t.Run("positive places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		FloorWithPrecision(0)(Just(-2.2, 3.1)),
-	)
-	is.NoError(err)
-	is.Equal([]float64{-3, 3}, values)
+		values, err := Collect(
+			FloorWithPrecision(2)(Just(1.234, -1.234, 9.999)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.23, -1.24, 9.99}, values, 1e-9)
+	})
 
-	values, err = Collect(
-		FloorWithPrecision(-1)(Just(123.45, -123.45)),
-	)
-	is.NoError(err)
-	is.InDeltaSlice([]float64{120, -130}, values, 1e-9)
+	t.Run("zero places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		FloorWithPrecision(309)(Just(1.234, 1e-310)),
-	)
-	is.NoError(err)
-	is.Len(values, 2)
-	is.InDelta(1.234, values[0], 1e-15)
-	is.NotEqual(math.Floor(1.234), values[0])
-	is.Equal(0.0, values[1])
+		values, err := Collect(
+			FloorWithPrecision(0)(Just(-2.2, 3.1)),
+		)
+		is.NoError(err)
+		is.Equal([]float64{-3, 3}, values)
+	})
 
-	values, err = Collect(
-		FloorWithPrecision(maxPow10Chunk)(Just(10.1, -10.1)),
-	)
-	is.NoError(err)
-	is.Len(values, 2)
-	is.InDelta(10.1, values[0], 1e-12)
-	is.InDelta(-10.1, values[1], 1e-12)
+	t.Run("negative places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		FloorWithPrecision(2)(Just(math.MaxFloat64 / 2)),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.False(math.IsInf(values[0], 0))
-	is.Equal(math.Floor(math.MaxFloat64/2), values[0])
+		values, err := Collect(
+			FloorWithPrecision(-1)(Just(123.45, -123.45)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{120, -130}, values, 1e-9)
+	})
 
-	values, err = Collect(
-		FloorWithPrecision(-maxPow10Chunk)(Just(math.MaxFloat64)),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.InDelta(math.Pow10(maxPow10Chunk), values[0], 1)
+	t.Run("places beyond subnormal range", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		FloorWithPrecision(-400)(Just(123.45, -123.45)),
-	)
-	is.NoError(err)
-	is.Len(values, 2)
-	is.Equal(0.0, values[0])
-	is.True(math.IsInf(values[1], -1))
+		values, err := Collect(
+			FloorWithPrecision(309)(Just(1.234, 1e-310)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.InDelta(1.234, values[0], 1e-15)
+		is.NotEqual(math.Floor(1.234), values[0])
+		is.Equal(0.0, values[1])
+	})
 
-	values, err = Collect(
-		FloorWithPrecision(-309)(Just(42.5, -42.5)),
-	)
-	is.NoError(err)
-	is.Len(values, 2)
-	is.Equal(0.0, values[0])
-	is.True(math.IsInf(values[1], -1))
+	t.Run("chunk-size places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		FloorWithPrecision(3)(Just(math.Inf(1), math.Inf(-1), math.NaN())),
-	)
-	is.NoError(err)
-	is.Len(values, 3)
-	is.True(math.IsInf(values[0], 1))
-	is.True(math.IsInf(values[1], -1))
-	is.True(math.IsNaN(values[2]))
+		values, err := Collect(
+			FloorWithPrecision(maxPow10Chunk)(Just(10.1, -10.1)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.InDelta(10.1, values[0], 1e-12)
+		is.InDelta(-10.1, values[1], 1e-12)
+	})
 
-	values, err = Collect(
-		FloorWithPrecision(math.MaxInt)(Just(1.2345, -6.789)),
-	)
-	is.NoError(err)
-	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+	t.Run("max float with positive places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		FloorWithPrecision(math.MinInt + 1)(Just(42.5, -42.5, 0.0)),
-	)
-	is.NoError(err)
-	is.Len(values, 3)
-	is.Equal(0.0, values[0])
-	is.True(math.IsInf(values[1], -1))
-	is.Equal(0.0, values[2])
+		values, err := Collect(
+			FloorWithPrecision(2)(Just(math.MaxFloat64 / 2)),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.False(math.IsInf(values[0], 0))
+		is.Equal(math.Floor(math.MaxFloat64/2), values[0])
+	})
+
+	t.Run("max float with negative chunk-size places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			FloorWithPrecision(-maxPow10Chunk)(Just(math.MaxFloat64)),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.InDelta(math.Pow10(maxPow10Chunk), values[0], 1)
+	})
+
+	t.Run("large negative places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			FloorWithPrecision(-400)(Just(123.45, -123.45)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.Equal(0.0, values[0])
+		is.True(math.IsInf(values[1], -1))
+	})
+
+	t.Run("negative places at subnormal limit", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			FloorWithPrecision(-309)(Just(42.5, -42.5)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.Equal(0.0, values[0])
+		is.True(math.IsInf(values[1], -1))
+	})
+
+	t.Run("non-finite values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			FloorWithPrecision(3)(Just(math.Inf(1), math.Inf(-1), math.NaN())),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], 1))
+		is.True(math.IsInf(values[1], -1))
+		is.True(math.IsNaN(values[2]))
+	})
+
+	t.Run("max int places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			FloorWithPrecision(math.MaxInt)(Just(1.2345, -6.789)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+	})
+
+	t.Run("min int places plus one", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			FloorWithPrecision(math.MinInt + 1)(Just(42.5, -42.5, 0.0)),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.Equal(0.0, values[0])
+		is.True(math.IsInf(values[1], -1))
+		is.Equal(0.0, values[2])
+	})
 
 	t.Run("zero places equals Floor", func(t *testing.T) {
 		t.Parallel()
@@ -573,125 +822,198 @@ func TestOperatorMathFloorWithPrecision(t *testing.T) {
 
 func TestOperatorMathCeil(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Ceil()(Just(3.2, 4.7, -2.3, -5.8, 0.0, 7.0)),
-	)
-	is.Equal([]float64{4, 5, -2, -5, 0, 7}, values)
-	is.NoError(err)
+	t.Run("rounding up", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Ceil()(Just(math.Inf(-1), -42.7, math.Inf(1))),
-	)
-	is.NoError(err)
-	is.Len(values, 3)
-	is.True(math.IsInf(values[0], -1))
-	is.Equal(float64(-42), values[1])
-	is.True(math.IsInf(values[2], 1))
+		values, err := Collect(
+			Ceil()(Just(3.2, 4.7, -2.3, -5.8, 0.0, 7.0)),
+		)
+		is.Equal([]float64{4, 5, -2, -5, 0, 7}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Ceil()(Just(math.NaN())),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.True(math.IsNaN(values[0]))
+	t.Run("infinities", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Ceil()(Just(math.Inf(-1), -42.7, math.Inf(1))),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], -1))
+		is.Equal(float64(-42), values[1])
+		is.True(math.IsInf(values[2], 1))
+	})
+
+	t.Run("NaN", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Ceil()(Just(math.NaN())),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsNaN(values[0]))
+	})
 }
 
 func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		CeilWithPrecision(2)(Just(1.234, -1.234, 9.999)),
-	)
-	is.NoError(err)
-	is.InDeltaSlice([]float64{1.24, -1.23, 10}, values, 1e-9)
+	t.Run("positive places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		CeilWithPrecision(0)(Just(-2.2, 3.1)),
-	)
-	is.NoError(err)
-	is.Equal([]float64{-2, 4}, values)
+		values, err := Collect(
+			CeilWithPrecision(2)(Just(1.234, -1.234, 9.999)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.24, -1.23, 10}, values, 1e-9)
+	})
 
-	values, err = Collect(
-		CeilWithPrecision(-1)(Just(123.45, -123.45)),
-	)
-	is.NoError(err)
-	is.InDeltaSlice([]float64{130, -120}, values, 1e-9)
+	t.Run("zero places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		CeilWithPrecision(309)(Just(1.234, 1e-310)),
-	)
-	is.NoError(err)
-	is.Len(values, 2)
-	is.InDelta(1.234, values[0], 1e-15)
-	is.NotEqual(math.Ceil(1.234), values[0])
-	is.InDelta(1e-309, values[1], 1e-320)
-	is.NotEqual(math.Ceil(1e-310), values[1])
+		values, err := Collect(
+			CeilWithPrecision(0)(Just(-2.2, 3.1)),
+		)
+		is.NoError(err)
+		is.Equal([]float64{-2, 4}, values)
+	})
 
-	values, err = Collect(
-		CeilWithPrecision(maxPow10Chunk)(Just(10.1, -10.1)),
-	)
-	is.NoError(err)
-	is.Len(values, 2)
-	is.InDelta(10.1, values[0], 1e-12)
-	is.InDelta(-10.1, values[1], 1e-12)
+	t.Run("negative places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		CeilWithPrecision(2)(Just(math.MaxFloat64 / 2)),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.False(math.IsInf(values[0], 0))
-	is.Equal(math.Ceil(math.MaxFloat64/2), values[0])
+		values, err := Collect(
+			CeilWithPrecision(-1)(Just(123.45, -123.45)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{130, -120}, values, 1e-9)
+	})
 
-	values, err = Collect(
-		CeilWithPrecision(-maxPow10Chunk)(Just(math.MaxFloat64)),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.True(math.IsInf(values[0], 1))
+	t.Run("places beyond subnormal range", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		CeilWithPrecision(-400)(Just(123.45, -123.45)),
-	)
-	is.NoError(err)
-	is.Len(values, 2)
-	is.True(math.IsInf(values[0], 1))
-	is.Equal(0.0, values[1])
+		values, err := Collect(
+			CeilWithPrecision(309)(Just(1.234, 1e-310)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.InDelta(1.234, values[0], 1e-15)
+		is.NotEqual(math.Ceil(1.234), values[0])
+		is.InDelta(1e-309, values[1], 1e-320)
+		is.NotEqual(math.Ceil(1e-310), values[1])
+	})
 
-	values, err = Collect(
-		CeilWithPrecision(-309)(Just(42.5, -42.5)),
-	)
-	is.NoError(err)
-	is.Len(values, 2)
-	is.True(math.IsInf(values[0], 1))
-	is.Equal(0.0, values[1])
+	t.Run("chunk-size places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		CeilWithPrecision(3)(Just(math.Inf(1), math.Inf(-1), math.NaN())),
-	)
-	is.NoError(err)
-	is.Len(values, 3)
-	is.True(math.IsInf(values[0], 1))
-	is.True(math.IsInf(values[1], -1))
-	is.True(math.IsNaN(values[2]))
+		values, err := Collect(
+			CeilWithPrecision(maxPow10Chunk)(Just(10.1, -10.1)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.InDelta(10.1, values[0], 1e-12)
+		is.InDelta(-10.1, values[1], 1e-12)
+	})
 
-	values, err = Collect(
-		CeilWithPrecision(math.MaxInt)(Just(1.2345, -6.789)),
-	)
-	is.NoError(err)
-	is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+	t.Run("max float with positive places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		CeilWithPrecision(math.MinInt + 1)(Just(42.5, -42.5, 0.0)),
-	)
-	is.NoError(err)
-	is.Len(values, 3)
-	is.True(math.IsInf(values[0], 1))
-	is.Equal(0.0, values[1])
-	is.Equal(0.0, values[2])
+		values, err := Collect(
+			CeilWithPrecision(2)(Just(math.MaxFloat64 / 2)),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.False(math.IsInf(values[0], 0))
+		is.Equal(math.Ceil(math.MaxFloat64/2), values[0])
+	})
+
+	t.Run("max float with negative chunk-size places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			CeilWithPrecision(-maxPow10Chunk)(Just(math.MaxFloat64)),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsInf(values[0], 1))
+	})
+
+	t.Run("large negative places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			CeilWithPrecision(-400)(Just(123.45, -123.45)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+	})
+
+	t.Run("negative places at subnormal limit", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			CeilWithPrecision(-309)(Just(42.5, -42.5)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+	})
+
+	t.Run("non-finite values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			CeilWithPrecision(3)(Just(math.Inf(1), math.Inf(-1), math.NaN())),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], 1))
+		is.True(math.IsInf(values[1], -1))
+		is.True(math.IsNaN(values[2]))
+	})
+
+	t.Run("max int places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			CeilWithPrecision(math.MaxInt)(Just(1.2345, -6.789)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+	})
+
+	t.Run("min int places plus one", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			CeilWithPrecision(math.MinInt + 1)(Just(42.5, -42.5, 0.0)),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+		is.Equal(0.0, values[2])
+	})
 
 	t.Run("large chunk fallback", func(t *testing.T) {
 		t.Parallel()
@@ -774,102 +1096,159 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 
 func TestOperatorMathTrunc(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Trunc()(Just(3.2, 4.7, -2.3, -5.8, 0.0, 7.0)),
-	)
-	is.Equal([]float64{3, 4, -2, -5, 0, 7}, values)
-	is.NoError(err)
+	t.Run("truncation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Trunc()(Just(math.Inf(-1), -42.7, math.Inf(1))),
-	)
-	is.NoError(err)
-	is.Len(values, 3)
-	is.True(math.IsInf(values[0], -1))
-	is.Equal(float64(-42), values[1])
-	is.True(math.IsInf(values[2], 1))
+		values, err := Collect(
+			Trunc()(Just(3.2, 4.7, -2.3, -5.8, 0.0, 7.0)),
+		)
+		is.Equal([]float64{3, 4, -2, -5, 0, 7}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Trunc()(Just(math.NaN())),
-	)
-	is.NoError(err)
-	is.Len(values, 1)
-	is.True(math.IsNaN(values[0]))
+	t.Run("infinities", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Trunc()(Throw[float64](assert.AnError)),
-	)
-	is.Equal([]float64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Trunc()(Just(math.Inf(-1), -42.7, math.Inf(1))),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], -1))
+		is.Equal(float64(-42), values[1])
+		is.True(math.IsInf(values[2], 1))
+	})
 
-	values, err = Collect(
-		Trunc()(Empty[float64]()),
-	)
-	is.Equal([]float64{}, values)
-	is.NoError(err)
+	t.Run("NaN", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Trunc()(Just(math.NaN())),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsNaN(values[0]))
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Trunc()(Throw[float64](assert.AnError)),
+		)
+		is.Equal([]float64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Trunc()(Empty[float64]()),
+		)
+		is.Equal([]float64{}, values)
+		is.NoError(err)
+	})
 }
 
 func TestOperatorMathReduce(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
 	reducer := func(agg, current int) int {
 		return agg + current
 	}
 
-	values, err := Collect(
-		Reduce(reducer, 10)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{16}, values)
-	is.NoError(err)
+	t.Run("items", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Reduce(reducer, 10)(Empty[int]()),
-	)
-	is.Equal([]int{10}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Reduce(reducer, 10)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{16}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Reduce(reducer, 10)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Reduce(reducer, 10)(Empty[int]()),
+		)
+		is.Equal([]int{10}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Reduce(reducer, 10)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorMathReduceI(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
 	reducer := func(agg, current int, _ int64) int {
 		return agg + current
 	}
 
-	values, err := Collect(
-		ReduceI(func(agg, current int, i int64) int {
-			is.Equal(current, int(i))
-			return agg + current
-		}, 10)(Just(0, 1, 2, 3)),
-	)
-	is.Equal([]int{16}, values)
-	is.NoError(err)
+	t.Run("index matches item", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		ReduceI(reducer, 10)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{16}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ReduceI(func(agg, current int, i int64) int {
+				is.Equal(current, int(i))
+				return agg + current
+			}, 10)(Just(0, 1, 2, 3)),
+		)
+		is.Equal([]int{16}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ReduceI(reducer, 10)(Empty[int]()),
-	)
-	is.Equal([]int{10}, values)
-	is.NoError(err)
+	t.Run("items", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		ReduceI(reducer, 10)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			ReduceI(reducer, 10)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{16}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			ReduceI(reducer, 10)(Empty[int]()),
+		)
+		is.Equal([]int{10}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			ReduceI(reducer, 10)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }

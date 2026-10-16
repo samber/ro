@@ -58,44 +58,58 @@ func TestPascalCase(t *testing.T) {
 
 func TestPascalCaseWithLanguage(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	tests := []struct {
-		input string
-		tag   language.Tag
-		want  string
-	}{
-		{"hello world", language.English, "HelloWorld"},
-		// Turkish: 'i' title-cases to 'İ' (U+0130)
-		{"istanbul city", language.Turkish, "İstanbulCity"},
-	}
+	t.Run("language variants", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	for _, tc := range tests {
+		tests := []struct {
+			input string
+			tag   language.Tag
+			want  string
+		}{
+			{"hello world", language.English, "HelloWorld"},
+			// Turkish: 'i' title-cases to 'İ' (U+0130)
+			{"istanbul city", language.Turkish, "İstanbulCity"},
+		}
+
+		for _, tc := range tests {
+			values, err := ro.Collect(
+				ro.Pipe1(
+					ro.Just(tc.input),
+					PascalCaseWithLanguage[string](tc.tag),
+				),
+			)
+			is.Equal([]string{tc.want}, values)
+			is.NoError(err)
+		}
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
 		values, err := ro.Collect(
 			ro.Pipe1(
-				ro.Just(tc.input),
-				PascalCaseWithLanguage[string](tc.tag),
+				ro.Empty[string](),
+				PascalCaseWithLanguage[string](language.English),
 			),
 		)
-		is.Equal([]string{tc.want}, values)
+		is.Equal([]string{}, values)
 		is.NoError(err)
-	}
+	})
 
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Empty[string](),
-			PascalCaseWithLanguage[string](language.English),
-		),
-	)
-	is.Equal([]string{}, values)
-	is.NoError(err)
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Throw[string](assert.AnError),
-			PascalCaseWithLanguage[string](language.English),
-		),
-	)
-	is.Equal([]string{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Throw[string](assert.AnError),
+				PascalCaseWithLanguage[string](language.English),
+			),
+		)
+		is.Equal([]string{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }

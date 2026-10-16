@@ -166,8 +166,11 @@ func TestNotification_String(t *testing.T) {
 
 func TestProcessNotification(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
-	{
+
+	t.Run("next notification", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
 		var value int
 
 		processNotification(
@@ -177,9 +180,12 @@ func TestProcessNotification(t *testing.T) {
 			func() { is.Fail("should not enter here") },
 		)
 		is.Equal(42, value)
-	}
+	})
 
-	{
+	t.Run("error notification", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
 		var value error
 
 		processNotification(
@@ -189,9 +195,12 @@ func TestProcessNotification(t *testing.T) {
 			func() { is.Fail("should not enter here") },
 		)
 		is.Equal(assert.AnError, value)
-	}
+	})
 
-	{
+	t.Run("complete notification", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
 		var value int
 
 		processNotification(
@@ -201,9 +210,12 @@ func TestProcessNotification(t *testing.T) {
 			func() { value = 42 },
 		)
 		is.Equal(42, value)
-	}
+	})
 
-	{
+	t.Run("unknown kind panics", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
 		is.PanicsWithValue("you shall not pass", func() {
 			processNotification(
 				Notification[int]{Kind(42), 0, nil},
@@ -212,13 +224,16 @@ func TestProcessNotification(t *testing.T) {
 				func() { is.Fail("should not enter here") },
 			)
 		})
-	}
+	})
 }
 
 func TestProcessNotificationWithObserver(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
-	{
+
+	t.Run("next notification", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
 		var value int
 
 		processNotificationWithObserver(
@@ -230,9 +245,12 @@ func TestProcessNotificationWithObserver(t *testing.T) {
 			),
 		)
 		is.Equal(42, value)
-	}
+	})
 
-	{
+	t.Run("error notification", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
 		var value error
 
 		processNotificationWithObserver(
@@ -244,9 +262,12 @@ func TestProcessNotificationWithObserver(t *testing.T) {
 			),
 		)
 		is.Equal(assert.AnError, value)
-	}
+	})
 
-	{
+	t.Run("complete notification", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
 		var value int
 
 		processNotificationWithObserver(
@@ -258,9 +279,12 @@ func TestProcessNotificationWithObserver(t *testing.T) {
 			),
 		)
 		is.Equal(42, value)
-	}
+	})
 
-	{
+	t.Run("unknown kind panics", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
 		is.PanicsWithValue("you shall not pass", func() {
 			processNotificationWithObserver(
 				Notification[int]{Kind(42), 0, nil},
@@ -271,7 +295,7 @@ func TestProcessNotificationWithObserver(t *testing.T) {
 				),
 			)
 		})
-	}
+	})
 }
 
 // countingSyncSource emits 0..total-1 synchronously, stops when its destination is

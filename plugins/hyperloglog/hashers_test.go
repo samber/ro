@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 package rohyperloglog
 
 import (
@@ -23,33 +22,38 @@ import (
 func TestStringHashers_FNV64a(t *testing.T) {
 	hasher := StringHash.FNV64a()
 
-	// Test basic functionality
-	result1 := hasher("test")
-	result2 := hasher("test")
-	result3 := hasher("different")
+	t.Run("same input", func(t *testing.T) {
+		result1 := hasher("test")
+		result2 := hasher("test")
 
-	// Same input should produce same hash
-	if result1 != result2 {
-		t.Errorf("Same input should produce same hash, got %d and %d", result1, result2)
-	}
+		if result1 != result2 {
+			t.Errorf("Same input should produce same hash, got %d and %d", result1, result2)
+		}
+	})
 
-	// Different input should produce different hash
-	if result1 == result3 {
-		t.Errorf("Different input should produce different hash, got %d for both", result1)
-	}
+	t.Run("different input", func(t *testing.T) {
+		result1 := hasher("test")
+		result3 := hasher("different")
 
-	// Test empty string
-	emptyHash := hasher("")
-	if emptyHash == 0 {
-		t.Error("Empty string should not produce zero hash")
-	}
+		if result1 == result3 {
+			t.Errorf("Different input should produce different hash, got %d for both", result1)
+		}
+	})
 
-	// Test long string
-	longString := "this is a very long string that should be hashed properly"
-	longHash := hasher(longString)
-	if longHash == 0 {
-		t.Error("Long string should not produce zero hash")
-	}
+	t.Run("empty string", func(t *testing.T) {
+		emptyHash := hasher("")
+		if emptyHash == 0 {
+			t.Error("Empty string should not produce zero hash")
+		}
+	})
+
+	t.Run("long string", func(t *testing.T) {
+		longString := "this is a very long string that should be hashed properly"
+		longHash := hasher(longString)
+		if longHash == 0 {
+			t.Error("Long string should not produce zero hash")
+		}
+	})
 }
 
 func TestStringHashers_FNV64(t *testing.T) {
@@ -103,24 +107,31 @@ func TestStringHashers_FNV32(t *testing.T) {
 func TestStringHashers_SHA256(t *testing.T) {
 	hasher := StringHash.SHA256()
 
-	result1 := hasher("test")
-	result2 := hasher("test")
-	result3 := hasher("different")
+	t.Run("same input", func(t *testing.T) {
+		result1 := hasher("test")
+		result2 := hasher("test")
 
-	if result1 != result2 {
-		t.Errorf("Same input should produce same hash, got %d and %d", result1, result2)
-	}
+		if result1 != result2 {
+			t.Errorf("Same input should produce same hash, got %d and %d", result1, result2)
+		}
+	})
 
-	if result1 == result3 {
-		t.Errorf("Different input should produce different hash, got %d for both", result1)
-	}
+	t.Run("different input", func(t *testing.T) {
+		result1 := hasher("test")
+		result3 := hasher("different")
 
-	// Test that it produces different results than FNV
-	fnvHasher := StringHash.FNV64a()
-	fnvResult := fnvHasher("test")
-	if result1 == fnvResult {
-		t.Error("SHA256 should produce different results than FNV")
-	}
+		if result1 == result3 {
+			t.Errorf("Different input should produce different hash, got %d for both", result1)
+		}
+	})
+
+	t.Run("differs from FNV", func(t *testing.T) {
+		fnvHasher := StringHash.FNV64a()
+		fnvResult := fnvHasher("test")
+		if hasher("test") == fnvResult {
+			t.Error("SHA256 should produce different results than FNV")
+		}
+	})
 }
 
 func TestStringHashers_SHA1(t *testing.T) {
@@ -302,23 +313,30 @@ func TestStringHashers_Loselose(t *testing.T) {
 func TestBytesHashers_FNV64a(t *testing.T) {
 	hasher := BytesHash.FNV64a()
 
-	result1 := hasher([]byte("test"))
-	result2 := hasher([]byte("test"))
-	result3 := hasher([]byte("different"))
+	t.Run("same input", func(t *testing.T) {
+		result1 := hasher([]byte("test"))
+		result2 := hasher([]byte("test"))
 
-	if result1 != result2 {
-		t.Errorf("Same input should produce same hash, got %d and %d", result1, result2)
-	}
+		if result1 != result2 {
+			t.Errorf("Same input should produce same hash, got %d and %d", result1, result2)
+		}
+	})
 
-	if result1 == result3 {
-		t.Errorf("Different input should produce different hash, got %d for both", result1)
-	}
+	t.Run("different input", func(t *testing.T) {
+		result1 := hasher([]byte("test"))
+		result3 := hasher([]byte("different"))
 
-	// Test empty byte slice
-	emptyHash := hasher([]byte{})
-	if emptyHash == 0 {
-		t.Error("Empty byte slice should not produce zero hash")
-	}
+		if result1 == result3 {
+			t.Errorf("Different input should produce different hash, got %d for both", result1)
+		}
+	})
+
+	t.Run("empty byte slice", func(t *testing.T) {
+		emptyHash := hasher([]byte{})
+		if emptyHash == 0 {
+			t.Error("Empty byte slice should not produce zero hash")
+		}
+	})
 }
 
 func TestBytesHashers_FNV64(t *testing.T) {
