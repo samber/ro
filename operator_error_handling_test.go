@@ -17,12 +17,193 @@ package ro
 import (
 	"context"
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+// upstreamProbe counts the subscriptions made to a probed source, and the teardowns that ran.
+type upstreamProbe struct {
+	subscribed int64
+	released   int64
+}
+
+// probedSource emits items then terminates, from the subscribing goroutine or from its own
+// goroutine. Attempt N (1-based) fails with the error returned by errAt(N); a nil error completes.
+func probedSource(probe *upstreamProbe, async bool, errAt func(attempt int64) error, items ...int) Observable[int] {
+	return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+		attempt := atomic.AddInt64(&probe.subscribed, 1)
+
+		emit := func() {
+			for _, item := range items {
+				destination.NextWithContext(ctx, item)
+			}
+
+			if err := errAt(attempt); err != nil {
+				destination.ErrorWithContext(ctx, err)
+				return
+			}
+
+			destination.CompleteWithContext(ctx)
+		}
+
+		if async {
+			go emit()
+		} else {
+			emit()
+		}
+
+		return func() { atomic.AddInt64(&probe.released, 1) }
+	})
+}
+
+func neverFails(int64) error { return nil }
+
+func alwaysFails(int64) error { return assert.AnError }
+
+// collectWithin fails the test instead of hanging when the pipeline never terminates.
+func collectWithin(t *testing.T, obs Observable[int]) ([]int, error) {
+	t.Helper()
+
+	type result struct {
+		values []int
+		err    error
+	}
+
+	done := make(chan result, 1)
+
+	go func() {
+		values, err := Collect(obs)
+		done <- result{values, err}
+	}()
+
+	select {
+	case r := <-done:
+		return r.values, r.err
+	case <-time.After(2 * time.Second):
+		t.Fatal("pipeline did not terminate")
+		return nil, nil
+	}
+}
+
+// forEachSourceMode runs fn against a source emitting from the subscribing goroutine, then from its own.
+func forEachSourceMode(t *testing.T, fn func(t *testing.T, async bool)) {
+	t.Helper()
+
+	t.Run("sync", func(t *testing.T) { fn(t, false) })
+	t.Run("async", func(t *testing.T) { fn(t, true) })
+}
+
+// expectUpstreamReleased asserts every subscription to the probed source was torn down.
+func expectUpstreamReleased(t *testing.T, probe *upstreamProbe, wantSubscribed int64) {
+	t.Helper()
+
+	assert.Equal(t, wantSubscribed, atomic.LoadInt64(&probe.subscribed), "subscriptions")
+	assert.Eventually(t, func() bool {
+		return atomic.LoadInt64(&probe.released) == wantSubscribed
+	}, time.Second, time.Millisecond, "every upstream subscription must be unsubscribed")
+}
+
+// downstreamCancelSkip marks the tests that reproduce the operators ignoring a closed destination.
+// Remove it, and the skip in expectStopsOnDownstreamCancel, once the operators are fixed.
+const downstreamCancelSkip = "race: downstream-cancel-resubscribe; remove when fixed"
+
+// runawayBound caps the resubscriptions of an operator that ignores a closed destination, so the
+// regression fails on an assertion instead of spinning forever.
+const runawayBound = 10_000
+
+// endlessSource emits items from its own goroutine, then stays subscribed until it is unsubscribed.
+// The test cleanup also ends it, so a failing test does not leak the goroutine.
+func endlessSource(t *testing.T, probe *upstreamProbe, items ...int) Observable[int] {
+	t.Helper()
+
+	stop := make(chan struct{})
+	stopOnce := sync.Once{}
+	closeStop := func() { stopOnce.Do(func() { close(stop) }) }
+
+	t.Cleanup(closeStop)
+
+	return NewSafeObservableWithContext(func(ctx context.Context, destination Observer[int]) Teardown {
+		atomic.AddInt64(&probe.subscribed, 1)
+
+		go func() {
+			defer destination.CompleteWithContext(ctx)
+
+			for _, item := range items {
+				select {
+				case <-stop:
+					return
+				default:
+					destination.NextWithContext(ctx, item)
+				}
+			}
+
+			<-stop
+		}()
+
+		return func() {
+			closeStop()
+			atomic.AddInt64(&probe.released, 1)
+		}
+	})
+}
+
+// expectStopsOnDownstreamCancel checks that an operator re-subscribing to its source stops doing so,
+// and unsubscribes the source, once a downstream Take has what it needs. errAt makes the source
+// complete or fail on each subscription, chain wraps the source in the operator under test.
+func expectStopsOnDownstreamCancel(
+	t *testing.T,
+	errAt func(attempt int64) error,
+	chain func(source Observable[int]) Observable[int],
+	syncTake, syncWant int64,
+) {
+	t.Helper()
+	t.Skip(downstreamCancelSkip)
+
+	t.Run("sync source", func(t *testing.T) {
+		is := assert.New(t)
+
+		probe := &upstreamProbe{}
+		values, err := collectWithin(t, Pipe1(chain(probedSource(probe, false, errAt, 1)), Take[int](syncTake)))
+		is.Len(values, int(syncTake))
+		is.NoError(err)
+		expectUpstreamReleased(t, probe, syncWant)
+	})
+
+	t.Run("async source ending after Take", func(t *testing.T) {
+		is := assert.New(t)
+
+		// Take(2) is satisfied by the first 2 of 5 items: the source must not be subscribed again.
+		probe := &upstreamProbe{}
+		values, err := collectWithin(t, Pipe1(chain(probedSource(probe, true, errAt, 1, 2, 3, 4, 5)), Take[int](2)))
+		is.Len(values, 2)
+		is.NoError(err)
+		expectUpstreamReleased(t, probe, 1)
+	})
+
+	t.Run("async source still running at Take", func(t *testing.T) {
+		is := assert.New(t)
+
+		// the source never terminates by itself: only an unsubscription from downstream can end it.
+		probe := &upstreamProbe{}
+		values, err := collectWithin(t, Pipe1(chain(endlessSource(t, probe, 1, 2, 3)), Take[int](2)))
+		is.Len(values, 2)
+		is.NoError(err)
+		expectUpstreamReleased(t, probe, 1)
+	})
+}
+
+// failsUntilBound fails every attempt up to runawayBound, then completes.
+func failsUntilBound(attempt int64) error {
+	if attempt <= runawayBound {
+		return assert.AnError
+	}
+
+	return nil
+}
 
 func TestOperatorErrorHandlingCatch(t *testing.T) {
 	t.Parallel()
@@ -175,6 +356,41 @@ func TestOperatorErrorHandlingOnErrorResumeNextWith(t *testing.T) {
 		is.Equal([]int{1, 2, 2}, values)
 		is.NoError(err)
 	})
+
+	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
+		forEachSourceMode(t, func(t *testing.T, async bool) {
+			is := assert.New(t)
+
+			// source and first fallback fail, last fallback completes: the chain ends by itself.
+			probe := &upstreamProbe{}
+			failing := probedSource(probe, async, alwaysFails, 1)
+			completing := probedSource(probe, async, neverFails, 2)
+
+			values, err := collectWithin(t, Pipe1(failing, OnErrorResumeNextWith(failing, completing)))
+			is.Equal([]int{1, 1, 2}, values)
+			is.NoError(err)
+			expectUpstreamReleased(t, probe, 3)
+
+			// last fallback fails too: the chain ends with that error.
+			probe = &upstreamProbe{}
+			failing = probedSource(probe, async, alwaysFails, 1)
+
+			values, err = collectWithin(t, Pipe1(failing, OnErrorResumeNextWith(failing, failing)))
+			is.Equal([]int{1, 1, 1}, values)
+			is.EqualError(err, assert.AnError.Error())
+			expectUpstreamReleased(t, probe, 3)
+		})
+	})
+
+	t.Run("stops when downstream cancels", func(t *testing.T) {
+		// 3 sources in the chain, Take(1) is satisfied by the first one: the others must not be subscribed.
+		expectStopsOnDownstreamCancel(t, alwaysFails,
+			func(source Observable[int]) Observable[int] {
+				return Pipe1(source, OnErrorResumeNextWith(source, source))
+			},
+			1, 1,
+		)
+	})
 }
 
 func TestOperatorErrorHandlingOnErrorReturn(t *testing.T) {
@@ -239,6 +455,36 @@ func TestOperatorErrorHandlingRetry(t *testing.T) {
 	)
 	is.Equal([]int{1, 2, 1, 2, 1, 2, 3}, values)
 	is.NoError(err)
+
+	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
+		forEachSourceMode(t, func(t *testing.T, async bool) {
+			is := assert.New(t)
+
+			// attempts 1 and 2 fail, attempt 3 completes: Retry stops resubscribing by itself.
+			probe := &upstreamProbe{}
+			source := probedSource(probe, async, func(attempt int64) error {
+				if attempt <= 2 {
+					return assert.AnError
+				}
+
+				return nil
+			}, 1)
+
+			values, err := collectWithin(t, Pipe1(source, Retry[int]()))
+			is.Equal([]int{1, 1, 1}, values)
+			is.NoError(err)
+			expectUpstreamReleased(t, probe, 3)
+		})
+	})
+}
+
+func TestOperatorErrorHandlingRetry_downstreamCancel(t *testing.T) {
+	t.Parallel()
+
+	expectStopsOnDownstreamCancel(t, failsUntilBound,
+		func(source Observable[int]) Observable[int] { return Pipe1(source, Retry[int]()) },
+		3, 3,
+	)
 }
 
 func TestOperatorErrorHandlingRetryWithConfig(t *testing.T) { //nolint:paralleltest
@@ -329,6 +575,47 @@ func TestOperatorErrorHandlingRetryWithConfig(t *testing.T) { //nolint:parallelt
 	)
 	is.Equal([]int{1, 2, 1, 2, 1, 2, 1}, values)
 	is.EqualError(err, "ro.Observer: "+assert.AnError.Error())
+
+	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
+		forEachSourceMode(t, func(t *testing.T, async bool) {
+			is := assert.New(t)
+
+			// retries exhausted: 1 initial subscription + 2 retries, then the error goes downstream.
+			probe := &upstreamProbe{}
+			source := probedSource(probe, async, alwaysFails, 1)
+
+			values, err := collectWithin(t, Pipe1(source, RetryWithConfig[int](RetryConfig{MaxRetries: 2})))
+			is.Equal([]int{1, 1, 1}, values)
+			is.EqualError(err, assert.AnError.Error())
+			expectUpstreamReleased(t, probe, 3)
+
+			// source succeeds after one failure: no further subscription.
+			probe = &upstreamProbe{}
+			source = probedSource(probe, async, func(attempt int64) error {
+				if attempt == 1 {
+					return assert.AnError
+				}
+
+				return nil
+			}, 1)
+
+			values, err = collectWithin(t, Pipe1(source, RetryWithConfig[int](RetryConfig{MaxRetries: 2})))
+			is.Equal([]int{1, 1}, values)
+			is.NoError(err)
+			expectUpstreamReleased(t, probe, 2)
+		})
+	})
+}
+
+func TestOperatorErrorHandlingRetryWithConfig_downstreamCancel(t *testing.T) {
+	t.Parallel()
+
+	expectStopsOnDownstreamCancel(t, alwaysFails,
+		func(source Observable[int]) Observable[int] {
+			return Pipe1(source, RetryWithConfig[int](RetryConfig{MaxRetries: runawayBound}))
+		},
+		3, 3,
+	)
 }
 
 func TestOperatorErrorHandlingRetryWithConfig_finalErrorContext(t *testing.T) {
@@ -470,6 +757,46 @@ func TestOperatorErrorHandlingDoWhile(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
+		forEachSourceMode(t, func(t *testing.T, async bool) {
+			is := assert.New(t)
+
+			// the condition turns false after the 3rd run: DoWhile stops by itself.
+			probe := &upstreamProbe{}
+			runs := int32(0)
+
+			values, err := collectWithin(t, Pipe1(
+				probedSource(probe, async, neverFails, 1, 2),
+				DoWhile[int](func() bool { return atomic.AddInt32(&runs, 1) < 3 }),
+			))
+			is.Equal([]int{1, 2, 1, 2, 1, 2}, values)
+			is.NoError(err)
+			expectUpstreamReleased(t, probe, 3)
+
+			// the condition is false right away: the source still ran once.
+			probe = &upstreamProbe{}
+
+			values, err = collectWithin(t, Pipe1(
+				probedSource(probe, async, neverFails, 1, 2),
+				DoWhile[int](func() bool { return false }),
+			))
+			is.Equal([]int{1, 2}, values)
+			is.NoError(err)
+			expectUpstreamReleased(t, probe, 1)
+		})
+	})
+
+	t.Run("stops when downstream cancels", func(t *testing.T) {
+		expectStopsOnDownstreamCancel(t, neverFails,
+			func(source Observable[int]) Observable[int] {
+				runs := int32(0)
+
+				return Pipe1(source, DoWhile[int](func() bool { return atomic.AddInt32(&runs, 1) < runawayBound }))
+			},
+			3, 3,
+		)
+	})
 }
 
 func TestOperatorErrorHandlingWhile(t *testing.T) {
@@ -524,4 +851,44 @@ func TestOperatorErrorHandlingWhile(t *testing.T) {
 	)
 	is.Equal([]int{}, values)
 	is.EqualError(err, assert.AnError.Error())
+
+	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
+		forEachSourceMode(t, func(t *testing.T, async bool) {
+			is := assert.New(t)
+
+			// the condition turns false on its 3rd check: the source ran twice, While stops by itself.
+			probe := &upstreamProbe{}
+			checks := int32(0)
+
+			values, err := collectWithin(t, Pipe1(
+				probedSource(probe, async, neverFails, 1, 2),
+				While[int](func() bool { return atomic.AddInt32(&checks, 1) < 3 }),
+			))
+			is.Equal([]int{1, 2, 1, 2}, values)
+			is.NoError(err)
+			expectUpstreamReleased(t, probe, 2)
+
+			// the condition is false right away: the source is never subscribed.
+			probe = &upstreamProbe{}
+
+			values, err = collectWithin(t, Pipe1(
+				probedSource(probe, async, neverFails, 1, 2),
+				While[int](func() bool { return false }),
+			))
+			is.Equal([]int{}, values)
+			is.NoError(err)
+			expectUpstreamReleased(t, probe, 0)
+		})
+	})
+
+	t.Run("stops when downstream cancels", func(t *testing.T) {
+		expectStopsOnDownstreamCancel(t, neverFails,
+			func(source Observable[int]) Observable[int] {
+				checks := int32(0)
+
+				return Pipe1(source, While[int](func() bool { return atomic.AddInt32(&checks, 1) <= runawayBound }))
+			},
+			3, 3,
+		)
+	})
 }
