@@ -1099,64 +1099,74 @@ func TestSubscriber_nilObserver(t *testing.T) {
 
 func TestSubscriber_statusTransitions(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	observer := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() {},
-	)
+	t.Run("error", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	subscriber, ok := NewSubscriber(observer).(*subscriberImpl[int])
+		observer := NewObserver(
+			func(value int) {},
+			func(err error) {},
+			func() {},
+		)
 
-	is.True(ok)
+		subscriber, ok := NewSubscriber(observer).(*subscriberImpl[int])
 
-	// Initial state
-	is.EqualValues(KindNext, subscriber.status)
-	is.False(subscriber.IsClosed())
-	is.False(subscriber.HasThrown())
-	is.False(subscriber.IsCompleted())
+		is.True(ok)
 
-	// After error
-	subscriber.Error(assert.AnError)
-	is.EqualValues(KindError, subscriber.status)
-	is.True(subscriber.IsClosed())
-	is.True(subscriber.HasThrown())
-	is.False(subscriber.IsCompleted())
+		// Initial state
+		is.EqualValues(KindNext, subscriber.status)
+		is.False(subscriber.IsClosed())
+		is.False(subscriber.HasThrown())
+		is.False(subscriber.IsCompleted())
 
-	// Create new subscriber for complete test
-	observer2 := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() {},
-	)
-	subscriber2, ok2 := NewSubscriber(observer2).(*subscriberImpl[int])
+		// After error
+		subscriber.Error(assert.AnError)
+		is.EqualValues(KindError, subscriber.status)
+		is.True(subscriber.IsClosed())
+		is.True(subscriber.HasThrown())
+		is.False(subscriber.IsCompleted())
+	})
 
-	is.True(ok2)
+	t.Run("complete", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// After complete
-	subscriber2.Complete()
-	is.EqualValues(KindComplete, subscriber2.status)
-	is.True(subscriber2.IsClosed())
-	is.False(subscriber2.HasThrown())
-	is.True(subscriber2.IsCompleted())
+		observer := NewObserver(
+			func(value int) {},
+			func(err error) {},
+			func() {},
+		)
+		subscriber, ok := NewSubscriber(observer).(*subscriberImpl[int])
 
-	// Create new subscriber for unsubscribe test
-	observer3 := NewObserver(
-		func(value int) {},
-		func(err error) {},
-		func() {},
-	)
-	subscriber3, ok3 := NewSubscriber(observer3).(*subscriberImpl[int])
+		is.True(ok)
 
-	is.True(ok3)
+		subscriber.Complete()
+		is.EqualValues(KindComplete, subscriber.status)
+		is.True(subscriber.IsClosed())
+		is.False(subscriber.HasThrown())
+		is.True(subscriber.IsCompleted())
+	})
 
-	// After unsubscribe
-	subscriber3.Unsubscribe()
-	is.EqualValues(KindComplete, subscriber3.status)
-	is.True(subscriber3.IsClosed())
-	is.False(subscriber3.HasThrown())
-	is.True(subscriber3.IsCompleted())
+	t.Run("unsubscribe", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		observer := NewObserver(
+			func(value int) {},
+			func(err error) {},
+			func() {},
+		)
+		subscriber, ok := NewSubscriber(observer).(*subscriberImpl[int])
+
+		is.True(ok)
+
+		subscriber.Unsubscribe()
+		is.EqualValues(KindComplete, subscriber.status)
+		is.True(subscriber.IsClosed())
+		is.False(subscriber.HasThrown())
+		is.True(subscriber.IsCompleted())
+	})
 }
 
 func TestSubscriber_concurrentMixedOperations(t *testing.T) { //nolint:paralleltest

@@ -283,77 +283,96 @@ func TestOperatorUtilityTimestamp(t *testing.T) { //nolint:paralleltest
 func TestOperatorUtilityDelay(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 1000*time.Millisecond)
-	is := assert.New(t)
 
-	// The Complete signal is not delayed.
-	values, err := Collect(
-		Delay[int](10 * time.Millisecond)(Just(1, 2, 3)),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("complete signal is not delayed", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	// The Complete signal is send after the delay.
-	values, err = Collect(
-		Delay[int](100 * time.Millisecond)(
-			NewObservable(func(destination Observer[int]) Teardown {
-				destination.Next(1)
-				destination.Next(2)
-				destination.Next(3)
-				time.Sleep(100 * time.Millisecond)
-				destination.Complete()
+		values, err := Collect(
+			Delay[int](10 * time.Millisecond)(Just(1, 2, 3)),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-				return nil
-			}),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("complete signal is sent after the delay", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	// The last message is delayed, but the Complete signal as well.
-	values, err = Collect(
-		Delay[int](100 * time.Millisecond)(
-			NewObservable(func(destination Observer[int]) Teardown {
-				destination.Next(1)
-				destination.Next(2)
-				time.Sleep(100 * time.Millisecond)
-				destination.Next(3)
-				destination.Complete()
+		values, err := Collect(
+			Delay[int](100 * time.Millisecond)(
+				NewObservable(func(destination Observer[int]) Teardown {
+					destination.Next(1)
+					destination.Next(2)
+					destination.Next(3)
+					time.Sleep(100 * time.Millisecond)
+					destination.Complete()
 
-				return nil
-			}),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+					return nil
+				}),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	// The last message is delayed, but the Error signal as well.
-	values, err = Collect(
-		Delay[int](100 * time.Millisecond)(
-			NewObservable(func(destination Observer[int]) Teardown {
-				destination.Next(1)
-				destination.Next(2)
-				time.Sleep(150 * time.Millisecond)
-				destination.Next(3)
-				destination.Error(assert.AnError)
+	t.Run("last message and complete are delayed", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-				return nil
-			}),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Delay[int](100 * time.Millisecond)(
+				NewObservable(func(destination Observer[int]) Teardown {
+					destination.Next(1)
+					destination.Next(2)
+					time.Sleep(100 * time.Millisecond)
+					destination.Next(3)
+					destination.Complete()
 
-	values, err = Collect(
-		Delay[int](10 * time.Millisecond)(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+					return nil
+				}),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Delay[int](10 * time.Millisecond)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("last message and error are delayed", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			Delay[int](100 * time.Millisecond)(
+				NewObservable(func(destination Observer[int]) Teardown {
+					destination.Next(1)
+					destination.Next(2)
+					time.Sleep(150 * time.Millisecond)
+					destination.Next(3)
+					destination.Error(assert.AnError)
+
+					return nil
+				}),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			Delay[int](10 * time.Millisecond)(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			Delay[int](10 * time.Millisecond)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorUtilityDelayEach(t *testing.T) {
@@ -409,443 +428,569 @@ func TestOperatorUtilityDelayEach(t *testing.T) {
 func TestOperatorUtilityRepeatWith(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		RepeatWith[int64](0)(
-			Just[int64](1, 2, 3),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+	t.Run("zero count on sync source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	values, err = Collect(
-		RepeatWith[int64](1)(
-			Just[int64](1, 2, 3),
-		),
-	)
-	is.Equal([]int64{1, 2, 3}, values)
-	is.NoError(err)
+		values, err := Collect(
+			RepeatWith[int64](0)(
+				Just[int64](1, 2, 3),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		RepeatWith[int64](3)(
-			Just[int64](1, 2, 3),
-		),
-	)
-	is.Equal([]int64{1, 2, 3, 1, 2, 3, 1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("one repetition on sync source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	values, err = Collect(
-		RepeatWith[int64](0)(
-			RangeWithInterval(1, 4, 10*time.Millisecond),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			RepeatWith[int64](1)(
+				Just[int64](1, 2, 3),
+			),
+		)
+		is.Equal([]int64{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		RepeatWith[int64](1)(
-			RangeWithInterval(1, 4, 10*time.Millisecond),
-		),
-	)
-	is.Equal([]int64{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("three repetitions on sync source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	values, err = Collect(
-		RepeatWith[int64](3)(
-			RangeWithInterval(1, 4, 10*time.Millisecond),
-		),
-	)
-	is.Equal([]int64{1, 2, 3, 1, 2, 3, 1, 2, 3}, values)
-	is.NoError(err)
+		values, err := Collect(
+			RepeatWith[int64](3)(
+				Just[int64](1, 2, 3),
+			),
+		)
+		is.Equal([]int64{1, 2, 3, 1, 2, 3, 1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		RepeatWith[int64](3)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+	t.Run("zero count on interval source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	values, err = Collect(
-		RepeatWith[int64](3)(
-			Throw[int64](assert.AnError),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			RepeatWith[int64](0)(
+				RangeWithInterval(1, 4, 10*time.Millisecond),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
 
-	is.PanicsWithError(
-		"ro.RepeatWith: count must be greater or equal to 0",
-		func() {
-			values, err = Collect(
-				RepeatWith[int64](-1)(
-					Just[int64](1, 2, 3),
-				),
-			)
-			is.Equal([]int64{}, values)
-			is.NoError(err)
-		},
-	)
+	t.Run("one repetition on interval source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			RepeatWith[int64](1)(
+				RangeWithInterval(1, 4, 10*time.Millisecond),
+			),
+		)
+		is.Equal([]int64{1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("three repetitions on interval source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			RepeatWith[int64](3)(
+				RangeWithInterval(1, 4, 10*time.Millisecond),
+			),
+		)
+		is.Equal([]int64{1, 2, 3, 1, 2, 3, 1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			RepeatWith[int64](3)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			RepeatWith[int64](3)(
+				Throw[int64](assert.AnError),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("negative count panics", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		is.PanicsWithError(
+			"ro.RepeatWith: count must be greater or equal to 0",
+			func() {
+				values, err := Collect(
+					RepeatWith[int64](-1)(
+						Just[int64](1, 2, 3),
+					),
+				)
+				is.Equal([]int64{}, values)
+				is.NoError(err)
+			},
+		)
+	})
 }
 
 func TestOperatorUtilityTimeout(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 1000*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		Timeout[int64](100 * time.Millisecond)(
-			RangeWithInterval(1, 4, 10*time.Millisecond),
-		),
-	)
-	is.Equal([]int64{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("items within timeout", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	values, err = Collect(
-		Timeout[int64](10 * time.Millisecond)(
-			RangeWithInterval(1, 4, 100*time.Millisecond),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, "ro.Timeout: timeout after 10ms")
+		values, err := Collect(
+			Timeout[int64](100 * time.Millisecond)(
+				RangeWithInterval(1, 4, 10*time.Millisecond),
+			),
+		)
+		is.Equal([]int64{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Timeout[int64](10 * time.Millisecond)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+	t.Run("timeout exceeded", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	values, err = Collect(
-		Timeout[int64](10 * time.Millisecond)(
-			Throw[int64](assert.AnError),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Timeout[int64](10 * time.Millisecond)(
+				RangeWithInterval(1, 4, 100*time.Millisecond),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, "ro.Timeout: timeout after 10ms")
+	})
+
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			Timeout[int64](10 * time.Millisecond)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			Timeout[int64](10 * time.Millisecond)(
+				Throw[int64](assert.AnError),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorUtilityMaterialize(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Materialize[int64]()(Range(1, 4)),
-	)
-	is.Equal([]Notification[int64]{
-		{Kind: KindNext, Value: 1, Err: nil},
-		{Kind: KindNext, Value: 2, Err: nil},
-		{Kind: KindNext, Value: 3, Err: nil},
-		{Kind: KindComplete, Value: 0, Err: nil},
-	}, values)
-	is.NoError(err)
+	t.Run("range source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Materialize[int64]()(Empty[int64]()),
-	)
-	is.Equal([]Notification[int64]{
-		{Kind: KindComplete, Value: 0, Err: nil},
-	}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Materialize[int64]()(Range(1, 4)),
+		)
+		is.Equal([]Notification[int64]{
+			{Kind: KindNext, Value: 1, Err: nil},
+			{Kind: KindNext, Value: 2, Err: nil},
+			{Kind: KindNext, Value: 3, Err: nil},
+			{Kind: KindComplete, Value: 0, Err: nil},
+		}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Materialize[int64]()(NewObservable(func(destination Observer[int64]) Teardown {
-			destination.Next(1)
-			destination.Next(2)
-			destination.Next(3)
-			destination.Error(assert.AnError)
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-			return nil
-		})),
-	)
-	is.Equal([]Notification[int64]{
-		{Kind: KindNext, Value: 1, Err: nil},
-		{Kind: KindNext, Value: 2, Err: nil},
-		{Kind: KindNext, Value: 3, Err: nil},
-		{Kind: KindError, Value: 0, Err: assert.AnError},
-	}, values)
-	is.NoError(err)
-	values, err = Collect(
-		Materialize[int64]()(Throw[int64](assert.AnError)),
-	)
-	is.Equal([]Notification[int64]{
-		{Kind: KindError, Value: 0, Err: assert.AnError},
-	}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Materialize[int64]()(Empty[int64]()),
+		)
+		is.Equal([]Notification[int64]{
+			{Kind: KindComplete, Value: 0, Err: nil},
+		}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error after values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Materialize[int64]()(NewObservable(func(destination Observer[int64]) Teardown {
+				destination.Next(1)
+				destination.Next(2)
+				destination.Next(3)
+				destination.Error(assert.AnError)
+
+				return nil
+			})),
+		)
+		is.Equal([]Notification[int64]{
+			{Kind: KindNext, Value: 1, Err: nil},
+			{Kind: KindNext, Value: 2, Err: nil},
+			{Kind: KindNext, Value: 3, Err: nil},
+			{Kind: KindError, Value: 0, Err: assert.AnError},
+		}, values)
+		is.NoError(err)
+	})
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Materialize[int64]()(Throw[int64](assert.AnError)),
+		)
+		is.Equal([]Notification[int64]{
+			{Kind: KindError, Value: 0, Err: assert.AnError},
+		}, values)
+		is.NoError(err)
+	})
 }
 
 func TestOperatorUtilityDematerialize(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Dematerialize[int64]()(
-			FromSlice(
-				[]Notification[int64]{
-					{Kind: KindNext, Value: 1, Err: nil},
-					{Kind: KindNext, Value: 2, Err: nil},
-					{Kind: KindNext, Value: 3, Err: nil},
-					{Kind: KindComplete, Value: 0, Err: nil},
-				},
-			),
-		),
-	)
-	is.Equal([]int64{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("values then complete", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Dematerialize[int64]()(
-			FromSlice(
-				[]Notification[int64]{
-					{Kind: KindComplete, Value: 0, Err: nil},
-				},
+		values, err := Collect(
+			Dematerialize[int64]()(
+				FromSlice(
+					[]Notification[int64]{
+						{Kind: KindNext, Value: 1, Err: nil},
+						{Kind: KindNext, Value: 2, Err: nil},
+						{Kind: KindNext, Value: 3, Err: nil},
+						{Kind: KindComplete, Value: 0, Err: nil},
+					},
+				),
 			),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+		)
+		is.Equal([]int64{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Dematerialize[int64]()(
-			FromSlice(
-				[]Notification[int64]{
-					{Kind: KindNext, Value: 1, Err: nil},
-					{Kind: KindNext, Value: 2, Err: nil},
-					{Kind: KindNext, Value: 3, Err: nil},
-					{Kind: KindError, Value: 0, Err: assert.AnError},
-				},
-			),
-		),
-	)
-	is.Equal([]int64{1, 2, 3}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("complete only", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Dematerialize[int64]()(
-			FromSlice(
-				[]Notification[int64]{
-					{Kind: KindError, Value: 0, Err: assert.AnError},
-				},
+		values, err := Collect(
+			Dematerialize[int64]()(
+				FromSlice(
+					[]Notification[int64]{
+						{Kind: KindComplete, Value: 0, Err: nil},
+					},
+				),
 			),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("values then error", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Dematerialize[int64]()(
+				FromSlice(
+					[]Notification[int64]{
+						{Kind: KindNext, Value: 1, Err: nil},
+						{Kind: KindNext, Value: 2, Err: nil},
+						{Kind: KindNext, Value: 3, Err: nil},
+						{Kind: KindError, Value: 0, Err: assert.AnError},
+					},
+				),
+			),
+		)
+		is.Equal([]int64{1, 2, 3}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("error only", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Dematerialize[int64]()(
+				FromSlice(
+					[]Notification[int64]{
+						{Kind: KindError, Value: 0, Err: assert.AnError},
+					},
+				),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorSchedulerSubscribeOn(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 700*time.Millisecond)
-	is := assert.New(t)
 
-	is.PanicsWithError(
-		"ro.SubscribeOn: buffer size must be greater than 0",
-		func() {
-			_, _ = Collect(
-				Pipe2(
-					Just[int64](1, 2, 3),
-					SubscribeOn[int64](-42),
-					Map(func(x int64) int64 {
-						time.Sleep(10 * time.Millisecond) // simulate slow processing
-						return x
-					}),
-				),
-			)
-		},
-	)
+	t.Run("non-positive buffer size panics", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	values, err := Collect(
-		Pipe2(
-			Just[int64](1, 2, 3),
+		is.PanicsWithError(
+			"ro.SubscribeOn: buffer size must be greater than 0",
+			func() {
+				_, _ = Collect(
+					Pipe2(
+						Just[int64](1, 2, 3),
+						SubscribeOn[int64](-42),
+						Map(func(x int64) int64 {
+							time.Sleep(10 * time.Millisecond) // simulate slow processing
+							return x
+						}),
+					),
+				)
+			},
+		)
+	})
+
+	t.Run("delivers all items", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe2(
+				Just[int64](1, 2, 3),
+				SubscribeOn[int64](42),
+				Map(func(x int64) int64 {
+					time.Sleep(10 * time.Millisecond) // simulate slow processing
+					return x
+				}),
+			),
+		)
+		is.Equal([]int64{1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("upstream or downstream runs in a goroutine", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		mu := lo.Synchronize()
+		order := []int64{}
+		values, err := Collect(
+			Pipe3(
+				Range(1, 4),
+				TapOnNext(func(value int64) {
+					mu.Do(func() {
+						order = append(order, value)
+					})
+				}),
+				SubscribeOn[int64](42),
+				TapOnNext(func(value int64) {
+					time.Sleep(10 * time.Millisecond)
+					mu.Do(func() {
+						order = append(order, value*-1)
+					})
+				}),
+			),
+		)
+		is.Equal([]int64{1, 2, 3}, values)
+		is.Equal([]int64{1, 2, 3, -1, -2, -3}, order)
+		is.NoError(err)
+	})
+
+	t.Run("goroutine used on downstream instead of upstream", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		start := time.Now()
+		obs := Pipe1(
+			RangeWithInterval(0, 3, 50*time.Millisecond),
 			SubscribeOn[int64](42),
-			Map(func(x int64) int64 {
-				time.Sleep(10 * time.Millisecond) // simulate slow processing
-				return x
-			}),
-		),
-	)
-	is.Equal([]int64{1, 2, 3}, values)
-	is.NoError(err)
+		)
+		sub := obs.Subscribe(NoopObserver[int64]())
 
-	// check that either the upstream or downstream run in a goroutine
-	mu := lo.Synchronize()
-	order := []int64{}
-	values, err = Collect(
-		Pipe3(
+		is.InDelta(150*time.Millisecond, time.Since(start), float64(15*time.Millisecond))
+		is.True(sub.IsClosed())
+	})
+
+	t.Run("buffer size 1 delivers all items", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe2(
+				Just[int64](1, 2, 3),
+				SubscribeOn[int64](1),
+				Map(func(x int64) int64 {
+					return x
+				}),
+			),
+		)
+		is.Equal([]int64{1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("full buffer blocks upstream when downstream is slow", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		mu := lo.Synchronize()
+		var collected []int64
+		obs := Pipe2(
 			Range(1, 4),
-			TapOnNext(func(value int64) {
-				mu.Do(func() {
-					order = append(order, value)
-				})
-			}),
-			SubscribeOn[int64](42),
-			TapOnNext(func(value int64) {
-				time.Sleep(10 * time.Millisecond)
-				mu.Do(func() {
-					order = append(order, value*-1)
-				})
-			}),
-		),
-	)
-	is.Equal([]int64{1, 2, 3}, values)
-	is.Equal([]int64{1, 2, 3, -1, -2, -3}, order)
-	is.NoError(err)
-
-	// check that goroutine is used on downstream instead of upstream
-	start := time.Now()
-	obs := Pipe1(
-		RangeWithInterval(0, 3, 50*time.Millisecond),
-		SubscribeOn[int64](42),
-	)
-	sub := obs.Subscribe(NoopObserver[int64]())
-
-	is.InDelta(150*time.Millisecond, time.Since(start), float64(15*time.Millisecond))
-	is.True(sub.IsClosed())
-
-	// check channel buffer overflow: buffer size 1 should still deliver all items
-	values, err = Collect(
-		Pipe2(
-			Just[int64](1, 2, 3),
 			SubscribeOn[int64](1),
-			Map(func(x int64) int64 {
-				return x
-			}),
-		),
-	)
-	is.Equal([]int64{1, 2, 3}, values)
-	is.NoError(err)
+			Map(func(x int64) int64 { return x }),
+		)
+		sub := obs.Subscribe(OnNext(func(value int64) {
+			time.Sleep(50 * time.Millisecond) // simulate slow consumer
+			mu.Do(func() {
+				collected = append(collected, value)
+			})
+		}))
 
-	// check that buffer overflow blocks upstream when downstream is slow
-	mu = lo.Synchronize()
-	var collected []int64
-	obs = Pipe2(
-		Range(1, 4),
-		SubscribeOn[int64](1),
-		Map(func(x int64) int64 { return x }),
-	)
-	sub = obs.Subscribe(OnNext(func(value int64) {
-		time.Sleep(50 * time.Millisecond) // simulate slow consumer
+		time.Sleep(200 * time.Millisecond)
+		sub.Unsubscribe()
+
 		mu.Do(func() {
-			collected = append(collected, value)
+			is.NotEmpty(collected)
 		})
-	}))
-
-	time.Sleep(200 * time.Millisecond)
-	sub.Unsubscribe()
-
-	mu.Do(func() {
-		is.NotEmpty(collected)
 	})
 }
 
 func TestOperatorSchedulerObserveOn(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 700*time.Millisecond)
-	is := assert.New(t)
 
-	is.PanicsWithError(
-		"ro.ObserveOn: buffer size must be greater than 0",
-		func() {
-			_, _ = Collect(
-				Pipe2(
-					Just[int64](1, 2, 3),
-					ObserveOn[int64](-42),
-					Map(func(x int64) int64 {
-						time.Sleep(10 * time.Millisecond) // simulate slow processing
-						return x
-					}),
-				),
-			)
-		},
-	)
+	t.Run("non-positive buffer size panics", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	values, err := Collect(
-		Pipe2(
-			Just[int64](1, 2, 3),
+		is.PanicsWithError(
+			"ro.ObserveOn: buffer size must be greater than 0",
+			func() {
+				_, _ = Collect(
+					Pipe2(
+						Just[int64](1, 2, 3),
+						ObserveOn[int64](-42),
+						Map(func(x int64) int64 {
+							time.Sleep(10 * time.Millisecond) // simulate slow processing
+							return x
+						}),
+					),
+				)
+			},
+		)
+	})
+
+	t.Run("delivers all items", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe2(
+				Just[int64](1, 2, 3),
+				ObserveOn[int64](42),
+				Map(func(x int64) int64 {
+					time.Sleep(10 * time.Millisecond) // simulate slow processing
+					return x
+				}),
+			),
+		)
+		is.Equal([]int64{1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("upstream or downstream runs in a goroutine", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		mu := lo.Synchronize()
+		order := []int64{}
+		values, err := Collect(
+			Pipe3(
+				Range(1, 4),
+				TapOnNext(func(value int64) {
+					mu.Do(func() {
+						order = append(order, value)
+					})
+				}),
+				ObserveOn[int64](42),
+				TapOnNext(func(value int64) {
+					time.Sleep(20 * time.Millisecond)
+					mu.Do(func() {
+						order = append(order, value*-1)
+					})
+				}),
+			),
+		)
+		is.Equal([]int64{1, 2, 3}, values)
+		is.Equal([]int64{1, 2, 3, -1, -2, -3}, order)
+		is.NoError(err)
+	})
+
+	t.Run("goroutine used on downstream instead of upstream", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		start := time.Now()
+		obs := Pipe1(
+			RangeWithInterval(0, 3, 50*time.Millisecond),
 			ObserveOn[int64](42),
-			Map(func(x int64) int64 {
-				time.Sleep(10 * time.Millisecond) // simulate slow processing
-				return x
-			}),
-		),
-	)
-	is.Equal([]int64{1, 2, 3}, values)
-	is.NoError(err)
+		)
+		sub := obs.Subscribe(NoopObserver[int64]())
 
-	// check that either the upstream or downstream run in a goroutine
-	mu := lo.Synchronize()
-	order := []int64{}
-	values, err = Collect(
-		Pipe3(
-			Range(1, 4),
-			TapOnNext(func(value int64) {
-				mu.Do(func() {
-					order = append(order, value)
-				})
-			}),
-			ObserveOn[int64](42),
-			TapOnNext(func(value int64) {
-				time.Sleep(20 * time.Millisecond)
-				mu.Do(func() {
-					order = append(order, value*-1)
-				})
-			}),
-		),
-	)
-	is.Equal([]int64{1, 2, 3}, values)
-	is.Equal([]int64{1, 2, 3, -1, -2, -3}, order)
-	is.NoError(err)
+		is.InDelta(0, time.Since(start), float64(15*time.Millisecond))
+		is.False(sub.IsClosed())
+		sub.Wait() // Note: using .Wait() is not recommended.
+		is.InDelta(150*time.Millisecond, time.Since(start), float64(15*time.Millisecond))
+		is.True(sub.IsClosed())
+	})
 
-	// check that goroutine is used on downstream instead of upstream
-	start := time.Now()
-	obs := Pipe1(
-		RangeWithInterval(0, 3, 50*time.Millisecond),
-		ObserveOn[int64](42),
-	)
-	sub := obs.Subscribe(NoopObserver[int64]())
+	t.Run("buffer size 1 delivers all items", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	is.InDelta(0, time.Since(start), float64(15*time.Millisecond))
-	is.False(sub.IsClosed())
-	sub.Wait() // Note: using .Wait() is not recommended.
-	is.InDelta(150*time.Millisecond, time.Since(start), float64(15*time.Millisecond))
-	is.True(sub.IsClosed())
+		values, err := Collect(
+			Pipe2(
+				Just[int64](1, 2, 3),
+				ObserveOn[int64](1),
+				Map(func(x int64) int64 {
+					return x
+				}),
+			),
+		)
+		is.Equal([]int64{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	// check channel buffer overflow: buffer size 1 should still deliver all items
-	values, err = Collect(
-		Pipe2(
-			Just[int64](1, 2, 3),
+	t.Run("full buffer backpressures upstream when consumer is slow", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		mu := lo.Synchronize()
+		var collected []int64
+		obs := Pipe2(
+			RangeWithInterval(0, 5, 10*time.Millisecond),
 			ObserveOn[int64](1),
 			Map(func(x int64) int64 {
+				time.Sleep(50 * time.Millisecond) // simulate slow consumer
+				mu.Do(func() {
+					collected = append(collected, x)
+				})
 				return x
 			}),
-		),
-	)
-	is.Equal([]int64{1, 2, 3}, values)
-	is.NoError(err)
+		)
+		sub := obs.Subscribe(NoopObserver[int64]())
 
-	// check that buffer overflow backpressures upstream when consumer is slow
-	mu = lo.Synchronize()
-	var collected []int64
-	obs = Pipe2(
-		RangeWithInterval(0, 5, 10*time.Millisecond),
-		ObserveOn[int64](1),
-		Map(func(x int64) int64 {
-			time.Sleep(50 * time.Millisecond) // simulate slow consumer
-			mu.Do(func() {
-				collected = append(collected, x)
-			})
-			return x
-		}),
-	)
-	sub = obs.Subscribe(NoopObserver[int64]())
+		time.Sleep(250 * time.Millisecond)
+		is.False(sub.IsClosed())
+		sub.Unsubscribe()
 
-	time.Sleep(250 * time.Millisecond)
-	is.False(sub.IsClosed())
-	sub.Unsubscribe()
-
-	mu.Do(func() {
-		is.NotEmpty(collected)
+		mu.Do(func() {
+			is.NotEmpty(collected)
+		})
 	})
 }

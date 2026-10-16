@@ -91,6 +91,8 @@ var addDateTests = []timeAddDateTest{
 }
 
 func TestAdd(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Test Simple cases", func(t *testing.T) {
 		t.Parallel()
 		is := assert.New(t)
@@ -135,6 +137,8 @@ func TestAdd(t *testing.T) {
 }
 
 func TestAddDate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Test Simple cases", func(t *testing.T) {
 		t.Parallel()
 		is := assert.New(t)

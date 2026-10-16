@@ -46,6 +46,8 @@ var truncateDayTests = []timeTruncateTest{
 }
 
 func TestStartOfDay(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Test Simple cases", func(t *testing.T) {
 		t.Parallel()
 		is := assert.New(t)

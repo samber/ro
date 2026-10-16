@@ -243,101 +243,130 @@ func TestOperatorErrorHandlingCatch(t *testing.T) {
 
 func TestOperatorErrorHandlingOnErrorResumeNextWith(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		OnErrorResumeNextWith(
-			NewObservable(func(observer Observer[int]) Teardown {
-				observer.Next(4)
-				observer.Error(assert.AnError)
+	t.Run("fallback after completion", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-				return nil
-			}),
-			Of(5, 6, 7),
-		)(Of(1, 2, 3)),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5, 6, 7}, values)
-	is.NoError(err)
+		values, err := Collect(
+			OnErrorResumeNextWith(
+				NewObservable(func(observer Observer[int]) Teardown {
+					observer.Next(4)
+					observer.Error(assert.AnError)
 
-	values, err = Collect(
-		OnErrorResumeNextWith(
-			NewObservable(func(observer Observer[int]) Teardown {
-				observer.Next(2)
-				observer.Error(errors.New("error 3"))
+					return nil
+				}),
+				Of(5, 6, 7),
+			)(Of(1, 2, 3)),
+		)
+		is.Equal([]int{1, 2, 3, 4, 5, 6, 7}, values)
+		is.NoError(err)
+	})
 
-				return nil
-			}),
-			NewObservable(func(observer Observer[int]) Teardown {
-				observer.Next(3)
-				observer.Error(errors.New("error 2"))
+	t.Run("all sources fail", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-				return nil
-			}),
-		)(
-			NewObservable(func(observer Observer[int]) Teardown {
-				observer.Next(1)
-				observer.Error(errors.New("error 1"))
+		values, err := Collect(
+			OnErrorResumeNextWith(
+				NewObservable(func(observer Observer[int]) Teardown {
+					observer.Next(2)
+					observer.Error(errors.New("error 3"))
 
-				return nil
-			}),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.Errorf(err, "error 3")
+					return nil
+				}),
+				NewObservable(func(observer Observer[int]) Teardown {
+					observer.Next(3)
+					observer.Error(errors.New("error 2"))
 
-	values, err = Collect(
-		OnErrorResumeNextWith(
-			NewObservable(func(observer Observer[int]) Teardown {
-				observer.Next(2)
-				observer.Error(errors.New("error 3"))
+					return nil
+				}),
+			)(
+				NewObservable(func(observer Observer[int]) Teardown {
+					observer.Next(1)
+					observer.Error(errors.New("error 1"))
 
-				return nil
-			}),
-			NewObservable(func(observer Observer[int]) Teardown {
-				observer.Next(3)
-				observer.Complete()
+					return nil
+				}),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.Errorf(err, "error 3")
+	})
 
-				return nil
-			}),
-		)(
-			NewObservable(func(observer Observer[int]) Teardown {
-				observer.Next(1)
-				observer.Error(errors.New("error 1"))
+	t.Run("last source completes", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-				return nil
-			}),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+		values, err := Collect(
+			OnErrorResumeNextWith(
+				NewObservable(func(observer Observer[int]) Teardown {
+					observer.Next(2)
+					observer.Error(errors.New("error 3"))
 
-	values, err = Collect(
-		Pipe2(
-			Of(1, 2, 3),
-			Map(func(x int) int {
-				if x == 3 {
-					panic(assert.AnError)
-				}
+					return nil
+				}),
+				NewObservable(func(observer Observer[int]) Teardown {
+					observer.Next(3)
+					observer.Complete()
 
-				return x
-			}),
-			OnErrorResumeNextWith(Of(4, 5, 6)),
-		),
-	)
-	is.Equal([]int{1, 2, 4, 5, 6}, values)
-	is.NoError(err)
+					return nil
+				}),
+			)(
+				NewObservable(func(observer Observer[int]) Teardown {
+					observer.Next(1)
+					observer.Error(errors.New("error 1"))
 
-	values, err = Collect(
-		OnErrorResumeNextWith[int]()(Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+					return nil
+				}),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		OnErrorResumeNextWith[int]()(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("panic in source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe2(
+				Of(1, 2, 3),
+				Map(func(x int) int {
+					if x == 3 {
+						panic(assert.AnError)
+					}
+
+					return x
+				}),
+				OnErrorResumeNextWith(Of(4, 5, 6)),
+			),
+		)
+		is.Equal([]int{1, 2, 4, 5, 6}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			OnErrorResumeNextWith[int]()(Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			OnErrorResumeNextWith[int]()(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
 	t.Run("reusing the same operator does not grow its chain", func(t *testing.T) {
 		t.Parallel()
@@ -433,37 +462,44 @@ func TestOperatorErrorHandlingOnErrorReturn(t *testing.T) {
 func TestOperatorErrorHandlingRetry(t *testing.T) { //nolint:tparallel
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		Pipe1(
-			Of(1, 2, 3),
-			Retry[int](),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("no error", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	crash := 0
-	values, err = Collect(
-		Pipe2(
-			Of(1, 2, 3),
-			Map(func(x int) int {
-				if x == 3 && crash < 2 {
-					crash++
+		values, err := Collect(
+			Pipe1(
+				Of(1, 2, 3),
+				Retry[int](),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-					panic(assert.AnError)
-				}
+	t.Run("recovers after panics", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-				return x
-			}),
-			Retry[int](),
-		),
-	)
-	is.Equal([]int{1, 2, 1, 2, 1, 2, 3}, values)
-	is.NoError(err)
+		crash := 0
+		values, err := Collect(
+			Pipe2(
+				Of(1, 2, 3),
+				Map(func(x int) int {
+					if x == 3 && crash < 2 {
+						crash++
 
-	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
+						panic(assert.AnError)
+					}
+
+					return x
+				}),
+				Retry[int](),
+			),
+		)
+		is.Equal([]int{1, 2, 1, 2, 1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("releases upstream when it stops by itself", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
 		forEachSourceMode(t, func(t *testing.T, async bool) {
 			t.Helper()
 
@@ -499,93 +535,112 @@ func TestOperatorErrorHandlingRetry_downstreamCancel(t *testing.T) {
 func TestOperatorErrorHandlingRetryWithConfig(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 400*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		Pipe1(
-			Of(1, 2, 3),
-			RetryWithConfig[int](RetryConfig{}),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("no error", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-	crash := 0
-	values, err = Collect(
-		Pipe2(
-			Of(1, 2, 3),
-			Map(func(x int) int {
-				if x == 3 && crash < 2 {
-					crash++
+		values, err := Collect(
+			Pipe1(
+				Of(1, 2, 3),
+				RetryWithConfig[int](RetryConfig{}),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-					panic(assert.AnError)
-				}
+	t.Run("recovers after panics", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-				return x
-			}),
-			RetryWithConfig[int](RetryConfig{}),
-		),
-	)
-	is.Equal([]int{1, 2, 1, 2, 1, 2, 3}, values)
-	is.NoError(err)
+		crash := 0
+		values, err := Collect(
+			Pipe2(
+				Of(1, 2, 3),
+				Map(func(x int) int {
+					if x == 3 && crash < 2 {
+						crash++
 
-	values, err = Collect(
-		Pipe2(
-			Of(1, 2, 3),
-			Map(func(x int) int {
-				if x == 3 {
-					panic(assert.AnError)
-				}
+						panic(assert.AnError)
+					}
 
-				return x
-			}),
-			RetryWithConfig[int](RetryConfig{MaxRetries: 2}),
-		),
-	)
-	is.Equal([]int{1, 2, 1, 2, 1, 2}, values)
-	is.EqualError(err, "ro.Observer: "+assert.AnError.Error())
+					return x
+				}),
+				RetryWithConfig[int](RetryConfig{}),
+			),
+		)
+		is.Equal([]int{1, 2, 1, 2, 1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	start := time.Now()
-	values, err = Collect(
-		Pipe2(
-			Of(1, 2, 3),
-			Map(func(x int) int {
-				if x == 3 {
-					panic(assert.AnError)
-				}
+	t.Run("max retries exhausted", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-				return x
-			}),
-			RetryWithConfig[int](RetryConfig{MaxRetries: 2, Delay: 75 * time.Millisecond}),
-		),
-	)
-	is.Equal([]int{1, 2, 1, 2, 1, 2}, values)
-	is.WithinDuration(time.Now(), start.Add(150*time.Millisecond), 30*time.Millisecond)
-	is.EqualError(err, "ro.Observer: "+assert.AnError.Error())
+		values, err := Collect(
+			Pipe2(
+				Of(1, 2, 3),
+				Map(func(x int) int {
+					if x == 3 {
+						panic(assert.AnError)
+					}
 
-	total := 0
-	values, err = Collect(
-		Pipe2(
-			Of(1, 2, 3),
-			Map(func(x int) int {
-				total++
-				if total > 10 {
-					panic(assert.AnError)
-				}
+					return x
+				}),
+				RetryWithConfig[int](RetryConfig{MaxRetries: 2}),
+			),
+		)
+		is.Equal([]int{1, 2, 1, 2, 1, 2}, values)
+		is.EqualError(err, "ro.Observer: "+assert.AnError.Error())
+	})
 
-				if x == 3 {
-					panic(assert.AnError)
-				}
+	t.Run("delay between retries", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
 
-				return x
-			}),
-			RetryWithConfig[int](RetryConfig{MaxRetries: 2, ResetOnSuccess: true}),
-		),
-	)
-	is.Equal([]int{1, 2, 1, 2, 1, 2, 1}, values)
-	is.EqualError(err, "ro.Observer: "+assert.AnError.Error())
+		start := time.Now()
+		values, err := Collect(
+			Pipe2(
+				Of(1, 2, 3),
+				Map(func(x int) int {
+					if x == 3 {
+						panic(assert.AnError)
+					}
 
-	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
+					return x
+				}),
+				RetryWithConfig[int](RetryConfig{MaxRetries: 2, Delay: 75 * time.Millisecond}),
+			),
+		)
+		is.Equal([]int{1, 2, 1, 2, 1, 2}, values)
+		is.WithinDuration(time.Now(), start.Add(150*time.Millisecond), 30*time.Millisecond)
+		is.EqualError(err, "ro.Observer: "+assert.AnError.Error())
+	})
+
+	t.Run("reset on success", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
+		is := assert.New(t)
+
+		total := 0
+		values, err := Collect(
+			Pipe2(
+				Of(1, 2, 3),
+				Map(func(x int) int {
+					total++
+					if total > 10 {
+						panic(assert.AnError)
+					}
+
+					if x == 3 {
+						panic(assert.AnError)
+					}
+
+					return x
+				}),
+				RetryWithConfig[int](RetryConfig{MaxRetries: 2, ResetOnSuccess: true}),
+			),
+		)
+		is.Equal([]int{1, 2, 1, 2, 1, 2, 1}, values)
+		is.EqualError(err, "ro.Observer: "+assert.AnError.Error())
+	})
+
+	t.Run("releases upstream when it stops by itself", func(t *testing.T) { //nolint:paralleltest // sequential: the parent test is guarded by testWithTimeout
 		forEachSourceMode(t, func(t *testing.T, async bool) {
 			t.Helper()
 
@@ -689,85 +744,113 @@ func TestOperatorErrorHandlingRetryWithConfig_finalErrorContext(t *testing.T) {
 
 func TestOperatorErrorHandlingThrowIfEmpty(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	values, err := Collect(
-		Pipe1(
-			Of(1, 2, 3),
-			ThrowIfEmpty[int](func() error {
-				is.Fail("never")
-				return assert.AnError
-			}),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("non-empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			Empty[int](),
-			ThrowIfEmpty[int](func() error {
-				return assert.AnError
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Pipe1(
+				Of(1, 2, 3),
+				ThrowIfEmpty[int](func() error {
+					is.Fail("never")
+					return assert.AnError
+				}),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Throw[int](assert.AnError),
-			ThrowIfEmpty[int](func() error {
-				is.Fail("never")
-				return assert.AnError
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Empty[int](),
+				ThrowIfEmpty[int](func() error {
+					return assert.AnError
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Throw[int](assert.AnError),
+				ThrowIfEmpty[int](func() error {
+					is.Fail("never")
+					return assert.AnError
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorErrorHandlingDoWhile(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	counter := int32(0)
-	values, err := Collect(
-		Pipe1(
-			Of(1, 2, 3),
-			DoWhile[int](func() bool {
-				return atomic.AddInt32(&counter, 1) < 2
-			}),
-		),
-	)
-	is.Equal([]int{1, 2, 3, 1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("repeats while condition holds", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	atomic.StoreInt32(&counter, 0)
+		counter := int32(0)
+		values, err := Collect(
+			Pipe1(
+				Of(1, 2, 3),
+				DoWhile[int](func() bool {
+					return atomic.AddInt32(&counter, 1) < 2
+				}),
+			),
+		)
+		is.Equal([]int{1, 2, 3, 1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Empty[int](),
-			DoWhile[int](func() bool {
-				return atomic.AddInt32(&counter, 1) < 2
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	atomic.StoreInt32(&counter, 0)
+		counter := int32(0)
 
-	values, err = Collect(
-		Pipe1(
-			Throw[int](assert.AnError),
-			DoWhile[int](func() bool {
-				return atomic.AddInt32(&counter, 1) < 2
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Pipe1(
+				Empty[int](),
+				DoWhile[int](func() bool {
+					return atomic.AddInt32(&counter, 1) < 2
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		counter := int32(0)
+
+		values, err := Collect(
+			Pipe1(
+				Throw[int](assert.AnError),
+				DoWhile[int](func() bool {
+					return atomic.AddInt32(&counter, 1) < 2
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
 	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
 		t.Parallel()
@@ -818,56 +901,75 @@ func TestOperatorErrorHandlingDoWhile(t *testing.T) {
 
 func TestOperatorErrorHandlingWhile(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	counter := int32(0)
-	values, err := Collect(
-		Pipe1(
-			Of(1, 2, 3),
-			While[int](func() bool {
-				return atomic.AddInt32(&counter, 1) < 2
-			}),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("stops when condition turns false", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	atomic.StoreInt32(&counter, 0)
+		counter := int32(0)
+		values, err := Collect(
+			Pipe1(
+				Of(1, 2, 3),
+				While[int](func() bool {
+					return atomic.AddInt32(&counter, 1) < 2
+				}),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Empty[int](),
-			While[int](func() bool {
-				return atomic.AddInt32(&counter, 1) < 2
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			Throw[int](assert.AnError),
-			While[int](func() bool {
-				return false
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+		counter := int32(0)
 
-	atomic.StoreInt32(&counter, 0)
+		values, err := Collect(
+			Pipe1(
+				Empty[int](),
+				While[int](func() bool {
+					return atomic.AddInt32(&counter, 1) < 2
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Throw[int](assert.AnError),
-			While[int](func() bool {
-				return atomic.AddInt32(&counter, 1) < 3
-			}),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("condition false from the start", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Throw[int](assert.AnError),
+				While[int](func() bool {
+					return false
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		counter := int32(0)
+
+		values, err := Collect(
+			Pipe1(
+				Throw[int](assert.AnError),
+				While[int](func() bool {
+					return atomic.AddInt32(&counter, 1) < 3
+				}),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 
 	t.Run("releases upstream when it stops by itself", func(t *testing.T) {
 		t.Parallel()

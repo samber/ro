@@ -643,11 +643,32 @@ func TestReplaySubject_implBufferOverflow(t *testing.T) {
 
 func TestReplaySubject_invalidBufferSize(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	is.PanicsWithValue(ErrReplaySubjectWrongBufferSize, func() { NewReplaySubject[int](-2) })
-	is.PanicsWithValue(ErrReplaySubjectWrongBufferSize, func() { NewReplaySubject[int](math.MinInt) })
+	t.Run("negative size panics", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	is.NotPanics(func() { NewReplaySubject[int](ReplaySubjectUnlimitedBufferSize) })
-	is.NotPanics(func() { NewReplaySubject[int](0) })
+		is.PanicsWithValue(ErrReplaySubjectWrongBufferSize, func() { NewReplaySubject[int](-2) })
+	})
+
+	t.Run("min int size panics", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		is.PanicsWithValue(ErrReplaySubjectWrongBufferSize, func() { NewReplaySubject[int](math.MinInt) })
+	})
+
+	t.Run("unlimited size does not panic", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		is.NotPanics(func() { NewReplaySubject[int](ReplaySubjectUnlimitedBufferSize) })
+	})
+
+	t.Run("zero size does not panic", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		is.NotPanics(func() { NewReplaySubject[int](0) })
+	})
 }

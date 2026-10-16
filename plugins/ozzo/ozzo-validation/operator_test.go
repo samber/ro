@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 package roozzovalidation
 
 import (
@@ -57,102 +56,132 @@ func (u ValidatableUser) ValidateWithContext(ctx context.Context) error {
 
 func TestValidate(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// Test successful validation with simple string
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Just("test"),
-			Validate[string](ozzo.Required, ozzo.Length(1, 10)),
-		),
-	)
-	is.Nil(err)
-	is.Len(values, 1)
-	is.True(values[0].IsOk())
-	is.Equal("test", values[0].Unwrap())
+	t.Run("successful validation with simple string", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// Test failed validation with simple string
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Just(""),
-			Validate[string](ozzo.Required, ozzo.Length(1, 10)),
-		),
-	)
-	is.Nil(err)
-	is.Len(values, 1)
-	is.True(values[0].IsError())
-	is.NotNil(values[0].Error())
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just("test"),
+				Validate[string](ozzo.Required, ozzo.Length(1, 10)),
+			),
+		)
+		is.Nil(err)
+		is.Len(values, 1)
+		is.True(values[0].IsOk())
+		is.Equal("test", values[0].Unwrap())
+	})
 
-	// Test empty observable
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Empty[string](),
-			Validate[string](ozzo.Required),
-		),
-	)
-	is.Nil(err)
-	is.Empty(values)
+	t.Run("failed validation with simple string", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// Test error observable
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Throw[string](assert.AnError),
-			Validate[string](ozzo.Required),
-		),
-	)
-	is.EqualError(err, assert.AnError.Error())
-	is.Empty(values)
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just(""),
+				Validate[string](ozzo.Required, ozzo.Length(1, 10)),
+			),
+		)
+		is.Nil(err)
+		is.Len(values, 1)
+		is.True(values[0].IsError())
+		is.NotNil(values[0].Error())
+	})
+
+	t.Run("empty observable", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Empty[string](),
+				Validate[string](ozzo.Required),
+			),
+		)
+		is.Nil(err)
+		is.Empty(values)
+	})
+
+	t.Run("error observable", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Throw[string](assert.AnError),
+				Validate[string](ozzo.Required),
+			),
+		)
+		is.EqualError(err, assert.AnError.Error())
+		is.Empty(values)
+	})
 }
 
 func TestValidate_additionalValidationRules(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
-	// Test with URL validation
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Just("https://example.com"),
-			Validate[string](ozzo.Required, is.URL),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 1)
-	assert.True(values[0].IsOk())
-	assert.Equal("https://example.com", values[0].Unwrap())
+	t.Run("URL validation", func(t *testing.T) {
+		t.Parallel()
+		assert := assert.New(t)
 
-	// Test with invalid URL
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Just("not-a-url"),
-			Validate[string](ozzo.Required, is.URL),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 1)
-	assert.True(values[0].IsError())
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just("https://example.com"),
+				Validate[string](ozzo.Required, is.URL),
+			),
+		)
+		assert.Nil(err)
+		assert.Len(values, 1)
+		assert.True(values[0].IsOk())
+		assert.Equal("https://example.com", values[0].Unwrap())
+	})
 
-	// Test with numeric validation
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Just("123"),
-			Validate[string](ozzo.Required, ozzo.Match(regexp.MustCompile(`^[0-9]+$`))),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 1)
-	assert.True(values[0].IsOk())
-	assert.Equal("123", values[0].Unwrap())
+	t.Run("invalid URL", func(t *testing.T) {
+		t.Parallel()
+		assert := assert.New(t)
 
-	// Test with invalid number
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Just("abc"),
-			Validate[string](ozzo.Required, ozzo.Match(regexp.MustCompile(`^[0-9]+$`))),
-		),
-	)
-	assert.Nil(err)
-	assert.Len(values, 1)
-	assert.True(values[0].IsError())
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just("not-a-url"),
+				Validate[string](ozzo.Required, is.URL),
+			),
+		)
+		assert.Nil(err)
+		assert.Len(values, 1)
+		assert.True(values[0].IsError())
+	})
+
+	t.Run("numeric validation", func(t *testing.T) {
+		t.Parallel()
+		assert := assert.New(t)
+
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just("123"),
+				Validate[string](ozzo.Required, ozzo.Match(regexp.MustCompile(`^[0-9]+$`))),
+			),
+		)
+		assert.Nil(err)
+		assert.Len(values, 1)
+		assert.True(values[0].IsOk())
+		assert.Equal("123", values[0].Unwrap())
+	})
+
+	t.Run("invalid number", func(t *testing.T) {
+		t.Parallel()
+		assert := assert.New(t)
+
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just("abc"),
+				Validate[string](ozzo.Required, ozzo.Match(regexp.MustCompile(`^[0-9]+$`))),
+			),
+		)
+		assert.Nil(err)
+		assert.Len(values, 1)
+		assert.True(values[0].IsError())
+	})
 }
 
 func TestValidate_complexValidation(t *testing.T) {
@@ -222,42 +251,53 @@ func TestValidate_edgeCases(t *testing.T) {
 
 func TestValidate_simpleTypes(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// Test with string validation
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Just("test"),
-			Validate[string](ozzo.Required, ozzo.Length(1, 10)),
-		),
-	)
-	is.Nil(err)
-	is.Len(values, 1)
-	is.True(values[0].IsOk())
-	is.Equal("test", values[0].Unwrap())
+	t.Run("string validation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// Test with int validation
-	intValues, err := ro.Collect(
-		ro.Pipe1(
-			ro.Just(42),
-			Validate[int](ozzo.Required, ozzo.Min(0), ozzo.Max(100)),
-		),
-	)
-	is.Nil(err)
-	is.Len(intValues, 1)
-	is.True(intValues[0].IsOk())
-	is.Equal(42, intValues[0].Unwrap())
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just("test"),
+				Validate[string](ozzo.Required, ozzo.Length(1, 10)),
+			),
+		)
+		is.Nil(err)
+		is.Len(values, 1)
+		is.True(values[0].IsOk())
+		is.Equal("test", values[0].Unwrap())
+	})
 
-	// Test with invalid int
-	intValues, err = ro.Collect(
-		ro.Pipe1(
-			ro.Just(150),
-			Validate[int](ozzo.Required, ozzo.Min(0), ozzo.Max(100)),
-		),
-	)
-	is.Nil(err)
-	is.Len(intValues, 1)
-	is.True(intValues[0].IsError())
+	t.Run("int validation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		intValues, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just(42),
+				Validate[int](ozzo.Required, ozzo.Min(0), ozzo.Max(100)),
+			),
+		)
+		is.Nil(err)
+		is.Len(intValues, 1)
+		is.True(intValues[0].IsOk())
+		is.Equal(42, intValues[0].Unwrap())
+	})
+
+	t.Run("invalid int", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		intValues, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just(150),
+				Validate[int](ozzo.Required, ozzo.Min(0), ozzo.Max(100)),
+			),
+		)
+		is.Nil(err)
+		is.Len(intValues, 1)
+		is.True(intValues[0].IsError())
+	})
 }
 
 func TestValidate_multipleRules(t *testing.T) {

@@ -172,25 +172,40 @@ func TestGetFunctionDescription_skipCaller(t *testing.T) {
 
 func TestGetFunctionDescription_skipArg(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// don't skip
-	desc, err := GetFunctionDescription(-1, 0)
-	is.Len(desc.Arguments, 2)
-	is.Nil(err)
+	t.Run("don't skip", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// skip 1 argument
-	desc, err = GetFunctionDescription(-1, 1)
-	is.Len(desc.Arguments, 1)
-	is.Nil(err)
+		desc, err := GetFunctionDescription(-1, 0)
+		is.Len(desc.Arguments, 2)
+		is.Nil(err)
+	})
 
-	// skip argument overflow (positive)
-	desc, err = GetFunctionDescription(-1, 100)
-	is.Len(desc.Arguments, 0)
-	is.Nil(err)
+	t.Run("skip 1 argument", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// skip argument overflow (negative)
-	desc, err = GetFunctionDescription(-1, -100)
-	is.Len(desc.Arguments, 2)
-	is.Nil(err)
+		desc, err := GetFunctionDescription(-1, 1)
+		is.Len(desc.Arguments, 1)
+		is.Nil(err)
+	})
+
+	t.Run("skip argument overflow (positive)", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		desc, err := GetFunctionDescription(-1, 100)
+		is.Len(desc.Arguments, 0)
+		is.Nil(err)
+	})
+
+	t.Run("skip argument overflow (negative)", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		desc, err := GetFunctionDescription(-1, -100)
+		is.Len(desc.Arguments, 2)
+		is.Nil(err)
+	})
 }
