@@ -58,44 +58,58 @@ func TestKebabCase(t *testing.T) {
 
 func TestKebabCaseWithLanguage(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	tests := []struct {
-		input []byte
-		tag   language.Tag
-		want  []byte
-	}{
-		{[]byte("HelloWorld"), language.English, []byte("hello-world")},
-		// Turkish: 'I' lowercases to 'ı' (U+0131)
-		{[]byte("IstanbulCity"), language.Turkish, []byte("ıstanbul-city")},
-	}
+	t.Run("language variants", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	for _, tc := range tests {
+		tests := []struct {
+			input []byte
+			tag   language.Tag
+			want  []byte
+		}{
+			{[]byte("HelloWorld"), language.English, []byte("hello-world")},
+			// Turkish: 'I' lowercases to 'ı' (U+0131)
+			{[]byte("IstanbulCity"), language.Turkish, []byte("ıstanbul-city")},
+		}
+
+		for _, tc := range tests {
+			values, err := ro.Collect(
+				ro.Pipe1(
+					ro.Just(tc.input),
+					KebabCaseWithLanguage[[]byte](tc.tag),
+				),
+			)
+			is.Equal(tc.want, values[0])
+			is.NoError(err)
+		}
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
 		values, err := ro.Collect(
 			ro.Pipe1(
-				ro.Just(tc.input),
-				KebabCaseWithLanguage[[]byte](tc.tag),
+				ro.Empty[[]byte](),
+				KebabCaseWithLanguage[[]byte](language.English),
 			),
 		)
-		is.Equal(tc.want, values[0])
+		is.Equal([][]byte{}, values)
 		is.NoError(err)
-	}
+	})
 
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Empty[[]byte](),
-			KebabCaseWithLanguage[[]byte](language.English),
-		),
-	)
-	is.Equal([][]byte{}, values)
-	is.NoError(err)
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Throw[[]byte](assert.AnError),
-			KebabCaseWithLanguage[[]byte](language.English),
-		),
-	)
-	is.Equal([][]byte{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Throw[[]byte](assert.AnError),
+				KebabCaseWithLanguage[[]byte](language.English),
+			),
+		)
+		is.Equal([][]byte{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }

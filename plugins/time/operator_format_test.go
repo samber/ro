@@ -47,6 +47,8 @@ var allTimeFormatTests = []timeFormatTest{
 }
 
 func TestFormat(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Simple test cases", func(t *testing.T) {
 		t.Parallel()
 		is := assert.New(t)

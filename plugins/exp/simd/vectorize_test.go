@@ -371,221 +371,381 @@ func TestVectorizeRoundTripFloat64(t *testing.T) {
 func TestEmptyAndErrorSources(t *testing.T) {
 	t.Parallel()
 
-	values, err := ro.Collect(
-		ro.Pipe2[int8, PartialInt8s, int8](ro.Empty[int8](), VectorizeInt8[PartialInt8s](), ReduceSumInt8[PartialInt8s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []int8{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	t.Run("empty source sums to zero", func(t *testing.T) {
+		t.Parallel()
 
-	vectors, err := ro.Collect(VectorizeInt8[PartialInt8s]()(ro.Empty[int8]()))
-	assert.NoError(t, err)
-	assert.Equal(t, []PartialInt8s{}, vectors, "an empty stream must not emit a padding-only vector")
+		values, err := ro.Collect(
+			ro.Pipe2[int8, PartialInt8s, int8](ro.Empty[int8](), VectorizeInt8[PartialInt8s](), ReduceSumInt8[PartialInt8s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []int8{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	})
 
-	_, err = ro.Collect(VectorizeInt8[PartialInt8s]()(ro.Throw[int8](assert.AnError)))
-	assert.EqualError(t, err, assert.AnError.Error())
+	t.Run("empty source emits no vector", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = ro.Collect(
-		ro.Pipe2[int8, PartialInt8s, int8](ro.Throw[int8](assert.AnError), VectorizeInt8[PartialInt8s](), ReduceSumInt8[PartialInt8s]()),
-	)
-	assert.EqualError(t, err, assert.AnError.Error())
+		vectors, err := ro.Collect(VectorizeInt8[PartialInt8s]()(ro.Empty[int8]()))
+		assert.NoError(t, err)
+		assert.Equal(t, []PartialInt8s{}, vectors, "an empty stream must not emit a padding-only vector")
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(VectorizeInt8[PartialInt8s]()(ro.Throw[int8](assert.AnError)))
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
+
+	t.Run("error source through reduce", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(
+			ro.Pipe2[int8, PartialInt8s, int8](ro.Throw[int8](assert.AnError), VectorizeInt8[PartialInt8s](), ReduceSumInt8[PartialInt8s]()),
+		)
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
 }
 
 func TestEmptyAndErrorSourcesInt16(t *testing.T) {
 	t.Parallel()
 
-	values, err := ro.Collect(
-		ro.Pipe2[int16, PartialInt16s, int16](ro.Empty[int16](), VectorizeInt16[PartialInt16s](), ReduceSumInt16[PartialInt16s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []int16{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	t.Run("empty source sums to zero", func(t *testing.T) {
+		t.Parallel()
 
-	vectors, err := ro.Collect(VectorizeInt16[PartialInt16s]()(ro.Empty[int16]()))
-	assert.NoError(t, err)
-	assert.Equal(t, []PartialInt16s{}, vectors, "an empty stream must not emit a padding-only vector")
+		values, err := ro.Collect(
+			ro.Pipe2[int16, PartialInt16s, int16](ro.Empty[int16](), VectorizeInt16[PartialInt16s](), ReduceSumInt16[PartialInt16s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []int16{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	})
 
-	_, err = ro.Collect(VectorizeInt16[PartialInt16s]()(ro.Throw[int16](assert.AnError)))
-	assert.EqualError(t, err, assert.AnError.Error())
+	t.Run("empty source emits no vector", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = ro.Collect(
-		ro.Pipe2[int16, PartialInt16s, int16](ro.Throw[int16](assert.AnError), VectorizeInt16[PartialInt16s](), ReduceSumInt16[PartialInt16s]()),
-	)
-	assert.EqualError(t, err, assert.AnError.Error())
+		vectors, err := ro.Collect(VectorizeInt16[PartialInt16s]()(ro.Empty[int16]()))
+		assert.NoError(t, err)
+		assert.Equal(t, []PartialInt16s{}, vectors, "an empty stream must not emit a padding-only vector")
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(VectorizeInt16[PartialInt16s]()(ro.Throw[int16](assert.AnError)))
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
+
+	t.Run("error source through reduce", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(
+			ro.Pipe2[int16, PartialInt16s, int16](ro.Throw[int16](assert.AnError), VectorizeInt16[PartialInt16s](), ReduceSumInt16[PartialInt16s]()),
+		)
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
 }
 
 func TestEmptyAndErrorSourcesInt32(t *testing.T) {
 	t.Parallel()
 
-	values, err := ro.Collect(
-		ro.Pipe2[int32, PartialInt32s, int32](ro.Empty[int32](), VectorizeInt32[PartialInt32s](), ReduceSumInt32[PartialInt32s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []int32{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	t.Run("empty source sums to zero", func(t *testing.T) {
+		t.Parallel()
 
-	vectors, err := ro.Collect(VectorizeInt32[PartialInt32s]()(ro.Empty[int32]()))
-	assert.NoError(t, err)
-	assert.Equal(t, []PartialInt32s{}, vectors, "an empty stream must not emit a padding-only vector")
+		values, err := ro.Collect(
+			ro.Pipe2[int32, PartialInt32s, int32](ro.Empty[int32](), VectorizeInt32[PartialInt32s](), ReduceSumInt32[PartialInt32s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []int32{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	})
 
-	_, err = ro.Collect(VectorizeInt32[PartialInt32s]()(ro.Throw[int32](assert.AnError)))
-	assert.EqualError(t, err, assert.AnError.Error())
+	t.Run("empty source emits no vector", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = ro.Collect(
-		ro.Pipe2[int32, PartialInt32s, int32](ro.Throw[int32](assert.AnError), VectorizeInt32[PartialInt32s](), ReduceSumInt32[PartialInt32s]()),
-	)
-	assert.EqualError(t, err, assert.AnError.Error())
+		vectors, err := ro.Collect(VectorizeInt32[PartialInt32s]()(ro.Empty[int32]()))
+		assert.NoError(t, err)
+		assert.Equal(t, []PartialInt32s{}, vectors, "an empty stream must not emit a padding-only vector")
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(VectorizeInt32[PartialInt32s]()(ro.Throw[int32](assert.AnError)))
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
+
+	t.Run("error source through reduce", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(
+			ro.Pipe2[int32, PartialInt32s, int32](ro.Throw[int32](assert.AnError), VectorizeInt32[PartialInt32s](), ReduceSumInt32[PartialInt32s]()),
+		)
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
 }
 
 func TestEmptyAndErrorSourcesInt64(t *testing.T) {
 	t.Parallel()
 
-	values, err := ro.Collect(
-		ro.Pipe2[int64, PartialInt64s, int64](ro.Empty[int64](), VectorizeInt64[PartialInt64s](), ReduceSumInt64[PartialInt64s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []int64{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	t.Run("empty source sums to zero", func(t *testing.T) {
+		t.Parallel()
 
-	vectors, err := ro.Collect(VectorizeInt64[PartialInt64s]()(ro.Empty[int64]()))
-	assert.NoError(t, err)
-	assert.Equal(t, []PartialInt64s{}, vectors, "an empty stream must not emit a padding-only vector")
+		values, err := ro.Collect(
+			ro.Pipe2[int64, PartialInt64s, int64](ro.Empty[int64](), VectorizeInt64[PartialInt64s](), ReduceSumInt64[PartialInt64s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []int64{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	})
 
-	_, err = ro.Collect(VectorizeInt64[PartialInt64s]()(ro.Throw[int64](assert.AnError)))
-	assert.EqualError(t, err, assert.AnError.Error())
+	t.Run("empty source emits no vector", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = ro.Collect(
-		ro.Pipe2[int64, PartialInt64s, int64](ro.Throw[int64](assert.AnError), VectorizeInt64[PartialInt64s](), ReduceSumInt64[PartialInt64s]()),
-	)
-	assert.EqualError(t, err, assert.AnError.Error())
+		vectors, err := ro.Collect(VectorizeInt64[PartialInt64s]()(ro.Empty[int64]()))
+		assert.NoError(t, err)
+		assert.Equal(t, []PartialInt64s{}, vectors, "an empty stream must not emit a padding-only vector")
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(VectorizeInt64[PartialInt64s]()(ro.Throw[int64](assert.AnError)))
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
+
+	t.Run("error source through reduce", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(
+			ro.Pipe2[int64, PartialInt64s, int64](ro.Throw[int64](assert.AnError), VectorizeInt64[PartialInt64s](), ReduceSumInt64[PartialInt64s]()),
+		)
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
 }
 
 func TestEmptyAndErrorSourcesUint8(t *testing.T) {
 	t.Parallel()
 
-	values, err := ro.Collect(
-		ro.Pipe2[uint8, PartialUint8s, uint8](ro.Empty[uint8](), VectorizeUint8[PartialUint8s](), ReduceSumUint8[PartialUint8s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint8{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	t.Run("empty source sums to zero", func(t *testing.T) {
+		t.Parallel()
 
-	vectors, err := ro.Collect(VectorizeUint8[PartialUint8s]()(ro.Empty[uint8]()))
-	assert.NoError(t, err)
-	assert.Equal(t, []PartialUint8s{}, vectors, "an empty stream must not emit a padding-only vector")
+		values, err := ro.Collect(
+			ro.Pipe2[uint8, PartialUint8s, uint8](ro.Empty[uint8](), VectorizeUint8[PartialUint8s](), ReduceSumUint8[PartialUint8s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint8{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	})
 
-	_, err = ro.Collect(VectorizeUint8[PartialUint8s]()(ro.Throw[uint8](assert.AnError)))
-	assert.EqualError(t, err, assert.AnError.Error())
+	t.Run("empty source emits no vector", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = ro.Collect(
-		ro.Pipe2[uint8, PartialUint8s, uint8](ro.Throw[uint8](assert.AnError), VectorizeUint8[PartialUint8s](), ReduceSumUint8[PartialUint8s]()),
-	)
-	assert.EqualError(t, err, assert.AnError.Error())
+		vectors, err := ro.Collect(VectorizeUint8[PartialUint8s]()(ro.Empty[uint8]()))
+		assert.NoError(t, err)
+		assert.Equal(t, []PartialUint8s{}, vectors, "an empty stream must not emit a padding-only vector")
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(VectorizeUint8[PartialUint8s]()(ro.Throw[uint8](assert.AnError)))
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
+
+	t.Run("error source through reduce", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(
+			ro.Pipe2[uint8, PartialUint8s, uint8](ro.Throw[uint8](assert.AnError), VectorizeUint8[PartialUint8s](), ReduceSumUint8[PartialUint8s]()),
+		)
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
 }
 
 func TestEmptyAndErrorSourcesUint16(t *testing.T) {
 	t.Parallel()
 
-	values, err := ro.Collect(
-		ro.Pipe2[uint16, PartialUint16s, uint16](ro.Empty[uint16](), VectorizeUint16[PartialUint16s](), ReduceSumUint16[PartialUint16s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint16{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	t.Run("empty source sums to zero", func(t *testing.T) {
+		t.Parallel()
 
-	vectors, err := ro.Collect(VectorizeUint16[PartialUint16s]()(ro.Empty[uint16]()))
-	assert.NoError(t, err)
-	assert.Equal(t, []PartialUint16s{}, vectors, "an empty stream must not emit a padding-only vector")
+		values, err := ro.Collect(
+			ro.Pipe2[uint16, PartialUint16s, uint16](ro.Empty[uint16](), VectorizeUint16[PartialUint16s](), ReduceSumUint16[PartialUint16s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint16{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	})
 
-	_, err = ro.Collect(VectorizeUint16[PartialUint16s]()(ro.Throw[uint16](assert.AnError)))
-	assert.EqualError(t, err, assert.AnError.Error())
+	t.Run("empty source emits no vector", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = ro.Collect(
-		ro.Pipe2[uint16, PartialUint16s, uint16](ro.Throw[uint16](assert.AnError), VectorizeUint16[PartialUint16s](), ReduceSumUint16[PartialUint16s]()),
-	)
-	assert.EqualError(t, err, assert.AnError.Error())
+		vectors, err := ro.Collect(VectorizeUint16[PartialUint16s]()(ro.Empty[uint16]()))
+		assert.NoError(t, err)
+		assert.Equal(t, []PartialUint16s{}, vectors, "an empty stream must not emit a padding-only vector")
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(VectorizeUint16[PartialUint16s]()(ro.Throw[uint16](assert.AnError)))
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
+
+	t.Run("error source through reduce", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(
+			ro.Pipe2[uint16, PartialUint16s, uint16](ro.Throw[uint16](assert.AnError), VectorizeUint16[PartialUint16s](), ReduceSumUint16[PartialUint16s]()),
+		)
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
 }
 
 func TestEmptyAndErrorSourcesUint32(t *testing.T) {
 	t.Parallel()
 
-	values, err := ro.Collect(
-		ro.Pipe2[uint32, PartialUint32s, uint32](ro.Empty[uint32](), VectorizeUint32[PartialUint32s](), ReduceSumUint32[PartialUint32s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint32{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	t.Run("empty source sums to zero", func(t *testing.T) {
+		t.Parallel()
 
-	vectors, err := ro.Collect(VectorizeUint32[PartialUint32s]()(ro.Empty[uint32]()))
-	assert.NoError(t, err)
-	assert.Equal(t, []PartialUint32s{}, vectors, "an empty stream must not emit a padding-only vector")
+		values, err := ro.Collect(
+			ro.Pipe2[uint32, PartialUint32s, uint32](ro.Empty[uint32](), VectorizeUint32[PartialUint32s](), ReduceSumUint32[PartialUint32s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint32{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	})
 
-	_, err = ro.Collect(VectorizeUint32[PartialUint32s]()(ro.Throw[uint32](assert.AnError)))
-	assert.EqualError(t, err, assert.AnError.Error())
+	t.Run("empty source emits no vector", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = ro.Collect(
-		ro.Pipe2[uint32, PartialUint32s, uint32](ro.Throw[uint32](assert.AnError), VectorizeUint32[PartialUint32s](), ReduceSumUint32[PartialUint32s]()),
-	)
-	assert.EqualError(t, err, assert.AnError.Error())
+		vectors, err := ro.Collect(VectorizeUint32[PartialUint32s]()(ro.Empty[uint32]()))
+		assert.NoError(t, err)
+		assert.Equal(t, []PartialUint32s{}, vectors, "an empty stream must not emit a padding-only vector")
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(VectorizeUint32[PartialUint32s]()(ro.Throw[uint32](assert.AnError)))
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
+
+	t.Run("error source through reduce", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(
+			ro.Pipe2[uint32, PartialUint32s, uint32](ro.Throw[uint32](assert.AnError), VectorizeUint32[PartialUint32s](), ReduceSumUint32[PartialUint32s]()),
+		)
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
 }
 
 func TestEmptyAndErrorSourcesUint64(t *testing.T) {
 	t.Parallel()
 
-	values, err := ro.Collect(
-		ro.Pipe2[uint64, PartialUint64s, uint64](ro.Empty[uint64](), VectorizeUint64[PartialUint64s](), ReduceSumUint64[PartialUint64s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint64{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	t.Run("empty source sums to zero", func(t *testing.T) {
+		t.Parallel()
 
-	vectors, err := ro.Collect(VectorizeUint64[PartialUint64s]()(ro.Empty[uint64]()))
-	assert.NoError(t, err)
-	assert.Equal(t, []PartialUint64s{}, vectors, "an empty stream must not emit a padding-only vector")
+		values, err := ro.Collect(
+			ro.Pipe2[uint64, PartialUint64s, uint64](ro.Empty[uint64](), VectorizeUint64[PartialUint64s](), ReduceSumUint64[PartialUint64s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint64{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	})
 
-	_, err = ro.Collect(VectorizeUint64[PartialUint64s]()(ro.Throw[uint64](assert.AnError)))
-	assert.EqualError(t, err, assert.AnError.Error())
+	t.Run("empty source emits no vector", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = ro.Collect(
-		ro.Pipe2[uint64, PartialUint64s, uint64](ro.Throw[uint64](assert.AnError), VectorizeUint64[PartialUint64s](), ReduceSumUint64[PartialUint64s]()),
-	)
-	assert.EqualError(t, err, assert.AnError.Error())
+		vectors, err := ro.Collect(VectorizeUint64[PartialUint64s]()(ro.Empty[uint64]()))
+		assert.NoError(t, err)
+		assert.Equal(t, []PartialUint64s{}, vectors, "an empty stream must not emit a padding-only vector")
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(VectorizeUint64[PartialUint64s]()(ro.Throw[uint64](assert.AnError)))
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
+
+	t.Run("error source through reduce", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(
+			ro.Pipe2[uint64, PartialUint64s, uint64](ro.Throw[uint64](assert.AnError), VectorizeUint64[PartialUint64s](), ReduceSumUint64[PartialUint64s]()),
+		)
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
 }
 
 func TestEmptyAndErrorSourcesFloat32(t *testing.T) {
 	t.Parallel()
 
-	values, err := ro.Collect(
-		ro.Pipe2[float32, PartialFloat32s, float32](ro.Empty[float32](), VectorizeFloat32[PartialFloat32s](), ReduceSumFloat32[PartialFloat32s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []float32{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	t.Run("empty source sums to zero", func(t *testing.T) {
+		t.Parallel()
 
-	vectors, err := ro.Collect(VectorizeFloat32[PartialFloat32s]()(ro.Empty[float32]()))
-	assert.NoError(t, err)
-	assert.Equal(t, []PartialFloat32s{}, vectors, "an empty stream must not emit a padding-only vector")
+		values, err := ro.Collect(
+			ro.Pipe2[float32, PartialFloat32s, float32](ro.Empty[float32](), VectorizeFloat32[PartialFloat32s](), ReduceSumFloat32[PartialFloat32s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []float32{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	})
 
-	_, err = ro.Collect(VectorizeFloat32[PartialFloat32s]()(ro.Throw[float32](assert.AnError)))
-	assert.EqualError(t, err, assert.AnError.Error())
+	t.Run("empty source emits no vector", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = ro.Collect(
-		ro.Pipe2[float32, PartialFloat32s, float32](ro.Throw[float32](assert.AnError), VectorizeFloat32[PartialFloat32s](), ReduceSumFloat32[PartialFloat32s]()),
-	)
-	assert.EqualError(t, err, assert.AnError.Error())
+		vectors, err := ro.Collect(VectorizeFloat32[PartialFloat32s]()(ro.Empty[float32]()))
+		assert.NoError(t, err)
+		assert.Equal(t, []PartialFloat32s{}, vectors, "an empty stream must not emit a padding-only vector")
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(VectorizeFloat32[PartialFloat32s]()(ro.Throw[float32](assert.AnError)))
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
+
+	t.Run("error source through reduce", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(
+			ro.Pipe2[float32, PartialFloat32s, float32](ro.Throw[float32](assert.AnError), VectorizeFloat32[PartialFloat32s](), ReduceSumFloat32[PartialFloat32s]()),
+		)
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
 }
 
 func TestEmptyAndErrorSourcesFloat64(t *testing.T) {
 	t.Parallel()
 
-	values, err := ro.Collect(
-		ro.Pipe2[float64, PartialFloat64s, float64](ro.Empty[float64](), VectorizeFloat64[PartialFloat64s](), ReduceSumFloat64[PartialFloat64s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []float64{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	t.Run("empty source sums to zero", func(t *testing.T) {
+		t.Parallel()
 
-	vectors, err := ro.Collect(VectorizeFloat64[PartialFloat64s]()(ro.Empty[float64]()))
-	assert.NoError(t, err)
-	assert.Equal(t, []PartialFloat64s{}, vectors, "an empty stream must not emit a padding-only vector")
+		values, err := ro.Collect(
+			ro.Pipe2[float64, PartialFloat64s, float64](ro.Empty[float64](), VectorizeFloat64[PartialFloat64s](), ReduceSumFloat64[PartialFloat64s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []float64{0}, values, "an empty stream sums to zero, as ro.Sum does")
+	})
 
-	_, err = ro.Collect(VectorizeFloat64[PartialFloat64s]()(ro.Throw[float64](assert.AnError)))
-	assert.EqualError(t, err, assert.AnError.Error())
+	t.Run("empty source emits no vector", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = ro.Collect(
-		ro.Pipe2[float64, PartialFloat64s, float64](ro.Throw[float64](assert.AnError), VectorizeFloat64[PartialFloat64s](), ReduceSumFloat64[PartialFloat64s]()),
-	)
-	assert.EqualError(t, err, assert.AnError.Error())
+		vectors, err := ro.Collect(VectorizeFloat64[PartialFloat64s]()(ro.Empty[float64]()))
+		assert.NoError(t, err)
+		assert.Equal(t, []PartialFloat64s{}, vectors, "an empty stream must not emit a padding-only vector")
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(VectorizeFloat64[PartialFloat64s]()(ro.Throw[float64](assert.AnError)))
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
+
+	t.Run("error source through reduce", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := ro.Collect(
+			ro.Pipe2[float64, PartialFloat64s, float64](ro.Throw[float64](assert.AnError), VectorizeFloat64[PartialFloat64s](), ReduceSumFloat64[PartialFloat64s]()),
+		)
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
 }
 
 // Vectorize sizes its batches from the zero value's Len, so that must report the width
@@ -1164,18 +1324,29 @@ func TestExitOperatorsAcceptStdlibVectors(t *testing.T) {
 
 	batch := rampInt8(lanesInt8())
 
-	flattened, err := ro.Collect(Flatten[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
-	assert.NoError(t, err)
-	assert.Equal(t, batch, flattened)
+	t.Run("flatten", func(t *testing.T) {
+		t.Parallel()
 
-	sliced, err := ro.Collect(ToScalar[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
-	assert.NoError(t, err)
-	assert.Equal(t, [][]int8{batch}, sliced)
+		flattened, err := ro.Collect(Flatten[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
+		assert.NoError(t, err)
+		assert.Equal(t, batch, flattened)
+	})
 
-	wide := rampInt64(lanesInt64())
+	t.Run("to scalar", func(t *testing.T) {
+		t.Parallel()
 
-	wideFlattened, err := ro.Collect(Flatten[simd.Int64s]()(ro.Just(simd.LoadInt64s(wide))))
-	assert.NoError(t, err)
-	assert.Equal(t, wide, wideFlattened,
-		"simd.Int64s cannot satisfy Int64Vector, but it can report its lanes")
+		sliced, err := ro.Collect(ToScalar[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
+		assert.NoError(t, err)
+		assert.Equal(t, [][]int8{batch}, sliced)
+	})
+
+	t.Run("wide vector flatten", func(t *testing.T) {
+		t.Parallel()
+
+		wide := rampInt64(lanesInt64())
+		wideFlattened, err := ro.Collect(Flatten[simd.Int64s]()(ro.Just(simd.LoadInt64s(wide))))
+		assert.NoError(t, err)
+		assert.Equal(t, wide, wideFlattened,
+			"simd.Int64s cannot satisfy Int64Vector, but it can report its lanes")
+	})
 }

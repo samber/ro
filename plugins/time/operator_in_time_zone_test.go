@@ -23,6 +23,8 @@ import (
 )
 
 func TestInTimeZone_SimpleConversion(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Simple conversion test cases", func(t *testing.T) {
 		t.Parallel()
 		is := assert.New(t)

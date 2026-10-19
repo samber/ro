@@ -25,17 +25,20 @@ import (
 )
 
 func TestGetInstanceID(t *testing.T) {
-	// Test that GetInstanceID returns a valid ID
-	instanceID1 := GetInstanceID()
-	assert.NotEmpty(t, instanceID1)
+	t.Run("valid hex string", func(t *testing.T) {
+		instanceID := GetInstanceID()
+		assert.NotEmpty(t, instanceID)
 
-	// Test that the ID is a valid hex string (16 bytes = 32 hex characters)
-	hexPattern := regexp.MustCompile(`^[0-9a-f]{32}$`)
-	assert.True(t, hexPattern.MatchString(instanceID1), "GetInstanceID() returned invalid hex string: %s", instanceID1)
+		// 16 bytes = 32 hex characters
+		hexPattern := regexp.MustCompile(`^[0-9a-f]{32}$`)
+		assert.True(t, hexPattern.MatchString(instanceID), "GetInstanceID() returned invalid hex string: %s", instanceID)
+	})
 
-	// Test that subsequent calls return the same ID (caching)
-	instanceID2 := GetInstanceID()
-	assert.Equal(t, instanceID1, instanceID2, "GetInstanceID() returned different IDs on subsequent calls")
+	t.Run("cached across calls", func(t *testing.T) {
+		instanceID1 := GetInstanceID()
+		instanceID2 := GetInstanceID()
+		assert.Equal(t, instanceID1, instanceID2, "GetInstanceID() returned different IDs on subsequent calls")
+	})
 
 	t.Run("id is a hex string or the timestamp fallback", func(t *testing.T) {
 		// Test that different test runs (simulated by resetting the instanceIDOnce)

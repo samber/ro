@@ -58,44 +58,58 @@ func TestPascalCase(t *testing.T) {
 
 func TestPascalCaseWithLanguage(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	tests := []struct {
-		input []byte
-		tag   language.Tag
-		want  []byte
-	}{
-		{[]byte("hello world"), language.English, []byte("HelloWorld")},
-		// Turkish: 'i' title-cases to 'İ' (U+0130)
-		{[]byte("istanbul city"), language.Turkish, []byte("İstanbulCity")},
-	}
+	t.Run("language variants", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	for _, tc := range tests {
+		tests := []struct {
+			input []byte
+			tag   language.Tag
+			want  []byte
+		}{
+			{[]byte("hello world"), language.English, []byte("HelloWorld")},
+			// Turkish: 'i' title-cases to 'İ' (U+0130)
+			{[]byte("istanbul city"), language.Turkish, []byte("İstanbulCity")},
+		}
+
+		for _, tc := range tests {
+			values, err := ro.Collect(
+				ro.Pipe1(
+					ro.Just(tc.input),
+					PascalCaseWithLanguage[[]byte](tc.tag),
+				),
+			)
+			is.Equal(tc.want, values[0])
+			is.NoError(err)
+		}
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
 		values, err := ro.Collect(
 			ro.Pipe1(
-				ro.Just(tc.input),
-				PascalCaseWithLanguage[[]byte](tc.tag),
+				ro.Empty[[]byte](),
+				PascalCaseWithLanguage[[]byte](language.English),
 			),
 		)
-		is.Equal(tc.want, values[0])
+		is.Equal([][]byte{}, values)
 		is.NoError(err)
-	}
+	})
 
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Empty[[]byte](),
-			PascalCaseWithLanguage[[]byte](language.English),
-		),
-	)
-	is.Equal([][]byte{}, values)
-	is.NoError(err)
+	t.Run("error propagation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Throw[[]byte](assert.AnError),
-			PascalCaseWithLanguage[[]byte](language.English),
-		),
-	)
-	is.Equal([][]byte{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Throw[[]byte](assert.AnError),
+				PascalCaseWithLanguage[[]byte](language.English),
+			),
+		)
+		is.Equal([][]byte{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }

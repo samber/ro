@@ -694,15 +694,27 @@ func TestReductionsAcceptStdlibVectors(t *testing.T) {
 		wantSum += value
 	}
 
-	sum, err := ro.Collect(ReduceSumInt8[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
-	assert.NoError(t, err)
-	assert.Equal(t, []int8{wantSum}, sum)
+	t.Run("sum", func(t *testing.T) {
+		t.Parallel()
 
-	smallest, err := ro.Collect(ReduceMinInt8[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
-	assert.NoError(t, err)
-	assert.Equal(t, []int8{-3}, smallest)
+		sum, err := ro.Collect(ReduceSumInt8[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
+		assert.NoError(t, err)
+		assert.Equal(t, []int8{wantSum}, sum)
+	})
 
-	largest, err := ro.Collect(ReduceMaxInt8[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
-	assert.NoError(t, err)
-	assert.Equal(t, []int8{5}, largest)
+	t.Run("min", func(t *testing.T) {
+		t.Parallel()
+
+		smallest, err := ro.Collect(ReduceMinInt8[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
+		assert.NoError(t, err)
+		assert.Equal(t, []int8{-3}, smallest)
+	})
+
+	t.Run("max", func(t *testing.T) {
+		t.Parallel()
+
+		largest, err := ro.Collect(ReduceMaxInt8[simd.Int8s]()(ro.Just(simd.LoadInt8s(batch))))
+		assert.NoError(t, err)
+		assert.Equal(t, []int8{5}, largest)
+	})
 }

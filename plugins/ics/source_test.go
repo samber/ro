@@ -23,54 +23,76 @@ import (
 
 func TestNewICSFileReader(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// 3 files
-	obs := NewICSFileReader(
-		"testdata/fr-public-holidays-a.ics",
-		"testdata/fr-public-holidays-b.ics",
-		"testdata/fr-public-holidays-c.ics",
-	)
-	items, err := ro.Collect(obs)
-	is.NoError(err)
-	is.Len(items, 183)
+	t.Run("3 files", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// empty
-	obs = NewICSFileReader()
-	items, err = ro.Collect(obs)
-	is.NoError(err)
-	is.Len(items, 0)
+		obs := NewICSFileReader(
+			"testdata/fr-public-holidays-a.ics",
+			"testdata/fr-public-holidays-b.ics",
+			"testdata/fr-public-holidays-c.ics",
+		)
+		items, err := ro.Collect(obs)
+		is.NoError(err)
+		is.Len(items, 183)
+	})
 
-	// file not found
-	obs = NewICSFileReader("testdata/not-found.ics")
-	items, err = ro.Collect(obs)
-	is.ErrorContains(err, "open testdata/not-found.ics: no such file or directory")
-	is.Len(items, 0)
+	t.Run("empty", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		obs := NewICSFileReader()
+		items, err := ro.Collect(obs)
+		is.NoError(err)
+		is.Len(items, 0)
+	})
+
+	t.Run("file not found", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		obs := NewICSFileReader("testdata/not-found.ics")
+		items, err := ro.Collect(obs)
+		is.ErrorContains(err, "open testdata/not-found.ics: no such file or directory")
+		is.Len(items, 0)
+	})
 }
 
 func TestNewICSURLReader(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// 3 files
-	obs := NewICSURLReader(
-		"https://raw.githubusercontent.com/samber/ro/refs/heads/main/plugins/ics/testdata/fr-public-holidays-a.ics",
-		"https://raw.githubusercontent.com/samber/ro/refs/heads/main/plugins/ics/testdata/fr-public-holidays-b.ics",
-		"https://raw.githubusercontent.com/samber/ro/refs/heads/main/plugins/ics/testdata/fr-public-holidays-c.ics",
-	)
-	items, err := ro.Collect(obs)
-	is.NoError(err)
-	is.Len(items, 183)
+	t.Run("3 files", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// empty
-	obs = NewICSURLReader()
-	items, err = ro.Collect(obs)
-	is.NoError(err)
-	is.Len(items, 0)
+		obs := NewICSURLReader(
+			"https://raw.githubusercontent.com/samber/ro/refs/heads/main/plugins/ics/testdata/fr-public-holidays-a.ics",
+			"https://raw.githubusercontent.com/samber/ro/refs/heads/main/plugins/ics/testdata/fr-public-holidays-b.ics",
+			"https://raw.githubusercontent.com/samber/ro/refs/heads/main/plugins/ics/testdata/fr-public-holidays-c.ics",
+		)
+		items, err := ro.Collect(obs)
+		is.NoError(err)
+		is.Len(items, 183)
+	})
 
-	// file not found
-	obs = NewICSURLReader("https://raw.githubusercontent.com/samber/ro/refs/heads/main/plugins/ics/testdata/not-found.ics")
-	items, err = ro.Collect(obs)
-	is.ErrorContains(err, "malformed calendar; expected begin")
-	is.Len(items, 0)
+	t.Run("empty", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		obs := NewICSURLReader()
+		items, err := ro.Collect(obs)
+		is.NoError(err)
+		is.Len(items, 0)
+	})
+
+	t.Run("file not found", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		obs := NewICSURLReader("https://raw.githubusercontent.com/samber/ro/refs/heads/main/plugins/ics/testdata/not-found.ics")
+		items, err := ro.Collect(obs)
+		is.ErrorContains(err, "malformed calendar; expected begin")
+		is.Len(items, 0)
+	})
 }

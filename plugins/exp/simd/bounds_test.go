@@ -115,24 +115,40 @@ func TestMinMaxUint8TreatsHighBitAsLarge(t *testing.T) {
 
 	input := []uint8{100, 200, 150}
 
-	capped := collectUint8Values[PartialUint8s](t, input, MinUint8(BroadcastUint8(180)))
-	assert.Equal(t, []uint8{100, 180, 150}, capped,
-		"200 must be clamped down, not treated as smaller than 100")
+	t.Run("min clamps high-bit value", func(t *testing.T) {
+		t.Parallel()
 
-	raised := collectUint8Values[PartialUint8s](t, input, MaxUint8(BroadcastUint8(120)))
-	assert.Equal(t, []uint8{120, 200, 150}, raised)
+		capped := collectUint8Values[PartialUint8s](t, input, MinUint8(BroadcastUint8(180)))
+		assert.Equal(t, []uint8{100, 180, 150}, capped,
+			"200 must be clamped down, not treated as smaller than 100")
+	})
 
-	largest, err := ro.Collect(
-		ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8[PartialUint8s](), ReduceMaxUint8[PartialUint8s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint8{200}, largest)
+	t.Run("max raises low value", func(t *testing.T) {
+		t.Parallel()
 
-	smallest, err := ro.Collect(
-		ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8[PartialUint8s](), ReduceMinUint8[PartialUint8s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint8{100}, smallest)
+		raised := collectUint8Values[PartialUint8s](t, input, MaxUint8(BroadcastUint8(120)))
+		assert.Equal(t, []uint8{120, 200, 150}, raised)
+	})
+
+	t.Run("reduce max", func(t *testing.T) {
+		t.Parallel()
+
+		largest, err := ro.Collect(
+			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8[PartialUint8s](), ReduceMaxUint8[PartialUint8s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint8{200}, largest)
+	})
+
+	t.Run("reduce min", func(t *testing.T) {
+		t.Parallel()
+
+		smallest, err := ro.Collect(
+			ro.Pipe2[uint8, PartialUint8s, uint8](ro.FromSlice(input), VectorizeUint8[PartialUint8s](), ReduceMinUint8[PartialUint8s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint8{100}, smallest)
+	})
 }
 
 // Masks are built through the signed vector type of the same width, which is the one
@@ -144,24 +160,40 @@ func TestMinMaxUint16TreatsHighBitAsLarge(t *testing.T) {
 
 	input := []uint16{1000, 40000, 20000}
 
-	capped := collectUint16Values[PartialUint16s](t, input, MinUint16(BroadcastUint16(30000)))
-	assert.Equal(t, []uint16{1000, 30000, 20000}, capped,
-		"40000 must be clamped down, not treated as smaller than 1000")
+	t.Run("min clamps high-bit value", func(t *testing.T) {
+		t.Parallel()
 
-	raised := collectUint16Values[PartialUint16s](t, input, MaxUint16(BroadcastUint16(5000)))
-	assert.Equal(t, []uint16{5000, 40000, 20000}, raised)
+		capped := collectUint16Values[PartialUint16s](t, input, MinUint16(BroadcastUint16(30000)))
+		assert.Equal(t, []uint16{1000, 30000, 20000}, capped,
+			"40000 must be clamped down, not treated as smaller than 1000")
+	})
 
-	largest, err := ro.Collect(
-		ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16[PartialUint16s](), ReduceMaxUint16[PartialUint16s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint16{40000}, largest)
+	t.Run("max raises low value", func(t *testing.T) {
+		t.Parallel()
 
-	smallest, err := ro.Collect(
-		ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16[PartialUint16s](), ReduceMinUint16[PartialUint16s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint16{1000}, smallest)
+		raised := collectUint16Values[PartialUint16s](t, input, MaxUint16(BroadcastUint16(5000)))
+		assert.Equal(t, []uint16{5000, 40000, 20000}, raised)
+	})
+
+	t.Run("reduce max", func(t *testing.T) {
+		t.Parallel()
+
+		largest, err := ro.Collect(
+			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16[PartialUint16s](), ReduceMaxUint16[PartialUint16s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint16{40000}, largest)
+	})
+
+	t.Run("reduce min", func(t *testing.T) {
+		t.Parallel()
+
+		smallest, err := ro.Collect(
+			ro.Pipe2[uint16, PartialUint16s, uint16](ro.FromSlice(input), VectorizeUint16[PartialUint16s](), ReduceMinUint16[PartialUint16s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint16{1000}, smallest)
+	})
 }
 
 // Masks are built through the signed vector type of the same width, which is the one
@@ -173,24 +205,40 @@ func TestMinMaxUint32TreatsHighBitAsLarge(t *testing.T) {
 
 	input := []uint32{100000, 3000000000, 2000000000}
 
-	capped := collectUint32Values[PartialUint32s](t, input, MinUint32(BroadcastUint32(2500000000)))
-	assert.Equal(t, []uint32{100000, 2500000000, 2000000000}, capped,
-		"3000000000 must be clamped down, not treated as smaller than 100000")
+	t.Run("min clamps high-bit value", func(t *testing.T) {
+		t.Parallel()
 
-	raised := collectUint32Values[PartialUint32s](t, input, MaxUint32(BroadcastUint32(500000)))
-	assert.Equal(t, []uint32{500000, 3000000000, 2000000000}, raised)
+		capped := collectUint32Values[PartialUint32s](t, input, MinUint32(BroadcastUint32(2500000000)))
+		assert.Equal(t, []uint32{100000, 2500000000, 2000000000}, capped,
+			"3000000000 must be clamped down, not treated as smaller than 100000")
+	})
 
-	largest, err := ro.Collect(
-		ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32[PartialUint32s](), ReduceMaxUint32[PartialUint32s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint32{3000000000}, largest)
+	t.Run("max raises low value", func(t *testing.T) {
+		t.Parallel()
 
-	smallest, err := ro.Collect(
-		ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32[PartialUint32s](), ReduceMinUint32[PartialUint32s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint32{100000}, smallest)
+		raised := collectUint32Values[PartialUint32s](t, input, MaxUint32(BroadcastUint32(500000)))
+		assert.Equal(t, []uint32{500000, 3000000000, 2000000000}, raised)
+	})
+
+	t.Run("reduce max", func(t *testing.T) {
+		t.Parallel()
+
+		largest, err := ro.Collect(
+			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32[PartialUint32s](), ReduceMaxUint32[PartialUint32s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint32{3000000000}, largest)
+	})
+
+	t.Run("reduce min", func(t *testing.T) {
+		t.Parallel()
+
+		smallest, err := ro.Collect(
+			ro.Pipe2[uint32, PartialUint32s, uint32](ro.FromSlice(input), VectorizeUint32[PartialUint32s](), ReduceMinUint32[PartialUint32s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint32{100000}, smallest)
+	})
 }
 
 // Min and Max are synthesized from Less and IfElse because simd.Uint64s has neither
@@ -230,24 +278,40 @@ func TestMinMaxUint64TreatsHighBitAsLarge(t *testing.T) {
 
 	input := []uint64{100, math.MaxUint64, 1000}
 
-	capped := collectUint64Values[PartialUint64s](t, input, MinUint64(BroadcastUint64(1<<63)))
-	assert.Equal(t, []uint64{100, 1 << 63, 1000}, capped,
-		"math.MaxUint64 must be clamped down, not treated as smaller than 100")
+	t.Run("min clamps high-bit value", func(t *testing.T) {
+		t.Parallel()
 
-	raised := collectUint64Values[PartialUint64s](t, input, MaxUint64(BroadcastUint64(500)))
-	assert.Equal(t, []uint64{500, math.MaxUint64, 1000}, raised)
+		capped := collectUint64Values[PartialUint64s](t, input, MinUint64(BroadcastUint64(1<<63)))
+		assert.Equal(t, []uint64{100, 1 << 63, 1000}, capped,
+			"math.MaxUint64 must be clamped down, not treated as smaller than 100")
+	})
 
-	largest, err := ro.Collect(
-		ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64[PartialUint64s](), ReduceMaxUint64[PartialUint64s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint64{math.MaxUint64}, largest)
+	t.Run("max raises low value", func(t *testing.T) {
+		t.Parallel()
 
-	smallest, err := ro.Collect(
-		ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64[PartialUint64s](), ReduceMinUint64[PartialUint64s]()),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []uint64{100}, smallest)
+		raised := collectUint64Values[PartialUint64s](t, input, MaxUint64(BroadcastUint64(500)))
+		assert.Equal(t, []uint64{500, math.MaxUint64, 1000}, raised)
+	})
+
+	t.Run("reduce max", func(t *testing.T) {
+		t.Parallel()
+
+		largest, err := ro.Collect(
+			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64[PartialUint64s](), ReduceMaxUint64[PartialUint64s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint64{math.MaxUint64}, largest)
+	})
+
+	t.Run("reduce min", func(t *testing.T) {
+		t.Parallel()
+
+		smallest, err := ro.Collect(
+			ro.Pipe2[uint64, PartialUint64s, uint64](ro.FromSlice(input), VectorizeUint64[PartialUint64s](), ReduceMinUint64[PartialUint64s]()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, []uint64{100}, smallest)
+	})
 }
 
 // Hardware disagrees about NaN in Min and Max — x86 discards it, arm64 keeps it — so

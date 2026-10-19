@@ -77,6 +77,8 @@ var parseInLocationTests = []timeParseTest{
 }
 
 func TestParse(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Test Simple cases", func(t *testing.T) {
 		t.Parallel()
 		is := assert.New(t)
@@ -125,6 +127,8 @@ func TestParse(t *testing.T) {
 }
 
 func TestParseInLocation(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Test Simple cases", func(t *testing.T) {
 		t.Parallel()
 		is := assert.New(t)

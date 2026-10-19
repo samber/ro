@@ -25,59 +25,76 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTestify(t *testing.T) {
+func TestTestify(t *testing.T) { //nolint:paralleltest,tparallel // subtests relying on timeouts and goroutine delays stay sequential
 	t.Parallel()
-	is := assert.New(t)
 
-	a := Testify[int](is).(*testify[int])
-	is.Equal(t, t)
-	is.Empty(a.assertions)
-	is.Nil(a.source)
+	t.Run("construction", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// complete normaly
-	Testify[int](is).
-		Source(ro.Just(1, 2, 3)).
-		ExpectNext(1).
-		ExpectNext(2).
-		ExpectNext(3).
-		ExpectComplete().
-		Verify()
+		a := Testify[int](is).(*testify[int])
+		is.Equal(t, t)
+		is.Empty(a.assertions)
+		is.Nil(a.source)
+	})
 
-	// complete on error
-	Testify[int](is).
-		Source(ro.NewObservable(func(destination ro.Observer[int]) ro.Teardown {
-			destination.Next(1)
-			destination.Next(2)
-			destination.Next(3)
-			destination.Error(assert.AnError)
-			destination.Next(4)
-			return nil
-		})).
-		ExpectNext(1).
-		ExpectNext(2).
-		ExpectNext(3).
-		ExpectError(assert.AnError).
-		Verify()
+	t.Run("complete normally", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	// async observable
-	Testify[int](is).
-		Source(ro.NewObservable(func(destination ro.Observer[int]) ro.Teardown {
-			go func() {
+		Testify[int](is).
+			Source(ro.Just(1, 2, 3)).
+			ExpectNext(1).
+			ExpectNext(2).
+			ExpectNext(3).
+			ExpectComplete().
+			Verify()
+	})
+
+	t.Run("complete on error", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		Testify[int](is).
+			Source(ro.NewObservable(func(destination ro.Observer[int]) ro.Teardown {
 				destination.Next(1)
 				destination.Next(2)
 				destination.Next(3)
 				destination.Error(assert.AnError)
 				destination.Next(4)
-			}()
-			return nil
-		})).
-		ExpectNext(1).
-		ExpectNext(2).
-		ExpectNext(3).
-		ExpectError(assert.AnError).
-		Verify()
+				return nil
+			})).
+			ExpectNext(1).
+			ExpectNext(2).
+			ExpectNext(3).
+			ExpectError(assert.AnError).
+			Verify()
+	})
+
+	t.Run("async error", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		Testify[int](is).
+			Source(ro.NewObservable(func(destination ro.Observer[int]) ro.Teardown {
+				go func() {
+					destination.Next(1)
+					destination.Next(2)
+					destination.Next(3)
+					destination.Error(assert.AnError)
+					destination.Next(4)
+				}()
+				return nil
+			})).
+			ExpectNext(1).
+			ExpectNext(2).
+			ExpectNext(3).
+			ExpectError(assert.AnError).
+			Verify()
+	})
 
 	t.Run("ExpectNextSeq", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Test ExpectNextSeq with multiple values
@@ -130,6 +147,7 @@ func TestTestify(t *testing.T) {
 	})
 
 	t.Run("empty observable", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Test empty observable that completes immediately
@@ -149,6 +167,7 @@ func TestTestify(t *testing.T) {
 	})
 
 	t.Run("custom error", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		customError := errors.New("custom error message")
@@ -165,6 +184,7 @@ func TestTestify(t *testing.T) {
 	})
 
 	t.Run("string type", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Test with string type
@@ -185,6 +205,7 @@ func TestTestify(t *testing.T) {
 	})
 
 	t.Run("struct type", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		type testStruct struct {
@@ -233,6 +254,7 @@ func TestTestify(t *testing.T) {
 	})
 
 	t.Run("mixed notifications", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Test observable that emits values then errors
@@ -265,6 +287,7 @@ func TestTestify(t *testing.T) {
 	})
 
 	t.Run("message args", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Test with custom error messages
@@ -285,6 +308,7 @@ func TestTestify(t *testing.T) {
 	})
 
 	t.Run("multiple terminal notifications", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Note: The current implementation allows multiple error/completion notifications
@@ -311,6 +335,7 @@ func TestTestify(t *testing.T) {
 	})
 
 	t.Run("complex observable", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Test a more complex observable with multiple operations
@@ -345,6 +370,7 @@ func TestTestify(t *testing.T) {
 	})
 
 	t.Run("interface compliance", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Test that Testify implements AssertSpec interface

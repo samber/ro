@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 package roozzovalidation
 
 import (
@@ -140,28 +139,39 @@ func TestResult_Error(t *testing.T) {
 
 func TestResult_ComplexTypes(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// Test with struct
-	type TestStruct struct {
-		Name  string
-		Value int
-	}
+	t.Run("struct", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	okStruct := TestStruct{Name: "test", Value: 42}
-	okResult := Ok(okStruct)
-	is.True(okResult.IsOk())
-	is.Equal(okStruct, okResult.Unwrap())
+		type TestStruct struct {
+			Name  string
+			Value int
+		}
 
-	// Test with slice
-	okSlice := []int{1, 2, 3}
-	okResultSlice := Ok(okSlice)
-	is.True(okResultSlice.IsOk())
-	is.Equal(okSlice, okResultSlice.Unwrap())
+		okStruct := TestStruct{Name: "test", Value: 42}
+		okResult := Ok(okStruct)
+		is.True(okResult.IsOk())
+		is.Equal(okStruct, okResult.Unwrap())
+	})
 
-	// Test with map
-	okMap := map[string]int{"a": 1, "b": 2}
-	okResultMap := Ok(okMap)
-	is.True(okResultMap.IsOk())
-	is.Equal(okMap, okResultMap.Unwrap())
+	t.Run("slice", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		okSlice := []int{1, 2, 3}
+		okResultSlice := Ok(okSlice)
+		is.True(okResultSlice.IsOk())
+		is.Equal(okSlice, okResultSlice.Unwrap())
+	})
+
+	t.Run("map", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		okMap := map[string]int{"a": 1, "b": 2}
+		okResultMap := Ok(okMap)
+		is.True(okResultMap.IsOk())
+		is.Equal(okMap, okResultMap.Unwrap())
+	})
 }

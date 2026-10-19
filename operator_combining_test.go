@@ -30,356 +30,446 @@ import (
 func TestOperatorCombiningMergeWith(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
 
-	// parallel merge of synchronous sources: all 3 sources emit 3 values
-	values, err := Collect(
-		MergeWith[int64](
-			Just[int64](3, 4, 5),
-			Just[int64](6, 7, 8),
-		)(
-			Just[int64](0, 1, 2),
-		),
-	)
-	is.Len(values, 9)
-	is.NoError(err)
-	is.ElementsMatch(values, []int64{0, 1, 2, 3, 4, 5, 6, 7, 8})
+	t.Run("parallel merge of synchronous sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// parallel: same values from 3 sources
-	values, err = Collect(
-		MergeWith[int64](
-			Just[int64](0),
-			Just[int64](0),
-		)(
-			Just[int64](0),
-		),
-	)
-	is.Equal([]int64{0, 0, 0}, values)
-	is.NoError(err)
+		values, err := Collect(
+			MergeWith[int64](
+				Just[int64](3, 4, 5),
+				Just[int64](6, 7, 8),
+			)(
+				Just[int64](0, 1, 2),
+			),
+		)
+		is.Len(values, 9)
+		is.NoError(err)
+		is.ElementsMatch(values, []int64{0, 1, 2, 3, 4, 5, 6, 7, 8})
+	})
 
-	// empty source
-	values, err = Collect(
-		MergeWith[int64]()(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+	t.Run("parallel merge of identical sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// error source
-	values, err = Collect(
-		MergeWith[int64]()(
-			Throw[int64](assert.AnError),
-		),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			MergeWith[int64](
+				Just[int64](0),
+				Just[int64](0),
+			)(
+				Just[int64](0),
+			),
+		)
+		is.Equal([]int64{0, 0, 0}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeWith[int64]()(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeWith[int64]()(
+				Throw[int64](assert.AnError),
+			),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningMergeWith1(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
 
-	// MergeWith is a parallel merge: all sources emit concurrently,
-	// so use ElementsMatch to verify all values are present regardless of order.
-	// Just(0,1,2) and RangeWithInterval(6,9,100ms): values 0,1,2 immediate, 6,7,8 delayed
-	values, err := Collect(
-		MergeWith1[int64](
-			RangeWithInterval(6, 9, 100*time.Millisecond),
-		)(
-			Just[int64](0, 1, 2),
-		),
-	)
-	is.Len(values, 6)
-	is.ElementsMatch(values, []int64{0, 1, 2, 6, 7, 8})
-	is.NoError(err)
+	t.Run("delayed source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// parallel: two identical sources each emit 0,1,2 → 6 values total
-	values, err = Collect(
-		MergeWith1[int64](
-			RangeWithInterval(0, 3, 100*time.Millisecond),
-		)(
-			RangeWithInterval(0, 3, 100*time.Millisecond),
-		),
-	)
-	is.Len(values, 6)
-	is.ElementsMatch(values, []int64{0, 0, 1, 1, 2, 2})
-	is.NoError(err)
+		// MergeWith is a parallel merge: all sources emit concurrently,
+		// so use ElementsMatch to verify all values are present regardless of order.
+		// Just(0,1,2) and RangeWithInterval(6,9,100ms): values 0,1,2 immediate, 6,7,8 delayed
+		values, err := Collect(
+			MergeWith1[int64](
+				RangeWithInterval(6, 9, 100*time.Millisecond),
+			)(
+				Just[int64](0, 1, 2),
+			),
+		)
+		is.Len(values, 6)
+		is.ElementsMatch(values, []int64{0, 1, 2, 6, 7, 8})
+		is.NoError(err)
+	})
 
-	// concurrent: Just(0) emits immediately, delayed source emits 0,1,2 after 100ms
-	values, err = Collect(
-		MergeWith1[int64](
-			Delay[int64](100 * time.Millisecond)(RangeWithInterval(0, 3, 200*time.Millisecond)),
-		)(
-			Just[int64](0),
-		),
-	)
-	is.Len(values, 4)
-	is.ElementsMatch(values, []int64{0, 0, 1, 2})
-	is.NoError(err)
+	t.Run("two identical delayed sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		MergeWith1[int64](
-			Empty[int64](),
-		)(
-			Just[int64](42),
-		),
-	)
-	is.Equal([]int64{42}, values)
-	is.NoError(err)
+		// parallel: two identical sources each emit 0,1,2 → 6 values total
+		values, err := Collect(
+			MergeWith1[int64](
+				RangeWithInterval(0, 3, 100*time.Millisecond),
+			)(
+				RangeWithInterval(0, 3, 100*time.Millisecond),
+			),
+		)
+		is.Len(values, 6)
+		is.ElementsMatch(values, []int64{0, 0, 1, 1, 2, 2})
+		is.NoError(err)
+	})
 
-	// MergeWith subscribes concurrently; if Throw errors first,
-	// Just(42) may not have emitted yet — only check error
-	_, err = Collect(
-		MergeWith1[int64](
-			Throw[int64](assert.AnError),
-		)(
-			Just[int64](42),
-		),
-	)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("concurrent delayed source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		// concurrent: Just(0) emits immediately, delayed source emits 0,1,2 after 100ms
+		values, err := Collect(
+			MergeWith1[int64](
+				Delay[int64](100 * time.Millisecond)(RangeWithInterval(0, 3, 200*time.Millisecond)),
+			)(
+				Just[int64](0),
+			),
+		)
+		is.Len(values, 4)
+		is.ElementsMatch(values, []int64{0, 0, 1, 2})
+		is.NoError(err)
+	})
+
+	t.Run("empty additional source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeWith1[int64](
+				Empty[int64](),
+			)(
+				Just[int64](42),
+			),
+		)
+		is.Equal([]int64{42}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		// MergeWith subscribes concurrently; if Throw errors first,
+		// Just(42) may not have emitted yet — only check error
+		_, err := Collect(
+			MergeWith1[int64](
+				Throw[int64](assert.AnError),
+			)(
+				Just[int64](42),
+			),
+		)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningMergeWith2(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
 
-	// parallel merge — order is non-deterministic
-	values, err := Collect(
-		MergeWith2[int64](
-			Just[int64](0, 1, 2),
-			Just[int64](3, 4, 5),
-		)(
-			Just[int64](6, 7, 8),
-		),
-	)
-	is.Len(values, 9)
-	is.ElementsMatch([]int64{0, 1, 2, 3, 4, 5, 6, 7, 8}, values)
-	is.NoError(err)
+	t.Run("parallel merge", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		MergeWith2[int64](
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Just[int64](42),
-		),
-	)
-	is.Equal([]int64{42}, values)
-	is.NoError(err)
+		// parallel merge — order is non-deterministic
+		values, err := Collect(
+			MergeWith2[int64](
+				Just[int64](0, 1, 2),
+				Just[int64](3, 4, 5),
+			)(
+				Just[int64](6, 7, 8),
+			),
+		)
+		is.Len(values, 9)
+		is.ElementsMatch([]int64{0, 1, 2, 3, 4, 5, 6, 7, 8}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		MergeWith2[int64](
-			Empty[int64](),
-			Throw[int64](assert.AnError),
-		)(
-			Just[int64](42),
-		),
-	)
-	is.Equal([]int64{42}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeWith2[int64](
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Just[int64](42),
+			),
+		)
+		is.Equal([]int64{42}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeWith2[int64](
+				Empty[int64](),
+				Throw[int64](assert.AnError),
+			)(
+				Just[int64](42),
+			),
+		)
+		is.Equal([]int64{42}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningMergeWith3(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
 
-	// parallel merge — order is non-deterministic
-	values, err := Collect(
-		MergeWith3[int64](
-			Just[int64](0, 1, 2),
-			Just[int64](3, 4, 5),
-			Just[int64](6, 7, 8),
-		)(
-			Just[int64](9, 10, 11),
-		),
-	)
-	is.Len(values, 12)
-	is.ElementsMatch([]int64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, values)
-	is.NoError(err)
+	t.Run("parallel merge", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		MergeWith3[int64](
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Just[int64](42),
-		),
-	)
-	is.Equal([]int64{42}, values)
-	is.NoError(err)
+		// parallel merge — order is non-deterministic
+		values, err := Collect(
+			MergeWith3[int64](
+				Just[int64](0, 1, 2),
+				Just[int64](3, 4, 5),
+				Just[int64](6, 7, 8),
+			)(
+				Just[int64](9, 10, 11),
+			),
+		)
+		is.Len(values, 12)
+		is.ElementsMatch([]int64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		MergeWith3[int64](
-			Empty[int64](),
-			Throw[int64](assert.AnError),
-			Empty[int64](),
-		)(
-			Just[int64](42),
-		),
-	)
-	is.Equal([]int64{42}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeWith3[int64](
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Just[int64](42),
+			),
+		)
+		is.Equal([]int64{42}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeWith3[int64](
+				Empty[int64](),
+				Throw[int64](assert.AnError),
+				Empty[int64](),
+			)(
+				Just[int64](42),
+			),
+		)
+		is.Equal([]int64{42}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningMergeWith4(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
 
-	// parallel merge — order is non-deterministic
-	values, err := Collect(
-		MergeWith4[int64](
-			Just[int64](0, 1, 2),
-			Just[int64](3, 4, 5),
-			Just[int64](6, 7, 8),
-			Just[int64](9, 10, 11),
-		)(
-			Just[int64](12, 13, 14),
-		),
-	)
-	is.Len(values, 15)
-	is.ElementsMatch([]int64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, values)
-	is.NoError(err)
+	t.Run("parallel merge", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		MergeWith4[int64](
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Just[int64](42),
-		),
-	)
-	is.Equal([]int64{42}, values)
-	is.NoError(err)
+		// parallel merge — order is non-deterministic
+		values, err := Collect(
+			MergeWith4[int64](
+				Just[int64](0, 1, 2),
+				Just[int64](3, 4, 5),
+				Just[int64](6, 7, 8),
+				Just[int64](9, 10, 11),
+			)(
+				Just[int64](12, 13, 14),
+			),
+		)
+		is.Len(values, 15)
+		is.ElementsMatch([]int64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		MergeWith4[int64](
-			Empty[int64](),
-			Throw[int64](assert.AnError),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Just[int64](42),
-		),
-	)
-	is.Equal([]int64{42}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeWith4[int64](
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Just[int64](42),
+			),
+		)
+		is.Equal([]int64{42}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeWith4[int64](
+				Empty[int64](),
+				Throw[int64](assert.AnError),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Just[int64](42),
+			),
+		)
+		is.Equal([]int64{42}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningMergeWith5(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
 
-	// parallel merge — order is non-deterministic
-	values, err := Collect(
-		MergeWith5[int64](
-			Just[int64](0, 1, 2),
-			Just[int64](3, 4, 5),
-			Just[int64](6, 7, 8),
-			Just[int64](9, 10, 11),
-			Just[int64](12, 13, 14),
-		)(
-			Just[int64](15, 16, 17),
-		),
-	)
-	is.Len(values, 18)
-	is.ElementsMatch([]int64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}, values)
-	is.NoError(err)
+	t.Run("parallel merge", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		MergeWith5[int64](
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Just[int64](42),
-		),
-	)
-	is.Equal([]int64{42}, values)
-	is.NoError(err)
+		// parallel merge — order is non-deterministic
+		values, err := Collect(
+			MergeWith5[int64](
+				Just[int64](0, 1, 2),
+				Just[int64](3, 4, 5),
+				Just[int64](6, 7, 8),
+				Just[int64](9, 10, 11),
+				Just[int64](12, 13, 14),
+			)(
+				Just[int64](15, 16, 17),
+			),
+		)
+		is.Len(values, 18)
+		is.ElementsMatch([]int64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		MergeWith5[int64](
-			Empty[int64](),
-			Throw[int64](assert.AnError),
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Just[int64](42),
-		),
-	)
-	is.Equal([]int64{42}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeWith5[int64](
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Just[int64](42),
+			),
+		)
+		is.Equal([]int64{42}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeWith5[int64](
+				Empty[int64](),
+				Throw[int64](assert.AnError),
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Just[int64](42),
+			),
+		)
+		is.Equal([]int64{42}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningMergeAll(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
 
-	// sequential
-	values, err := Collect(
-		MergeAll[int64]()(
-			Just(
-				RangeWithInterval(6, 9, 100*time.Millisecond), // third
-				RangeWithInterval(3, 6, 10*time.Millisecond),  // second
-				Just[int64](0, 1, 2),                          // first
+	t.Run("sequential", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeAll[int64]()(
+				Just(
+					RangeWithInterval(6, 9, 100*time.Millisecond), // third
+					RangeWithInterval(3, 6, 10*time.Millisecond),  // second
+					Just[int64](0, 1, 2),                          // first
+				),
 			),
-		),
-	)
-	is.Equal([]int64{0, 1, 2, 3, 4, 5, 6, 7, 8}, values)
-	is.NoError(err)
+		)
+		is.Equal([]int64{0, 1, 2, 3, 4, 5, 6, 7, 8}, values)
+		is.NoError(err)
+	})
 
-	// parallel
-	values, err = Collect(
-		MergeAll[int64]()(
-			Just(
-				RangeWithInterval(0, 3, 100*time.Millisecond),
-				RangeWithInterval(0, 3, 100*time.Millisecond),
-				RangeWithInterval(0, 3, 100*time.Millisecond),
+	t.Run("parallel", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeAll[int64]()(
+				Just(
+					RangeWithInterval(0, 3, 100*time.Millisecond),
+					RangeWithInterval(0, 3, 100*time.Millisecond),
+					RangeWithInterval(0, 3, 100*time.Millisecond),
+				),
 			),
-		),
-	)
-	is.Equal([]int64{0, 0, 0, 1, 1, 1, 2, 2, 2}, values)
-	is.NoError(err)
+		)
+		is.Equal([]int64{0, 0, 0, 1, 1, 1, 2, 2, 2}, values)
+		is.NoError(err)
+	})
 
-	// concurrent
-	values, err = Collect(
-		MergeAll[int64]()(
-			Just(
-				RangeWithInterval(0, 3, 200*time.Millisecond),
-				Delay[int64](66*time.Millisecond)(RangeWithInterval(3, 6, 200*time.Millisecond)),
-				Delay[int64](132*time.Millisecond)(RangeWithInterval(6, 9, 200*time.Millisecond)),
+	t.Run("concurrent", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeAll[int64]()(
+				Just(
+					RangeWithInterval(0, 3, 200*time.Millisecond),
+					Delay[int64](66*time.Millisecond)(RangeWithInterval(3, 6, 200*time.Millisecond)),
+					Delay[int64](132*time.Millisecond)(RangeWithInterval(6, 9, 200*time.Millisecond)),
+				),
 			),
-		),
-	)
-	is.Equal([]int64{0, 3, 6, 1, 4, 7, 2, 5, 8}, values)
-	is.NoError(err)
+		)
+		is.Equal([]int64{0, 3, 6, 1, 4, 7, 2, 5, 8}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		MergeAll[int64]()(Empty[Observable[int64]]()),
-	)
-	is.Equal([]int64{}, values)
-	is.NoError(err)
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		MergeAll[int64]()(Throw[Observable[int64]](assert.AnError)),
-	)
-	is.Equal([]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			MergeAll[int64]()(Empty[Observable[int64]]()),
+		)
+		is.Equal([]int64{}, values)
+		is.NoError(err)
+	})
 
-	t.Run("inner lifecycle", func(t *testing.T) {
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			MergeAll[int64]()(Throw[Observable[int64]](assert.AnError)),
+		)
+		is.Equal([]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("inner lifecycle", func(t *testing.T) { //nolint:paralleltest
 		testWithTimeout(t, 2000*time.Millisecond)
 		is := assert.New(t)
 
@@ -475,75 +565,98 @@ func TestOperatorCombiningMergeAll_releasesCompletedInners(t *testing.T) { //nol
 func TestOperatorCombiningMergeMap(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		Pipe1(
-			RangeWithInterval(3, 7, 150*time.Millisecond),
-			MergeMap(func(item int64) Observable[string] {
-				return RepeatWithInterval(strconv.Itoa(int(item)), item, 20*time.Millisecond)
-			}),
-		),
-	)
-	is.Equal([]string{"3", "3", "3", "4", "4", "4", "4", "5", "5", "5", "5", "5", "6", "6", "6", "6", "6", "6"}, values)
-	is.NoError(err)
+	t.Run("repeating inner per item", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			RangeWithInterval(0, 2, 50*time.Millisecond),
-			MergeMap(func(item int64) Observable[string] {
-				return RepeatWithInterval(strconv.Itoa(int(item)), 3, 100*time.Millisecond)
-			}),
-		),
-	)
-	is.Equal([]string{"0", "1", "0", "1", "0", "1"}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(3, 7, 150*time.Millisecond),
+				MergeMap(func(item int64) Observable[string] {
+					return RepeatWithInterval(strconv.Itoa(int(item)), item, 20*time.Millisecond)
+				}),
+			),
+		)
+		is.Equal([]string{"3", "3", "3", "4", "4", "4", "4", "5", "5", "5", "5", "5", "6", "6", "6", "6", "6", "6"}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Empty[int64](),
-			MergeMap(func(item int64) Observable[string] {
-				return RepeatWithInterval(strconv.Itoa(int(item)), item, 20*time.Millisecond)
-			}),
-		),
-	)
-	is.Equal([]string{}, values)
-	is.NoError(err)
+	t.Run("interleaved inners", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			RangeWithInterval(3, 7, 30*time.Millisecond),
-			MergeMap(func(item int64) Observable[string] {
-				return Empty[string]()
-			}),
-		),
-	)
-	is.Equal([]string{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(0, 2, 50*time.Millisecond),
+				MergeMap(func(item int64) Observable[string] {
+					return RepeatWithInterval(strconv.Itoa(int(item)), 3, 100*time.Millisecond)
+				}),
+			),
+		)
+		is.Equal([]string{"0", "1", "0", "1", "0", "1"}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pipe1(
-			Throw[int64](assert.AnError),
-			MergeMap(func(item int64) Observable[string] {
-				return RepeatWithInterval(strconv.Itoa(int(item)), item, 20*time.Millisecond)
-			}),
-		),
-	)
-	is.Equal([]string{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pipe1(
-			RangeWithInterval(3, 7, 30*time.Millisecond),
-			MergeMap(func(item int64) Observable[string] {
-				return Throw[string](assert.AnError)
-			}),
-		),
-	)
-	is.Equal([]string{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Pipe1(
+				Empty[int64](),
+				MergeMap(func(item int64) Observable[string] {
+					return RepeatWithInterval(strconv.Itoa(int(item)), item, 20*time.Millisecond)
+				}),
+			),
+		)
+		is.Equal([]string{}, values)
+		is.NoError(err)
+	})
 
-	t.Run("MergeMapI index restarts on each subscription", func(t *testing.T) {
+	t.Run("empty inners", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(3, 7, 30*time.Millisecond),
+				MergeMap(func(item int64) Observable[string] {
+					return Empty[string]()
+				}),
+			),
+		)
+		is.Equal([]string{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				Throw[int64](assert.AnError),
+				MergeMap(func(item int64) Observable[string] {
+					return RepeatWithInterval(strconv.Itoa(int(item)), item, 20*time.Millisecond)
+				}),
+			),
+		)
+		is.Equal([]string{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("error in inner", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pipe1(
+				RangeWithInterval(3, 7, 30*time.Millisecond),
+				MergeMap(func(item int64) Observable[string] {
+					return Throw[string](assert.AnError)
+				}),
+			),
+		)
+		is.Equal([]string{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("MergeMapI index restarts on each subscription", func(t *testing.T) { //nolint:paralleltest
 		is := assert.New(t)
 
 		obs := MergeMapI(func(item string, index int64) Observable[int64] {
@@ -562,648 +675,862 @@ func TestOperatorCombiningMergeMap(t *testing.T) { //nolint:paralleltest
 func TestOperatorCombiningCombineLatestWith(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 1000*time.Millisecond)
-	is := assert.New(t)
 
-	// check type is in the right order
-	values2, err := Collect(
-		CombineLatestWith[int](
-			Of("42"),
-		)(
-			Of(42),
-		),
-	)
-	is.Equal([]lo.Tuple2[int, string]{lo.T2(42, "42")}, values2)
-	is.NoError(err)
+	t.Run("type order", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values1, err := Collect(
-		CombineLatestWith[int64](
-			RangeWithInterval(0, 2, 50*time.Millisecond),
-		)(
-			RangeWithInterval(0, 2, 75*time.Millisecond),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(0)), lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(1))}, values1)
-	is.NoError(err)
+		values2, err := Collect(
+			CombineLatestWith[int](
+				Of("42"),
+			)(
+				Of(42),
+			),
+		)
+		is.Equal([]lo.Tuple2[int, string]{lo.T2(42, "42")}, values2)
+		is.NoError(err)
+	})
 
-	values1, err = Collect(
-		CombineLatestWith[int64](
-			RangeWithInterval(0, 2, 20*time.Millisecond),
-		)(
-			RangeWithInterval(0, 2, 100*time.Millisecond),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(1))}, values1)
-	is.NoError(err)
+	t.Run("interleaved emissions", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values1, err = Collect(
-		CombineLatestWith[int64](
-			RangeWithInterval(0, 3, 10*time.Millisecond),
-		)(
-			RangeWithInterval(0, 2, 100*time.Millisecond),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(2)), lo.T2(int64(1), int64(2))}, values1)
-	is.NoError(err)
+		values1, err := Collect(
+			CombineLatestWith[int64](
+				RangeWithInterval(0, 2, 50*time.Millisecond),
+			)(
+				RangeWithInterval(0, 2, 75*time.Millisecond),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(0)), lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(1))}, values1)
+		is.NoError(err)
+	})
 
-	values1, err = Collect(
-		CombineLatestWith[int64](
-			Empty[int64](),
-		)(
-			Of[int64](42),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values1)
-	is.NoError(err)
+	t.Run("other source finishes first", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values1, err = Collect(
-		CombineLatestWith[int64](
-			Empty[int64](),
-		)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values1)
-	is.NoError(err)
+		values1, err := Collect(
+			CombineLatestWith[int64](
+				RangeWithInterval(0, 2, 20*time.Millisecond),
+			)(
+				RangeWithInterval(0, 2, 100*time.Millisecond),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(1))}, values1)
+		is.NoError(err)
+	})
 
-	values1, err = Collect(
-		CombineLatestWith[int64](
-			Throw[int64](assert.AnError),
-		)(
-			Delay[int64](10 * time.Millisecond)(Of[int64](42)),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values1)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("other source emits more items", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values1, err = Collect(
-		CombineLatestWith[int64](
-			Delay[int64](10 * time.Millisecond)(Throw[int64](assert.AnError)),
-		)(
-			Of[int64](42),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values1)
-	is.EqualError(err, assert.AnError.Error())
+		values1, err := Collect(
+			CombineLatestWith[int64](
+				RangeWithInterval(0, 3, 10*time.Millisecond),
+			)(
+				RangeWithInterval(0, 2, 100*time.Millisecond),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(2)), lo.T2(int64(1), int64(2))}, values1)
+		is.NoError(err)
+	})
+
+	t.Run("empty other source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values1, err := Collect(
+			CombineLatestWith[int64](
+				Empty[int64](),
+			)(
+				Of[int64](42),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values1)
+		is.NoError(err)
+	})
+
+	t.Run("both sources empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values1, err := Collect(
+			CombineLatestWith[int64](
+				Empty[int64](),
+			)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values1)
+		is.NoError(err)
+	})
+
+	t.Run("error from other source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values1, err := Collect(
+			CombineLatestWith[int64](
+				Throw[int64](assert.AnError),
+			)(
+				Delay[int64](10 * time.Millisecond)(Of[int64](42)),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values1)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("delayed error from other source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values1, err := Collect(
+			CombineLatestWith[int64](
+				Delay[int64](10 * time.Millisecond)(Throw[int64](assert.AnError)),
+			)(
+				Of[int64](42),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values1)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningCombineLatestWith1(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 1000*time.Millisecond)
-	is := assert.New(t)
 
-	// check type is in the right order
-	values2, err := Collect(
-		CombineLatestWith1[int](
-			Of("42"),
-		)(
-			Of(42),
-		),
-	)
-	is.Equal([]lo.Tuple2[int, string]{lo.T2(42, "42")}, values2)
-	is.NoError(err)
+	t.Run("type order", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values1, err := Collect(
-		CombineLatestWith1[int64](
-			RangeWithInterval(0, 2, 50*time.Millisecond),
-		)(
-			RangeWithInterval(0, 2, 75*time.Millisecond),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(0)), lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(1))}, values1)
-	is.NoError(err)
+		values2, err := Collect(
+			CombineLatestWith1[int](
+				Of("42"),
+			)(
+				Of(42),
+			),
+		)
+		is.Equal([]lo.Tuple2[int, string]{lo.T2(42, "42")}, values2)
+		is.NoError(err)
+	})
 
-	values1, err = Collect(
-		CombineLatestWith1[int64](
-			RangeWithInterval(0, 2, 20*time.Millisecond),
-		)(
-			RangeWithInterval(0, 2, 100*time.Millisecond),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(1))}, values1)
-	is.NoError(err)
+	t.Run("interleaved emissions", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values1, err = Collect(
-		CombineLatestWith1[int64](
-			RangeWithInterval(0, 3, 10*time.Millisecond),
-		)(
-			RangeWithInterval(0, 2, 100*time.Millisecond),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(2)), lo.T2(int64(1), int64(2))}, values1)
-	is.NoError(err)
+		values1, err := Collect(
+			CombineLatestWith1[int64](
+				RangeWithInterval(0, 2, 50*time.Millisecond),
+			)(
+				RangeWithInterval(0, 2, 75*time.Millisecond),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(0)), lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(1))}, values1)
+		is.NoError(err)
+	})
 
-	values1, err = Collect(
-		CombineLatestWith1[int64](
-			Empty[int64](),
-		)(
-			Of[int64](42),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values1)
-	is.NoError(err)
+	t.Run("other source finishes first", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values1, err = Collect(
-		CombineLatestWith1[int64](
-			Empty[int64](),
-		)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values1)
-	is.NoError(err)
+		values1, err := Collect(
+			CombineLatestWith1[int64](
+				RangeWithInterval(0, 2, 20*time.Millisecond),
+			)(
+				RangeWithInterval(0, 2, 100*time.Millisecond),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(1))}, values1)
+		is.NoError(err)
+	})
 
-	values1, err = Collect(
-		CombineLatestWith1[int64](
-			Throw[int64](assert.AnError),
-		)(
-			Delay[int64](10 * time.Millisecond)(Of[int64](42)),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values1)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("other source emits more items", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values1, err = Collect(
-		CombineLatestWith1[int64](
-			Delay[int64](10 * time.Millisecond)(Throw[int64](assert.AnError)),
-		)(
-			Of[int64](42),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values1)
-	is.EqualError(err, assert.AnError.Error())
+		values1, err := Collect(
+			CombineLatestWith1[int64](
+				RangeWithInterval(0, 3, 10*time.Millisecond),
+			)(
+				RangeWithInterval(0, 2, 100*time.Millisecond),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(2)), lo.T2(int64(1), int64(2))}, values1)
+		is.NoError(err)
+	})
+
+	t.Run("empty other source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values1, err := Collect(
+			CombineLatestWith1[int64](
+				Empty[int64](),
+			)(
+				Of[int64](42),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values1)
+		is.NoError(err)
+	})
+
+	t.Run("both sources empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values1, err := Collect(
+			CombineLatestWith1[int64](
+				Empty[int64](),
+			)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values1)
+		is.NoError(err)
+	})
+
+	t.Run("error from other source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values1, err := Collect(
+			CombineLatestWith1[int64](
+				Throw[int64](assert.AnError),
+			)(
+				Delay[int64](10 * time.Millisecond)(Of[int64](42)),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values1)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("delayed error from other source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values1, err := Collect(
+			CombineLatestWith1[int64](
+				Delay[int64](10 * time.Millisecond)(Throw[int64](assert.AnError)),
+			)(
+				Of[int64](42),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values1)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningCombineLatestWith2(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 1000*time.Millisecond)
-	is := assert.New(t)
 
-	// CombineLatest emits a tuple whenever any source emits after all sources have emitted at least once
-	// With Of (single-value) sources, only one tuple is produced
-	values, err := Collect(
-		CombineLatestWith2[int64](
-			Of[int64](1),
-			Of[int64](2),
-		)(
-			Of[int64](3),
-		),
-	)
-	is.Len(values, 1)
-	// Tuple is (source, argB, argC) — source is the function argument, not the variadic params
-	is.Equal([]lo.Tuple3[int64, int64, int64]{lo.T3(int64(3), int64(1), int64(2))}, values)
-	is.NoError(err)
+	t.Run("tuple of sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		CombineLatestWith2[int64](
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Of[int64](42),
-		),
-	)
-	is.Equal([]lo.Tuple3[int64, int64, int64]{}, values)
-	is.NoError(err)
+		// CombineLatest emits a tuple whenever any source emits after all sources have emitted at least once
+		// With Of (single-value) sources, only one tuple is produced
+		values, err := Collect(
+			CombineLatestWith2[int64](
+				Of[int64](1),
+				Of[int64](2),
+			)(
+				Of[int64](3),
+			),
+		)
+		is.Len(values, 1)
+		// Tuple is (source, argB, argC) — source is the function argument, not the variadic params
+		is.Equal([]lo.Tuple3[int64, int64, int64]{lo.T3(int64(3), int64(1), int64(2))}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		CombineLatestWith2[int64](
-			Throw[int64](assert.AnError),
-			Empty[int64](),
-		)(
-			Of[int64](42),
-		),
-	)
-	is.Equal([]lo.Tuple3[int64, int64, int64]{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestWith2[int64](
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Of[int64](42),
+			),
+		)
+		is.Equal([]lo.Tuple3[int64, int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestWith2[int64](
+				Throw[int64](assert.AnError),
+				Empty[int64](),
+			)(
+				Of[int64](42),
+			),
+		)
+		is.Equal([]lo.Tuple3[int64, int64, int64]{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningCombineLatestWith3(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 1000*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		CombineLatestWith3[int64](
-			Of[int64](1),
-			Of[int64](2),
-			Of[int64](3),
-		)(
-			Of[int64](4),
-		),
-	)
-	is.Len(values, 1)
-	// Tuple is (source, argB, argC, argD) — source is the function argument
-	is.Equal([]lo.Tuple4[int64, int64, int64, int64]{lo.T4(int64(4), int64(1), int64(2), int64(3))}, values)
-	is.NoError(err)
+	t.Run("tuple of sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		CombineLatestWith3[int64](
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Of[int64](42),
-		),
-	)
-	is.Equal([]lo.Tuple4[int64, int64, int64, int64]{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			CombineLatestWith3[int64](
+				Of[int64](1),
+				Of[int64](2),
+				Of[int64](3),
+			)(
+				Of[int64](4),
+			),
+		)
+		is.Len(values, 1)
+		// Tuple is (source, argB, argC, argD) — source is the function argument
+		is.Equal([]lo.Tuple4[int64, int64, int64, int64]{lo.T4(int64(4), int64(1), int64(2), int64(3))}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		CombineLatestWith3[int64](
-			Throw[int64](assert.AnError),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Of[int64](42),
-		),
-	)
-	is.Equal([]lo.Tuple4[int64, int64, int64, int64]{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestWith3[int64](
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Of[int64](42),
+			),
+		)
+		is.Equal([]lo.Tuple4[int64, int64, int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestWith3[int64](
+				Throw[int64](assert.AnError),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Of[int64](42),
+			),
+		)
+		is.Equal([]lo.Tuple4[int64, int64, int64, int64]{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningCombineLatestWith4(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 1000*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		CombineLatestWith4[int64](
-			Of[int64](1),
-			Of[int64](2),
-			Of[int64](3),
-			Of[int64](4),
-		)(
-			Of[int64](5),
-		),
-	)
-	is.Len(values, 1)
-	// Tuple is (source, argB, argC, argD, argE) — source is the function argument
-	is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{lo.T5(int64(5), int64(1), int64(2), int64(3), int64(4))}, values)
-	is.NoError(err)
+	t.Run("tuple of sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		CombineLatestWith4[int64](
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Of[int64](42),
-		),
-	)
-	is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			CombineLatestWith4[int64](
+				Of[int64](1),
+				Of[int64](2),
+				Of[int64](3),
+				Of[int64](4),
+			)(
+				Of[int64](5),
+			),
+		)
+		is.Len(values, 1)
+		// Tuple is (source, argB, argC, argD, argE) — source is the function argument
+		is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{lo.T5(int64(5), int64(1), int64(2), int64(3), int64(4))}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		CombineLatestWith4[int64](
-			Throw[int64](assert.AnError),
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Of[int64](42),
-		),
-	)
-	is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestWith4[int64](
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Of[int64](42),
+			),
+		)
+		is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestWith4[int64](
+				Throw[int64](assert.AnError),
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Of[int64](42),
+			),
+		)
+		is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningCombineLatestAll(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		CombineLatestAll[int64]()(
-			Just(
-				Of[int64](21),
-				Of[int64](42),
-			),
-		),
-	)
-	is.Equal([][]int64{{21, 42}}, values)
-	is.NoError(err)
+	t.Run("all sources emit once", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		CombineLatestAll[int64]()(
-			Just(
-				RangeWithInterval(0, 2, 150*time.Millisecond),
-				RangeWithInterval(0, 2, 100*time.Millisecond),
+		values, err := Collect(
+			CombineLatestAll[int64]()(
+				Just(
+					Of[int64](21),
+					Of[int64](42),
+				),
 			),
-		),
-	)
-	is.Equal([][]int64{{0, 0}, {0, 1}, {1, 1}}, values)
-	is.NoError(err)
+		)
+		is.Equal([][]int64{{21, 42}}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		CombineLatestAll[int64]()(
-			Just(
-				RangeWithInterval(0, 2, 200*time.Millisecond),
-				RangeWithInterval(0, 2, 20*time.Millisecond),
-			),
-		),
-	)
-	is.Equal([][]int64{{0, 1}, {1, 1}}, values)
-	is.NoError(err)
+	t.Run("interleaved emissions", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		CombineLatestAll[int64]()(
-			Just(
-				RangeWithInterval(0, 2, 200*time.Millisecond),
-				RangeWithInterval(0, 3, 20*time.Millisecond),
+		values, err := Collect(
+			CombineLatestAll[int64]()(
+				Just(
+					RangeWithInterval(0, 2, 150*time.Millisecond),
+					RangeWithInterval(0, 2, 100*time.Millisecond),
+				),
 			),
-		),
-	)
-	is.Equal([][]int64{{0, 2}, {1, 2}}, values)
-	is.NoError(err)
+		)
+		is.Equal([][]int64{{0, 0}, {0, 1}, {1, 1}}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		CombineLatestAll[int64]()(
-			Just(
-				Of[int64](42),
-				Empty[int64](),
-			),
-		),
-	)
-	is.Equal([][]int64{}, values)
-	is.NoError(err)
+	t.Run("faster second source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		CombineLatestAll[int64]()(
-			Just(
-				Empty[int64](),
-				Empty[int64](),
+		values, err := Collect(
+			CombineLatestAll[int64]()(
+				Just(
+					RangeWithInterval(0, 2, 200*time.Millisecond),
+					RangeWithInterval(0, 2, 20*time.Millisecond),
+				),
 			),
-		),
-	)
-	is.Equal([][]int64{}, values)
-	is.NoError(err)
+		)
+		is.Equal([][]int64{{0, 1}, {1, 1}}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		CombineLatestAll[int64]()(
-			Just(
-				Delay[int64](10*time.Millisecond)(Of[int64](42)),
-				Throw[int64](assert.AnError),
-			),
-		),
-	)
-	is.Equal([][]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("faster second source with extra item", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		CombineLatestAll[int64]()(
-			Just(
-				Of[int64](42),
-				Delay[int64](10*time.Millisecond)(Throw[int64](assert.AnError)),
+		values, err := Collect(
+			CombineLatestAll[int64]()(
+				Just(
+					RangeWithInterval(0, 2, 200*time.Millisecond),
+					RangeWithInterval(0, 3, 20*time.Millisecond),
+				),
 			),
-		),
-	)
-	is.Equal([][]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		)
+		is.Equal([][]int64{{0, 2}, {1, 2}}, values)
+		is.NoError(err)
+	})
+
+	t.Run("one source empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestAll[int64]()(
+				Just(
+					Of[int64](42),
+					Empty[int64](),
+				),
+			),
+		)
+		is.Equal([][]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("all sources empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestAll[int64]()(
+				Just(
+					Empty[int64](),
+					Empty[int64](),
+				),
+			),
+		)
+		is.Equal([][]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error from source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestAll[int64]()(
+				Just(
+					Delay[int64](10*time.Millisecond)(Of[int64](42)),
+					Throw[int64](assert.AnError),
+				),
+			),
+		)
+		is.Equal([][]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("delayed error from source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestAll[int64]()(
+				Just(
+					Of[int64](42),
+					Delay[int64](10*time.Millisecond)(Throw[int64](assert.AnError)),
+				),
+			),
+		)
+		is.Equal([][]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningCombineLatestAllAny(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		CombineLatestAllAny()(
-			Just(
-				Of[any](21),
-				Of[any]("42"),
-			),
-		),
-	)
-	is.Equal([][]any{{21, "42"}}, values)
-	is.NoError(err)
+	t.Run("all sources emit once", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		CombineLatestAllAny()(
-			Just(
-				Map(func(x int64) any { return x })(RangeWithInterval(0, 2, 150*time.Millisecond)),
-				Map(func(x int64) any { return x })(RangeWithInterval(0, 2, 100*time.Millisecond)),
+		values, err := Collect(
+			CombineLatestAllAny()(
+				Just(
+					Of[any](21),
+					Of[any]("42"),
+				),
 			),
-		),
-	)
-	is.Equal([][]any{{int64(0), int64(0)}, {int64(0), int64(1)}, {int64(1), int64(1)}}, values)
-	is.NoError(err)
+		)
+		is.Equal([][]any{{21, "42"}}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		CombineLatestAllAny()(
-			Just(
-				Map(func(x int64) any { return x })(RangeWithInterval(0, 2, 100*time.Millisecond)),
-				Map(func(x int64) any { return x })(RangeWithInterval(0, 2, 20*time.Millisecond)),
-			),
-		),
-	)
-	is.Equal([][]any{{int64(0), int64(1)}, {int64(1), int64(1)}}, values)
-	is.NoError(err)
+	t.Run("interleaved emissions", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		CombineLatestAllAny()(
-			Just(
-				Map(func(x int64) any { return x })(RangeWithInterval(0, 2, 100*time.Millisecond)),
-				Map(func(x int64) any { return x })(RangeWithInterval(0, 3, 10*time.Millisecond)),
+		values, err := Collect(
+			CombineLatestAllAny()(
+				Just(
+					Map(func(x int64) any { return x })(RangeWithInterval(0, 2, 150*time.Millisecond)),
+					Map(func(x int64) any { return x })(RangeWithInterval(0, 2, 100*time.Millisecond)),
+				),
 			),
-		),
-	)
-	is.Equal([][]any{{int64(0), int64(2)}, {int64(1), int64(2)}}, values)
-	is.NoError(err)
+		)
+		is.Equal([][]any{{int64(0), int64(0)}, {int64(0), int64(1)}, {int64(1), int64(1)}}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		CombineLatestAllAny()(
-			Just(
-				Of[any](42),
-				Empty[any](),
-			),
-		),
-	)
-	is.Equal([][]any{}, values)
-	is.NoError(err)
+	t.Run("faster second source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		CombineLatestAllAny()(
-			Just(
-				Empty[any](),
-				Empty[any](),
+		values, err := Collect(
+			CombineLatestAllAny()(
+				Just(
+					Map(func(x int64) any { return x })(RangeWithInterval(0, 2, 100*time.Millisecond)),
+					Map(func(x int64) any { return x })(RangeWithInterval(0, 2, 20*time.Millisecond)),
+				),
 			),
-		),
-	)
-	is.Equal([][]any{}, values)
-	is.NoError(err)
+		)
+		is.Equal([][]any{{int64(0), int64(1)}, {int64(1), int64(1)}}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		CombineLatestAllAny()(
-			Just(
-				Delay[any](10*time.Millisecond)(Of[any](42)),
-				Throw[any](assert.AnError),
-			),
-		),
-	)
-	is.Equal([][]any{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("faster second source with extra item", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		CombineLatestAllAny()(
-			Just(
-				Of[any](42),
-				Delay[any](10*time.Millisecond)(Throw[any](assert.AnError)),
+		values, err := Collect(
+			CombineLatestAllAny()(
+				Just(
+					Map(func(x int64) any { return x })(RangeWithInterval(0, 2, 100*time.Millisecond)),
+					Map(func(x int64) any { return x })(RangeWithInterval(0, 3, 10*time.Millisecond)),
+				),
 			),
-		),
-	)
-	is.Equal([][]any{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		)
+		is.Equal([][]any{{int64(0), int64(2)}, {int64(1), int64(2)}}, values)
+		is.NoError(err)
+	})
+
+	t.Run("one source empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestAllAny()(
+				Just(
+					Of[any](42),
+					Empty[any](),
+				),
+			),
+		)
+		is.Equal([][]any{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("all sources empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestAllAny()(
+				Just(
+					Empty[any](),
+					Empty[any](),
+				),
+			),
+		)
+		is.Equal([][]any{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error from source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestAllAny()(
+				Just(
+					Delay[any](10*time.Millisecond)(Of[any](42)),
+					Throw[any](assert.AnError),
+				),
+			),
+		)
+		is.Equal([][]any{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("delayed error from source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			CombineLatestAllAny()(
+				Just(
+					Of[any](42),
+					Delay[any](10*time.Millisecond)(Throw[any](assert.AnError)),
+				),
+			),
+		)
+		is.Equal([][]any{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 // A source completing without any value makes a tuple impossible: the result
 // must complete at once instead of waiting for the other sources.
 func TestOperatorCombiningCombineLatest_emptyAndNever(t *testing.T) { //nolint:paralleltest
 	testWithTimeout(t, 1000*time.Millisecond)
-	is := assert.New(t)
 
-	values1, err := Collect(CombineLatest2(Empty[int](), Never()))
-	is.Equal([]lo.Tuple2[int, struct{}]{}, values1)
-	is.NoError(err)
+	t.Run("CombineLatest2 with empty first source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values1b, err := Collect(CombineLatest2(Never(), Empty[int]()))
-	is.Equal([]lo.Tuple2[struct{}, int]{}, values1b)
-	is.NoError(err)
+		values1, err := Collect(CombineLatest2(Empty[int](), Never()))
+		is.Equal([]lo.Tuple2[int, struct{}]{}, values1)
+		is.NoError(err)
+	})
 
-	values3, err := Collect(CombineLatest3(Never(), Empty[int](), Never()))
-	is.Equal([]lo.Tuple3[struct{}, int, struct{}]{}, values3)
-	is.NoError(err)
+	t.Run("CombineLatest2 with empty second source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values4, err := Collect(CombineLatest4(Never(), Never(), Never(), Empty[int]()))
-	is.Equal([]lo.Tuple4[struct{}, struct{}, struct{}, int]{}, values4)
-	is.NoError(err)
+		values1b, err := Collect(CombineLatest2(Never(), Empty[int]()))
+		is.Equal([]lo.Tuple2[struct{}, int]{}, values1b)
+		is.NoError(err)
+	})
 
-	values5, err := Collect(CombineLatest5(Never(), Never(), Never(), Never(), Empty[int]()))
-	is.Equal([]lo.Tuple5[struct{}, struct{}, struct{}, struct{}, int]{}, values5)
-	is.NoError(err)
+	t.Run("CombineLatest3", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values3, err := Collect(CombineLatest3(Never(), Empty[int](), Never()))
+		is.Equal([]lo.Tuple3[struct{}, int, struct{}]{}, values3)
+		is.NoError(err)
+	})
+
+	t.Run("CombineLatest4", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values4, err := Collect(CombineLatest4(Never(), Never(), Never(), Empty[int]()))
+		is.Equal([]lo.Tuple4[struct{}, struct{}, struct{}, int]{}, values4)
+		is.NoError(err)
+	})
+
+	t.Run("CombineLatest5", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values5, err := Collect(CombineLatest5(Never(), Never(), Never(), Never(), Empty[int]()))
+		is.Equal([]lo.Tuple5[struct{}, struct{}, struct{}, struct{}, int]{}, values5)
+		is.NoError(err)
+	})
 
 	neverAny := NewObservable(func(Observer[any]) Teardown { return nil })
 
-	valuesAll, err := Collect(CombineLatestAny(Empty[any](), neverAny))
-	is.Equal([][]any{}, valuesAll)
-	is.NoError(err)
+	t.Run("CombineLatestAny with empty first source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	valuesAll, err = Collect(CombineLatestAny(neverAny, Empty[any]()))
-	is.Equal([][]any{}, valuesAll)
-	is.NoError(err)
+		valuesAll, err := Collect(CombineLatestAny(Empty[any](), neverAny))
+		is.Equal([][]any{}, valuesAll)
+		is.NoError(err)
+	})
+
+	t.Run("CombineLatestAny with empty second source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		valuesAll, err := Collect(CombineLatestAny(neverAny, Empty[any]()))
+		is.Equal([][]any{}, valuesAll)
+		is.NoError(err)
+	})
 }
 
 func TestOperatorCombiningConcatWith(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 1000*time.Millisecond)
-	is := assert.New(t)
 
-	// sequential concatenation
-	values, err := Collect(
-		ConcatWith(
-			Just(4, 5, 6),
-		)(
-			Just(1, 2, 3),
-		),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
-	is.NoError(err)
+	t.Run("sequential concatenation", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// concatenate multiple observables
-	values, err = Collect(
-		ConcatWith(
-			Just(4, 5),
-			Just(6, 7),
-		)(
-			Just(1, 2, 3),
-		),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5, 6, 7}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ConcatWith(
+				Just(4, 5, 6),
+			)(
+				Just(1, 2, 3),
+			),
+		)
+		is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
+		is.NoError(err)
+	})
 
-	// empty source
-	values, err = Collect(
-		ConcatWith(
-			Just(1, 2, 3),
-		)(
-			Empty[int](),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("concatenate multiple observables", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// empty additional observable
-	values, err = Collect(
-		ConcatWith(
-			Empty[int](),
-		)(
-			Just(1, 2, 3),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ConcatWith(
+				Just(4, 5),
+				Just(6, 7),
+			)(
+				Just(1, 2, 3),
+			),
+		)
+		is.Equal([]int{1, 2, 3, 4, 5, 6, 7}, values)
+		is.NoError(err)
+	})
 
-	// error propagation from source: source Throw is the first inner observable,
-	// so ConcatAll errors immediately without emitting values.
-	values, err = Collect(
-		ConcatWith(
-			Just(4, 5, 6),
-		)(
-			Throw[int](assert.AnError),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// error propagation from additional observable
-	values, err = Collect(
-		ConcatWith(
-			Just(4, 5, 6),
-		)(
-			Just(1, 2, 3),
-		),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ConcatWith(
+				Just(1, 2, 3),
+			)(
+				Empty[int](),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	// error from additional observable after source completes
-	values, err = Collect(
-		ConcatWith(
-			Throw[int](assert.AnError),
-		)(
-			Just(1, 2, 3),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty additional observable", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ConcatWith(
+				Empty[int](),
+			)(
+				Just(1, 2, 3),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error propagation from source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		// error propagation from source: source Throw is the first inner observable,
+		// so ConcatAll errors immediately without emitting values.
+		values, err := Collect(
+			ConcatWith(
+				Just(4, 5, 6),
+			)(
+				Throw[int](assert.AnError),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("error propagation from additional observable", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ConcatWith(
+				Just(4, 5, 6),
+			)(
+				Just(1, 2, 3),
+			),
+		)
+		is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error from additional observable after source completes", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ConcatWith(
+				Throw[int](assert.AnError),
+			)(
+				Just(1, 2, 3),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningConcatAll(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		ConcatAll[int]()(
-			Just(
-				Just(1, 2, 3),
-				Just(4, 5, 6),
+	t.Run("concatenated inners", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ConcatAll[int]()(
+				Just(
+					Just(1, 2, 3),
+					Just(4, 5, 6),
+				),
 			),
-		),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
-	is.NoError(err)
+		)
+		is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ConcatAll[int]()(Empty[Observable[int]]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ConcatAll[int]()(Throw[Observable[int]](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			ConcatAll[int]()(Empty[Observable[int]]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ConcatAll[int]()(Throw[Observable[int]](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningConcatAll_asyncInnersFromSynchronousOuter(t *testing.T) {
@@ -1248,568 +1575,753 @@ func TestOperatorCombiningConcatAll_asyncInnersFromSynchronousOuter(t *testing.T
 	is.NoError(err)
 }
 
-func TestOperatorCombiningStartWith(t *testing.T) {
+func TestOperatorCombiningStartWith(t *testing.T) { //nolint:tparallel // subtests stay sequential: the parent timeout covers them
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		StartWith(1, 2, 3)(Just(4, 5, 6)),
-	)
-	is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
-	is.NoError(err)
+	t.Run("values before source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		StartWith[int]()(Just(1, 2, 3)),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+		values, err := Collect(
+			StartWith(1, 2, 3)(Just(4, 5, 6)),
+		)
+		is.Equal([]int{1, 2, 3, 4, 5, 6}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		StartWith(1, 2, 3)(Empty[int]()),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("no start values", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		StartWith(1, 2, 3)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			StartWith[int]()(Just(1, 2, 3)),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			StartWith(1, 2, 3)(Empty[int]()),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			StartWith(1, 2, 3)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
-func TestOperatorCombiningEndWith(t *testing.T) {
+func TestOperatorCombiningEndWith(t *testing.T) { //nolint:tparallel // subtests stay sequential: the parent timeout covers them
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		EndWith(1, 2, 3)(Just(4, 5, 6)),
-	)
-	is.Equal([]int{4, 5, 6, 1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("values after source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		EndWith[int]()(Just(1, 2, 3)),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+		values, err := Collect(
+			EndWith(1, 2, 3)(Just(4, 5, 6)),
+		)
+		is.Equal([]int{4, 5, 6, 1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		EndWith(1, 2, 3)(Empty[int]()),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("no end values", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		EndWith(1, 2, 3)(Throw[int](assert.AnError)),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			EndWith[int]()(Just(1, 2, 3)),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			EndWith(1, 2, 3)(Empty[int]()),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			EndWith(1, 2, 3)(Throw[int](assert.AnError)),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
-func TestOperatorCombiningPairwise(t *testing.T) {
+func TestOperatorCombiningPairwise(t *testing.T) { //nolint:tparallel // subtests stay sequential: the parent timeout covers them
 	t.Parallel()
 	testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		Pairwise[int]()(Of(0)),
-	)
-	is.Equal([][]int{}, values)
-	is.NoError(err)
+	t.Run("single item", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pairwise[int]()(Just(1, 2, 3)),
-	)
-	is.Equal([][]int{{1, 2}, {2, 3}}, values)
-	is.NoError(err)
+		values, err := Collect(
+			Pairwise[int]()(Of(0)),
+		)
+		is.Equal([][]int{}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Pairwise[int]()(Empty[int]()),
-	)
-	is.Equal([][]int{}, values)
-	is.NoError(err)
+	t.Run("several items", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Pairwise[int]()(Throw[int](assert.AnError)),
-	)
-	is.Equal([][]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			Pairwise[int]()(Just(1, 2, 3)),
+		)
+		is.Equal([][]int{{1, 2}, {2, 3}}, values)
+		is.NoError(err)
+	})
+
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pairwise[int]()(Empty[int]()),
+		)
+		is.Equal([][]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Pairwise[int]()(Throw[int](assert.AnError)),
+		)
+		is.Equal([][]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningRaceWith(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 1500*time.Millisecond)
-	is := assert.New(t)
 
-	// empty
-	values, err := Collect(
-		RaceWith[int]()(
-			Just(1, 2, 3),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("no additional observable", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// async
-	values, err = Collect(
-		RaceWith(
-			Delay[int](150*time.Millisecond)(Just(4, 5, 6)),
-			Delay[int](50*time.Millisecond)(Just(7, 8, 9)),
-			Delay[int](200*time.Millisecond)(Just(10, 11, 12)),
-		)(
-			Delay[int](100 * time.Millisecond)(Just(1, 2, 3)),
-		),
-	)
-	is.Equal([]int{7, 8, 9}, values)
-	is.NoError(err)
+		values, err := Collect(
+			RaceWith[int]()(
+				Just(1, 2, 3),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	// sequential
-	values, err = Collect(
-		RaceWith(
-			Just(4, 5, 6),
-			Just(7, 8, 9),
-			Just(10, 11, 12),
-		)(
-			Just(1, 2, 3),
-		),
-	)
-	is.Equal([]int{1, 2, 3}, values)
-	is.NoError(err)
+	t.Run("async", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	// mixed async + sequential
-	values, err = Collect(
-		RaceWith(
-			Delay[int](150*time.Millisecond)(Just(4, 5, 6)),
-			Just(4, 5, 6),
-			Delay[int](200*time.Millisecond)(Just(10, 11, 12)),
-		)(
-			Delay[int](100 * time.Millisecond)(Just(1, 2, 3)),
-		),
-	)
-	is.Equal([]int{4, 5, 6}, values)
-	is.NoError(err)
+		values, err := Collect(
+			RaceWith(
+				Delay[int](150*time.Millisecond)(Just(4, 5, 6)),
+				Delay[int](50*time.Millisecond)(Just(7, 8, 9)),
+				Delay[int](200*time.Millisecond)(Just(10, 11, 12)),
+			)(
+				Delay[int](100 * time.Millisecond)(Just(1, 2, 3)),
+			),
+		)
+		is.Equal([]int{7, 8, 9}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Race(Empty[int](), Empty[int]()),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+	t.Run("sequential", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		Race[int](),
-	)
-	is.Equal([]int{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			RaceWith(
+				Just(4, 5, 6),
+				Just(7, 8, 9),
+				Just(10, 11, 12),
+			)(
+				Just(1, 2, 3),
+			),
+		)
+		is.Equal([]int{1, 2, 3}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		Race(
-			Delay[int](250*time.Millisecond)(Just(1, 2, 3)),
-			Delay[int](25*time.Millisecond)(Throw[int](assert.AnError)),
-			Delay[int](250*time.Millisecond)(Just(7, 8, 9)),
-		),
-	)
-	is.Equal([]int{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("mixed async + sequential", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			RaceWith(
+				Delay[int](150*time.Millisecond)(Just(4, 5, 6)),
+				Just(4, 5, 6),
+				Delay[int](200*time.Millisecond)(Just(10, 11, 12)),
+			)(
+				Delay[int](100 * time.Millisecond)(Just(1, 2, 3)),
+			),
+		)
+		is.Equal([]int{4, 5, 6}, values)
+		is.NoError(err)
+	})
+
+	t.Run("all sources empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Race(Empty[int](), Empty[int]()),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("no source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Race[int](),
+		)
+		is.Equal([]int{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error from fastest source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			Race(
+				Delay[int](250*time.Millisecond)(Just(1, 2, 3)),
+				Delay[int](25*time.Millisecond)(Throw[int](assert.AnError)),
+				Delay[int](250*time.Millisecond)(Just(7, 8, 9)),
+			),
+		)
+		is.Equal([]int{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
-func TestOperatorCombiningZipWith(t *testing.T) {
+func TestOperatorCombiningZipWith(t *testing.T) { //nolint:tparallel // subtests stay sequential: the parent timeout covers them
 	t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		ZipWith[int64](
-			Skip[int64](1)(Range(0, 4)),
-		)(
-			Range(0, 4),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(2)), lo.T2(int64(2), int64(3))}, values)
-	is.NoError(err)
+	t.Run("shifted source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipWith[int64](
-			Skip[int64](1)(Range(0, 4)),
-		)(
-			Range(0, 10),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(2)), lo.T2(int64(2), int64(3))}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ZipWith[int64](
+				Skip[int64](1)(Range(0, 4)),
+			)(
+				Range(0, 4),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(2)), lo.T2(int64(2), int64(3))}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ZipWith[int64](
-			Range(0, 4),
-		)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values)
-	is.NoError(err)
+	t.Run("longer source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipWith[int64](
-			Empty[int64](),
-		)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ZipWith[int64](
+				Skip[int64](1)(Range(0, 4)),
+			)(
+				Range(0, 10),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(2)), lo.T2(int64(2), int64(3))}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ZipWith[int64](
-			Of[int64](42),
-		)(
-			Throw[int64](assert.AnError),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith[int64](
+				Range(0, 4),
+			)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("both sources empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith[int64](
+				Empty[int64](),
+			)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith[int64](
+				Of[int64](42),
+			)(
+				Throw[int64](assert.AnError),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningZipWith1(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		ZipWith1[int64](
-			Skip[int64](1)(Range(0, 4)),
-		)(
-			Range(0, 4),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(2)), lo.T2(int64(2), int64(3))}, values)
-	is.NoError(err)
+	t.Run("shifted source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipWith1[int64](
-			Skip[int64](1)(Range(0, 4)),
-		)(
-			Range(0, 10),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(2)), lo.T2(int64(2), int64(3))}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ZipWith1[int64](
+				Skip[int64](1)(Range(0, 4)),
+			)(
+				Range(0, 4),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(2)), lo.T2(int64(2), int64(3))}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ZipWith1[int64](
-			Range(0, 4),
-		)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values)
-	is.NoError(err)
+	t.Run("longer source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipWith1[int64](
-			Empty[int64](),
-		)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ZipWith1[int64](
+				Skip[int64](1)(Range(0, 4)),
+			)(
+				Range(0, 10),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{lo.T2(int64(0), int64(1)), lo.T2(int64(1), int64(2)), lo.T2(int64(2), int64(3))}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ZipWith1[int64](
-			Of[int64](42),
-		)(
-			Throw[int64](assert.AnError),
-		),
-	)
-	is.Equal([]lo.Tuple2[int64, int64]{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith1[int64](
+				Range(0, 4),
+			)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("both sources empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith1[int64](
+				Empty[int64](),
+			)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith1[int64](
+				Of[int64](42),
+			)(
+				Throw[int64](assert.AnError),
+			),
+		)
+		is.Equal([]lo.Tuple2[int64, int64]{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningZipWith2(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		ZipWith2[int64](
-			Skip[int64](1)(Range(0, 4)),
-			Skip[int64](2)(Range(0, 4)),
-		)(
-			Range(0, 4),
-		),
-	)
-	is.Equal([]lo.Tuple3[int64, int64, int64]{lo.T3(int64(0), int64(1), int64(2)), lo.T3(int64(1), int64(2), int64(3))}, values)
-	is.NoError(err)
+	t.Run("zipped sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipWith2[int64](
-			Range(0, 4),
-			Range(0, 4),
-		)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]lo.Tuple3[int64, int64, int64]{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ZipWith2[int64](
+				Skip[int64](1)(Range(0, 4)),
+				Skip[int64](2)(Range(0, 4)),
+			)(
+				Range(0, 4),
+			),
+		)
+		is.Equal([]lo.Tuple3[int64, int64, int64]{lo.T3(int64(0), int64(1), int64(2)), lo.T3(int64(1), int64(2), int64(3))}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ZipWith2[int64](
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]lo.Tuple3[int64, int64, int64]{}, values)
-	is.NoError(err)
+	t.Run("empty source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipWith2[int64](
-			Of[int64](42),
-			Of[int64](99),
-		)(
-			Throw[int64](assert.AnError),
-		),
-	)
-	is.Equal([]lo.Tuple3[int64, int64, int64]{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		values, err := Collect(
+			ZipWith2[int64](
+				Range(0, 4),
+				Range(0, 4),
+			)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]lo.Tuple3[int64, int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("all sources empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith2[int64](
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]lo.Tuple3[int64, int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith2[int64](
+				Of[int64](42),
+				Of[int64](99),
+			)(
+				Throw[int64](assert.AnError),
+			),
+		)
+		is.Equal([]lo.Tuple3[int64, int64, int64]{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningZipWith3(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		ZipWith3[int64](
-			Skip[int64](1)(Range(0, 4)),
-			Skip[int64](2)(Range(0, 4)),
-			Skip[int64](3)(Range(0, 4)),
-		)(
-			Range(0, 4),
-		),
-	)
-	is.Equal([]lo.Tuple4[int64, int64, int64, int64]{lo.T4(int64(0), int64(1), int64(2), int64(3))}, values)
-	is.NoError(err)
+	t.Run("zipped sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipWith3[int64](
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]lo.Tuple4[int64, int64, int64, int64]{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ZipWith3[int64](
+				Skip[int64](1)(Range(0, 4)),
+				Skip[int64](2)(Range(0, 4)),
+				Skip[int64](3)(Range(0, 4)),
+			)(
+				Range(0, 4),
+			),
+		)
+		is.Equal([]lo.Tuple4[int64, int64, int64, int64]{lo.T4(int64(0), int64(1), int64(2), int64(3))}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ZipWith3[int64](
-			Of[int64](1),
-			Of[int64](2),
-			Of[int64](3),
-		)(
-			Throw[int64](assert.AnError),
-		),
-	)
-	is.Equal([]lo.Tuple4[int64, int64, int64, int64]{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith3[int64](
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]lo.Tuple4[int64, int64, int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith3[int64](
+				Of[int64](1),
+				Of[int64](2),
+				Of[int64](3),
+			)(
+				Throw[int64](assert.AnError),
+			),
+		)
+		is.Equal([]lo.Tuple4[int64, int64, int64, int64]{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningZipWith4(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 200*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		ZipWith4[int64](
-			Of[int64](1),
-			Of[int64](2),
-			Of[int64](3),
-			Of[int64](4),
-		)(
-			Of[int64](5),
-		),
-	)
-	is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{lo.T5(int64(5), int64(1), int64(2), int64(3), int64(4))}, values)
-	is.NoError(err)
+	t.Run("zipped sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipWith4[int64](
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{}, values)
-	is.NoError(err)
+		values, err := Collect(
+			ZipWith4[int64](
+				Of[int64](1),
+				Of[int64](2),
+				Of[int64](3),
+				Of[int64](4),
+			)(
+				Of[int64](5),
+			),
+		)
+		is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{lo.T5(int64(5), int64(1), int64(2), int64(3), int64(4))}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ZipWith4[int64](
-			Of[int64](1),
-			Of[int64](2),
-			Of[int64](3),
-			Of[int64](4),
-		)(
-			Throw[int64](assert.AnError),
-		),
-	)
-	is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith4[int64](
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith4[int64](
+				Of[int64](1),
+				Of[int64](2),
+				Of[int64](3),
+				Of[int64](4),
+			)(
+				Throw[int64](assert.AnError),
+			),
+		)
+		is.Equal([]lo.Tuple5[int64, int64, int64, int64, int64]{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningZipWith5(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
 
-	// ZipWith5 is strict — all sources must have values; tuple is (source, arg1, arg2, arg3, arg4, arg5)
-	values, err := Collect(
-		ZipWith5[int64](
-			Of[int64](1),
-			Of[int64](2),
-			Of[int64](3),
-			Of[int64](4),
-			Of[int64](5),
-		)(
-			Of[int64](0),
-		),
-	)
-	is.Len(values, 1)
-	is.Equal([]lo.Tuple6[int64, int64, int64, int64, int64, int64]{lo.T6(int64(0), int64(1), int64(2), int64(3), int64(4), int64(5))}, values)
-	is.NoError(err)
+	t.Run("strict zip", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipWith5[int64](
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-			Empty[int64](),
-		)(
-			Empty[int64](),
-		),
-	)
-	is.Equal([]lo.Tuple6[int64, int64, int64, int64, int64, int64]{}, values)
-	is.NoError(err)
+		// ZipWith5 is strict — all sources must have values; tuple is (source, arg1, arg2, arg3, arg4, arg5)
+		values, err := Collect(
+			ZipWith5[int64](
+				Of[int64](1),
+				Of[int64](2),
+				Of[int64](3),
+				Of[int64](4),
+				Of[int64](5),
+			)(
+				Of[int64](0),
+			),
+		)
+		is.Len(values, 1)
+		is.Equal([]lo.Tuple6[int64, int64, int64, int64, int64, int64]{lo.T6(int64(0), int64(1), int64(2), int64(3), int64(4), int64(5))}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ZipWith5[int64](
-			Of[int64](1),
-			Of[int64](2),
-			Of[int64](3),
-			Of[int64](4),
-			Of[int64](5),
-		)(
-			Throw[int64](assert.AnError),
-		),
-	)
-	is.Equal([]lo.Tuple6[int64, int64, int64, int64, int64, int64]{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("empty sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith5[int64](
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+				Empty[int64](),
+			)(
+				Empty[int64](),
+			),
+		)
+		is.Equal([]lo.Tuple6[int64, int64, int64, int64, int64, int64]{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipWith5[int64](
+				Of[int64](1),
+				Of[int64](2),
+				Of[int64](3),
+				Of[int64](4),
+				Of[int64](5),
+			)(
+				Throw[int64](assert.AnError),
+			),
+		)
+		is.Equal([]lo.Tuple6[int64, int64, int64, int64, int64, int64]{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 func TestOperatorCombiningZipAll(t *testing.T) { //nolint:paralleltest
 	// t.Parallel()
 	testWithTimeout(t, 2000*time.Millisecond)
-	is := assert.New(t)
 
-	values, err := Collect(
-		ZipAll[int64]()(
-			Just(
-				Of[int64](21),
-				Of[int64](42),
-			),
-		),
-	)
-	is.Equal([][]int64{{21, 42}}, values)
-	is.NoError(err)
+	t.Run("single-item sources", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipAll[int64]()(
-			Just(
-				RangeWithInterval(0, 2, 150*time.Millisecond),
-				RangeWithInterval(0, 2, 100*time.Millisecond),
+		values, err := Collect(
+			ZipAll[int64]()(
+				Just(
+					Of[int64](21),
+					Of[int64](42),
+				),
 			),
-		),
-	)
-	// Zip pairs positionally (1st with 1st, 2nd with 2nd), buffering the faster
-	// source's values until the slower one catches up. It never reuses a value
-	// already paired, regardless of which source is faster.
-	is.Equal([][]int64{{0, 0}, {1, 1}}, values)
-	is.NoError(err)
+		)
+		is.Equal([][]int64{{21, 42}}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ZipAll[int64]()(
-			Just(
-				RangeWithInterval(0, 2, 200*time.Millisecond),
-				RangeWithInterval(0, 2, 20*time.Millisecond),
-			),
-		),
-	)
-	is.Equal([][]int64{{0, 0}, {1, 1}}, values)
-	is.NoError(err)
+	t.Run("slower second source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipAll[int64]()(
-			Just(
-				RangeWithInterval(0, 2, 200*time.Millisecond),
-				RangeWithInterval(0, 3, 20*time.Millisecond),
+		values, err := Collect(
+			ZipAll[int64]()(
+				Just(
+					RangeWithInterval(0, 2, 150*time.Millisecond),
+					RangeWithInterval(0, 2, 100*time.Millisecond),
+				),
 			),
-		),
-	)
-	// The 2-item source completes after 2 pairs: the faster source's 3rd
-	// buffered value is discarded, since it can never be paired.
-	is.Equal([][]int64{{0, 0}, {1, 1}}, values)
-	is.NoError(err)
+		)
+		// Zip pairs positionally (1st with 1st, 2nd with 2nd), buffering the faster
+		// source's values until the slower one catches up. It never reuses a value
+		// already paired, regardless of which source is faster.
+		is.Equal([][]int64{{0, 0}, {1, 1}}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ZipAll[int64]()(
-			Just(
-				Of[int64](42),
-				Empty[int64](),
-			),
-		),
-	)
-	is.Equal([][]int64{}, values)
-	is.NoError(err)
+	t.Run("faster second source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipAll[int64]()(
-			Just(
-				Empty[int64](),
-				Empty[int64](),
+		values, err := Collect(
+			ZipAll[int64]()(
+				Just(
+					RangeWithInterval(0, 2, 200*time.Millisecond),
+					RangeWithInterval(0, 2, 20*time.Millisecond),
+				),
 			),
-		),
-	)
-	is.Equal([][]int64{}, values)
-	is.NoError(err)
+		)
+		is.Equal([][]int64{{0, 0}, {1, 1}}, values)
+		is.NoError(err)
+	})
 
-	values, err = Collect(
-		ZipAll[int64]()(
-			Just(
-				Delay[int64](10*time.Millisecond)(Of[int64](42)),
-				Throw[int64](assert.AnError),
-			),
-		),
-	)
-	is.Equal([][]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+	t.Run("faster second source with extra item", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
 
-	values, err = Collect(
-		ZipAll[int64]()(
-			Just(
-				Of[int64](42),
-				Delay[int64](10*time.Millisecond)(Throw[int64](assert.AnError)),
+		values, err := Collect(
+			ZipAll[int64]()(
+				Just(
+					RangeWithInterval(0, 2, 200*time.Millisecond),
+					RangeWithInterval(0, 3, 20*time.Millisecond),
+				),
 			),
-		),
-	)
-	is.Equal([][]int64{}, values)
-	is.EqualError(err, assert.AnError.Error())
+		)
+		// The 2-item source completes after 2 pairs: the faster source's 3rd
+		// buffered value is discarded, since it can never be paired.
+		is.Equal([][]int64{{0, 0}, {1, 1}}, values)
+		is.NoError(err)
+	})
+
+	t.Run("one source empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipAll[int64]()(
+				Just(
+					Of[int64](42),
+					Empty[int64](),
+				),
+			),
+		)
+		is.Equal([][]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("all sources empty", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipAll[int64]()(
+				Just(
+					Empty[int64](),
+					Empty[int64](),
+				),
+			),
+		)
+		is.Equal([][]int64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error from source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipAll[int64]()(
+				Just(
+					Delay[int64](10*time.Millisecond)(Of[int64](42)),
+					Throw[int64](assert.AnError),
+				),
+			),
+		)
+		is.Equal([][]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+
+	t.Run("delayed error from source", func(t *testing.T) { //nolint:paralleltest
+		is := assert.New(t)
+
+		values, err := Collect(
+			ZipAll[int64]()(
+				Just(
+					Of[int64](42),
+					Delay[int64](10*time.Millisecond)(Throw[int64](assert.AnError)),
+				),
+			),
+		)
+		is.Equal([][]int64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
 }
 
 // zipVariant wraps one zip operator behind a common shape, so every test runs against all of them.

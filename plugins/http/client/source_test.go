@@ -28,131 +28,167 @@ import (
 func TestOperatorSpecialHTTPRequest(t *testing.T) {
 	t.Parallel()
 	// testWithTimeout(t, 100*time.Millisecond)
-	is := assert.New(t)
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "test")
-	}))
+	t.Run("ok response", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "test")
+		}))
+		defer server.Close()
 
-	values, err := ro.Collect(
-		HTTPRequest(req, http.DefaultClient),
-	)
-	is.Len(values, 1)
-	is.Equal(http.StatusOK, values[0].StatusCode)
-	b, _ := io.ReadAll(values[0].Body)
-	values[0].Body.Close()
-	is.Equal("test\n", string(b))
-	is.Nil(err)
+		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
 
-	req, _ = http.NewRequest(http.MethodGet, "http://invalid.url", nil)
+		values, err := ro.Collect(
+			HTTPRequest(req, http.DefaultClient),
+		)
+		is.Len(values, 1)
+		is.Equal(http.StatusOK, values[0].StatusCode)
+		b, _ := io.ReadAll(values[0].Body)
+		values[0].Body.Close()
+		is.Equal("test\n", string(b))
+		is.Nil(err)
 
-	values, err = ro.Collect(
-		HTTPRequest(req, http.DefaultClient),
-	)
-	is.Equal([]*http.Response{}, values)
-	is.ErrorContains(err, "Get \"http://invalid.url\": dial tcp: lookup invalid.url")
+		// For some reason, removing the following line causes
+		// the test to fail (see goleak).
+		// See https://github.com/uber-go/goleak/issues/102
+		http.DefaultClient.CloseIdleConnections()
+	})
 
-	server.Close()
+	t.Run("network error", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintln(w, "not found")
-	}))
+		req, _ := http.NewRequest(http.MethodGet, "http://invalid.url", nil)
 
-	req, _ = http.NewRequest(http.MethodGet, server.URL, nil)
+		values, err := ro.Collect(
+			HTTPRequest(req, http.DefaultClient),
+		)
+		is.Equal([]*http.Response{}, values)
+		is.ErrorContains(err, "Get \"http://invalid.url\": dial tcp: lookup invalid.url")
+	})
 
-	values, err = ro.Collect(
-		HTTPRequest(req, http.DefaultClient),
-	)
-	is.Len(values, 1)
-	is.Equal(http.StatusNotFound, values[0].StatusCode)
-	b, _ = io.ReadAll(values[0].Body)
-	values[0].Body.Close()
-	is.Equal("not found\n", string(b))
-	is.Nil(err)
+	t.Run("not found status", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	server.Close()
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintln(w, "not found")
+		}))
+		defer server.Close()
 
-	// For some reason, removing the following line causes
-	// the test to fail (see goleak).
-	// See https://github.com/uber-go/goleak/issues/102
-	http.DefaultClient.CloseIdleConnections()
+		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+
+		values, err := ro.Collect(
+			HTTPRequest(req, http.DefaultClient),
+		)
+		is.Len(values, 1)
+		is.Equal(http.StatusNotFound, values[0].StatusCode)
+		b, _ := io.ReadAll(values[0].Body)
+		values[0].Body.Close()
+		is.Equal("not found\n", string(b))
+		is.Nil(err)
+
+		// For some reason, removing the following line causes
+		// the test to fail (see goleak).
+		// See https://github.com/uber-go/goleak/issues/102
+		http.DefaultClient.CloseIdleConnections()
+	})
 }
 
 func TestOperatorSpecialHTTPRequestJSON(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
-	// Test successful JSON string parsing
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `"test"`)
-	}))
+	t.Run("string", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintln(w, `"test"`)
+		}))
+		defer server.Close()
 
-	values, err := ro.Collect(
-		HTTPRequestJSON[string](req, http.DefaultClient),
-	)
-	is.Equal([]string{"test"}, values)
-	is.Nil(err)
+		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
 
-	server.Close()
+		values, err := ro.Collect(
+			HTTPRequestJSON[string](req, http.DefaultClient),
+		)
+		is.Equal([]string{"test"}, values)
+		is.Nil(err)
 
-	// Test successful JSON object parsing
-	type TestResponse struct {
-		Message string `json:"message"`
-		Code    int    `json:"code"`
-	}
+		http.DefaultClient.CloseIdleConnections()
+	})
 
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `{"message": "hello", "code": 200}`)
-	}))
+	t.Run("object", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	req, _ = http.NewRequest(http.MethodGet, server.URL, nil)
+		type TestResponse struct {
+			Message string `json:"message"`
+			Code    int    `json:"code"`
+		}
 
-	objValues, err := ro.Collect(
-		HTTPRequestJSON[TestResponse](req, http.DefaultClient),
-	)
-	is.Equal([]TestResponse{{Message: "hello", Code: 200}}, objValues)
-	is.Nil(err)
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintln(w, `{"message": "hello", "code": 200}`)
+		}))
+		defer server.Close()
 
-	server.Close()
+		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
 
-	// Test invalid JSON
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintln(w, `invalid json`)
-	}))
+		objValues, err := ro.Collect(
+			HTTPRequestJSON[TestResponse](req, http.DefaultClient),
+		)
+		is.Equal([]TestResponse{{Message: "hello", Code: 200}}, objValues)
+		is.Nil(err)
 
-	req, _ = http.NewRequest(http.MethodGet, server.URL, nil)
+		http.DefaultClient.CloseIdleConnections()
+	})
 
-	values, err = ro.Collect(
-		HTTPRequestJSON[string](req, http.DefaultClient),
-	)
-	is.Equal([]string{}, values)
-	is.Contains(err.Error(), "invalid character")
+	t.Run("invalid json", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	server.Close()
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintln(w, `invalid json`)
+		}))
+		defer server.Close()
 
-	// Test network error
-	req, _ = http.NewRequest(http.MethodGet, "http://invalid.url", nil)
+		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
 
-	values, err = ro.Collect(
-		HTTPRequestJSON[string](req, http.DefaultClient),
-	)
-	is.Equal([]string{}, values)
-	is.ErrorContains(err, "Get \"http://invalid.url\": dial tcp: lookup invalid.url")
+		values, err := ro.Collect(
+			HTTPRequestJSON[string](req, http.DefaultClient),
+		)
+		is.Equal([]string{}, values)
+		is.Contains(err.Error(), "invalid character")
 
-	// For some reason, removing the following line causes
-	// the test to fail (see goleak).
-	// See https://github.com/uber-go/goleak/issues/102
-	http.DefaultClient.CloseIdleConnections()
+		http.DefaultClient.CloseIdleConnections()
+	})
+
+	t.Run("network error", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		req, _ := http.NewRequest(http.MethodGet, "http://invalid.url", nil)
+
+		values, err := ro.Collect(
+			HTTPRequestJSON[string](req, http.DefaultClient),
+		)
+		is.Equal([]string{}, values)
+		is.ErrorContains(err, "Get \"http://invalid.url\": dial tcp: lookup invalid.url")
+
+		// For some reason, removing the following line causes
+		// the test to fail (see goleak).
+		// See https://github.com/uber-go/goleak/issues/102
+		http.DefaultClient.CloseIdleConnections()
+	})
 
 	t.Run("different types", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Test with int
@@ -204,6 +240,7 @@ func TestOperatorSpecialHTTPRequestJSON(t *testing.T) {
 	})
 
 	t.Run("slice", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Test with slice
@@ -225,6 +262,7 @@ func TestOperatorSpecialHTTPRequestJSON(t *testing.T) {
 	})
 
 	t.Run("nested struct", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		type Address struct {
@@ -271,6 +309,7 @@ func TestOperatorSpecialHTTPRequestJSON(t *testing.T) {
 	})
 
 	t.Run("HTTP error status is not a stream error", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Test that HTTP status codes >= 400 are not considered errors by HTTPRequestJSON
@@ -300,6 +339,7 @@ func TestOperatorSpecialHTTPRequestJSON(t *testing.T) {
 	})
 
 	t.Run("nil client falls back to default client", func(t *testing.T) {
+		t.Parallel()
 		is := assert.New(t)
 
 		// Test that nil client uses http.DefaultClient

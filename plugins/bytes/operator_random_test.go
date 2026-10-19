@@ -26,62 +26,86 @@ import (
 
 func TestRandom(t *testing.T) {
 	t.Parallel()
-	is := assert.New(t)
 
 	rand.Seed(time.Now().UnixNano())
 
-	values, err := ro.Collect(
-		ro.Pipe1(
-			ro.Just(struct{}{}),
-			Random[struct{}](100, LowerCaseLettersCharset),
-		),
-	)
-	is.Equal(100, utf8.RuneCount(values[0]))
-	is.Subset(LowerCaseLettersCharset, []rune(string(values[0])))
-	is.Nil(err)
+	t.Run("distinct outputs from lowercase charset", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	values2, err := ro.Collect(
-		ro.Pipe1(
-			ro.Just(struct{}{}),
-			Random[struct{}](100, LowerCaseLettersCharset),
-		),
-	)
-	is.Equal(100, utf8.RuneCount(values2[0]))
-	is.Subset(LowerCaseLettersCharset, []rune(string(values2[0])))
-	is.NotEqual(values, values2)
-	is.Nil(err)
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just(struct{}{}),
+				Random[struct{}](100, LowerCaseLettersCharset),
+			),
+		)
+		is.Equal(100, utf8.RuneCount(values[0]))
+		is.Subset(LowerCaseLettersCharset, []rune(string(values[0])))
+		is.Nil(err)
 
-	values, err = ro.Collect(
-		ro.Pipe1(
-			ro.Just(struct{}{}),
-			Random[struct{}](100, []rune("明1好休2林森")),
-		),
-	)
-	is.Equal(100, utf8.RuneCount(values[0]))
-	is.Subset([]byte("明1好休2林森"), values[0])
-	is.Nil(err)
+		values2, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just(struct{}{}),
+				Random[struct{}](100, LowerCaseLettersCharset),
+			),
+		)
+		is.Equal(100, utf8.RuneCount(values2[0]))
+		is.Subset(LowerCaseLettersCharset, []rune(string(values2[0])))
+		is.NotEqual(values, values2)
+		is.Nil(err)
+	})
 
-	// Single-char charset: must not divide by zero
-	values3, err := ro.Collect(
-		ro.Pipe1(
-			ro.Just(struct{}{}),
-			Random[struct{}](10, []rune{65}),
-		),
-	)
-	is.Equal(10, utf8.RuneCount(values3[0]))
-	is.Equal([]byte("AAAAAAAAAA"), values3[0])
-	is.Nil(err)
+	t.Run("multibyte charset", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
 
-	is.PanicsWithError(
-		"robytes.Random: charset must not be empty",
-		func() {
-			_ = Random[struct{}](100, []rune{})
-		},
-	)
-	is.PanicsWithError(
-		"robytes.Random: size must be greater than 0",
-		func() {
-			_ = Random[struct{}](0, LowerCaseLettersCharset)
-		},
-	)
+		values, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just(struct{}{}),
+				Random[struct{}](100, []rune("明1好休2林森")),
+			),
+		)
+		is.Equal(100, utf8.RuneCount(values[0]))
+		is.Subset([]byte("明1好休2林森"), values[0])
+		is.Nil(err)
+	})
+
+	t.Run("single-char charset does not divide by zero", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values3, err := ro.Collect(
+			ro.Pipe1(
+				ro.Just(struct{}{}),
+				Random[struct{}](10, []rune{65}),
+			),
+		)
+		is.Equal(10, utf8.RuneCount(values3[0]))
+		is.Equal([]byte("AAAAAAAAAA"), values3[0])
+		is.Nil(err)
+	})
+
+	t.Run("panics on empty charset", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		is.PanicsWithError(
+			"robytes.Random: charset must not be empty",
+			func() {
+				_ = Random[struct{}](100, []rune{})
+			},
+		)
+	})
+
+	t.Run("panics on zero size", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		is.PanicsWithError(
+			"robytes.Random: size must be greater than 0",
+			func() {
+				_ = Random[struct{}](0, LowerCaseLettersCharset)
+			},
+		)
+	})
 }
