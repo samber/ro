@@ -2756,6 +2756,46 @@ func ExampleDistinctByWithContext() {
 	// Completed
 }
 
+func ExampleNotZero_ok() {
+	observable := Pipe1(
+		Just(0, 1, 0, 2, 0, 3),
+		NotZero[int](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[int]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 1
+	// Next: 2
+	// Next: 3
+	// Completed
+}
+
+func ExampleNotZero_error() {
+	observable := Pipe1(
+		NewObservable(func(observer Observer[string]) Teardown {
+			observer.Next("")
+			observer.Next("a")
+			observer.Next("")
+			observer.Next("b")
+			observer.Error(assert.AnError)
+			observer.Next("c")
+
+			return nil
+		}),
+		NotZero[string](),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[string]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: a
+	// Next: b
+	// Error: assert.AnError general error for testing
+}
+
 func ExampleIgnoreElements_ok() {
 	observable := Pipe1(
 		Just(1, 2, 3, 4, 5),

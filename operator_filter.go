@@ -136,6 +136,31 @@ func DistinctByWithContext[T any, K comparable](keySelector func(ctx context.Con
 	}
 }
 
+// NotZero emits only the items from an Observable that are not the zero value
+// of their type (e.g. 0, "", false, nil or an empty struct).
+func NotZero[T comparable]() func(Observable[T]) Observable[T] {
+	return func(source Observable[T]) Observable[T] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[T]) Teardown {
+			var zero T
+
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value T) {
+						if value != zero {
+							destination.NextWithContext(ctx, value)
+						}
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
 // IgnoreElements does not emit any items from an Observable but mirrors its
 // termination notification. It is useful for ignoring all the items from an
 // Observable but you want to be notified when it completes or when it throws an error.

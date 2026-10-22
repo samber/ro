@@ -1,7 +1,7 @@
 ---
 name: SkipLast
 slug: skiplast
-sourceRef: operator_filter.go#L263
+sourceRef: operator_filter.go#L288
 type: core
 category: filtering
 signatures:
