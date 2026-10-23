@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"context"
 	"math"
 	"sync/atomic"
 	"testing"
@@ -642,4 +643,257 @@ func TestUnicastSubject_invalidBufferSize(t *testing.T) {
 
 		is.NotPanics(func() { NewUnicastSubject[int](0) })
 	})
+}
+
+// unicastFaultyObserver delegates to a no-op observer and can panic on demand.
+// Observers built with NewObserver recover callback panics, so they would never reach the subject.
+type unicastFaultyObserver struct {
+	Observer[int]
+
+	panicOnNext     bool
+	panicOnTerminal bool
+}
+
+func (o unicastFaultyObserver) Next(v int) {
+	if o.panicOnNext {
+		panic("boom")
+	}
+
+	o.Observer.Next(v)
+}
+
+func (o unicastFaultyObserver) NextWithContext(ctx context.Context, v int) {
+	if o.panicOnNext {
+		panic("boom")
+	}
+
+	o.Observer.NextWithContext(ctx, v)
+}
+
+func (o unicastFaultyObserver) Error(err error) {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.Error(err)
+}
+
+func (o unicastFaultyObserver) ErrorWithContext(ctx context.Context, err error) {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.ErrorWithContext(ctx, err)
+}
+
+func (o unicastFaultyObserver) Complete() {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.Complete()
+}
+
+func (o unicastFaultyObserver) CompleteWithContext(ctx context.Context) {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.CompleteWithContext(ctx)
+}
+
+func newUnicastFaultyObserver(panicOnNext, panicOnTerminal bool) Observer[int] {
+	return unicastFaultyObserver{
+		Observer:        OnNext(func(int) {}),
+		panicOnNext:     panicOnNext,
+		panicOnTerminal: panicOnTerminal,
+	}
+}
+
+func TestUnicastSubject_reentrantNextDuringReplay(t *testing.T) {
+	// @TODO: Known bug. SubscribeWithContext replays the buffered values while holding s.mu.
+	// An observer calling back into the subject during that replay, or a slow replay, blocks it.
+	// Unskip once the replay runs outside the lock.
+	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
+	subject.Next(1) // buffered, no observer yet
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(int) {
+			subject.Next(2) // takes s.mu again
+		}))
+	}), "Subscribe deadlocked on re-entrant Next while replaying")
+}
+
+func TestUnicastSubject_reentrantSubscribeDuringReplay(t *testing.T) {
+	// @TODO: Known bug. SubscribeWithContext replays the buffered values while holding s.mu.
+	// An observer calling back into the subject during that replay, or a slow replay, blocks it.
+	// Unskip once the replay runs outside the lock.
+	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
+	subject.Next(1) // buffered, no observer yet
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(int) {
+			subject.Subscribe(OnNext(func(int) {})) // takes s.mu again
+		}))
+	}), "Subscribe deadlocked on re-entrant Subscribe while replaying")
+}
+
+func TestUnicastSubject_reentrantCompleteDuringReplay(t *testing.T) {
+	// @TODO: Known bug. SubscribeWithContext replays the buffered values while holding s.mu.
+	// An observer calling back into the subject during that replay, or a slow replay, blocks it.
+	// Unskip once the replay runs outside the lock.
+	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
+	subject.Next(1) // buffered, no observer yet
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(int) {
+			subject.Complete() // takes s.mu again
+		}))
+	}), "Subscribe deadlocked on re-entrant Complete while replaying")
+}
+
+func TestUnicastSubject_reentrantErrorDuringReplay(t *testing.T) {
+	// @TODO: Known bug. SubscribeWithContext replays the buffered values while holding s.mu.
+	// An observer calling back into the subject during that replay, or a slow replay, blocks it.
+	// Unskip once the replay runs outside the lock.
+	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
+	subject.Next(1) // buffered, no observer yet
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(int) {
+			subject.Error(assert.AnError) // takes s.mu again
+		}))
+	}), "Subscribe deadlocked on re-entrant Error while replaying")
+}
+
+func TestUnicastSubject_slowReplayBlocksQueries(t *testing.T) {
+	// @TODO: Known bug. SubscribeWithContext replays the buffered values while holding s.mu.
+	// An observer calling back into the subject during that replay, or a slow replay, blocks it.
+	// Unskip once the replay runs outside the lock.
+	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	release := make(chan struct{})
+	entered := make(chan struct{})
+
+	// Registered first so the blocked observer is released even when an assertion fails.
+	t.Cleanup(func() { close(release) })
+
+	subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
+	subject.Next(1) // buffered, no observer yet
+
+	go subject.Subscribe(OnNext(func(int) {
+		close(entered)
+		<-release
+	}))
+
+	select {
+	case <-entered:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("observer never called")
+	}
+
+	// A slow replay must not freeze unrelated readers of the subject.
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "IsClosed blocked by a slow replay")
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.CountObservers() }), "CountObservers blocked by a slow replay")
+}
+
+func TestUnicastSubject_replayLeavesSubjectUsableAfterObserverPanic(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
+	subject.Next(1) // buffered, no observer yet
+
+	is.Panics(func() { subject.Subscribe(newUnicastFaultyObserver(true, false)) })
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic while replaying")
+}
+
+func TestUnicastSubject_reentrantCallFromLiveObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// Live notifications are delivered outside s.mu: every re-entrant query must return.
+	tests := map[string]func(subject Subject[int]){
+		"Subscribe":   func(subject Subject[int]) { subject.Subscribe(OnNext(func(int) {})) },
+		"HasObserver": func(subject Subject[int]) { _ = subject.HasObserver() },
+		"IsClosed":    func(subject Subject[int]) { _ = subject.IsClosed() },
+	}
+
+	for name, call := range tests {
+		subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
+
+		var reentered atomic.Bool
+
+		subject.Subscribe(OnNext(func(int) {
+			if reentered.CompareAndSwap(false, true) {
+				call(subject)
+			}
+		}))
+
+		is.True(returnsWithin(500*time.Millisecond, func() { subject.Next(1) }), "Next deadlocked on re-entrant "+name)
+	}
+}
+
+func TestUnicastSubject_reentrantUnsubscribeFromLiveObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
+
+	var subscription Subscription
+
+	subscribed := make(chan struct{})
+
+	subscription = subject.Subscribe(OnNext(func(int) {
+		<-subscribed
+		subscription.Unsubscribe() // teardown takes s.mu
+	}))
+	close(subscribed)
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Next(1) }), "Next deadlocked on Unsubscribe from the observer")
+	is.False(subject.HasObserver())
+}
+
+func TestUnicastSubject_panickingObserverKeepsSubjectUsable(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	// A fresh subject per notification: the panic also leaves the subscriber wrapping the
+	// observer locked, so it cannot take a second notification.
+	tests := map[string]func(subject Subject[int]){
+		"Next":     func(subject Subject[int]) { subject.Next(1) },
+		"Error":    func(subject Subject[int]) { subject.Error(assert.AnError) },
+		"Complete": func(subject Subject[int]) { subject.Complete() },
+	}
+
+	for name, notify := range tests {
+		subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
+		subject.Subscribe(newUnicastFaultyObserver(true, true))
+
+		is.Panics(func() { notify(subject) }, name)
+		is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic on "+name)
+	}
 }
