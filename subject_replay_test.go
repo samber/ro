@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"context"
 	"math"
 	"sync/atomic"
 	"testing"
@@ -671,4 +672,291 @@ func TestReplaySubject_invalidBufferSize(t *testing.T) {
 
 		is.NotPanics(func() { NewReplaySubject[int](0) })
 	})
+}
+
+// replayFaultyObserver delegates to a no-op observer and can panic on demand.
+// Observers built with NewObserver recover callback panics, so they would never reach the subject.
+type replayFaultyObserver struct {
+	Observer[int]
+
+	panicOnNext     bool // panics on value 1 only: the replay of the initial value must not panic
+	panicOnTerminal bool
+}
+
+func (o replayFaultyObserver) Next(v int) {
+	if o.panicOnNext && v == 1 {
+		panic("boom")
+	}
+
+	o.Observer.Next(v)
+}
+
+func (o replayFaultyObserver) NextWithContext(ctx context.Context, v int) {
+	if o.panicOnNext && v == 1 {
+		panic("boom")
+	}
+
+	o.Observer.NextWithContext(ctx, v)
+}
+
+func (o replayFaultyObserver) Error(err error) {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.Error(err)
+}
+
+func (o replayFaultyObserver) ErrorWithContext(ctx context.Context, err error) {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.ErrorWithContext(ctx, err)
+}
+
+func (o replayFaultyObserver) Complete() {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.Complete()
+}
+
+func (o replayFaultyObserver) CompleteWithContext(ctx context.Context) {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.CompleteWithContext(ctx)
+}
+
+func newReplayFaultyObserver(panicOnNext, panicOnTerminal bool) Observer[int] {
+	return replayFaultyObserver{
+		Observer:        OnNext(func(int) {}),
+		panicOnNext:     panicOnNext,
+		panicOnTerminal: panicOnTerminal,
+	}
+}
+
+func TestReplaySubject_reentrantNextFromObserver(t *testing.T) {
+	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
+	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
+	// subject stops holding its lock across user code.
+	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewReplaySubject[int](10)
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(v int) {
+			if v == 1 {
+				subject.Next(2) // takes s.mu again
+			}
+		}))
+		subject.Next(1)
+	}), "Next deadlocked on re-entrant Next")
+}
+
+func TestReplaySubject_reentrantSubscribeFromObserver(t *testing.T) {
+	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
+	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
+	// subject stops holding its lock across user code.
+	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewReplaySubject[int](10)
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(v int) {
+			if v == 1 {
+				subject.Subscribe(OnNext(func(int) {})) // takes s.mu again
+			}
+		}))
+		subject.Next(1)
+	}), "Next deadlocked on re-entrant Subscribe")
+}
+
+func TestReplaySubject_reentrantCompleteFromObserver(t *testing.T) {
+	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
+	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
+	// subject stops holding its lock across user code.
+	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewReplaySubject[int](10)
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(v int) {
+			if v == 1 {
+				subject.Complete() // takes s.mu again
+			}
+		}))
+		subject.Next(1)
+	}), "Next deadlocked on re-entrant Complete")
+}
+
+func TestReplaySubject_reentrantErrorFromObserver(t *testing.T) {
+	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
+	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
+	// subject stops holding its lock across user code.
+	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewReplaySubject[int](10)
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(v int) {
+			if v == 1 {
+				subject.Error(assert.AnError) // takes s.mu again
+			}
+		}))
+		subject.Next(1)
+	}), "Next deadlocked on re-entrant Error")
+}
+
+func TestReplaySubject_reentrantNextDuringReplay(t *testing.T) {
+	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
+	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
+	// subject stops holding its lock across user code.
+	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewReplaySubject[int](10)
+	subject.Next(0) // buffered, replayed to the next subscriber
+
+	// Subscribe replays the buffered values to the new observer.
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(int) {
+			_ = subject.IsClosed() // takes s.mu again
+		}))
+	}), "Subscribe deadlocked on re-entrant IsClosed while replaying")
+}
+
+func TestReplaySubject_reentrantCallFromCompleteObserver(t *testing.T) {
+	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
+	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
+	// subject stops holding its lock across user code.
+	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewReplaySubject[int](10)
+	subject.Subscribe(OnComplete[int](func() {
+		_ = subject.IsCompleted() // takes s.mu again
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Complete() }), "Complete deadlocked on re-entrant IsCompleted")
+}
+
+func TestReplaySubject_reentrantCallFromErrorObserver(t *testing.T) {
+	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
+	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
+	// subject stops holding its lock across user code.
+	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewReplaySubject[int](10)
+	subject.Subscribe(OnError[int](func(error) {
+		_ = subject.HasThrown() // takes s.mu again
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Error(assert.AnError) }), "Error deadlocked on re-entrant HasThrown")
+}
+
+func TestReplaySubject_slowObserverBlocksQueries(t *testing.T) {
+	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
+	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
+	// subject stops holding its lock across user code.
+	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	release := make(chan struct{})
+	entered := make(chan struct{})
+
+	// Registered first so the blocked observer is released even when an assertion fails.
+	t.Cleanup(func() { close(release) })
+
+	subject := NewReplaySubject[int](10)
+	subject.Subscribe(OnNext(func(v int) {
+		if v == 1 {
+			close(entered)
+			<-release
+		}
+	}))
+
+	go subject.Next(1)
+
+	select {
+	case <-entered:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("observer never called")
+	}
+
+	// A slow observer must not freeze unrelated readers of the subject.
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "IsClosed blocked by a slow observer")
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Subscribe(OnNext(func(int) {})) }), "Subscribe blocked by a slow observer")
+}
+
+func TestReplaySubject_panickingObserverOnNextKeepsSubjectUsable(t *testing.T) {
+	// @TODO: Known bug. NextWithContext, ErrorWithContext and CompleteWithContext release s.mu with a
+	// plain Unlock, so a panic raised by an observer leaves the subject locked forever.
+	// Unskip once the unlock is deferred.
+	t.Skip("known bug: a panicking observer leaves the replay subject mutex locked")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewReplaySubject[int](10)
+	subject.Subscribe(newReplayFaultyObserver(true, false))
+
+	is.Panics(func() { subject.Next(1) })
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic on Next")
+}
+
+func TestReplaySubject_panickingObserverOnCompleteKeepsSubjectUsable(t *testing.T) {
+	// @TODO: Known bug. NextWithContext, ErrorWithContext and CompleteWithContext release s.mu with a
+	// plain Unlock, so a panic raised by an observer leaves the subject locked forever.
+	// Unskip once the unlock is deferred.
+	t.Skip("known bug: a panicking observer leaves the replay subject mutex locked")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewReplaySubject[int](10)
+	subject.Subscribe(newReplayFaultyObserver(false, true))
+
+	is.Panics(func() { subject.Complete() })
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic on Complete")
+}
+
+func TestReplaySubject_panickingObserverOnErrorKeepsSubjectUsable(t *testing.T) {
+	// @TODO: Known bug. NextWithContext, ErrorWithContext and CompleteWithContext release s.mu with a
+	// plain Unlock, so a panic raised by an observer leaves the subject locked forever.
+	// Unskip once the unlock is deferred.
+	t.Skip("known bug: a panicking observer leaves the replay subject mutex locked")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewReplaySubject[int](10)
+	subject.Subscribe(newReplayFaultyObserver(false, true))
+
+	is.Panics(func() { subject.Error(assert.AnError) })
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic on Error")
 }
