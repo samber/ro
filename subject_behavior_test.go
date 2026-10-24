@@ -15,6 +15,8 @@
 package ro
 
 import (
+	"context"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -399,12 +401,6 @@ func TestBehaviorSubject_error(t *testing.T) {
 }
 
 func TestBehaviorSubject_reentrantCallFromObserver(t *testing.T) {
-	// @TODO: Known bug. NextWithContext, and SubscribeWithContext when it replays
-	// the last value, hold s.mu while they run observer callbacks. An observer
-	// calling back into the subject (here IsClosed) deadlocks. Unskip once the
-	// subject stops holding its lock across user code.
-	t.Skip("known deadlock: behavior subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -474,4 +470,302 @@ func TestBehaviorSubject_complete(t *testing.T) {
 	subscription2.Unsubscribe()
 	subscription3.Unsubscribe()
 	subscription4.Unsubscribe()
+}
+
+// behaviorFaultyObserver delegates to a no-op observer and can panic on demand.
+// Observers built with NewObserver recover callback panics, so they would never reach the subject.
+type behaviorFaultyObserver struct {
+	Observer[int]
+
+	panicOnNext     bool // panics on value 1 only: the replay of the initial value must not panic
+	panicOnTerminal bool
+}
+
+func (o behaviorFaultyObserver) Next(v int) {
+	if o.panicOnNext && v == 1 {
+		panic("boom")
+	}
+
+	o.Observer.Next(v)
+}
+
+func (o behaviorFaultyObserver) NextWithContext(ctx context.Context, v int) {
+	if o.panicOnNext && v == 1 {
+		panic("boom")
+	}
+
+	o.Observer.NextWithContext(ctx, v)
+}
+
+func (o behaviorFaultyObserver) Error(err error) {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.Error(err)
+}
+
+func (o behaviorFaultyObserver) ErrorWithContext(ctx context.Context, err error) {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.ErrorWithContext(ctx, err)
+}
+
+func (o behaviorFaultyObserver) Complete() {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.Complete()
+}
+
+func (o behaviorFaultyObserver) CompleteWithContext(ctx context.Context) {
+	if o.panicOnTerminal {
+		panic("boom")
+	}
+
+	o.Observer.CompleteWithContext(ctx)
+}
+
+func newBehaviorFaultyObserver(panicOnNext, panicOnTerminal bool) Observer[int] {
+	return behaviorFaultyObserver{
+		Observer:        OnNext(func(int) {}),
+		panicOnNext:     panicOnNext,
+		panicOnTerminal: panicOnTerminal,
+	}
+}
+
+func TestBehaviorSubject_reentrantNextFromObserver(t *testing.T) {
+	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
+	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
+	// Unskip once re-entrant notifications are queued instead of delivered inline.
+	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewBehaviorSubject(0)
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(v int) {
+			if v == 1 {
+				subject.Next(2) // takes s.mu again
+			}
+		}))
+		subject.Next(1)
+	}), "Next deadlocked on re-entrant Next")
+}
+
+func TestBehaviorSubject_reentrantSubscribeFromObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewBehaviorSubject(0)
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(v int) {
+			if v == 1 {
+				subject.Subscribe(OnNext(func(int) {})) // takes s.mu again
+			}
+		}))
+		subject.Next(1)
+	}), "Next deadlocked on re-entrant Subscribe")
+}
+
+func TestBehaviorSubject_reentrantCompleteFromObserver(t *testing.T) {
+	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
+	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
+	// Unskip once re-entrant notifications are queued instead of delivered inline.
+	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewBehaviorSubject(0)
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(v int) {
+			if v == 1 {
+				subject.Complete() // takes s.mu again
+			}
+		}))
+		subject.Next(1)
+	}), "Next deadlocked on re-entrant Complete")
+}
+
+func TestBehaviorSubject_reentrantErrorFromObserver(t *testing.T) {
+	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
+	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
+	// Unskip once re-entrant notifications are queued instead of delivered inline.
+	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
+
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewBehaviorSubject(0)
+
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(v int) {
+			if v == 1 {
+				subject.Error(assert.AnError) // takes s.mu again
+			}
+		}))
+		subject.Next(1)
+	}), "Next deadlocked on re-entrant Error")
+}
+
+func TestBehaviorSubject_reentrantNextDuringReplay(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewBehaviorSubject(0)
+
+	// Subscribe replays the current value to the new observer.
+	is.True(returnsWithin(500*time.Millisecond, func() {
+		subject.Subscribe(OnNext(func(int) {
+			_ = subject.IsClosed() // takes s.mu again
+		}))
+	}), "Subscribe deadlocked on re-entrant IsClosed while replaying")
+}
+
+func TestBehaviorSubject_reentrantCallFromCompleteObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewBehaviorSubject(0)
+	subject.Subscribe(OnComplete[int](func() {
+		_ = subject.IsCompleted() // takes s.mu again
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Complete() }), "Complete deadlocked on re-entrant IsCompleted")
+}
+
+func TestBehaviorSubject_reentrantCallFromErrorObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewBehaviorSubject(0)
+	subject.Subscribe(OnError[int](func(error) {
+		_ = subject.HasThrown() // takes s.mu again
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Error(assert.AnError) }), "Error deadlocked on re-entrant HasThrown")
+}
+
+func TestBehaviorSubject_slowObserverBlocksQueries(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	release := make(chan struct{})
+	entered := make(chan struct{})
+
+	// Registered first so the blocked observer is released even when an assertion fails.
+	t.Cleanup(func() { close(release) })
+
+	subject := NewBehaviorSubject(0)
+	subject.Subscribe(OnNext(func(v int) {
+		if v == 1 {
+			close(entered)
+			<-release
+		}
+	}))
+
+	go subject.Next(1)
+
+	select {
+	case <-entered:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("observer never called")
+	}
+
+	// A slow observer must not freeze unrelated readers of the subject.
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "IsClosed blocked by a slow observer")
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Subscribe(OnNext(func(int) {})) }), "Subscribe blocked by a slow observer")
+}
+
+func TestBehaviorSubject_panickingObserverOnNextKeepsSubjectUsable(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewBehaviorSubject(0)
+	subject.Subscribe(newBehaviorFaultyObserver(true, false))
+
+	is.Panics(func() { subject.Next(1) })
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic on Next")
+}
+
+func TestBehaviorSubject_panickingObserverOnCompleteKeepsSubjectUsable(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewBehaviorSubject(0)
+	subject.Subscribe(newBehaviorFaultyObserver(false, true))
+
+	is.Panics(func() { subject.Complete() })
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic on Complete")
+}
+
+func TestBehaviorSubject_panickingObserverOnErrorKeepsSubjectUsable(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewBehaviorSubject(0)
+	subject.Subscribe(newBehaviorFaultyObserver(false, true))
+
+	is.Panics(func() { subject.Error(assert.AnError) })
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic on Error")
+}
+
+func TestBehaviorSubject_concurrentSubscribeNeverGoesBackwards(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	const (
+		items       = 500
+		subscribers = 20
+	)
+
+	subject := NewBehaviorSubject(0)
+
+	var wg sync.WaitGroup
+
+	received := make([][]int, subscribers)
+
+	for i := 0; i < subscribers; i++ {
+		wg.Add(1)
+
+		go func(i int) {
+			// Spread the subscriptions over the whole publication.
+			time.Sleep(time.Duration(i) * 50 * time.Microsecond)
+
+			subject.Subscribe(NewObserver(
+				func(v int) { received[i] = append(received[i], v) },
+				func(error) {},
+				func() { wg.Done() },
+			))
+		}(i)
+	}
+
+	for v := 1; v <= items; v++ {
+		subject.Next(v)
+	}
+
+	subject.Complete()
+
+	is.True(returnsWithin(5*time.Second, wg.Wait), "subscribers did not complete")
+
+	// The replayed value then the live ones: every subscriber ends on the last value, and
+	// each value is seen at most once, in publication order.
+	for i, values := range received {
+		// A subscriber arriving after the completion only gets the completion.
+		if len(values) > 0 {
+			is.Equal(items, values[len(values)-1], "subscriber %d", i)
+		}
+
+		for j := 1; j < len(values); j++ {
+			is.Greater(values[j], values[j-1], "subscriber %d", i)
+		}
+	}
 }
