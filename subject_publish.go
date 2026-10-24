@@ -29,6 +29,7 @@ var _ Subject[int] = (*publishSubjectImpl[int])(nil)
 func NewPublishSubject[T any]() Subject[T] {
 	return &publishSubjectImpl[T]{
 		mu:     sync.Mutex{},
+		queue:  notificationQueue{},
 		status: KindNext,
 
 		observers:     sync.Map{},
@@ -41,6 +42,9 @@ func NewPublishSubject[T any]() Subject[T] {
 type publishSubjectImpl[T any] struct {
 	mu     sync.Mutex // sync.RWMutex would be better, but it is too slow for high-volume subjects
 	status Kind
+
+	// queue delivers notifications outside mu, in order, and queues re-entrant calls.
+	queue notificationQueue
 
 	observers     sync.Map
 	observerIndex uint32
@@ -58,21 +62,30 @@ func (s *publishSubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Conte
 	subscription := NewSubscriber(destination)
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
+	// The lock is never held while user code runs (observer callbacks, teardowns):
+	// a callback calling back into the subject would deadlock.
 	switch s.status {
 	case KindNext:
 		// fallthrough
 	case KindError:
-		subscription.ErrorWithContext(s.err.A, s.err.B)
+		errCtx, err := s.err.A, s.err.B
+		s.mu.Unlock()
+
+		subscription.ErrorWithContext(errCtx, err)
+
 		return subscription
 	case KindComplete:
+		s.mu.Unlock()
+
 		subscription.CompleteWithContext(subscriberCtx)
+
 		return subscription
 	}
 
 	index := atomic.AddUint32(&s.observerIndex, 1) - 1
 	s.observers.Store(index, subscription)
+	s.mu.Unlock()
 
 	subscription.Add(func() {
 		s.observers.Delete(index)
@@ -95,15 +108,13 @@ func (s *publishSubjectImpl[T]) Next(value T) {
 
 // Implements Observer.
 func (s *publishSubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
-	s.mu.Lock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationNext(value)) }
+		}
 
-	if s.status == KindNext {
-		s.broadcastNext(ctx, value)
-	} else {
-		OnDroppedNotification(ctx, NewNotificationNext(value))
-	}
-
-	s.mu.Unlock()
+		return func() { s.broadcastNext(ctx, value) }
+	})
 }
 
 // Implements Observer.
@@ -113,18 +124,19 @@ func (s *publishSubjectImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *publishSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error) {
-	s.mu.Lock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationError[T](err)) }
+		}
 
-	if s.status == KindNext {
 		s.err = lo.T2(ctx, err)
 		s.status = KindError
-		s.broadcastError(ctx, err)
-	} else {
-		OnDroppedNotification(ctx, NewNotificationError[T](err))
-	}
 
-	s.mu.Unlock()
-	s.unsubscribeAll()
+		return func() {
+			s.broadcastError(ctx, err)
+			s.unsubscribeAll()
+		}
+	})
 }
 
 // Implements Observer.
@@ -134,17 +146,18 @@ func (s *publishSubjectImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *publishSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
-	s.mu.Lock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationComplete[T]()) }
+		}
 
-	if s.status == KindNext {
 		s.status = KindComplete
-		s.broadcastComplete(ctx)
-	} else {
-		OnDroppedNotification(ctx, NewNotificationComplete[T]())
-	}
 
-	s.mu.Unlock()
-	s.unsubscribeAll()
+		return func() {
+			s.broadcastComplete(ctx)
+			s.unsubscribeAll()
+		}
+	})
 }
 
 func (s *publishSubjectImpl[T]) HasObserver() (has bool) {
