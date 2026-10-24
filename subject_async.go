@@ -29,6 +29,7 @@ var _ Subject[int] = (*asyncSubjectImpl[int])(nil)
 func NewAsyncSubject[T any]() Subject[T] {
 	return &asyncSubjectImpl[T]{
 		mu:     sync.Mutex{},
+		queue:  notificationQueue{},
 		status: 0,
 
 		observers:     sync.Map{},
@@ -43,6 +44,9 @@ func NewAsyncSubject[T any]() Subject[T] {
 type asyncSubjectImpl[T any] struct {
 	mu     sync.Mutex // sync.RWMutex would be better, but it is too slow for high-volume subjects
 	status Kind
+
+	// queue delivers notifications outside mu, in order, and queues re-entrant calls.
+	queue notificationQueue
 
 	observers     sync.Map
 	observerIndex uint32
@@ -62,17 +66,25 @@ func (s *asyncSubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Context
 	subscription := NewSubscriber(destination)
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
+	// The lock is never held while user code runs (observer callbacks, teardowns):
+	// a callback calling back into the subject would deadlock.
 	switch s.status {
 	case KindNext:
 		// fallthrough
 	case KindError:
-		subscription.ErrorWithContext(s.err.A, s.err.B)
+		errCtx, err := s.err.A, s.err.B
+		s.mu.Unlock()
+
+		subscription.ErrorWithContext(errCtx, err)
+
 		return subscription
 	case KindComplete:
-		if s.hasValue {
-			subscription.NextWithContext(s.value.A, s.value.B)
+		hasValue, value := s.hasValue, s.value
+		s.mu.Unlock()
+
+		if hasValue {
+			subscription.NextWithContext(value.A, value.B)
 		}
 
 		subscription.CompleteWithContext(subscriberCtx)
@@ -82,6 +94,7 @@ func (s *asyncSubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Context
 
 	index := atomic.AddUint32(&s.observerIndex, 1) - 1
 	s.observers.Store(index, subscription)
+	s.mu.Unlock()
 
 	subscription.Add(func() {
 		s.observers.Delete(index)
@@ -104,16 +117,16 @@ func (s *asyncSubjectImpl[T]) Next(value T) {
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
-	s.mu.Lock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationNext(value)) }
+		}
 
-	if s.status == KindNext {
 		s.hasValue = true
 		s.value = lo.T2(ctx, value) // A previous value might be erased. It won't be forwarded to `OnDroppedNotification`.
-	} else {
-		OnDroppedNotification(ctx, NewNotificationNext(value))
-	}
 
-	s.mu.Unlock()
+		return nil
+	})
 }
 
 // Implements Observer.
@@ -123,18 +136,19 @@ func (s *asyncSubjectImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error) {
-	s.mu.Lock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationError[T](err)) }
+		}
 
-	if s.status == KindNext {
 		s.err = lo.T2(ctx, err)
 		s.status = KindError
-		s.broadcastError(ctx, err)
-	} else {
-		OnDroppedNotification(ctx, NewNotificationError[T](err))
-	}
 
-	s.mu.Unlock()
-	s.unsubscribeAll()
+		return func() {
+			s.broadcastError(ctx, err)
+			s.unsubscribeAll()
+		}
+	})
 }
 
 // Implements Observer.
@@ -144,21 +158,23 @@ func (s *asyncSubjectImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
-	s.mu.Lock()
-
-	if s.status == KindNext {
-		s.status = KindComplete
-		if s.hasValue {
-			s.broadcastNext(s.value.A, s.value.B)
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationComplete[T]()) }
 		}
 
-		s.broadcastComplete(ctx)
-	} else {
-		OnDroppedNotification(ctx, NewNotificationComplete[T]())
-	}
+		hasValue, value := s.hasValue, s.value
+		s.status = KindComplete
 
-	s.mu.Unlock()
-	s.unsubscribeAll()
+		return func() {
+			if hasValue {
+				s.broadcastNext(value.A, value.B)
+			}
+
+			s.broadcastComplete(ctx)
+			s.unsubscribeAll()
+		}
+	})
 }
 
 func (s *asyncSubjectImpl[T]) HasObserver() bool {
