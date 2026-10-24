@@ -66,7 +66,7 @@ func (s *unicastSubjectImpl[T]) Subscribe(destination Observer[T]) Subscription 
 }
 
 // Implements Observable.
-func (s *unicastSubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Context, destination Observer[T]) Subscription {
+func (s *unicastSubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Context, destination Observer[T]) Subscription { //nolint:gocyclo // the replay loop must stay in one function: it unlocks and relocks s.mu around each delivery
 	subscription := NewSubscriber(destination)
 
 	s.mu.Lock()
