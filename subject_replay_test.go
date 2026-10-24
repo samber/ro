@@ -17,6 +17,7 @@ package ro
 import (
 	"context"
 	"math"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -510,11 +511,6 @@ func TestReplaySubject_complete(t *testing.T) {
 }
 
 func TestReplaySubject_reentrantCallFromObserver(t *testing.T) {
-	// @TODO: Known bug. NextWithContext holds s.mu while it runs observer
-	// callbacks, so an observer calling back into the subject (here IsClosed)
-	// deadlocks. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -740,10 +736,10 @@ func newReplayFaultyObserver(panicOnNext, panicOnTerminal bool) Observer[int] {
 }
 
 func TestReplaySubject_reentrantNextFromObserver(t *testing.T) {
-	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
-	// subject stops holding its lock across user code.
-	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
+	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
+	// Unskip once re-entrant notifications are queued instead of delivered inline.
+	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
 
 	t.Parallel()
 	is := assert.New(t)
@@ -761,11 +757,6 @@ func TestReplaySubject_reentrantNextFromObserver(t *testing.T) {
 }
 
 func TestReplaySubject_reentrantSubscribeFromObserver(t *testing.T) {
-	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
-	// subject stops holding its lock across user code.
-	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -782,10 +773,10 @@ func TestReplaySubject_reentrantSubscribeFromObserver(t *testing.T) {
 }
 
 func TestReplaySubject_reentrantCompleteFromObserver(t *testing.T) {
-	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
-	// subject stops holding its lock across user code.
-	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
+	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
+	// Unskip once re-entrant notifications are queued instead of delivered inline.
+	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
 
 	t.Parallel()
 	is := assert.New(t)
@@ -803,10 +794,10 @@ func TestReplaySubject_reentrantCompleteFromObserver(t *testing.T) {
 }
 
 func TestReplaySubject_reentrantErrorFromObserver(t *testing.T) {
-	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
-	// subject stops holding its lock across user code.
-	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
+	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
+	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
+	// Unskip once re-entrant notifications are queued instead of delivered inline.
+	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
 
 	t.Parallel()
 	is := assert.New(t)
@@ -824,11 +815,6 @@ func TestReplaySubject_reentrantErrorFromObserver(t *testing.T) {
 }
 
 func TestReplaySubject_reentrantNextDuringReplay(t *testing.T) {
-	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
-	// subject stops holding its lock across user code.
-	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -844,11 +830,6 @@ func TestReplaySubject_reentrantNextDuringReplay(t *testing.T) {
 }
 
 func TestReplaySubject_reentrantCallFromCompleteObserver(t *testing.T) {
-	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
-	// subject stops holding its lock across user code.
-	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -861,11 +842,6 @@ func TestReplaySubject_reentrantCallFromCompleteObserver(t *testing.T) {
 }
 
 func TestReplaySubject_reentrantCallFromErrorObserver(t *testing.T) {
-	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
-	// subject stops holding its lock across user code.
-	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -878,11 +854,6 @@ func TestReplaySubject_reentrantCallFromErrorObserver(t *testing.T) {
 }
 
 func TestReplaySubject_slowObserverBlocksQueries(t *testing.T) {
-	// @TODO: Known bug. The replay subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject, or a slow observer, blocks it. Unskip once the
-	// subject stops holding its lock across user code.
-	t.Skip("known deadlock: replay subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -914,11 +885,6 @@ func TestReplaySubject_slowObserverBlocksQueries(t *testing.T) {
 }
 
 func TestReplaySubject_panickingObserverOnNextKeepsSubjectUsable(t *testing.T) {
-	// @TODO: Known bug. NextWithContext, ErrorWithContext and CompleteWithContext release s.mu with a
-	// plain Unlock, so a panic raised by an observer leaves the subject locked forever.
-	// Unskip once the unlock is deferred.
-	t.Skip("known bug: a panicking observer leaves the replay subject mutex locked")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -930,11 +896,6 @@ func TestReplaySubject_panickingObserverOnNextKeepsSubjectUsable(t *testing.T) {
 }
 
 func TestReplaySubject_panickingObserverOnCompleteKeepsSubjectUsable(t *testing.T) {
-	// @TODO: Known bug. NextWithContext, ErrorWithContext and CompleteWithContext release s.mu with a
-	// plain Unlock, so a panic raised by an observer leaves the subject locked forever.
-	// Unskip once the unlock is deferred.
-	t.Skip("known bug: a panicking observer leaves the replay subject mutex locked")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -946,11 +907,6 @@ func TestReplaySubject_panickingObserverOnCompleteKeepsSubjectUsable(t *testing.
 }
 
 func TestReplaySubject_panickingObserverOnErrorKeepsSubjectUsable(t *testing.T) {
-	// @TODO: Known bug. NextWithContext, ErrorWithContext and CompleteWithContext release s.mu with a
-	// plain Unlock, so a panic raised by an observer leaves the subject locked forever.
-	// Unskip once the unlock is deferred.
-	t.Skip("known bug: a panicking observer leaves the replay subject mutex locked")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -959,4 +915,53 @@ func TestReplaySubject_panickingObserverOnErrorKeepsSubjectUsable(t *testing.T) 
 
 	is.Panics(func() { subject.Error(assert.AnError) })
 	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic on Error")
+}
+
+func TestReplaySubject_concurrentSubscribeSeesEveryValueOnce(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	const (
+		items       = 500
+		subscribers = 20
+	)
+
+	subject := NewReplaySubject[int](ReplaySubjectUnlimitedBufferSize)
+
+	var wg sync.WaitGroup
+
+	received := make([][]int, subscribers)
+
+	for i := 0; i < subscribers; i++ {
+		wg.Add(1)
+
+		go func(i int) {
+			// Spread the subscriptions over the whole publication.
+			time.Sleep(time.Duration(i) * 50 * time.Microsecond)
+
+			subject.Subscribe(NewObserver(
+				func(v int) { received[i] = append(received[i], v) },
+				func(error) {},
+				func() { wg.Done() },
+			))
+		}(i)
+	}
+
+	for v := 0; v < items; v++ {
+		subject.Next(v)
+	}
+
+	subject.Complete()
+
+	is.True(returnsWithin(5*time.Second, wg.Wait), "subscribers did not complete")
+
+	// Replay then live values must neither skip, duplicate nor reorder a value.
+	expected := make([]int, items)
+	for v := range expected {
+		expected[v] = v
+	}
+
+	for i := range received {
+		is.Equal(expected, received[i], "subscriber %d", i)
+	}
 }
