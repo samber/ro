@@ -28,9 +28,9 @@ var _ Subject[int] = (*behaviorSubjectImpl[int])(nil)
 // After completion, new subscription won't receive the last value, but the error will eventually propagated.
 func NewBehaviorSubject[T any](initial T) Subject[T] {
 	return &behaviorSubjectImpl[T]{
-		mu:         sync.Mutex{},
-		terminalMu: sync.Mutex{},
-		status:     KindNext,
+		mu:     sync.Mutex{},
+		queue:  notificationQueue{},
+		status: KindNext,
 
 		observers:     sync.Map{},
 		observerIndex: 0,
@@ -52,7 +52,8 @@ type behaviorSubjectImpl[T any] struct {
 	mu     sync.Mutex // sync.RWMutex would be better, but it is too slow for high-volume subjects
 	status Kind
 
-	terminalMu sync.Mutex // serializes Error and Complete, see ErrorWithContext
+	// queue delivers notifications outside mu, in order, and queues re-entrant calls.
+	queue notificationQueue
 
 	observers     sync.Map
 	observerIndex uint32
@@ -144,27 +145,17 @@ func (s *behaviorSubjectImpl[T]) Next(value T) {
 
 // Implements Observer.
 func (s *behaviorSubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
-	s.mu.Lock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationNext(value)) }
+		}
 
-	open := s.status == KindNext
-
-	var version uint64
-
-	if open {
 		s.last = lo.T2(ctx, value)
 		s.version++
-		version = s.version
-	}
+		version := s.version
 
-	s.mu.Unlock()
-
-	// Broadcast outside the lock, so an observer can call back into the subject.
-	// Concurrent Next calls are not ordered between them once past the lock.
-	if open {
-		s.broadcastNext(ctx, value, version)
-	} else {
-		OnDroppedNotification(ctx, NewNotificationNext(value))
-	}
+		return func() { s.broadcastNext(ctx, value, version) }
+	})
 }
 
 // Implements Observer.
@@ -174,28 +165,19 @@ func (s *behaviorSubjectImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *behaviorSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error) {
-	// Terminal calls are serialized: a concurrent caller returns only once the first one has
-	// notified every observer. Observers are released after the notification, never before,
-	// or the first caller would skip the ones the second removed.
-	s.terminalMu.Lock()
-	defer s.terminalMu.Unlock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationError[T](err)) }
+		}
 
-	s.mu.Lock()
-
-	open := s.status == KindNext
-	if open {
 		s.err = lo.T2(ctx, err)
 		s.status = KindError
-	}
 
-	s.mu.Unlock()
-
-	if open {
-		s.broadcastError(ctx, err)
-		s.unsubscribeAll()
-	} else {
-		OnDroppedNotification(ctx, NewNotificationError[T](err))
-	}
+		return func() {
+			s.broadcastError(ctx, err)
+			s.unsubscribeAll()
+		}
+	})
 }
 
 // Implements Observer.
@@ -205,27 +187,18 @@ func (s *behaviorSubjectImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *behaviorSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
-	// Terminal calls are serialized: a concurrent caller returns only once the first one has
-	// notified every observer. Observers are released after the notification, never before,
-	// or the first caller would skip the ones the second removed.
-	s.terminalMu.Lock()
-	defer s.terminalMu.Unlock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationComplete[T]()) }
+		}
 
-	s.mu.Lock()
-
-	open := s.status == KindNext
-	if open {
 		s.status = KindComplete
-	}
 
-	s.mu.Unlock()
-
-	if open {
-		s.broadcastComplete(ctx)
-		s.unsubscribeAll()
-	} else {
-		OnDroppedNotification(ctx, NewNotificationComplete[T]())
-	}
+		return func() {
+			s.broadcastComplete(ctx)
+			s.unsubscribeAll()
+		}
+	})
 }
 
 func (s *behaviorSubjectImpl[T]) HasObserver() (has bool) {

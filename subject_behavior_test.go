@@ -538,11 +538,6 @@ func newBehaviorFaultyObserver(panicOnNext, panicOnTerminal bool) Observer[int] 
 }
 
 func TestBehaviorSubject_reentrantNextFromObserver(t *testing.T) {
-	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
-	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
-	// Unskip once re-entrant notifications are queued instead of delivered inline.
-	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -575,11 +570,6 @@ func TestBehaviorSubject_reentrantSubscribeFromObserver(t *testing.T) {
 }
 
 func TestBehaviorSubject_reentrantCompleteFromObserver(t *testing.T) {
-	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
-	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
-	// Unskip once re-entrant notifications are queued instead of delivered inline.
-	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -596,11 +586,6 @@ func TestBehaviorSubject_reentrantCompleteFromObserver(t *testing.T) {
 }
 
 func TestBehaviorSubject_reentrantErrorFromObserver(t *testing.T) {
-	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
-	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
-	// Unskip once re-entrant notifications are queued instead of delivered inline.
-	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
-
 	t.Parallel()
 	is := assert.New(t)
 
