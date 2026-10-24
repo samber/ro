@@ -456,11 +456,6 @@ func TestPublishSubject_complete(t *testing.T) {
 }
 
 func TestPublishSubject_reentrantCallFromObserver(t *testing.T) {
-	// @TODO: Known bug. NextWithContext holds s.mu while it runs observer
-	// callbacks, so an observer calling back into the subject (here IsClosed)
-	// deadlocks. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: publish subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -473,11 +468,6 @@ func TestPublishSubject_reentrantCallFromObserver(t *testing.T) {
 }
 
 func TestPublishSubject_panickingObserverKeepsSubjectUsable(t *testing.T) {
-	// @TODO: Known bug. NextWithContext releases s.mu with a plain Unlock, so a
-	// panic raised by an observer leaves the subject locked forever. Unskip once
-	// the unlock is deferred.
-	t.Skip("known bug: a panicking observer leaves the publish subject mutex locked")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -489,10 +479,10 @@ func TestPublishSubject_panickingObserverKeepsSubjectUsable(t *testing.T) {
 }
 
 func TestPublishSubject_reentrantNextFromObserver(t *testing.T) {
-	// @TODO: Known bug. The publish subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject deadlocks. Unskip once the subject stops
-	// holding its lock across user code.
-	t.Skip("known deadlock: publish subject holds its mutex while calling observers")
+	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
+	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
+	// Unskip once re-entrant notifications are queued instead of delivered inline.
+	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
 
 	t.Parallel()
 	is := assert.New(t)
@@ -511,11 +501,6 @@ func TestPublishSubject_reentrantNextFromObserver(t *testing.T) {
 }
 
 func TestPublishSubject_reentrantSubscribeFromObserver(t *testing.T) {
-	// @TODO: Known bug. The publish subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject deadlocks. Unskip once the subject stops
-	// holding its lock across user code.
-	t.Skip("known deadlock: publish subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -533,10 +518,10 @@ func TestPublishSubject_reentrantSubscribeFromObserver(t *testing.T) {
 }
 
 func TestPublishSubject_reentrantCompleteFromObserver(t *testing.T) {
-	// @TODO: Known bug. The publish subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject deadlocks. Unskip once the subject stops
-	// holding its lock across user code.
-	t.Skip("known deadlock: publish subject holds its mutex while calling observers")
+	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
+	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
+	// Unskip once re-entrant notifications are queued instead of delivered inline.
+	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
 
 	t.Parallel()
 	is := assert.New(t)
@@ -550,10 +535,10 @@ func TestPublishSubject_reentrantCompleteFromObserver(t *testing.T) {
 }
 
 func TestPublishSubject_reentrantErrorFromObserver(t *testing.T) {
-	// @TODO: Known bug. The publish subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject deadlocks. Unskip once the subject stops
-	// holding its lock across user code.
-	t.Skip("known deadlock: publish subject holds its mutex while calling observers")
+	// @TODO: Known bug. An observer calling Next, Error or Complete on the subject from inside its own
+	// Next callback re-enters its own subscriber, which holds its mutex while the callback runs.
+	// Unskip once re-entrant notifications are queued instead of delivered inline.
+	t.Skip("known deadlock: re-entrant notification re-enters the observer's own subscriber")
 
 	t.Parallel()
 	is := assert.New(t)
@@ -567,11 +552,6 @@ func TestPublishSubject_reentrantErrorFromObserver(t *testing.T) {
 }
 
 func TestPublishSubject_reentrantCallFromCompleteObserver(t *testing.T) {
-	// @TODO: Known bug. The publish subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject deadlocks. Unskip once the subject stops
-	// holding its lock across user code.
-	t.Skip("known deadlock: publish subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -584,11 +564,6 @@ func TestPublishSubject_reentrantCallFromCompleteObserver(t *testing.T) {
 }
 
 func TestPublishSubject_reentrantCallFromErrorObserver(t *testing.T) {
-	// @TODO: Known bug. The publish subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject deadlocks. Unskip once the subject stops
-	// holding its lock across user code.
-	t.Skip("known deadlock: publish subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -601,11 +576,6 @@ func TestPublishSubject_reentrantCallFromErrorObserver(t *testing.T) {
 }
 
 func TestPublishSubject_slowObserverBlocksQueries(t *testing.T) {
-	// @TODO: Known bug. The publish subject holds s.mu while it runs observer callbacks.
-	// An observer calling back into the subject deadlocks. Unskip once the subject stops
-	// holding its lock across user code.
-	t.Skip("known deadlock: publish subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -643,11 +613,6 @@ func (publishPanickingTerminalObserver) Complete()                              
 func (publishPanickingTerminalObserver) CompleteWithContext(context.Context)     { panic("boom") }
 
 func TestPublishSubject_panickingObserverOnCompleteKeepsSubjectUsable(t *testing.T) {
-	// @TODO: Known bug. CompleteWithContext and ErrorWithContext release s.mu with a plain
-	// Unlock, so a panic raised by an observer leaves the subject locked forever.
-	// Unskip once the unlock is deferred.
-	t.Skip("known bug: a panicking observer leaves the publish subject mutex locked")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -659,11 +624,6 @@ func TestPublishSubject_panickingObserverOnCompleteKeepsSubjectUsable(t *testing
 }
 
 func TestPublishSubject_panickingObserverOnErrorKeepsSubjectUsable(t *testing.T) {
-	// @TODO: Known bug. CompleteWithContext and ErrorWithContext release s.mu with a plain
-	// Unlock, so a panic raised by an observer leaves the subject locked forever.
-	// Unskip once the unlock is deferred.
-	t.Skip("known bug: a panicking observer leaves the publish subject mutex locked")
-
 	t.Parallel()
 	is := assert.New(t)
 
