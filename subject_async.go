@@ -28,9 +28,9 @@ var _ Subject[int] = (*asyncSubjectImpl[int])(nil)
 // The emitted value or error is stored for future subscriptions. 0 or 1 value is emitted.
 func NewAsyncSubject[T any]() Subject[T] {
 	return &asyncSubjectImpl[T]{
-		mu:         sync.Mutex{},
-		terminalMu: sync.Mutex{},
-		status:     0,
+		mu:     sync.Mutex{},
+		queue:  notificationQueue{},
+		status: 0,
 
 		observers:     sync.Map{},
 		observerIndex: 0,
@@ -45,7 +45,8 @@ type asyncSubjectImpl[T any] struct {
 	mu     sync.Mutex // sync.RWMutex would be better, but it is too slow for high-volume subjects
 	status Kind
 
-	terminalMu sync.Mutex // serializes Error and Complete, see ErrorWithContext
+	// queue delivers notifications outside mu, in order, and queues re-entrant calls.
+	queue notificationQueue
 
 	observers     sync.Map
 	observerIndex uint32
@@ -116,19 +117,16 @@ func (s *asyncSubjectImpl[T]) Next(value T) {
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
-	s.mu.Lock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationNext(value)) }
+		}
 
-	open := s.status == KindNext
-	if open {
 		s.hasValue = true
 		s.value = lo.T2(ctx, value) // A previous value might be erased. It won't be forwarded to `OnDroppedNotification`.
-	}
 
-	s.mu.Unlock()
-
-	if !open {
-		OnDroppedNotification(ctx, NewNotificationNext(value))
-	}
+		return nil
+	})
 }
 
 // Implements Observer.
@@ -138,28 +136,19 @@ func (s *asyncSubjectImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error) {
-	// Terminal calls are serialized: a concurrent caller returns only once the first one has
-	// notified every observer. Observers are released after the notification, never before,
-	// or the first caller would skip the ones the second removed.
-	s.terminalMu.Lock()
-	defer s.terminalMu.Unlock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationError[T](err)) }
+		}
 
-	s.mu.Lock()
-
-	open := s.status == KindNext
-	if open {
 		s.err = lo.T2(ctx, err)
 		s.status = KindError
-	}
 
-	s.mu.Unlock()
-
-	if open {
-		s.broadcastError(ctx, err)
-		s.unsubscribeAll()
-	} else {
-		OnDroppedNotification(ctx, NewNotificationError[T](err))
-	}
+		return func() {
+			s.broadcastError(ctx, err)
+			s.unsubscribeAll()
+		}
+	})
 }
 
 // Implements Observer.
@@ -169,33 +158,23 @@ func (s *asyncSubjectImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *asyncSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
-	// Terminal calls are serialized: a concurrent caller returns only once the first one has
-	// notified every observer. Observers are released after the notification, never before,
-	// or the first caller would skip the ones the second removed.
-	s.terminalMu.Lock()
-	defer s.terminalMu.Unlock()
-
-	s.mu.Lock()
-
-	open := s.status == KindNext
-	hasValue, value := s.hasValue, s.value
-
-	if open {
-		s.status = KindComplete
-	}
-
-	s.mu.Unlock()
-
-	if open {
-		if hasValue {
-			s.broadcastNext(value.A, value.B)
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationComplete[T]()) }
 		}
 
-		s.broadcastComplete(ctx)
-		s.unsubscribeAll()
-	} else {
-		OnDroppedNotification(ctx, NewNotificationComplete[T]())
-	}
+		hasValue, value := s.hasValue, s.value
+		s.status = KindComplete
+
+		return func() {
+			if hasValue {
+				s.broadcastNext(value.A, value.B)
+			}
+
+			s.broadcastComplete(ctx)
+			s.unsubscribeAll()
+		}
+	})
 }
 
 func (s *asyncSubjectImpl[T]) HasObserver() bool {

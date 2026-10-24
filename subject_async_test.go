@@ -569,11 +569,6 @@ func TestAsyncSubject_reentrantSubscribeFromObserver(t *testing.T) {
 }
 
 func TestAsyncSubject_reentrantCompleteFromObserver(t *testing.T) {
-	// @TODO: Known bug. A terminal call made from inside a terminal notification waits for itself:
-	// Error and Complete are serialized so that a concurrent caller returns only once every observer has been
-	// notified. Unskip once re-entrant notifications are queued instead of delivered inline.
-	t.Skip("known deadlock: re-entrant terminal call waits for the terminal notification in progress")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -587,11 +582,6 @@ func TestAsyncSubject_reentrantCompleteFromObserver(t *testing.T) {
 }
 
 func TestAsyncSubject_reentrantErrorFromObserver(t *testing.T) {
-	// @TODO: Known bug. A terminal call made from inside a terminal notification waits for itself:
-	// Error and Complete are serialized so that a concurrent caller returns only once every observer has been
-	// notified. Unskip once re-entrant notifications are queued instead of delivered inline.
-	t.Skip("known deadlock: re-entrant terminal call waits for the terminal notification in progress")
-
 	t.Parallel()
 	is := assert.New(t)
 
