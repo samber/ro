@@ -845,10 +845,10 @@ func TestUnicastSubject_reentrantCallFromLiveObserver(t *testing.T) {
 	for name, call := range tests {
 		subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
 
-		var reentered atomic.Bool
+		var reentered int32
 
 		subject.Subscribe(OnNext(func(int) {
-			if reentered.CompareAndSwap(false, true) {
+			if atomic.CompareAndSwapInt32(&reentered, 0, 1) {
 				call(subject)
 			}
 		}))
