@@ -39,7 +39,8 @@ func NewUnicastSubject[T any](bufferSize int) Subject[T] {
 		mu:     sync.Mutex{},
 		status: KindNext,
 
-		observer: nil,
+		observer:  nil,
+		replaying: false,
 
 		err:        lo.Tuple2[context.Context, error]{},
 		values:     []lo.Tuple2[context.Context, T]{},
@@ -51,7 +52,8 @@ type unicastSubjectImpl[T any] struct {
 	mu     sync.Mutex // sync.RWMutex would be better, but it is too slow for high-volume subjects
 	status Kind
 
-	observer Observer[T]
+	observer  Observer[T]
+	replaying bool // true while the single observer drains the buffer, outside the lock
 
 	err        lo.Tuple2[context.Context, error]
 	values     []lo.Tuple2[context.Context, T]
@@ -68,35 +70,97 @@ func (s *unicastSubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Conte
 	subscription := NewSubscriber(destination)
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
+	// The lock is never held while user code runs (observer callbacks, teardowns):
+	// a callback calling back into the subject would deadlock.
 	switch s.status {
 	case KindNext:
 		// fallthrough
 	case KindError:
-		subscription.ErrorWithContext(s.err.A, s.err.B)
+		errCtx, err := s.err.A, s.err.B
+		s.mu.Unlock()
+
+		subscription.ErrorWithContext(errCtx, err)
+
 		return subscription
 	case KindComplete:
+		s.mu.Unlock()
+
 		subscription.CompleteWithContext(subscriberCtx)
+
 		return subscription
 	}
 
-	if s.observer != nil {
+	if s.observer != nil || s.replaying {
+		s.mu.Unlock()
+
 		subscription.ErrorWithContext(subscriberCtx, ErrUnicastSubjectConcurrent)
+
 		return subscription
 	}
 
-	for _, v := range s.values {
-		subscription.NextWithContext(v.A, v.B)
+	s.replaying = true
+	s.mu.Unlock()
+
+	// Drain the buffer outside the lock, so the observer may call back into the
+	// subject or unsubscribe. Live notifications arriving meanwhile are appended to
+	// s.values (observer is still nil) and picked up by the next iteration, which
+	// preserves order. The observer is published only once the buffer is empty,
+	// in the same critical section that reads the terminal status.
+	for {
+		s.mu.Lock()
+
+		if len(s.values) == 0 || subscription.IsClosed() {
+			s.replaying = false
+
+			status, errCtx, err := s.status, s.err.A, s.err.B
+			if status == KindNext && !subscription.IsClosed() {
+				s.observer = subscription
+			}
+
+			s.mu.Unlock()
+
+			// A terminal notification that arrived during the replay found no observer.
+			// Deliver it now, after the buffered values.
+			switch status {
+			case KindError:
+				subscription.ErrorWithContext(errCtx, err)
+			case KindComplete:
+				subscription.CompleteWithContext(subscriberCtx)
+			case KindNext:
+				// still live: the observer receives the next notifications directly
+			}
+
+			break
+		}
+
+		batch := s.values
+		s.values = []lo.Tuple2[context.Context, T]{}
+		s.mu.Unlock()
+
+		for i, v := range batch {
+			if subscription.IsClosed() {
+				// Keep the undelivered values for the next subscriber.
+				s.mu.Lock()
+				s.values = append(append([]lo.Tuple2[context.Context, T]{}, batch[i:]...), s.values...)
+				s.mu.Unlock()
+
+				break
+			}
+
+			subscription.NextWithContext(v.A, v.B)
+		}
 	}
 
-	s.values = []lo.Tuple2[context.Context, T]{}
-
-	s.observer = subscription
-
+	// No lock held here: if the subscription is already closed, Add runs the
+	// teardown inline and it may take s.mu safely.
 	subscription.Add(func() {
 		s.mu.Lock()
-		s.observer = nil
+
+		if s.observer == subscription { // never clear a newer observer
+			s.observer = nil
+		}
+
 		s.mu.Unlock()
 	})
 
@@ -148,7 +212,7 @@ func (s *unicastSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error)
 			s.observer = nil
 
 			defer tmp.ErrorWithContext(ctx, err)
-		} else {
+		} else if !s.replaying { // during a replay, it is delivered once the buffer is drained
 			OnDroppedNotification(ctx, NewNotificationError[T](err))
 		}
 	} else {
@@ -175,7 +239,7 @@ func (s *unicastSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
 			s.observer = nil
 
 			defer tmp.CompleteWithContext(ctx)
-		} else {
+		} else if !s.replaying { // during a replay, it is delivered once the buffer is drained
 			OnDroppedNotification(ctx, NewNotificationComplete[T]())
 		}
 	} else {

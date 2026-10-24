@@ -17,6 +17,7 @@ package ro
 import (
 	"context"
 	"math"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -476,12 +477,6 @@ func TestUnicastSubject_complete(t *testing.T) {
 }
 
 func TestUnicastSubject_reentrantCallFromObserver(t *testing.T) {
-	// @TODO: Known bug. Next, Error and Complete deliver outside s.mu, but
-	// SubscribeWithContext replays the buffered values while holding it. An
-	// observer calling back into the subject (here HasObserver) during that replay
-	// deadlocks. Unskip once the replay runs outside the lock.
-	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -711,30 +706,24 @@ func newUnicastFaultyObserver(panicOnNext, panicOnTerminal bool) Observer[int] {
 }
 
 func TestUnicastSubject_reentrantNextDuringReplay(t *testing.T) {
-	// @TODO: Known bug. SubscribeWithContext replays the buffered values while holding s.mu.
-	// An observer calling back into the subject during that replay, or a slow replay, blocks it.
-	// Unskip once the replay runs outside the lock.
-	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
-
 	t.Parallel()
 	is := assert.New(t)
 
 	subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
 	subject.Next(1) // buffered, no observer yet
 
+	var reentered int32
+
 	is.True(returnsWithin(500*time.Millisecond, func() {
 		subject.Subscribe(OnNext(func(int) {
-			subject.Next(2) // takes s.mu again
+			if atomic.CompareAndSwapInt32(&reentered, 0, 1) {
+				subject.Next(2) // takes s.mu again
+			}
 		}))
 	}), "Subscribe deadlocked on re-entrant Next while replaying")
 }
 
 func TestUnicastSubject_reentrantSubscribeDuringReplay(t *testing.T) {
-	// @TODO: Known bug. SubscribeWithContext replays the buffered values while holding s.mu.
-	// An observer calling back into the subject during that replay, or a slow replay, blocks it.
-	// Unskip once the replay runs outside the lock.
-	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -749,11 +738,6 @@ func TestUnicastSubject_reentrantSubscribeDuringReplay(t *testing.T) {
 }
 
 func TestUnicastSubject_reentrantCompleteDuringReplay(t *testing.T) {
-	// @TODO: Known bug. SubscribeWithContext replays the buffered values while holding s.mu.
-	// An observer calling back into the subject during that replay, or a slow replay, blocks it.
-	// Unskip once the replay runs outside the lock.
-	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -768,11 +752,6 @@ func TestUnicastSubject_reentrantCompleteDuringReplay(t *testing.T) {
 }
 
 func TestUnicastSubject_reentrantErrorDuringReplay(t *testing.T) {
-	// @TODO: Known bug. SubscribeWithContext replays the buffered values while holding s.mu.
-	// An observer calling back into the subject during that replay, or a slow replay, blocks it.
-	// Unskip once the replay runs outside the lock.
-	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -787,11 +766,6 @@ func TestUnicastSubject_reentrantErrorDuringReplay(t *testing.T) {
 }
 
 func TestUnicastSubject_slowReplayBlocksQueries(t *testing.T) {
-	// @TODO: Known bug. SubscribeWithContext replays the buffered values while holding s.mu.
-	// An observer calling back into the subject during that replay, or a slow replay, blocks it.
-	// Unskip once the replay runs outside the lock.
-	t.Skip("known deadlock: unicast subject replays buffered values under its mutex")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -896,4 +870,54 @@ func TestUnicastSubject_panickingObserverKeepsSubjectUsable(t *testing.T) {
 		is.Panics(func() { notify(subject) }, name)
 		is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic on "+name)
 	}
+}
+
+func TestUnicastSubject_concurrentSubscribeKeepsOrder(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	const items = 1000
+
+	subject := NewUnicastSubject[int](UnicastSubjectUnlimitedBufferSize)
+
+	// The first values are buffered, the others race with the replay.
+	for v := 0; v < items/10; v++ {
+		subject.Next(v)
+	}
+
+	var (
+		wg       sync.WaitGroup
+		received []int
+	)
+
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+
+		for v := items / 10; v < items; v++ {
+			subject.Next(v)
+		}
+
+		subject.Complete()
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		subject.Subscribe(NewObserver(
+			func(v int) { received = append(received, v) },
+			func(error) {},
+			func() {},
+		))
+	}()
+
+	is.True(returnsWithin(5*time.Second, wg.Wait), "producer or subscriber stuck")
+
+	expected := make([]int, items)
+	for v := range expected {
+		expected[v] = v
+	}
+
+	is.Equal(expected, received)
 }
