@@ -28,8 +28,9 @@ var _ Subject[int] = (*publishSubjectImpl[int])(nil)
 // Values received before subscription are not transmitted.
 func NewPublishSubject[T any]() Subject[T] {
 	return &publishSubjectImpl[T]{
-		mu:     sync.Mutex{},
-		status: KindNext,
+		mu:         sync.Mutex{},
+		terminalMu: sync.Mutex{},
+		status:     KindNext,
 
 		observers:     sync.Map{},
 		observerIndex: 0,
@@ -41,6 +42,8 @@ func NewPublishSubject[T any]() Subject[T] {
 type publishSubjectImpl[T any] struct {
 	mu     sync.Mutex // sync.RWMutex would be better, but it is too slow for high-volume subjects
 	status Kind
+
+	terminalMu sync.Mutex // serializes Error and Complete, see ErrorWithContext
 
 	observers     sync.Map
 	observerIndex uint32
@@ -58,21 +61,30 @@ func (s *publishSubjectImpl[T]) SubscribeWithContext(subscriberCtx context.Conte
 	subscription := NewSubscriber(destination)
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
+	// The lock is never held while user code runs (observer callbacks, teardowns):
+	// a callback calling back into the subject would deadlock.
 	switch s.status {
 	case KindNext:
 		// fallthrough
 	case KindError:
-		subscription.ErrorWithContext(s.err.A, s.err.B)
+		errCtx, err := s.err.A, s.err.B
+		s.mu.Unlock()
+
+		subscription.ErrorWithContext(errCtx, err)
+
 		return subscription
 	case KindComplete:
+		s.mu.Unlock()
+
 		subscription.CompleteWithContext(subscriberCtx)
+
 		return subscription
 	}
 
 	index := atomic.AddUint32(&s.observerIndex, 1) - 1
 	s.observers.Store(index, subscription)
+	s.mu.Unlock()
 
 	subscription.Add(func() {
 		s.observers.Delete(index)
@@ -96,14 +108,17 @@ func (s *publishSubjectImpl[T]) Next(value T) {
 // Implements Observer.
 func (s *publishSubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
 	s.mu.Lock()
+	open := s.status == KindNext
+	s.mu.Unlock()
 
-	if s.status == KindNext {
+	// Broadcast outside the lock, so an observer can call back into the subject.
+	// A Next racing a terminal notification may reach an observer after it: the
+	// observer drops it, as it is already closed.
+	if open {
 		s.broadcastNext(ctx, value)
 	} else {
 		OnDroppedNotification(ctx, NewNotificationNext(value))
 	}
-
-	s.mu.Unlock()
 }
 
 // Implements Observer.
@@ -113,18 +128,28 @@ func (s *publishSubjectImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *publishSubjectImpl[T]) ErrorWithContext(ctx context.Context, err error) {
+	// Terminal calls are serialized: a concurrent caller returns only once the first one has
+	// notified every observer. Observers are released after the notification, never before,
+	// or the first caller would skip the ones the second removed.
+	s.terminalMu.Lock()
+	defer s.terminalMu.Unlock()
+
 	s.mu.Lock()
 
-	if s.status == KindNext {
+	open := s.status == KindNext
+	if open {
 		s.err = lo.T2(ctx, err)
 		s.status = KindError
-		s.broadcastError(ctx, err)
-	} else {
-		OnDroppedNotification(ctx, NewNotificationError[T](err))
 	}
 
 	s.mu.Unlock()
-	s.unsubscribeAll()
+
+	if open {
+		s.broadcastError(ctx, err)
+		s.unsubscribeAll()
+	} else {
+		OnDroppedNotification(ctx, NewNotificationError[T](err))
+	}
 }
 
 // Implements Observer.
@@ -134,17 +159,27 @@ func (s *publishSubjectImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *publishSubjectImpl[T]) CompleteWithContext(ctx context.Context) {
+	// Terminal calls are serialized: a concurrent caller returns only once the first one has
+	// notified every observer. Observers are released after the notification, never before,
+	// or the first caller would skip the ones the second removed.
+	s.terminalMu.Lock()
+	defer s.terminalMu.Unlock()
+
 	s.mu.Lock()
 
-	if s.status == KindNext {
+	open := s.status == KindNext
+	if open {
 		s.status = KindComplete
-		s.broadcastComplete(ctx)
-	} else {
-		OnDroppedNotification(ctx, NewNotificationComplete[T]())
 	}
 
 	s.mu.Unlock()
-	s.unsubscribeAll()
+
+	if open {
+		s.broadcastComplete(ctx)
+		s.unsubscribeAll()
+	} else {
+		OnDroppedNotification(ctx, NewNotificationComplete[T]())
+	}
 }
 
 func (s *publishSubjectImpl[T]) HasObserver() (has bool) {
