@@ -407,12 +407,6 @@ func TestAsyncSubject_error(t *testing.T) {
 }
 
 func TestAsyncSubject_reentrantCallFromObserver(t *testing.T) {
-	// @TODO: Known bug. An async subject only emits on completion, and
-	// CompleteWithContext holds s.mu while it runs observer callbacks, so an
-	// observer calling back into the subject (here IsClosed) deadlocks. Unskip
-	// once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: async subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -549,11 +543,6 @@ func newAsyncFaultyObserver(panicOnNext, panicOnTerminal bool) Observer[int] {
 }
 
 func TestAsyncSubject_reentrantNextFromObserver(t *testing.T) {
-	// @TODO: Known bug. The async subject holds s.mu while it runs observer callbacks, on
-	// completion, on error and when it replays them to a late subscriber. An observer calling back
-	// into the subject, or a slow observer, blocks it. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: async subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -567,11 +556,6 @@ func TestAsyncSubject_reentrantNextFromObserver(t *testing.T) {
 }
 
 func TestAsyncSubject_reentrantSubscribeFromObserver(t *testing.T) {
-	// @TODO: Known bug. The async subject holds s.mu while it runs observer callbacks, on
-	// completion, on error and when it replays them to a late subscriber. An observer calling back
-	// into the subject, or a slow observer, blocks it. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: async subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -585,10 +569,10 @@ func TestAsyncSubject_reentrantSubscribeFromObserver(t *testing.T) {
 }
 
 func TestAsyncSubject_reentrantCompleteFromObserver(t *testing.T) {
-	// @TODO: Known bug. The async subject holds s.mu while it runs observer callbacks, on
-	// completion, on error and when it replays them to a late subscriber. An observer calling back
-	// into the subject, or a slow observer, blocks it. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: async subject holds its mutex while calling observers")
+	// @TODO: Known bug. A terminal call made from inside a terminal notification waits for itself:
+	// Error and Complete are serialized so that a concurrent caller returns only once every observer has been
+	// notified. Unskip once re-entrant notifications are queued instead of delivered inline.
+	t.Skip("known deadlock: re-entrant terminal call waits for the terminal notification in progress")
 
 	t.Parallel()
 	is := assert.New(t)
@@ -603,10 +587,10 @@ func TestAsyncSubject_reentrantCompleteFromObserver(t *testing.T) {
 }
 
 func TestAsyncSubject_reentrantErrorFromObserver(t *testing.T) {
-	// @TODO: Known bug. The async subject holds s.mu while it runs observer callbacks, on
-	// completion, on error and when it replays them to a late subscriber. An observer calling back
-	// into the subject, or a slow observer, blocks it. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: async subject holds its mutex while calling observers")
+	// @TODO: Known bug. A terminal call made from inside a terminal notification waits for itself:
+	// Error and Complete are serialized so that a concurrent caller returns only once every observer has been
+	// notified. Unskip once re-entrant notifications are queued instead of delivered inline.
+	t.Skip("known deadlock: re-entrant terminal call waits for the terminal notification in progress")
 
 	t.Parallel()
 	is := assert.New(t)
@@ -621,11 +605,6 @@ func TestAsyncSubject_reentrantErrorFromObserver(t *testing.T) {
 }
 
 func TestAsyncSubject_reentrantCallFromCompleteObserver(t *testing.T) {
-	// @TODO: Known bug. The async subject holds s.mu while it runs observer callbacks, on
-	// completion, on error and when it replays them to a late subscriber. An observer calling back
-	// into the subject, or a slow observer, blocks it. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: async subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -638,11 +617,6 @@ func TestAsyncSubject_reentrantCallFromCompleteObserver(t *testing.T) {
 }
 
 func TestAsyncSubject_reentrantCallFromErrorObserver(t *testing.T) {
-	// @TODO: Known bug. The async subject holds s.mu while it runs observer callbacks, on
-	// completion, on error and when it replays them to a late subscriber. An observer calling back
-	// into the subject, or a slow observer, blocks it. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: async subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -655,11 +629,6 @@ func TestAsyncSubject_reentrantCallFromErrorObserver(t *testing.T) {
 }
 
 func TestAsyncSubject_reentrantCallWhenReplayingCompletion(t *testing.T) {
-	// @TODO: Known bug. The async subject holds s.mu while it runs observer callbacks, on
-	// completion, on error and when it replays them to a late subscriber. An observer calling back
-	// into the subject, or a slow observer, blocks it. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: async subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -676,11 +645,6 @@ func TestAsyncSubject_reentrantCallWhenReplayingCompletion(t *testing.T) {
 }
 
 func TestAsyncSubject_reentrantCallWhenReplayingError(t *testing.T) {
-	// @TODO: Known bug. The async subject holds s.mu while it runs observer callbacks, on
-	// completion, on error and when it replays them to a late subscriber. An observer calling back
-	// into the subject, or a slow observer, blocks it. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: async subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -696,11 +660,6 @@ func TestAsyncSubject_reentrantCallWhenReplayingError(t *testing.T) {
 }
 
 func TestAsyncSubject_slowObserverBlocksQueries(t *testing.T) {
-	// @TODO: Known bug. The async subject holds s.mu while it runs observer callbacks, on
-	// completion, on error and when it replays them to a late subscriber. An observer calling back
-	// into the subject, or a slow observer, blocks it. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: async subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -731,11 +690,6 @@ func TestAsyncSubject_slowObserverBlocksQueries(t *testing.T) {
 }
 
 func TestAsyncSubject_panickingObserverOnNextKeepsSubjectUsable(t *testing.T) {
-	// @TODO: Known bug. CompleteWithContext and ErrorWithContext run observer callbacks, then release
-	// s.mu with a plain Unlock, so a panic raised by an observer leaves the subject locked forever.
-	// Unskip once the unlock is deferred.
-	t.Skip("known bug: a panicking observer leaves the async subject mutex locked")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -748,11 +702,6 @@ func TestAsyncSubject_panickingObserverOnNextKeepsSubjectUsable(t *testing.T) {
 }
 
 func TestAsyncSubject_panickingObserverOnCompleteKeepsSubjectUsable(t *testing.T) {
-	// @TODO: Known bug. CompleteWithContext and ErrorWithContext run observer callbacks, then release
-	// s.mu with a plain Unlock, so a panic raised by an observer leaves the subject locked forever.
-	// Unskip once the unlock is deferred.
-	t.Skip("known bug: a panicking observer leaves the async subject mutex locked")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -764,11 +713,6 @@ func TestAsyncSubject_panickingObserverOnCompleteKeepsSubjectUsable(t *testing.T
 }
 
 func TestAsyncSubject_panickingObserverOnErrorKeepsSubjectUsable(t *testing.T) {
-	// @TODO: Known bug. CompleteWithContext and ErrorWithContext run observer callbacks, then release
-	// s.mu with a plain Unlock, so a panic raised by an observer leaves the subject locked forever.
-	// Unskip once the unlock is deferred.
-	t.Skip("known bug: a panicking observer leaves the async subject mutex locked")
-
 	t.Parallel()
 	is := assert.New(t)
 
