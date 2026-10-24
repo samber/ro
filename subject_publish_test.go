@@ -499,10 +499,10 @@ func TestPublishSubject_reentrantNextFromObserver(t *testing.T) {
 
 	subject := NewPublishSubject[int]()
 
-	var reentered atomic.Bool
+	var reentered int32
 
 	subject.Subscribe(OnNext(func(int) {
-		if reentered.CompareAndSwap(false, true) {
+		if atomic.CompareAndSwapInt32(&reentered, 0, 1) {
 			subject.Next(2) // takes s.mu again
 		}
 	}))
@@ -521,10 +521,10 @@ func TestPublishSubject_reentrantSubscribeFromObserver(t *testing.T) {
 
 	subject := NewPublishSubject[int]()
 
-	var reentered atomic.Bool
+	var reentered int32
 
 	subject.Subscribe(OnNext(func(int) {
-		if reentered.CompareAndSwap(false, true) {
+		if atomic.CompareAndSwapInt32(&reentered, 0, 1) {
 			subject.Subscribe(OnNext(func(int) {})) // takes s.mu again
 		}
 	}))
