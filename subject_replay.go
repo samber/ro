@@ -36,9 +36,9 @@ func NewReplaySubject[T any](bufferSize int) Subject[T] {
 	}
 
 	return &replaySubjectImpl[T]{
-		mu:         sync.Mutex{},
-		terminalMu: sync.Mutex{},
-		status:     KindNext,
+		mu:     sync.Mutex{},
+		queue:  notificationQueue{},
+		status: KindNext,
 
 		observers:     sync.Map{},
 		observerIndex: 0,
@@ -62,7 +62,8 @@ type replaySubjectImpl[T any] struct {
 	mu     sync.Mutex // sync.RWMutex would be better, but it is too slow for high-volume subjects
 	status Kind
 
-	terminalMu sync.Mutex // serializes Error and Complete, see ErrorWithContext
+	// queue delivers notifications outside mu, in order, and queues re-entrant calls.
+	queue notificationQueue
 
 	observers     sync.Map
 	observerIndex uint32
@@ -187,18 +188,18 @@ func (s *replaySubjectImpl[T]) Next(value T) {
 
 // Implements Observer.
 func (s *replaySubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
-	s.mu.Lock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationNext(value)) }
+		}
 
-	var (
-		version    uint64
-		dropped    T
-		hasDropped bool
-	)
-
-	open := s.status == KindNext
-	if open {
 		s.total++
-		version = s.total
+		version := s.total
+
+		var (
+			dropped    T
+			hasDropped bool
+		)
 
 		switch {
 		case s.bufferSize == ReplaySubjectUnlimitedBufferSize:
@@ -216,22 +217,15 @@ func (s *replaySubjectImpl[T]) NextWithContext(ctx context.Context, value T) {
 				s.head = (s.head + 1) % s.bufferSize
 			}
 		}
-	}
 
-	s.mu.Unlock()
+		return func() {
+			s.broadcastNext(ctx, value, version)
 
-	// Broadcast outside the lock, so an observer can call back into the subject.
-	// Concurrent Next calls are not ordered between them once past the lock.
-	if !open {
-		OnDroppedNotification(ctx, NewNotificationNext(value))
-		return
-	}
-
-	s.broadcastNext(ctx, value, version)
-
-	if hasDropped {
-		OnDroppedNotification(ctx, NewNotificationNext(dropped))
-	}
+			if hasDropped {
+				OnDroppedNotification(ctx, NewNotificationNext(dropped))
+			}
+		}
+	})
 }
 
 // Implements Observer.
@@ -241,28 +235,19 @@ func (s *replaySubjectImpl[T]) Error(err error) {
 
 // Implements Observer.
 func (s *replaySubjectImpl[T]) ErrorWithContext(ctx context.Context, err error) {
-	// Terminal calls are serialized: a concurrent caller returns only once the first one has
-	// notified every observer. Observers are released after the notification, never before,
-	// or the first caller would skip the ones the second removed.
-	s.terminalMu.Lock()
-	defer s.terminalMu.Unlock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationError[T](err)) }
+		}
 
-	s.mu.Lock()
-
-	open := s.status == KindNext
-	if open {
 		s.err = lo.T2(ctx, err)
 		s.status = KindError
-	}
 
-	s.mu.Unlock()
-
-	if open {
-		s.broadcastError(ctx, err)
-		s.unsubscribeAll()
-	} else {
-		OnDroppedNotification(ctx, NewNotificationError[T](err))
-	}
+		return func() {
+			s.broadcastError(ctx, err)
+			s.unsubscribeAll()
+		}
+	})
 }
 
 // Implements Observer.
@@ -272,27 +257,18 @@ func (s *replaySubjectImpl[T]) Complete() {
 
 // Implements Observer.
 func (s *replaySubjectImpl[T]) CompleteWithContext(ctx context.Context) {
-	// Terminal calls are serialized: a concurrent caller returns only once the first one has
-	// notified every observer. Observers are released after the notification, never before,
-	// or the first caller would skip the ones the second removed.
-	s.terminalMu.Lock()
-	defer s.terminalMu.Unlock()
+	s.queue.run(&s.mu, func() func() {
+		if s.status != KindNext {
+			return func() { OnDroppedNotification(ctx, NewNotificationComplete[T]()) }
+		}
 
-	s.mu.Lock()
-
-	open := s.status == KindNext
-	if open {
 		s.status = KindComplete
-	}
 
-	s.mu.Unlock()
-
-	if open {
-		s.broadcastComplete(ctx)
-		s.unsubscribeAll()
-	} else {
-		OnDroppedNotification(ctx, NewNotificationComplete[T]())
-	}
+		return func() {
+			s.broadcastComplete(ctx)
+			s.unsubscribeAll()
+		}
+	})
 }
 
 func (s *replaySubjectImpl[T]) HasObserver() bool {
