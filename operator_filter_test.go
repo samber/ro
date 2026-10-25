@@ -275,6 +275,56 @@ func TestOperatorFilterDistinctBy(t *testing.T) {
 	})
 }
 
+func TestOperatorFilterNotZero(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	values, err := Collect(
+		NotZero[int]()(Just(0, 1, 0, 2, 0, 3)),
+	)
+	is.Equal([]int{1, 2, 3}, values)
+	is.NoError(err)
+
+	values1, err := Collect(
+		NotZero[string]()(Just("", "a", "", "b")),
+	)
+	is.Equal([]string{"a", "b"}, values1)
+	is.NoError(err)
+
+	type point struct{ X, Y int }
+
+	values2, err := Collect(
+		NotZero[point]()(Just(point{}, point{X: 1}, point{}, point{Y: 2})),
+	)
+	is.Equal([]point{{X: 1}, {Y: 2}}, values2)
+	is.NoError(err)
+
+	answer := 42
+	values3, err := Collect(
+		NotZero[*int]()(Just(nil, &answer, nil)),
+	)
+	is.Equal([]*int{&answer}, values3)
+	is.NoError(err)
+
+	values, err = Collect(
+		NotZero[int]()(Just(0, 0, 0)),
+	)
+	is.Equal([]int{}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		NotZero[int]()(Empty[int]()),
+	)
+	is.Equal([]int{}, values)
+	is.NoError(err)
+
+	values, err = Collect(
+		NotZero[int]()(Throw[int](assert.AnError)),
+	)
+	is.Equal([]int{}, values)
+	is.EqualError(err, assert.AnError.Error())
+}
+
 func TestOperatorFilterIgnoreElements(t *testing.T) {
 	t.Parallel()
 
