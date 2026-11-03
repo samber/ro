@@ -15,6 +15,7 @@
 package ro
 
 import (
+	"context"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -455,11 +456,6 @@ func TestPublishSubject_complete(t *testing.T) {
 }
 
 func TestPublishSubject_reentrantCallFromObserver(t *testing.T) {
-	// @TODO: Known bug. NextWithContext holds s.mu while it runs observer
-	// callbacks, so an observer calling back into the subject (here IsClosed)
-	// deadlocks. Unskip once the subject stops holding its lock across user code.
-	t.Skip("known deadlock: publish subject holds its mutex while calling observers")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -472,11 +468,6 @@ func TestPublishSubject_reentrantCallFromObserver(t *testing.T) {
 }
 
 func TestPublishSubject_panickingObserverKeepsSubjectUsable(t *testing.T) {
-	// @TODO: Known bug. NextWithContext releases s.mu with a plain Unlock, so a
-	// panic raised by an observer leaves the subject locked forever. Unskip once
-	// the unlock is deferred.
-	t.Skip("known bug: a panicking observer leaves the publish subject mutex locked")
-
 	t.Parallel()
 	is := assert.New(t)
 
@@ -485,4 +476,145 @@ func TestPublishSubject_panickingObserverKeepsSubjectUsable(t *testing.T) {
 
 	is.Panics(func() { subject.Next(1) })
 	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic")
+}
+
+func TestPublishSubject_reentrantNextFromObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewPublishSubject[int]()
+
+	var reentered int32
+
+	subject.Subscribe(OnNext(func(int) {
+		if atomic.CompareAndSwapInt32(&reentered, 0, 1) {
+			subject.Next(2) // takes s.mu again
+		}
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Next(1) }), "Next deadlocked on re-entrant Next")
+}
+
+func TestPublishSubject_reentrantSubscribeFromObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewPublishSubject[int]()
+
+	var reentered int32
+
+	subject.Subscribe(OnNext(func(int) {
+		if atomic.CompareAndSwapInt32(&reentered, 0, 1) {
+			subject.Subscribe(OnNext(func(int) {})) // takes s.mu again
+		}
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Next(1) }), "Next deadlocked on re-entrant Subscribe")
+}
+
+func TestPublishSubject_reentrantCompleteFromObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewPublishSubject[int]()
+	subject.Subscribe(OnNext(func(int) {
+		subject.Complete() // takes s.mu again
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Next(1) }), "Next deadlocked on re-entrant Complete")
+}
+
+func TestPublishSubject_reentrantErrorFromObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewPublishSubject[int]()
+	subject.Subscribe(OnNext(func(int) {
+		subject.Error(assert.AnError) // takes s.mu again
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Next(1) }), "Next deadlocked on re-entrant Error")
+}
+
+func TestPublishSubject_reentrantCallFromCompleteObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewPublishSubject[int]()
+	subject.Subscribe(OnComplete[int](func() {
+		_ = subject.IsCompleted() // takes s.mu again
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Complete() }), "Complete deadlocked on re-entrant IsCompleted")
+}
+
+func TestPublishSubject_reentrantCallFromErrorObserver(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewPublishSubject[int]()
+	subject.Subscribe(OnError[int](func(error) {
+		_ = subject.HasThrown() // takes s.mu again
+	}))
+
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Error(assert.AnError) }), "Error deadlocked on re-entrant HasThrown")
+}
+
+func TestPublishSubject_slowObserverBlocksQueries(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	release := make(chan struct{})
+	entered := make(chan struct{})
+
+	// Registered first so the blocked observer is released even when an assertion fails.
+	t.Cleanup(func() { close(release) })
+
+	subject := NewPublishSubject[int]()
+	subject.Subscribe(OnNext(func(int) {
+		close(entered)
+		<-release
+	}))
+
+	go subject.Next(1)
+
+	select {
+	case <-entered:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("observer never called")
+	}
+
+	// A slow observer must not freeze unrelated readers of the subject.
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "IsClosed blocked by a slow observer")
+	is.True(returnsWithin(500*time.Millisecond, func() { subject.Subscribe(OnNext(func(int) {})) }), "Subscribe blocked by a slow observer")
+}
+
+// publishPanickingTerminalObserver panics on terminal notifications only.
+type publishPanickingTerminalObserver struct{ panickingObserver }
+
+func (publishPanickingTerminalObserver) Error(error)                             { panic("boom") }
+func (publishPanickingTerminalObserver) ErrorWithContext(context.Context, error) { panic("boom") }
+func (publishPanickingTerminalObserver) Complete()                               { panic("boom") }
+func (publishPanickingTerminalObserver) CompleteWithContext(context.Context)     { panic("boom") }
+
+func TestPublishSubject_panickingObserverOnCompleteKeepsSubjectUsable(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewPublishSubject[int]()
+	subject.Subscribe(publishPanickingTerminalObserver{})
+
+	is.Panics(func() { subject.Complete() })
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic on Complete")
+}
+
+func TestPublishSubject_panickingObserverOnErrorKeepsSubjectUsable(t *testing.T) {
+	t.Parallel()
+	is := assert.New(t)
+
+	subject := NewPublishSubject[int]()
+	subject.Subscribe(publishPanickingTerminalObserver{})
+
+	is.Panics(func() { subject.Error(assert.AnError) })
+	is.True(returnsWithin(500*time.Millisecond, func() { _ = subject.IsClosed() }), "mutex still locked after observer panic on Error")
 }
