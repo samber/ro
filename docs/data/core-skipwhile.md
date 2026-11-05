@@ -1,7 +1,7 @@
 ---
 name: SkipWhile
 slug: skipwhile
-sourceRef: operator_filter.go#L198
+sourceRef: operator_filter.go#L223
 type: core
 category: filtering
 signatures:

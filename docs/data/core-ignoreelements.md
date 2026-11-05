@@ -1,7 +1,7 @@
 ---
 name: IgnoreElements
 slug: ignoreelements
-sourceRef: operator_filter.go#L143
+sourceRef: operator_filter.go#L168
 type: core
 category: filtering
 signatures:
