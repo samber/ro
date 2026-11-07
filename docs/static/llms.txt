@@ -233,7 +233,8 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - **observability/zerolog** - Structured logging with zerolog
 - **observability/sentry** - Error tracking with Sentry
 
-### Rate Limiting
+### Rate Limiting & Retry
+- **backoff** - Retry with backoff strategies (Constant, Linear, Exponential, FullJitter)
 - **ratelimit/native** - Native rate limiting operators
 - **ratelimit/ulule** - Rate limiting with ulule/limiter
 

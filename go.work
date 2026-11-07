@@ -1,4 +1,4 @@
-go 1.18
+go 1.27.3
 
 //
 // Base library
@@ -9,6 +9,7 @@ use .
 // Plugins
 //
 use (
+	./plugins/backoff
 	./plugins/bytes
 	// Commented out because requires go>=1.24
 	// ./plugins/cron
@@ -24,9 +25,6 @@ use (
 	// Commented out because requires go>=1.20
 	// ./plugins/ics
 	./plugins/http/client
-	// Commented out because requires go>=1.23
-	// ./plugins/hyperloglog
-	./plugins/stdio
 	// Commented out because requires go>=1.23
 	// ./plugins/iter
 	./plugins/observability/log
@@ -50,6 +48,9 @@ use (
 	./plugins/samber/psi
 	./plugins/signal
 	./plugins/sort
+	// Commented out because requires go>=1.23
+	// ./plugins/hyperloglog
+	./plugins/stdio
 	./plugins/strconv
 	./plugins/strings
 	./plugins/template
