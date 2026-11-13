@@ -346,6 +346,121 @@ func CeilWithPrecision(places int) func(Observable[float64]) Observable[float64]
 	return precisionRound(ceilPrecisionRoundMode(), places)
 }
 
+// RoundWithPrecision emits the rounded values emitted by the source Observable.
+// It uses the provided decimal precision. Positive precisions apply rounding to the
+// specified number of digits to the right of the decimal point, while negative
+// precisions round to powers of ten.
+func RoundWithPrecision(places int) func(Observable[float64]) Observable[float64] {
+	return precisionRound(roundPrecisionRoundMode(), places)
+}
+
+func roundPrecisionRoundMode() precisionRoundMode {
+	return precisionRoundMode{
+		round:    math.Round,
+		bigRound: roundBigFloat,
+		shouldUseSmallFactor: func(places int, scaled, value float64) bool {
+			return places < 0 && scaled == 0 && !math.IsNaN(value) && !math.IsInf(value, 0)
+		},
+		fallbackInfinity: func(places int, value float64) (float64, bool) {
+			if places < 0 && !math.IsNaN(value) && !math.IsInf(value, 0) {
+				if value >= 0 {
+					return math.Inf(1), true
+				}
+				return math.Inf(-1), true
+			}
+
+			return 0, false
+		},
+		infiniteNegativePrecision: roundWithInfiniteNegativePrecision,
+		simpleOperator:            Round,
+	}
+}
+
+func roundBigFloat(x *big.Float) *big.Float {
+	prec := x.Prec()
+
+	integer := new(big.Int)
+	x.Int(integer)
+
+	result := new(big.Float).SetPrec(prec).SetInt(integer)
+
+	fractional := new(big.Float).SetPrec(prec)
+	fractional.Sub(x, result)
+
+	if fractional.Sign() >= 0 {
+		// For positive numbers, round half up
+		half := new(big.Float).SetPrec(prec).SetFloat64(0.5)
+		if fractional.Cmp(half) >= 0 {
+			integer.Add(integer, big.NewInt(1))
+			result.SetInt(integer)
+		}
+	} else {
+		// For negative numbers, round half away from zero
+		half := new(big.Float).SetPrec(prec).SetFloat64(-0.5)
+		if fractional.Cmp(half) <= 0 {
+			integer.Sub(integer, big.NewInt(1))
+			result.SetInt(integer)
+		}
+	}
+
+	return result
+}
+
+func roundWithInfiniteNegativePrecision() func(Observable[float64]) Observable[float64] {
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, math.Round(value))
+							return
+						}
+
+						if value >= 0 {
+							destination.NextWithContext(ctx, math.Inf(1))
+							return
+						}
+
+						destination.NextWithContext(ctx, math.Inf(-1))
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, math.Ceil(value))
+							return
+						}
+
+						if value > 0 {
+							destination.NextWithContext(ctx, math.Inf(1))
+							return
+						}
+
+						destination.NextWithContext(ctx, 0)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
 func ceilWithInfiniteNegativePrecision() func(Observable[float64]) Observable[float64] {
 	return func(source Observable[float64]) Observable[float64] {
 		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
