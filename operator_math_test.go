@@ -1094,6 +1094,241 @@ func TestOperatorMathCeilWithPrecision(t *testing.T) {
 	})
 }
 
+}
+}
+
+func TestOperatorMathRoundWithPrecision(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(2)(Just(1.234, -1.234, 9.999)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.23, -1.23, 10}, values, 1e-9)
+	})
+
+	t.Run("zero places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(0)(Just(-2.2, 3.1)),
+		)
+		is.NoError(err)
+		is.Equal([]float64{-2, 3}, values)
+	})
+
+	t.Run("negative places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(-1)(Just(123.45, -123.45)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{120, -120}, values, 1e-9)
+	})
+
+	t.Run("places beyond subnormal range", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(309)(Just(1.234, 1e-310)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.InDelta(1.234, values[0], 1e-15)
+		is.InDelta(1e-309, values[1], 1e-320)
+		is.NotEqual(math.Round(1e-310), values[1])
+	})
+
+	t.Run("chunk-size places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(maxPow10Chunk)(Just(10.1, -10.1)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.InDelta(10.1, values[0], 1e-12)
+		is.InDelta(-10.1, values[1], 1e-12)
+	})
+
+	t.Run("max float with positive places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(2)(Just(math.MaxFloat64 / 2)),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.False(math.IsInf(values[0], 0))
+		is.Equal(math.Round(math.MaxFloat64/2), values[0])
+	})
+
+	t.Run("max float with negative chunk-size places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(-maxPow10Chunk)(Just(math.MaxFloat64)),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.True(math.IsInf(values[0], 1))
+	})
+
+	t.Run("large negative places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(-400)(Just(123.45, -123.45)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+	})
+
+	t.Run("negative places at subnormal limit", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(-309)(Just(42.5, -42.5)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+	})
+
+	t.Run("non-finite values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(3)(Just(math.Inf(1), math.Inf(-1), math.NaN())),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], 1))
+		is.True(math.IsInf(values[1], -1))
+		is.True(math.IsNaN(values[2]))
+	})
+
+	t.Run("max int places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(math.MaxInt)(Just(1.2345, -6.789)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+	})
+
+	t.Run("min int places plus one", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(math.MinInt+1)(Just(42.5, -42.5, 0.0)),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+		is.Equal(0.0, values[2])
+	})
+
+	t.Run("large chunk fallback", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		positiveFallback := maxPow10ChunkCount*maxPow10Chunk + 1
+		positiveWithinLimit := positiveFallback - 1
+
+		values, err := Collect(
+			RoundWithPrecision(positiveFallback)(Just(1.2345, -6.789)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+
+		values, err = Collect(
+			RoundWithPrecision(positiveWithinLimit)(Just(1.2345, -6.789)),
+		)
+		is.NoError(err)
+		is.InDeltaSlice([]float64{1.2345, -6.789}, values, 1e-12)
+
+		values, err = Collect(
+			RoundWithPrecision(-positiveFallback)(Just(42.5, -42.5, 0.0)),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+		is.Equal(0.0, values[2])
+
+		values, err = Collect(
+			RoundWithPrecision(-positiveWithinLimit)(Just(42.5, -42.5, 0.0)),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+		is.Equal(0.0, values[2])
+	})
+
+	t.Run("underflow fallback", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		value := 1e-20
+		places := -maxPow10Chunk
+
+		values, err := Collect(
+			RoundWithPrecision(places)(Just(value)),
+		)
+		is.NoError(err)
+		is.Len(values, 1)
+		is.InDelta(math.Pow10(maxPow10Chunk), values[0], 1)
+	})
+
+	t.Run("min int places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		var (
+			values []float64
+			err    error
+		)
+
+		assert.NotPanics(t, func() {
+			values, err = Collect(
+				RoundWithPrecision(math.MinInt)(Just(42.5, -42.5, 0.0, math.Inf(1), math.Inf(-1), math.NaN())),
+			)
+		})
+
+		is.NoError(err)
+		is.Len(values, 6)
+		is.True(math.IsInf(values[0], 1))
+		is.Equal(0.0, values[1])
+		is.Equal(0.0, values[2])
+		is.True(math.IsInf(values[3], 1))
+		is.True(math.IsInf(values[4], -1))
+		is.True(math.IsNaN(values[5]))
+	})
+}
+
 func TestOperatorMathTrunc(t *testing.T) {
 	t.Parallel()
 
