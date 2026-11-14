@@ -1,7 +1,7 @@
 ---
 name: Min
 slug: min
-sourceRef: operator_math.go#L156
+sourceRef: operator_math.go#L310
 type: core
 category: math
 signatures:

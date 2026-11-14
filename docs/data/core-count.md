@@ -1,7 +1,7 @@
 ---
 name: Count
 slug: count
-sourceRef: operator_math.go#L80
+sourceRef: operator_math.go#L81
 type: core
 category: math
 signatures:

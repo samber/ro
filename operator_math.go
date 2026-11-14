@@ -18,6 +18,7 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"strconv"
 
 	"github.com/samber/lo"
 	"github.com/samber/ro/internal/constraints"
@@ -147,6 +148,154 @@ func Round() func(Observable[float64]) Observable[float64] {
 			return sub.Unsubscribe
 		})
 	}
+}
+
+// maxRoundPrecision bounds the decimal exponent used by RoundWithPrecision.
+// The shortest decimal representation of a float64 has at most ~324 decimal
+// places (the smallest subnormal is 5e-324) and a magnitude below 1e309. As a
+// result, an absolute precision above 400 never changes a finite value: positive
+// precisions return the input unchanged and negative precisions emit zero.
+// Bounding the exponent also keeps big.Int allocations small for pathological
+// inputs such as math.MaxInt or math.MinInt.
+const maxRoundPrecision = 400
+
+// RoundWithPrecision emits the values emitted by the source Observable rounded
+// to the given number of decimal places.
+//
+// Rounding is "half away from zero" (the rule used by math.Round) and is applied
+// to the shortest decimal representation of each value: the decimal literal that
+// round-trips to the same float64. This avoids surprises caused by the binary
+// representation of floats. For example, 0.145 is stored in binary as a value
+// slightly below 0.145, but RoundWithPrecision(2) emits 0.15, matching the
+// decimal value written by the caller. Positive and negative values are
+// symmetric: -0.145 emits -0.15.
+//
+// The `places` parameter controls the decimal precision:
+//   - positive `places` rounds to that many digits to the right of the decimal
+//     point (e.g. places=2 turns 1.234 -> 1.23 and 1.235 -> 1.24),
+//   - zero behaves like `Round()` (rounds to the nearest integer),
+//   - negative `places` rounds to powers of ten (e.g. places=-1 turns 125 -> 130
+//     and -125 -> -130).
+//
+// NaN and infinities propagate unchanged. A rounded finite result that exceeds
+// the float64 range is emitted as ±Inf. Precisions with an absolute value above
+// 400 exceed float64's decimal resolution: larger positive precisions return
+// values unchanged, while larger negative precisions emit 0 for finite inputs.
+func RoundWithPrecision(places int) func(Observable[float64]) Observable[float64] {
+	if places == 0 {
+		return Round()
+	}
+
+	if places > maxRoundPrecision {
+		return func(source Observable[float64]) Observable[float64] {
+			return source
+		}
+	}
+
+	if places < -maxRoundPrecision {
+		return roundWithExtremeNegativePrecision()
+	}
+
+	magnitude := places
+	if magnitude < 0 {
+		magnitude = -magnitude
+	}
+	scale := new(big.Rat).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(magnitude)), nil))
+
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						destination.NextWithContext(ctx, roundFloatWithPrecision(value, places, scale))
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+func roundWithExtremeNegativePrecision() func(Observable[float64]) Observable[float64] {
+	return func(source Observable[float64]) Observable[float64] {
+		return NewUnsafeObservableWithContext(func(subscriberCtx context.Context, destination Observer[float64]) Teardown {
+			sub := source.SubscribeWithContext(
+				subscriberCtx,
+				NewObserverWithContext(
+					func(ctx context.Context, value float64) {
+						if math.IsNaN(value) || math.IsInf(value, 0) {
+							destination.NextWithContext(ctx, value)
+							return
+						}
+
+						destination.NextWithContext(ctx, 0)
+					},
+					destination.ErrorWithContext,
+					destination.CompleteWithContext,
+				),
+			)
+
+			return sub.Unsubscribe
+		})
+	}
+}
+
+// roundFloatWithPrecision rounds value at the decimal position described by
+// places. It parses the shortest decimal representation of value with big.Rat
+// so that rounding reflects the decimal literal a caller wrote, not the exact
+// binary approximation stored in the float64.
+func roundFloatWithPrecision(value float64, places int, scale *big.Rat) float64 {
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		return value
+	}
+
+	rat, ok := new(big.Rat).SetString(strconv.FormatFloat(value, 'f', -1, 64))
+	if !ok {
+		return math.Round(value)
+	}
+
+	if places > 0 {
+		rat.Mul(rat, scale)
+	} else {
+		rat.Quo(rat, scale)
+	}
+
+	rounded := roundRatHalfAwayFromZero(rat)
+
+	result := new(big.Rat).SetInt(rounded)
+	if places > 0 {
+		result.Quo(result, scale)
+	} else {
+		result.Mul(result, scale)
+	}
+
+	roundedValue, _ := result.Float64()
+	return roundedValue
+}
+
+// roundRatHalfAwayFromZero rounds a rational number to the nearest integer,
+// rounding halves away from zero, like math.Round.
+func roundRatHalfAwayFromZero(value *big.Rat) *big.Int {
+	quotient := new(big.Int)
+	remainder := new(big.Int)
+	quotient.QuoRem(value.Num(), value.Denom(), remainder)
+
+	remainder.Abs(remainder)
+	remainder.Lsh(remainder, 1)
+
+	if remainder.Cmp(value.Denom()) >= 0 {
+		if value.Sign() < 0 {
+			quotient.Sub(quotient, big.NewInt(1))
+		} else {
+			quotient.Add(quotient, big.NewInt(1))
+		}
+	}
+
+	return quotient
 }
 
 // isNaNNumeric reports whether v is NaN. Integers are never NaN: their float64 conversion is always a number.

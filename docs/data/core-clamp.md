@@ -1,7 +1,7 @@
 ---
 name: Clamp
 slug: clamp
-sourceRef: operator_math.go#L222
+sourceRef: operator_math.go#L381
 type: core
 category: math
 signatures:

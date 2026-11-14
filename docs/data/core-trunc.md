@@ -1,7 +1,7 @@
 ---
 name: Trunc
 slug: trunc
-sourceRef: operator_math.go#L796
+sourceRef: operator_math.go#L955
 type: core
 category: math
 signatures:

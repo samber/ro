@@ -216,6 +216,155 @@ func TestOperatorMathRound(t *testing.T) {
 	})
 }
 
+func TestOperatorMathRoundWithPrecision(t *testing.T) {
+	t.Parallel()
+
+	t.Run("positive places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(2)(Just(1.234, 1.235, 9.999)),
+		)
+		is.NoError(err)
+		is.Equal([]float64{1.23, 1.24, 10}, values)
+	})
+
+	t.Run("binary representation", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(2)(Just(0.145, 2.675, 1.005, -0.145)),
+		)
+		is.NoError(err)
+		is.Equal([]float64{0.15, 2.68, 1.01, -0.15}, values)
+	})
+
+	t.Run("zero places equals Round", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		input := []float64{1.4, 1.5, 2.5, -1.5, -2.5, 0.145, 2.4999999999999996}
+
+		valuesRound, err := Collect(
+			Round()(FromSlice(input)),
+		)
+		is.NoError(err)
+
+		valuesWithPrecisionZero, err := Collect(
+			RoundWithPrecision(0)(FromSlice(input)),
+		)
+		is.NoError(err)
+
+		is.Equal(valuesRound, valuesWithPrecisionZero)
+	})
+
+	t.Run("negative places", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(-1)(Just(123.45, 125, -123.45, -125)),
+		)
+		is.NoError(err)
+		is.Equal([]float64{120, 130, -120, -130}, values)
+
+		values, err = Collect(
+			RoundWithPrecision(-2)(Just(123.45, 150, -123.45, -150)),
+		)
+		is.NoError(err)
+		is.Equal([]float64{100, 200, -100, -200}, values)
+	})
+
+	t.Run("overflow", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(-308)(Just(math.MaxFloat64, -math.MaxFloat64)),
+		)
+		is.NoError(err)
+		is.Len(values, 2)
+		is.True(math.IsInf(values[0], 1))
+		is.True(math.IsInf(values[1], -1))
+	})
+
+	t.Run("non-finite values", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(2)(Just(math.Inf(1), math.Inf(-1), math.NaN())),
+		)
+		is.NoError(err)
+		is.Len(values, 3)
+		is.True(math.IsInf(values[0], 1))
+		is.True(math.IsInf(values[1], -1))
+		is.True(math.IsNaN(values[2]))
+	})
+
+	t.Run("extreme positive precision", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(math.MaxInt)(Just(1.2345, -6.789, math.Inf(1), math.NaN())),
+		)
+		is.NoError(err)
+		is.Len(values, 4)
+		is.Equal(1.2345, values[0])
+		is.Equal(-6.789, values[1])
+		is.True(math.IsInf(values[2], 1))
+		is.True(math.IsNaN(values[3]))
+	})
+
+	t.Run("extreme negative precision", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		var (
+			values []float64
+			err    error
+		)
+
+		is.NotPanics(func() {
+			values, err = Collect(
+				RoundWithPrecision(math.MinInt)(Just(42.5, -42.5, math.Inf(1), math.Inf(-1), math.NaN())),
+			)
+		})
+		is.NoError(err)
+		is.Len(values, 5)
+		is.Equal(0.0, values[0])
+		is.Equal(0.0, values[1])
+		is.True(math.IsInf(values[2], 1))
+		is.True(math.IsInf(values[3], -1))
+		is.True(math.IsNaN(values[4]))
+	})
+
+	t.Run("empty source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(2)(Empty[float64]()),
+		)
+		is.Equal([]float64{}, values)
+		is.NoError(err)
+	})
+
+	t.Run("error source", func(t *testing.T) {
+		t.Parallel()
+		is := assert.New(t)
+
+		values, err := Collect(
+			RoundWithPrecision(2)(Throw[float64](assert.AnError)),
+		)
+		is.Equal([]float64{}, values)
+		is.EqualError(err, assert.AnError.Error())
+	})
+}
+
 func TestOperatorMathMin(t *testing.T) {
 	t.Parallel()
 
