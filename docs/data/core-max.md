@@ -1,7 +1,7 @@
 ---
 name: Max
 slug: max
-sourceRef: operator_math.go#L192
+sourceRef: operator_math.go#L346
 type: core
 category: math
 signatures:

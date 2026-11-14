@@ -5141,6 +5141,57 @@ func ExampleRound_error() {
 	// Error: assert.AnError general error for testing
 }
 
+func ExampleRoundWithPrecision() {
+	observable := Pipe1(
+		Just(3.14159, 2.71828, -1.2345),
+		RoundWithPrecision(2),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[float64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 3.14
+	// Next: 2.72
+	// Next: -1.23
+	// Completed
+}
+
+func ExampleRoundWithPrecision_binaryRepresentation() {
+	// 0.145 is stored in binary as a value slightly below 0.145. Rounding the
+	// shortest decimal representation makes it round to 0.15 as a caller expects.
+	observable := Pipe1(
+		Just(0.145, 2.675, 1.005),
+		RoundWithPrecision(2),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[float64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 0.15
+	// Next: 2.68
+	// Next: 1.01
+	// Completed
+}
+
+func ExampleRoundWithPrecision_negativePrecision() {
+	// Negative places round to powers of ten (e.g. places=-1 -> round to nearest 10).
+	observable := Pipe1(
+		Just(123.45, 125, -125),
+		RoundWithPrecision(-1),
+	)
+
+	subscription := observable.Subscribe(PrintObserver[float64]())
+	defer subscription.Unsubscribe()
+
+	// Output:
+	// Next: 120
+	// Next: 130
+	// Next: -130
+	// Completed
+}
+
 func ExampleMin_ok() {
 	observable := Pipe1(
 		Just(1, 2, 3, 4, 5),

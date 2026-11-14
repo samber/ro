@@ -1,7 +1,7 @@
 ---
 name: Abs
 slug: abs
-sourceRef: operator_math.go#L254
+sourceRef: operator_math.go#L413
 type: core
 category: math
 signatures:

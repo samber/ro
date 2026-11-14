@@ -144,7 +144,7 @@ observable.Subscribe(ro.OnNext(func(s string) {
 - `Max` - Emit maximum value
 - `Clamp` - Clamp values within bounds
 - `Abs` - Emit absolute values
-- `Round` - Round float values
+- `Round` / `RoundWithPrecision` - Round float values (optionally to a number of decimal places)
 - `Floor` - Emit floor of values
 - `FloorWithPrecision` - Floor values with any integer precision (positive or negative)
 - `Ceil` / `CeilWithPrecision` - Emit ceiling of values (optionally with precision)
