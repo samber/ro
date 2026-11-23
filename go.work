@@ -20,6 +20,7 @@ use (
 	// ./plugins/exp/simd
 	// Commented out because requires go>=1.25
 	// ./plugins/encoding/json/v2
+	./plugins/faker
 	./plugins/fsnotify
 	// Commented out because requires go>=1.20
 	// ./plugins/ics

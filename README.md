@@ -106,6 +106,7 @@ The `ro` library provides a rich ecosystem of plugins for various use cases:
 ### Data Manipulation
 - **Bytes** (`plugins/bytes`) - String and byte slice manipulation operators
 - **Strings** (`plugins/strings`) - String manipulation operators
+- **Faker** (`plugins/faker`) - Fake data creation operators
 - **Sort** (`plugins/sort`) - Sorting operators
 - **Type Conversion** (`plugins/strconv`) - String conversion operators
 - **SIMD** (`plugins/exp/simd`) - SIMD-accelerated transformations
